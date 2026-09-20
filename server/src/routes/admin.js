@@ -6,45 +6,51 @@ const skillCtrl = require('../controllers/skillController');
 const jobCtrl = require('../controllers/jobController');
 const appCtrl = require('../controllers/applicationController');
 const compCtrl = require('../controllers/companyController');
+const wsCtrl = require('../controllers/workspaceController');
+const evalCtrl = require('../controllers/evaluationController');
+const payCtrl = require('../controllers/paymentController');
+const statsCtrl = require('../controllers/statsController');
+const userCtrl = require('../controllers/userController');
 
 router.use(protect, authorize('ADMIN'));
 
-// Dashboard placeholder
-router.get('/dashboard', (req, res) => res.json({ success: true, message: 'Admin dashboard — Phase 7' }));
+// Stats
+router.get('/stats', statsCtrl.getAdminStats);
 
-// Skills management
+// Users
+router.get('/users', userCtrl.getUsers);
+router.put('/users/:id/toggle-status', userCtrl.toggleUserStatus);
+
+// Skills
 router.get('/skills', skillCtrl.getAllSkills);
 router.post('/skills', [body('name').notEmpty()], validate, skillCtrl.createSkill);
 router.put('/skills/:id', skillCtrl.updateSkill);
 router.delete('/skills/:id', skillCtrl.deleteSkill);
 
-// Internal job posts
+// Jobs
 router.get('/jobs', jobCtrl.getAdminJobs);
-router.post('/jobs', [
-  body('title').notEmpty(),
-  body('description').notEmpty(),
-], validate, jobCtrl.createAdminJob);
+router.post('/jobs', [body('title').notEmpty(), body('description').notEmpty()], validate, jobCtrl.createAdminJob);
 
-// Applications for internal jobs
+// Applications
 router.get('/jobs/:jobId/applications', appCtrl.getAdminJobApplications);
-router.put('/applications/:id/status', [
-  body('status').isIn(['PENDING', 'VIEWED', 'INTERVIEW', 'HIRED', 'REJECTED']),
-], validate, appCtrl.adminUpdateApplicationStatus);
+router.put('/applications/:id/status', [body('status').isIn(['PENDING', 'VIEWED', 'INTERVIEW', 'HIRED', 'REJECTED'])], validate, appCtrl.adminUpdateApplicationStatus);
 
-// Company verification
+// Companies
 router.get('/companies', compCtrl.getAllCompanies);
-router.put('/companies/:id/verify', [
-  body('verification_status').isIn(['VERIFIED', 'REJECTED']),
-], validate, compCtrl.verifyCompany);
+router.put('/companies/:id/verify', [body('verification_status').isIn(['VERIFIED', 'REJECTED'])], validate, compCtrl.verifyCompany);
 
-const wsCtrl = require('../controllers/workspaceController');
-
-// Projects
+// Projects & Workspaces
 router.get('/projects', wsCtrl.getProjects);
-router.post('/projects', [
-  body('name').notEmpty(),
-], validate, wsCtrl.createProject);
+router.post('/projects', [body('name').notEmpty()], validate, wsCtrl.createProject);
 router.get('/projects/:id', wsCtrl.getProjectById);
 router.put('/projects/:id', wsCtrl.updateProject);
+
+// Evaluations
+router.post('/workspaces/:workspaceId/members/:memberId/evaluate', [body('score').isFloat({ min: 0, max: 10 })], validate, evalCtrl.evaluateCandidate);
+
+// Payments
+router.get('/payments', payCtrl.getAllPayments);
+router.post('/payments', [body('amount').isNumeric(), body('workspace_member_id').isUUID()], validate, payCtrl.createPayment);
+router.put('/payments/:id/process', [body('status').isIn(['PROCESSING', 'PAID', 'FAILED'])], validate, payCtrl.processPayment);
 
 module.exports = router;
