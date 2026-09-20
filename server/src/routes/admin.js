@@ -37,4 +37,14 @@ router.put('/companies/:id/verify', [
   body('verification_status').isIn(['VERIFIED', 'REJECTED']),
 ], validate, compCtrl.verifyCompany);
 
+const wsCtrl = require('../controllers/workspaceController');
+
+// Projects
+router.get('/projects', wsCtrl.getProjects);
+router.post('/projects', [
+  body('name').notEmpty(),
+], validate, wsCtrl.createProject);
+router.get('/projects/:id', wsCtrl.getProjectById);
+router.put('/projects/:id', wsCtrl.updateProject);
+
 module.exports = router;
