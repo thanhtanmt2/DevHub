@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
 import { skillApi } from '@/api/skillApi';
+import { uploadApi } from '@/api/uploadApi';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -50,6 +51,7 @@ export default function ProfilePage() {
 
   const tabs = [
     { id: 'info', label: 'Thông tin cá nhân' },
+    { id: 'cv', label: 'Quản lý CV' },
     { id: 'skills', label: 'Kỹ năng' },
     { id: 'experience', label: 'Kinh nghiệm' },
     { id: 'payment', label: 'Thông tin nhận tiền' },
@@ -90,6 +92,7 @@ export default function ProfilePage() {
       </div>
 
       {activeTab === 'info' && <ProfileInfoTab profile={profile} qc={qc} />}
+      {activeTab === 'cv' && <CvTab profile={profile} qc={qc} />}
       {activeTab === 'skills' && <SkillsTab mySkills={mySkills} publicSkills={publicSkills} qc={qc} />}
       {activeTab === 'experience' && <ExperienceTab experiences={experiences} qc={qc} />}
       {activeTab === 'payment' && <PaymentTab paymentInfo={paymentInfo} qc={qc} />}
@@ -154,6 +157,257 @@ function ProfileInfoTab({ profile, qc }) {
         <button onClick={() => mutation.mutate(form)} disabled={mutation.isPending} className="btn-primary">
           {mutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── CV Management Tab (Multiple CVs) ──────────────────
+function CvTab({ profile, qc }) {
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [cvTitle, setCvTitle] = useState('');
+  const [makeDefault, setMakeDefault] = useState(false);
+
+  const { data: cvsRes, isLoading } = useQuery({
+    queryKey: ['candidate-cvs'],
+    queryFn: () => candidateApi.getMyCvs(),
+  });
+
+  const cvList = cvsRes?.data?.data || [];
+
+  const handleUploadCV = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Kích thước file tối đa là 10MB');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const res = await uploadApi.uploadCV(file);
+      const { url, filename } = res.data.data;
+
+      const titleToUse = cvTitle.trim() || file.name.replace(/\.[^/.]+$/, "");
+      await candidateApi.addCv({
+        name: titleToUse,
+        file_url: url,
+        file_name: filename,
+        file_size: file.size,
+        is_default: makeDefault || cvList.length === 0,
+      });
+
+      qc.invalidateQueries(['candidate-cvs']);
+      qc.invalidateQueries(['candidate-profile']);
+      toast.success('Đã tải lên và lưu CV thành công!');
+      setCvTitle('');
+      setMakeDefault(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Tải lên CV thất bại');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSetDefault = async (cvId) => {
+    try {
+      await candidateApi.setDefaultCv(cvId);
+      qc.invalidateQueries(['candidate-cvs']);
+      qc.invalidateQueries(['candidate-profile']);
+      toast.success('Đã đặt làm CV mặc định');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể đặt làm mặc định');
+    }
+  };
+
+  const handleDeleteCV = async (cvId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa bản CV này khỏi hồ sơ không?')) return;
+    try {
+      await candidateApi.deleteCv(cvId);
+      qc.invalidateQueries(['candidate-cvs']);
+      qc.invalidateQueries(['candidate-profile']);
+      toast.success('Đã xóa CV khỏi danh sách');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Xóa CV thất bại');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Quản lý danh sách CV ({cvList.length})</h2>
+            <p className="text-sm text-gray-500">
+              Bạn có thể lưu nhiều phiên bản CV khác nhau (ví dụ: CV Frontend, CV Backend, CV Tiếng Anh) và chọn CV phù hợp khi ứng tuyển.
+            </p>
+          </div>
+        </div>
+
+        {/* Existing CVs list */}
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-400">Đang tải danh sách CV...</div>
+        ) : cvList.length === 0 ? (
+          <div className="p-8 bg-gray-50 rounded-2xl border border-gray-200 text-center mb-6">
+            <div className="text-4xl mb-2">📂</div>
+            <h3 className="font-semibold text-gray-800 text-base">Chưa có CV nào trong hồ sơ</h3>
+            <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+              Hãy tải lên bản CV đầu tiên bên dưới để hệ thống lưu trữ và giúp bạn ứng tuyển nhanh chóng.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 mb-8">
+            {cvList.map((cv) => (
+              <div
+                key={cv.id}
+                className={`p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                  cv.is_default
+                    ? 'border-primary-300 bg-primary-50/30 ring-1 ring-primary-400/50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-primary-100/70 border border-primary-200 flex items-center justify-center text-2xl shrink-0">
+                    📄
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-bold text-gray-900 text-base truncate">{cv.name}</h4>
+                      {cv.is_default && (
+                        <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200">
+                          ⭐ CV Mặc định
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mt-0.5">
+                      <span className="truncate max-w-[220px]">Tệp: {cv.file_name}</span>
+                      {cv.file_size && (
+                        <span>• {(cv.file_size / (1024 * 1024)).toFixed(2)} MB</span>
+                      )}
+                      <span>• Cập nhật: {new Date(cv.updated_at || cv.created_at).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0 self-end md:self-center">
+                  {!cv.is_default && (
+                    <button
+                      type="button"
+                      onClick={() => handleSetDefault(cv.id)}
+                      className="btn text-xs py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
+                    >
+                      ⭐ Đặt làm mặc định
+                    </button>
+                  )}
+                  <a
+                    href={cv.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1"
+                  >
+                    <span>👁️</span> Xem CV ↗
+                  </a>
+                  <a
+                    href={cv.file_url}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1"
+                  >
+                    <span>📥</span> Tải về
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCV(cv.id)}
+                    className="btn text-xs py-1.5 px-2.5 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg transition"
+                    title="Xóa bản CV này"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Upload form for new CV */}
+        <div className="border-t border-gray-100 pt-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <span>➕</span> Tải lên bản CV mới
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Tên gọi gợi nhớ cho CV (Tùy chọn)
+              </label>
+              <input
+                type="text"
+                className="input-field text-sm"
+                placeholder="VD: CV Frontend Developer, CV Tiếng Anh..."
+                value={cvTitle}
+                onChange={(e) => setCvTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center">
+              <label className="flex items-center gap-2 cursor-pointer mt-5 text-sm text-gray-700 font-medium select-none">
+                <input
+                  type="checkbox"
+                  checked={makeDefault}
+                  onChange={(e) => setMakeDefault(e.target.checked)}
+                  className="rounded text-primary-600 focus:ring-primary-500 w-4 h-4"
+                />
+                Đặt làm CV mặc định khi ứng tuyển
+              </label>
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={handleUploadCV}
+            className="hidden"
+          />
+
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 p-7 rounded-2xl text-center cursor-pointer transition duration-150 flex flex-col items-center justify-center gap-2"
+          >
+            {uploading ? (
+              <div className="flex items-center gap-3 text-sm text-primary-600 font-medium">
+                <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                <span>Đang tải file lên và thêm vào danh sách CV...</span>
+              </div>
+            ) : (
+              <>
+                <span className="text-3xl">📤</span>
+                <p className="text-sm font-semibold text-gray-800">
+                  Nhấp để tải lên hoặc kéo thả file CV vào đây
+                </p>
+                <p className="text-xs text-gray-400">
+                  Hỗ trợ định dạng PDF, DOC, DOCX • Dung lượng tối đa 10MB
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Guide Card */}
+      <div className="card bg-blue-50/40 border border-blue-100 p-5 rounded-xl">
+        <h4 className="text-sm font-bold text-blue-950 flex items-center gap-2 mb-2">
+          <span>💡</span> Mẹo sử dụng nhiều CV hiệu quả
+        </h4>
+        <ul className="text-xs text-blue-900/80 space-y-1.5 list-disc list-inside">
+          <li>Bạn có thể tạo các bản CV chuyên biệt: <strong>CV Frontend</strong> (tập trung React, UI/UX), <strong>CV Backend</strong> (tập trung Node.js, Database, Docker) hoặc <strong>CV Tiếng Anh</strong> cho các vị trí yêu cầu ngoại ngữ.</li>
+          <li>CV được đánh dấu ⭐ <strong>CV Mặc định</strong> sẽ được tự động chọn đầu tiên khi bạn bấm nút ứng tuyển.</li>
+          <li>Định dạng khuyên dùng tốt nhất là <strong>PDF</strong> để giữ nguyên định dạng thẩm mỹ.</li>
+        </ul>
       </div>
     </div>
   );

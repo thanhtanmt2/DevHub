@@ -21,9 +21,16 @@ export const candidateApi = {
   getPaymentInfo: () => api.get('/candidates/payment-info'),
   upsertPaymentInfo: (data) => api.post('/candidates/payment-info', data),
   
+  // CV Management (Multiple CVs)
+  getMyCvs: () => api.get('/candidates/cvs'),
+  addCv: (data) => api.post('/candidates/cvs', data),
+  setDefaultCv: (id) => api.put(`/candidates/cvs/${id}/default`),
+  deleteCv: (id) => api.delete(`/candidates/cvs/${id}`),
+  
   // Workspaces & payments
   getMyWorkspaces: () => api.get('/candidates/workspaces'),
   getMyPayments: () => api.get('/candidates/payments'),
   getMyApplications: () => api.get('/applications/mine'),
+  getMyProjectApplications: () => api.get('/candidates/project-applications'),
   getApplicationDetail: (id) => api.get(`/applications/${id}`),
 };

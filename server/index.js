@@ -26,12 +26,17 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'DevHub API is running', timestamp: new Date().toISOString() });
 });
 
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/upload', require('./src/routes/upload'));
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/candidates', require('./src/routes/candidates'));
 app.use('/api/employer', require('./src/routes/employer'));
 app.use('/api/jobs', require('./src/routes/jobs'));
+app.use('/api/project-jobs', require('./src/routes/projectJobs'));
 app.use('/api/applications', require('./src/routes/applications'));
 app.use('/api/workspaces', require('./src/routes/workspaces'));
 app.use('/api/tasks', require('./src/routes/tasks'));

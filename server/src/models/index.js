@@ -9,6 +9,7 @@ const RolePermission = require('./RolePermission')(sequelize, DataTypes);
 const User = require('./User')(sequelize, DataTypes);
 const UserRole = require('./UserRole')(sequelize, DataTypes);
 const CandidateProfile = require('./CandidateProfile')(sequelize, DataTypes);
+const CandidateCv = require('./CandidateCv')(sequelize, DataTypes);
 const Experience = require('./Experience')(sequelize, DataTypes);
 const Skill = require('./Skill')(sequelize, DataTypes);
 const CandidateSkill = require('./CandidateSkill')(sequelize, DataTypes);
@@ -18,7 +19,14 @@ const JobPost = require('./JobPost')(sequelize, DataTypes);
 const JobPostSkill = require('./JobPostSkill')(sequelize, DataTypes);
 const Application = require('./Application')(sequelize, DataTypes);
 const ApplicationStatusHistory = require('./ApplicationStatusHistory')(sequelize, DataTypes);
-const InternalProject = require('./InternalProject')(sequelize, DataTypes);
+
+// Project models (Freelance / Thời vụ)
+const Project = require('./Project')(sequelize, DataTypes);
+const ProjectJob = require('./ProjectJob')(sequelize, DataTypes);
+const ProjectJobSkill = require('./ProjectJobSkill')(sequelize, DataTypes);
+const ProjectApplication = require('./ProjectApplication')(sequelize, DataTypes);
+
+// Workspace models
 const Workspace = require('./Workspace')(sequelize, DataTypes);
 const WorkspaceMember = require('./WorkspaceMember')(sequelize, DataTypes);
 const Task = require('./Task')(sequelize, DataTypes);
@@ -47,6 +55,10 @@ Company.belongsTo(User, { foreignKey: 'user_id' });
 CandidateProfile.hasMany(Experience, { foreignKey: 'candidate_profile_id' });
 Experience.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
 
+// CandidateProfile -> CandidateCv (one-to-many)
+CandidateProfile.hasMany(CandidateCv, { foreignKey: 'candidate_profile_id', as: 'cvs' });
+CandidateCv.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
+
 // CandidateProfile <-> Skill (many-to-many)
 CandidateProfile.belongsToMany(Skill, { through: CandidateSkill, foreignKey: 'candidate_profile_id' });
 Skill.belongsToMany(CandidateProfile, { through: CandidateSkill, foreignKey: 'skill_id' });
@@ -55,7 +67,7 @@ Skill.belongsToMany(CandidateProfile, { through: CandidateSkill, foreignKey: 'sk
 CandidateProfile.hasOne(PaymentInformation, { foreignKey: 'candidate_profile_id' });
 PaymentInformation.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
 
-// JobPost
+// JobPost (Company recruitment)
 User.hasMany(JobPost, { foreignKey: 'created_by_user_id' });
 JobPost.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'creator' });
 Company.hasMany(JobPost, { foreignKey: 'company_id' });
@@ -65,7 +77,7 @@ JobPost.belongsTo(Company, { foreignKey: 'company_id' });
 JobPost.belongsToMany(Skill, { through: JobPostSkill, foreignKey: 'job_post_id' });
 Skill.belongsToMany(JobPost, { through: JobPostSkill, foreignKey: 'skill_id' });
 
-// Application
+// Application (Company job applications)
 CandidateProfile.hasMany(Application, { foreignKey: 'candidate_profile_id' });
 Application.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
 JobPost.hasMany(Application, { foreignKey: 'job_post_id' });
@@ -75,19 +87,33 @@ Application.belongsTo(JobPost, { foreignKey: 'job_post_id' });
 Application.hasMany(ApplicationStatusHistory, { foreignKey: 'application_id' });
 ApplicationStatusHistory.belongsTo(Application, { foreignKey: 'application_id' });
 
-// InternalProject
-JobPost.hasOne(InternalProject, { foreignKey: 'job_post_id' });
-InternalProject.belongsTo(JobPost, { foreignKey: 'job_post_id' });
+// ── Project & ProjectJob (Freelance / Thời vụ) ────────────────────
+User.hasMany(Project, { foreignKey: 'created_by_user_id' });
+Project.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'creator' });
 
-// Workspace
-InternalProject.hasOne(Workspace, { foreignKey: 'internal_project_id' });
-Workspace.belongsTo(InternalProject, { foreignKey: 'internal_project_id' });
+Project.hasMany(ProjectJob, { foreignKey: 'project_id' });
+ProjectJob.belongsTo(Project, { foreignKey: 'project_id' });
+
+ProjectJob.belongsToMany(Skill, { through: ProjectJobSkill, foreignKey: 'project_job_id' });
+Skill.belongsToMany(ProjectJob, { through: ProjectJobSkill, foreignKey: 'skill_id' });
+
+ProjectJob.hasMany(ProjectApplication, { foreignKey: 'project_job_id' });
+ProjectApplication.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
+
+CandidateProfile.hasMany(ProjectApplication, { foreignKey: 'candidate_profile_id' });
+ProjectApplication.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
+
+// Project <-> Workspace (1-1)
+Project.hasOne(Workspace, { foreignKey: 'project_id' });
+Workspace.belongsTo(Project, { foreignKey: 'project_id' });
 
 // WorkspaceMember
 Workspace.hasMany(WorkspaceMember, { foreignKey: 'workspace_id' });
 WorkspaceMember.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 CandidateProfile.hasMany(WorkspaceMember, { foreignKey: 'candidate_profile_id' });
 WorkspaceMember.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
+ProjectJob.hasMany(WorkspaceMember, { foreignKey: 'project_job_id' });
+WorkspaceMember.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 
 // Task
 Workspace.hasMany(Task, { foreignKey: 'workspace_id' });
@@ -107,16 +133,20 @@ CandidateEvaluation.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_i
 WorkspaceMember.hasMany(Payment, { foreignKey: 'workspace_member_id' });
 Payment.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id' });
 
+// Backwards compatibility alias
+const InternalProject = Project;
+
 module.exports = {
   sequelize,
   Sequelize,
   Role, Permission, RolePermission,
   User, UserRole,
-  CandidateProfile, Experience, Skill, CandidateSkill, PaymentInformation,
+  CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation,
   Company,
   JobPost, JobPostSkill,
   Application, ApplicationStatusHistory,
-  InternalProject,
+  Project, ProjectJob, ProjectJobSkill, ProjectApplication,
+  InternalProject, // alias
   Workspace, WorkspaceMember,
   Task, TaskSubmission,
   CandidateEvaluation,

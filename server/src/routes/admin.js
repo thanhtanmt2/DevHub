@@ -45,6 +45,12 @@ router.post('/projects', [body('name').notEmpty()], validate, wsCtrl.createProje
 router.get('/projects/:id', wsCtrl.getProjectById);
 router.put('/projects/:id', wsCtrl.updateProject);
 
+// Project Jobs & Applications
+const projectJobCtrl = require('../controllers/projectJobController');
+router.get('/projects/:projectId/jobs', projectJobCtrl.adminGetProjectJobs);
+router.post('/projects/:projectId/jobs', [body('title').notEmpty()], validate, projectJobCtrl.adminCreateProjectJob);
+router.put('/project-applications/:id/status', [body('status').isIn(['REVIEWING', 'ACCEPTED', 'REJECTED'])], validate, projectJobCtrl.adminUpdateProjectApplicationStatus);
+
 // Evaluations
 router.post('/workspaces/:workspaceId/members/:memberId/evaluate', [body('score').isFloat({ min: 0, max: 10 })], validate, evalCtrl.evaluateCandidate);
 

@@ -13,9 +13,9 @@ router.use(protect, authorize('CANDIDATE'));
 // Profile
 router.get('/profile', ctrl.getMyProfile);
 router.put('/profile', [
-  body('phone').optional().isMobilePhone().withMessage('Invalid phone number'),
-  body('github_url').optional().isURL().withMessage('Invalid GitHub URL'),
-  body('portfolio_url').optional().isURL().withMessage('Invalid portfolio URL'),
+  body('phone').optional({ checkFalsy: true }).isMobilePhone().withMessage('Invalid phone number'),
+  body('github_url').optional({ checkFalsy: true }).isURL().withMessage('Invalid GitHub URL'),
+  body('portfolio_url').optional({ checkFalsy: true }).isURL().withMessage('Invalid portfolio URL'),
 ], validate, ctrl.updateProfile);
 
 // Skills
@@ -52,5 +52,18 @@ router.post('/payment-info', [
 // Workspaces & Payments
 router.get('/workspaces', ctrl.getMyWorkspaces);
 router.get('/payments', ctrl.getMyPayments);
+
+// CVs
+router.get('/cvs', ctrl.getMyCvs);
+router.post('/cvs', [
+  body('file_url').notEmpty().withMessage('file_url required'),
+  body('file_name').notEmpty().withMessage('file_name required'),
+], validate, ctrl.addCv);
+router.put('/cvs/:id/default', ctrl.setDefaultCv);
+router.delete('/cvs/:id', ctrl.deleteCv);
+
+// Project Applications
+const projectJobCtrl = require('../controllers/projectJobController');
+router.get('/project-applications', projectJobCtrl.getMyProjectApplications);
 
 module.exports = router;

@@ -24,6 +24,7 @@ router.put('/jobs/:id', jobCtrl.updateEmployerJob);
 router.delete('/jobs/:id', jobCtrl.closeEmployerJob);
 
 // Applications
+router.get('/applications', appCtrl.getAllEmployerApplications);
 router.get('/jobs/:jobId/applications', appCtrl.getJobApplications);
 router.put('/applications/:id/status', [body('status').isIn(['VIEWED', 'INTERVIEW', 'HIRED', 'REJECTED'])], validate, appCtrl.updateApplicationStatus);
 

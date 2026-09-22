@@ -14,7 +14,8 @@ export default function HomePage() {
           Tìm kiếm cơ hội Freelance, Remote & Part-time trong lĩnh vực Công nghệ thông tin.
         </p>
         <div className="mt-8 flex gap-4 justify-center">
-          <Link to="/jobs" className="btn-primary px-8 py-3 text-base">Tìm việc ngay</Link>
+          <Link to="/projects" className="btn-primary px-8 py-3 text-base">Tìm dự án thời vụ</Link>
+          <Link to="/jobs" className="btn-secondary px-8 py-3 text-base">Tìm việc công ty</Link>
           {!user && (
             <button
               type="button"
@@ -25,19 +26,6 @@ export default function HomePage() {
             </button>
           )}
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[{icon:'💼', title:'Việc làm IT chất lượng', desc:'Kết nối với hàng trăm cơ hội từ các doanh nghiệp uy tín'},
-          {icon:'⭐', title:'Hồ sơ được xác thực', desc:'Điểm năng lực được đánh giá từ dự án thực chiến, không chỉ tự khai báo'},
-          {icon:'🚀', title:'Workspace tích hợp', desc:'Quản lý dự án, giao việc và nghiệm thu ngay trên nền tảng'}
-        ].map((item, i) => (
-          <div key={i} className="card text-center">
-            <div className="text-4xl mb-3">{item.icon}</div>
-            <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-            <p className="text-gray-500 text-sm">{item.desc}</p>
-          </div>
-        ))}
       </div>
     </div>
   );

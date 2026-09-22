@@ -1,28 +1,25 @@
-const { InternalProject, Workspace, WorkspaceMember, User, CandidateProfile, JobPost } = require('../models');
+const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, Skill } = require('../models');
 const AppError = require('../utils/AppError');
 
 // POST /api/admin/projects
 exports.createProject = async (req, res, next) => {
   try {
-    const { job_post_id, name, description, budget, expected_end_date } = req.body;
-    
-    // Check if job exists and is internal
-    if (job_post_id) {
-      const job = await JobPost.findByPk(job_post_id);
-      if (!job || job.post_type !== 'INTERNAL') throw new AppError('Invalid job post', 400);
-    }
+    const { name, description, budget, expected_end_date } = req.body;
 
-    const project = await InternalProject.create({
-      job_post_id: job_post_id || null,
-      name, description, budget, expected_end_date,
+    const project = await Project.create({
+      name,
+      description,
+      budget,
+      expected_end_date,
       start_date: new Date(),
-      status: 'PLANNING',
-      completion_rate: 0
+      status: 'RECRUITING',
+      completion_rate: 0,
+      created_by_user_id: req.user.id
     });
 
     // Auto-create workspace for project
     const workspace = await Workspace.create({
-      internal_project_id: project.id,
+      project_id: project.id,
       name: `WS - ${name}`,
       status: 'ACTIVE'
     });
@@ -34,10 +31,13 @@ exports.createProject = async (req, res, next) => {
 // GET /api/admin/projects
 exports.getProjects = async (req, res, next) => {
   try {
-    const projects = await InternalProject.findAll({
+    const projects = await Project.findAll({
       include: [
         { model: Workspace, attributes: ['id', 'status'] },
-        { model: JobPost, attributes: ['id', 'title'] }
+        { 
+          model: ProjectJob, 
+          include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }]
+        }
       ],
       order: [['created_at', 'DESC']]
     });
@@ -48,8 +48,14 @@ exports.getProjects = async (req, res, next) => {
 // GET /api/admin/projects/:id
 exports.getProjectById = async (req, res, next) => {
   try {
-    const project = await InternalProject.findByPk(req.params.id, {
-      include: [{ model: Workspace }]
+    const project = await Project.findByPk(req.params.id, {
+      include: [
+        { model: Workspace },
+        { 
+          model: ProjectJob, 
+          include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }] 
+        }
+      ]
     });
     if (!project) throw new AppError('Project not found', 404);
     res.json({ success: true, data: project });
@@ -59,7 +65,7 @@ exports.getProjectById = async (req, res, next) => {
 // PUT /api/admin/projects/:id
 exports.updateProject = async (req, res, next) => {
   try {
-    const project = await InternalProject.findByPk(req.params.id);
+    const project = await Project.findByPk(req.params.id);
     if (!project) throw new AppError('Project not found', 404);
     
     await project.update(req.body);
@@ -70,21 +76,21 @@ exports.updateProject = async (req, res, next) => {
 // POST /api/admin/workspaces/:id/members
 exports.addWorkspaceMember = async (req, res, next) => {
   try {
-    const { candidate_profile_id, role, start_date } = req.body;
+    const { candidate_profile_id, project_job_id } = req.body;
     const workspace = await Workspace.findByPk(req.params.id);
     if (!workspace) throw new AppError('Workspace not found', 404);
 
     const existing = await WorkspaceMember.findOne({
       where: { workspace_id: workspace.id, candidate_profile_id }
     });
-    if (existing) throw new AppError('Member already in workspace', 409);
+    if (existing) throw new AppError('Thành viên này đã có trong không gian làm việc', 409);
 
     const member = await WorkspaceMember.create({
       workspace_id: workspace.id,
       candidate_profile_id,
-      role: role || 'MEMBER',
-      start_date: start_date || new Date(),
-      status: 'ACTIVE'
+      project_job_id: project_job_id || null,
+      status: 'ACTIVE',
+      joined_at: new Date()
     });
 
     res.status(201).json({ success: true, data: member });
@@ -96,13 +102,16 @@ exports.getWorkspaceDetail = async (req, res, next) => {
   try {
     const workspace = await Workspace.findByPk(req.params.id, {
       include: [
-        { model: InternalProject },
+        { model: Project },
         { 
           model: WorkspaceMember,
-          include: [{
-            model: CandidateProfile,
-            include: [{ model: User, attributes: ['full_name', 'email'] }]
-          }]
+          include: [
+            {
+              model: CandidateProfile,
+              include: [{ model: User, attributes: ['full_name', 'email'] }]
+            },
+            { model: ProjectJob, attributes: ['id', 'title', 'budget'] }
+          ]
         }
       ]
     });
@@ -129,7 +138,7 @@ exports.removeWorkspaceMember = async (req, res, next) => {
     });
     if (!member) throw new AppError('Member not found', 404);
     
-    await member.update({ status: 'LEFT', end_date: new Date() });
-    res.json({ success: true, message: 'Member removed/left' });
+    await member.update({ status: 'REMOVED' });
+    res.json({ success: true, message: 'Member removed' });
   } catch (error) { next(error); }
 };

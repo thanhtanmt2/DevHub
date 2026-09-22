@@ -27,8 +27,11 @@ export default function Navbar() {
             DevHub
           </Link>
           <div className="flex items-center gap-6">
-            <Link to="/jobs" className="text-sm text-gray-600 hover:text-primary-600 transition-colors">
-              Tìm việc
+            <Link to="/projects" className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors">
+              Dự án thời vụ
+            </Link>
+            <Link to="/jobs" className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors">
+              Tuyển dụng công ty
             </Link>
             {user ? (
               <>

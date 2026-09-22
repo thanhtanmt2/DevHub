@@ -68,6 +68,42 @@ exports.getApplicationDetail = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// GET /api/employer/applications — employer views all applicants across all jobs
+exports.getAllEmployerApplications = async (req, res, next) => {
+  try {
+    const company = await Company.findOne({ where: { user_id: req.user.id } });
+    if (!company) throw new AppError('Company not found', 404);
+
+    const { job_id, status } = req.query;
+    const jobWhere = { company_id: company.id };
+    if (job_id) jobWhere.id = job_id;
+
+    const appWhere = {};
+    if (status) appWhere.status = status;
+
+    const applications = await Application.findAll({
+      where: appWhere,
+      include: [
+        {
+          model: JobPost,
+          where: jobWhere,
+          attributes: ['id', 'title', 'post_type', 'work_type', 'status'],
+        },
+        {
+          model: CandidateProfile,
+          attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name'],
+          include: [
+            { model: User, attributes: ['full_name', 'email'] },
+            { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
+          ],
+        },
+      ],
+      order: [['applied_at', 'DESC']],
+    });
+    res.json({ success: true, data: applications });
+  } catch (error) { next(error); }
+};
+
 // GET /api/employer/jobs/:jobId/applications — employer views applicants
 exports.getJobApplications = async (req, res, next) => {
   try {
@@ -80,9 +116,9 @@ exports.getJobApplications = async (req, res, next) => {
       where: { job_post_id: req.params.jobId },
       include: [{
         model: CandidateProfile,
-        attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url'],
+        attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name'],
         include: [
-          { model: User, attributes: ['full_name'] },
+          { model: User, attributes: ['full_name', 'email'] },
           { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
         ],
       }],

@@ -13,6 +13,7 @@ export const jobApi = {
   createJob: (data) => api.post('/employer/jobs', data),
   updateJob: (id, data) => api.put(`/employer/jobs/${id}`, data),
   closeJob: (id) => api.delete(`/employer/jobs/${id}`),
+  getAllEmployerApplications: (params) => api.get('/employer/applications', { params }),
   getJobApplications: (jobId) => api.get(`/employer/jobs/${jobId}/applications`),
   updateApplicationStatus: (id, data) => api.put(`/employer/applications/${id}/status`, data),
   

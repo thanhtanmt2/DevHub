@@ -9,6 +9,8 @@ module.exports = (sequelize, DataTypes) => {
     github_url: { type: DataTypes.STRING(500) },
     portfolio_url: { type: DataTypes.STRING(500) },
     avatar_url: { type: DataTypes.STRING(500) },
+    cv_url: { type: DataTypes.STRING(500) },
+    cv_name: { type: DataTypes.STRING(255) },
     competency_score: { type: DataTypes.DECIMAL(4, 2), defaultValue: 0, validate: { min: 0, max: 10 } },
   }, { tableName: 'candidate_profiles', underscored: true });
 };

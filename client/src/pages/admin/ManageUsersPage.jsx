@@ -1,15 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/api/adminApi';
+import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 export default function ManageUsersPage() {
   const qc = useQueryClient();
+  const { user: currentUser } = useAuth();
   const { data, isLoading } = useQuery({ queryKey: ['admin-users'], queryFn: () => adminApi.getUsers() });
   
   const toggleMutation = useMutation({
     mutationFn: (id) => adminApi.toggleUserStatus(id),
-    onSuccess: () => { qc.invalidateQueries(['admin-users']); toast.success('Đã cập nhật trạng thái user'); }
+    onSuccess: () => { qc.invalidateQueries(['admin-users']); toast.success('Đã cập nhật trạng thái user'); },
+    onError: (err) => { toast.error(err?.response?.data?.message || 'Có lỗi xảy ra'); }
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -40,14 +43,28 @@ export default function ManageUsersPage() {
                   </div>
                 </td>
                 <td className="p-3">
-                  <span className={`badge ${u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {u.is_active ? 'Hoạt động' : 'Bị khóa'}
-                  </span>
+                  {u.status === 'ACTIVE' && (
+                    <span className="badge bg-green-100 text-green-700">Hoạt động</span>
+                  )}
+                  {u.status === 'LOCKED' && (
+                    <span className="badge bg-red-100 text-red-700">Bị khóa</span>
+                  )}
+                  {(!u.status || u.status === 'INACTIVE') && (
+                    <span className="badge bg-yellow-100 text-yellow-700">Chưa kích hoạt</span>
+                  )}
                 </td>
                 <td className="p-3">
-                  <button onClick={() => toggleMutation.mutate(u.id)} className="text-primary-600 hover:underline">
-                    {u.is_active ? 'Khóa tài khoản' : 'Mở khóa'}
-                  </button>
+                  {u.id === currentUser?.id ? (
+                    <span className="text-xs text-gray-400 italic">Tài khoản của bạn</span>
+                  ) : (
+                    <button
+                      disabled={toggleMutation.isPending}
+                      onClick={() => toggleMutation.mutate(u.id)}
+                      className={u.status === 'LOCKED' ? 'text-green-600 hover:underline' : 'text-red-600 hover:underline'}
+                    >
+                      {u.status === 'LOCKED' ? 'Mở khóa' : 'Khóa tài khoản'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

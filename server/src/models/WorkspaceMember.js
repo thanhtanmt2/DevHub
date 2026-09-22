@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     workspace_id: { type: DataTypes.UUID, allowNull: false },
     candidate_profile_id: { type: DataTypes.UUID, allowNull: false },
+    project_job_id: { type: DataTypes.UUID },
     joined_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     status: { type: DataTypes.ENUM('ACTIVE', 'COMPLETED', 'REMOVED'), defaultValue: 'ACTIVE' },
   }, { tableName: 'workspace_members', underscored: true, timestamps: false });

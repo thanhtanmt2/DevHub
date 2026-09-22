@@ -1,4 +1,4 @@
-const { CandidateProfile, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject } = require('../models');
+const { CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject } = require('../models');
 const AppError = require('../utils/AppError');
 
 // GET /api/candidates/profile
@@ -23,10 +23,21 @@ exports.getMyProfile = async (req, res, next) => {
 // PUT /api/candidates/profile
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { professional_title, introduction, phone, address, github_url, portfolio_url } = req.body;
+    const { professional_title, introduction, phone, address, github_url, portfolio_url, cv_url, cv_name } = req.body;
     let profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) profile = await CandidateProfile.create({ user_id: req.user.id });
-    await profile.update({ professional_title, introduction, phone, address, github_url, portfolio_url });
+
+    const updateData = {};
+    if (professional_title !== undefined) updateData.professional_title = professional_title;
+    if (introduction !== undefined) updateData.introduction = introduction;
+    if (phone !== undefined) updateData.phone = phone;
+    if (address !== undefined) updateData.address = address;
+    if (github_url !== undefined) updateData.github_url = github_url;
+    if (portfolio_url !== undefined) updateData.portfolio_url = portfolio_url;
+    if (cv_url !== undefined) updateData.cv_url = cv_url;
+    if (cv_name !== undefined) updateData.cv_name = cv_name;
+
+    await profile.update(updateData);
     res.json({ success: true, data: profile });
   } catch (error) { next(error); }
 };
@@ -199,5 +210,117 @@ exports.getPublicProfile = async (req, res, next) => {
     });
     if (!profile) throw new AppError('Profile not found', 404);
     res.json({ success: true, data: profile });
+  } catch (error) { next(error); }
+};
+
+// ── CV Management (Multiple CVs) ──────────────────────
+// GET /api/candidates/cvs
+exports.getMyCvs = async (req, res, next) => {
+  try {
+    let profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) profile = await CandidateProfile.create({ user_id: req.user.id });
+
+    // Auto-migrate legacy profile.cv_url if CandidateCv is empty
+    const count = await CandidateCv.count({ where: { candidate_profile_id: profile.id } });
+    if (count === 0 && profile.cv_url) {
+      await CandidateCv.create({
+        candidate_profile_id: profile.id,
+        name: profile.cv_name || 'CV Mặc định',
+        file_url: profile.cv_url,
+        file_name: profile.cv_name || 'CV_Profile.pdf',
+        is_default: true,
+      });
+    }
+
+    const cvs = await CandidateCv.findAll({
+      where: { candidate_profile_id: profile.id },
+      order: [
+        ['is_default', 'DESC'],
+        ['created_at', 'DESC'],
+      ],
+    });
+
+    res.json({ success: true, data: cvs });
+  } catch (error) { next(error); }
+};
+
+// POST /api/candidates/cvs
+exports.addCv = async (req, res, next) => {
+  try {
+    const { name, file_url, file_name, file_size, is_default } = req.body;
+    if (!file_url || !file_name) throw new AppError('File CV không hợp lệ', 400);
+
+    let profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) profile = await CandidateProfile.create({ user_id: req.user.id });
+
+    const totalCount = await CandidateCv.count({ where: { candidate_profile_id: profile.id } });
+    const shouldBeDefault = is_default || totalCount === 0;
+
+    if (shouldBeDefault) {
+      await CandidateCv.update({ is_default: false }, { where: { candidate_profile_id: profile.id } });
+      await profile.update({ cv_url: file_url, cv_name: name || file_name });
+    }
+
+    const newCv = await CandidateCv.create({
+      candidate_profile_id: profile.id,
+      name: name || file_name,
+      file_url,
+      file_name,
+      file_size,
+      is_default: shouldBeDefault,
+    });
+
+    res.status(201).json({ success: true, data: newCv });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/candidates/cvs/:id/default
+exports.setDefaultCv = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) throw new AppError('Profile not found', 404);
+
+    const cv = await CandidateCv.findOne({
+      where: { id: req.params.id, candidate_profile_id: profile.id },
+    });
+    if (!cv) throw new AppError('CV không tồn tại', 404);
+
+    await CandidateCv.update({ is_default: false }, { where: { candidate_profile_id: profile.id } });
+    await cv.update({ is_default: true });
+    await profile.update({ cv_url: cv.file_url, cv_name: cv.name || cv.file_name });
+
+    res.json({ success: true, data: cv });
+  } catch (error) { next(error); }
+};
+
+// DELETE /api/candidates/cvs/:id
+exports.deleteCv = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) throw new AppError('Profile not found', 404);
+
+    const cv = await CandidateCv.findOne({
+      where: { id: req.params.id, candidate_profile_id: profile.id },
+    });
+    if (!cv) throw new AppError('CV không tồn tại', 404);
+
+    const wasDefault = cv.is_default;
+    await cv.destroy();
+
+    // If deleted CV was default, pick another one if available
+    if (wasDefault) {
+      const nextDefault = await CandidateCv.findOne({
+        where: { candidate_profile_id: profile.id },
+        order: [['created_at', 'DESC']],
+      });
+      if (nextDefault) {
+        await nextDefault.update({ is_default: true });
+        await profile.update({ cv_url: nextDefault.file_url, cv_name: nextDefault.name || nextDefault.file_name });
+      } else {
+        await profile.update({ cv_url: null, cv_name: null });
+      }
+    }
+
+    res.json({ success: true, message: 'Đã xóa CV thành công' });
   } catch (error) { next(error); }
 };

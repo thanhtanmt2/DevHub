@@ -18,6 +18,7 @@ import AuthModal from '@/components/auth/AuthModal';
 // Public pages
 import HomePage from '@/pages/public/HomePage';
 import JobsPage from '@/pages/public/JobsPage';
+import ProjectsPage from '@/pages/public/ProjectsPage';
 import JobDetailPage from '@/pages/public/JobDetailPage';
 
 // Candidate pages
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/jobs/:id" element={<JobDetailPage />} />
       </Route>
 
