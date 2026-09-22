@@ -3,15 +3,41 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/api/authApi';
 import toast from 'react-hot-toast';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function AuthModal() {
-  const { authModal, closeAuthModal, setAuthModalView, login } = useAuth();
+  const { authModal, closeAuthModal, setAuthModalView, login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Login form state
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginLoading, setLoginLoading] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoginLoading(true);
+    try {
+      const user = await googleLogin(credentialResponse.credential);
+      const roles = user.Roles?.map((r) => r.name) || [];
+      toast.success(`Chào mừng trở lại, ${user.full_name}!`);
+      closeAuthModal();
+
+      const from = location.state?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
+      } else if (roles.includes('ADMIN')) {
+        navigate('/admin');
+      } else if (roles.includes('EMPLOYER')) {
+        navigate('/employer');
+      } else if (location.pathname === '/') {
+        navigate('/candidate');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Đăng nhập Google thất bại');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   // Register form state
   const [registerForm, setRegisterForm] = useState({
@@ -135,15 +161,13 @@ export default function AuthModal() {
           </svg>
         </button>
 
-        {/* Modal Header */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-primary-600">DevHub</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {authModal.view === 'login' && 'Đăng nhập vào tài khoản của bạn'}
-            {authModal.view === 'register' && 'Tạo tài khoản mới để bắt đầu'}
-            {authModal.view === 'forgot' && 'Khôi phục mật khẩu tài khoản'}
-          </p>
-        </div>
+        {/* Modal Header (Only for forgot password) */}
+        {authModal.view === 'forgot' && (
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Khôi phục mật khẩu</h2>
+            <p className="text-sm text-gray-500 mt-1">Nhập email của bạn để nhận liên kết đặt lại mật khẩu</p>
+          </div>
+        )}
 
         {/* Tabs: Login / Register (Only shown when not in forgot view) */}
         {authModal.view !== 'forgot' && (
@@ -216,6 +240,20 @@ export default function AuthModal() {
             <button type="submit" disabled={loginLoading} className="btn-primary w-full">
               {loginLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
+
+            <div className="flex items-center my-4">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="px-3 text-sm text-gray-500">Hoặc</span>
+              <div className="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            <div className="flex justify-center w-full">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => toast.error('Đăng nhập Google thất bại')}
+                useOneTap
+              />
+            </div>
 
             <p className="text-center text-sm text-gray-500 pt-2">
               Chưa có tài khoản?{' '}

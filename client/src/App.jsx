@@ -26,6 +26,7 @@ import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
 import ProfilePage from '@/pages/candidate/ProfilePage';
 import MyApplicationsPage from '@/pages/candidate/MyApplicationsPage';
 import CandidateWorkspacePage from '@/pages/candidate/WorkspacePage';
+import ManagedProjectsPage from '@/pages/candidate/ManagedProjectsPage';
 
 // Employer pages
 import EmployerDashboard from '@/pages/employer/EmployerDashboard';
@@ -74,6 +75,7 @@ function AppRoutes() {
           <Route path="/candidate" element={<CandidateDashboard />} />
           <Route path="/candidate/profile" element={<ProfilePage />} />
           <Route path="/candidate/applications" element={<MyApplicationsPage />} />
+          <Route path="/candidate/managed-projects" element={<ManagedProjectsPage />} />
           <Route path="/candidate/workspaces/:id" element={<CandidateWorkspacePage />} />
         </Route>
       </Route>

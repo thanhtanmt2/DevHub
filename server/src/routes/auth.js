@@ -18,6 +18,9 @@ router.post('/login', [
   body('email').isEmail(),
   body('password').notEmpty(),
 ], validate, login);
+router.post('/google', [
+  body('token').notEmpty().withMessage('Token is required')
+], validate, require('../controllers/authController').googleLogin);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.post('/forgot-password', [body('email').isEmail()], validate, forgotPassword);

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { workspaceApi } from '@/api/workspaceApi';
-import { projectJobApi } from '@/api/projectJobApi';
+import { managerApi } from '@/api/managerApi';
 import { skillApi } from '@/api/skillApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -188,7 +187,7 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
     const interview_time = new Date(`${form.interview_date}T${form.interview_time}:00`).toISOString();
     setSending(true);
     try {
-      await projectJobApi.scheduleInterview(app.id, {
+      await managerApi.scheduleInterview(app.id, {
         interview_time,
         meet_url: form.meet_url,
         interview_note: form.interview_note || undefined
@@ -314,132 +313,67 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
 }
 
 // ─── Assign Manager Modal ───────────────────────────────────────────────────
-function AssignManagerModal({ project, skills, onClose, onAssign }) {
-  const [query, setQuery] = useState('');
-  const [filterSkill, setFilterSkill] = useState('');
-  const [filterScore, setFilterScore] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  
+function AssignManagerModal({ project, onClose, onAssign }) {
+  const [email, setEmail] = useState('');
   const [candidates, setCandidates] = useState([]);
   const [searching, setSearching] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   
-  // Real-time search effect
-  useEffect(() => {
-    const fetchCandidates = async () => {
-      setSearching(true);
-      try {
-        const params = {
-          q: query,
-          skill_ids: filterSkill ? [filterSkill] : undefined,
-          min_score: filterScore || undefined,
-          manager_status: filterStatus || undefined
-        };
-        const res = await workspaceApi.searchCandidates(params);
-        setCandidates(res.data?.data || []);
-      } catch (err) {
-        // Silently fail or use toast, but don't spam on typing
-      } finally {
-        setSearching(false);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      fetchCandidates();
-    }, 400); // 400ms debounce
-
-    return () => clearTimeout(timer);
-  }, [query, filterSkill, filterScore, filterStatus]);
+  const searchCandidates = async () => {
+    if (!email) return;
+    setSearching(true);
+    try {
+      const res = await managerApi.searchCandidates({ email });
+      setCandidates(res.data?.data || []);
+      setSelectedCandidate(null);
+    } catch (err) {
+      toast.error('Lỗi khi tìm kiếm');
+    } finally {
+      setSearching(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl p-6 animate-fade-in">
+      <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl p-6">
         <h3 className="text-lg font-bold mb-2">Cấp quyền Quản lý Dự án</h3>
         <p className="text-sm text-gray-500 mb-4">Dự án: <span className="font-semibold text-gray-800">{project.name}</span></p>
         
         <div className="space-y-4">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-            <div className="md:col-span-1">
-              <input 
-                type="text" 
-                placeholder="Tìm tên, email..." 
-                className="input-field py-1.5 text-sm"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-              />
-            </div>
-            <div>
-              <select className="input-field py-1.5 text-sm" value={filterSkill} onChange={e => setFilterSkill(e.target.value)}>
-                <option value="">Tất cả Kỹ năng</option>
-                {skills.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <select className="input-field py-1.5 text-sm" value={filterScore} onChange={e => setFilterScore(e.target.value)}>
-                <option value="">Điểm năng lực (Mọi)</option>
-                <option value="5">Từ 5.0 trở lên</option>
-                <option value="7">Từ 7.0 trở lên</option>
-                <option value="8">Từ 8.0 trở lên</option>
-                <option value="9">Từ 9.0 trở lên</option>
-              </select>
-            </div>
-            <div>
-              <select className="input-field py-1.5 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="">Trạng thái (Mọi)</option>
-                <option value="AVAILABLE">Đang rảnh</option>
-                <option value="MANAGING_OTHER">Đang quản lý dự án khác</option>
-              </select>
-            </div>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              placeholder="Nhập email ứng viên (VD: dev@gmail.com)" 
+              className="input-field flex-1"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && searchCandidates()}
+            />
+            <button type="button" onClick={searchCandidates} disabled={searching} className="btn-secondary whitespace-nowrap">
+              Tìm kiếm
+            </button>
           </div>
           
-          <div className="min-h-[250px] max-h-[350px] overflow-y-auto border rounded-lg p-2 bg-gray-50 relative">
-            {searching && (
-              <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
-                <span className="text-sm font-medium text-primary-600">Đang tìm...</span>
-              </div>
-            )}
-            
-            {candidates.length === 0 && !searching ? (
-              <p className="text-gray-500 text-center py-10 text-sm">Chưa có ứng viên nào phù hợp.</p>
+          <div className="min-h-[150px] max-h-[300px] overflow-y-auto border rounded-lg p-2 bg-gray-50">
+            {candidates.length === 0 ? (
+              <p className="text-gray-500 text-center py-4 text-sm">Chưa có kết quả tìm kiếm.</p>
             ) : (
               <div className="space-y-2">
                 {candidates.map(c => (
                   <div 
                     key={c.id} 
                     onClick={() => setSelectedCandidate(c)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between ${selectedCandidate?.id === c.id ? 'bg-indigo-50 border-indigo-500 shadow-sm' : 'bg-white hover:bg-gray-50 border-gray-200'}`}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedCandidate?.id === c.id ? 'bg-indigo-50 border-indigo-500' : 'bg-white hover:bg-gray-50 border-gray-200'}`}
                   >
-                    <div>
-                      <p className="font-medium text-gray-900">{c.User?.full_name}</p>
-                      <p className="text-xs text-gray-500 mb-1">{c.User?.email} · {c.professional_title}</p>
-                      
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded font-medium">
-                          Điểm: {c.competency_score}
-                        </span>
-                        {c.is_managing ? (
-                          <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded font-medium truncate max-w-[200px]" title={c.managed_project_names}>
-                            Đang QL: {c.managed_project_names}
-                          </span>
-                        ) : (
-                          <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-medium">
-                            Rảnh
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Add visual checkmark if selected */}
-                    {selectedCandidate?.id === c.id && (
-                      <div className="text-indigo-600 font-bold">✓</div>
-                    )}
+                    <p className="font-medium">{c.User?.full_name}</p>
+                    <p className="text-xs text-gray-500">{c.User?.email} · {c.professional_title}</p>
                   </div>
                 ))}
               </div>
             )}
           </div>
           
-          <div className="flex gap-2 justify-end mt-4 pt-2">
+          <div className="flex gap-2 justify-end mt-4">
             {project.Manager && (
               <button 
                 type="button"
@@ -466,7 +400,7 @@ function AssignManagerModal({ project, skills, onClose, onAssign }) {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export default function InternalProjectsPage() {
+export default function ManagedProjectsPage() {
   const qc = useQueryClient();
   const [showAddProject, setShowAddProject] = useState(false);
   const [projectForm, setProjectForm] = useState({ name: '', description: '', budget: '', expected_end_date: '' });
@@ -486,8 +420,8 @@ export default function InternalProjectsPage() {
   const [interviewApp, setInterviewApp] = useState(null);
 
   const { data: projectsRes, isLoading } = useQuery({
-    queryKey: ['admin-projects'],
-    queryFn: () => workspaceApi.getProjects(),
+    queryKey: ['managed-projects'],
+    queryFn: () => managerApi.getManagedProjects(),
   });
 
   const { data: skillsRes } = useQuery({
@@ -496,16 +430,16 @@ export default function InternalProjectsPage() {
   });
 
   const { data: projectJobsRes, isLoading: jobsLoading } = useQuery({
-    queryKey: ['admin-project-jobs', viewJobsProject?.id],
-    queryFn: () => projectJobApi.getAdminProjectJobs(viewJobsProject.id),
+    queryKey: ['managed-project-jobs', viewJobsProject?.id],
+    queryFn: () => managerApi.getProjectJobs(viewJobsProject.id),
     enabled: !!viewJobsProject,
   });
 
   // Create Project
   const createProjectMutation = useMutation({
-    mutationFn: (data) => workspaceApi.createProject({ ...data, budget: parseFloat(data.budget) || 0 }),
+    mutationFn: (data) => managerApi.createProject({ ...data, budget: parseFloat(data.budget) || 0 }),
     onSuccess: () => {
-      qc.invalidateQueries(['admin-projects']);
+      qc.invalidateQueries(['managed-projects']);
       setShowAddProject(false);
       setProjectForm({ name: '', description: '', budget: '', expected_end_date: '' });
       toast.success('Đã tạo dự án & Workspace!');
@@ -515,9 +449,9 @@ export default function InternalProjectsPage() {
 
   // Assign Manager
   const assignManagerMutation = useMutation({
-    mutationFn: ({ projectId, manager_id }) => workspaceApi.updateProjectManager(projectId, { manager_id }),
+    mutationFn: ({ projectId, manager_id }) => managerApi.updateProjectManager(projectId, { manager_id }),
     onSuccess: () => {
-      qc.invalidateQueries(['admin-projects']);
+      qc.invalidateQueries(['managed-projects']);
       setAssignManagerProject(null);
       toast.success('Đã cập nhật quyền quản lý dự án!');
     },
@@ -526,13 +460,13 @@ export default function InternalProjectsPage() {
 
   // Create Project Job
   const createJobMutation = useMutation({
-    mutationFn: ({ projectId, data }) => projectJobApi.createAdminProjectJob(projectId, {
+    mutationFn: ({ projectId, data }) => managerApi.createProjectJob(projectId, {
       ...data,
       budget: parseFloat(data.budget) || 0
     }),
     onSuccess: () => {
-      qc.invalidateQueries(['admin-projects']);
-      if (viewJobsProject) qc.invalidateQueries(['admin-project-jobs', viewJobsProject.id]);
+      qc.invalidateQueries(['managed-projects']);
+      if (viewJobsProject) qc.invalidateQueries(['managed-project-jobs', viewJobsProject.id]);
       setActiveProjectForJob(null);
       setJobForm({ title: '', description: '', budget: '', deadline: '', skill_ids: [] });
       toast.success('Đã thêm vị trí công việc vào dự án!');
@@ -542,10 +476,10 @@ export default function InternalProjectsPage() {
 
   // Review Application (status update)
   const reviewAppMutation = useMutation({
-    mutationFn: ({ appId, status }) => projectJobApi.updateProjectApplicationStatus(appId, { status }),
+    mutationFn: ({ appId, status }) => managerApi.updateApplicationStatus(appId, { status }),
     onSuccess: (res) => {
-      if (viewJobsProject) qc.invalidateQueries(['admin-project-jobs', viewJobsProject.id]);
-      qc.invalidateQueries(['admin-projects']);
+      if (viewJobsProject) qc.invalidateQueries(['managed-project-jobs', viewJobsProject.id]);
+      qc.invalidateQueries(['managed-projects']);
       toast.success(res.data?.message || 'Đã cập nhật hồ sơ');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi duyệt hồ sơ'),
@@ -561,72 +495,13 @@ export default function InternalProjectsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Quản lý Dự án Thời vụ & Vị trí tuyển dụng</h1>
-          <p className="text-sm text-gray-500">Quản lý các dự án nội bộ và vị trí tuyển dụng thời vụ</p>
+          <h1 className="text-2xl font-bold">Dự án Quản lý</h1>
+          <p className="text-sm text-gray-500">Quản lý các dự án bạn được chỉ định</p>
         </div>
-        <button onClick={() => setShowAddProject(!showAddProject)} className="btn-primary">
-          + Tạo Dự án Mới
-        </button>
+        
       </div>
 
-      {/* Form tạo dự án */}
-      {showAddProject && (
-        <div className="card border border-primary-100 bg-primary-50/20 animate-fade-in">
-          <h2 className="font-semibold text-lg mb-4 text-primary-900">Khởi tạo Dự án Mới</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tên dự án</label>
-              <input
-                className="input-field"
-                placeholder="VD: Nền tảng E-commerce B2B"
-                value={projectForm.name}
-                onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tổng ngân sách dự án (VNĐ)</label>
-              <input
-                type="number"
-                className="input-field"
-                placeholder="30000000"
-                value={projectForm.budget}
-                onChange={(e) => setProjectForm({ ...projectForm, budget: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hạn hoàn thành dự kiến</label>
-              <input
-                type="date"
-                className="input-field"
-                value={projectForm.expected_end_date}
-                onChange={(e) => setProjectForm({ ...projectForm, expected_end_date: e.target.value })}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả mục tiêu dự án</label>
-              <textarea
-                className="input-field resize-none"
-                rows={3}
-                placeholder="Mô tả phạm vi, yêu cầu chất lượng..."
-                value={projectForm.description}
-                onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={() => createProjectMutation.mutate(projectForm)}
-              disabled={!projectForm.name || createProjectMutation.isPending}
-              className="btn-primary"
-            >
-              {createProjectMutation.isPending ? 'Đang tạo...' : 'Xác nhận tạo dự án'}
-            </button>
-            <button onClick={() => setShowAddProject(false)} className="btn-secondary">
-              Hủy
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Danh sách các dự án */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -654,13 +529,7 @@ export default function InternalProjectsPage() {
                 <p>📈 <strong>Tiến độ hoàn thành:</strong> {project.completion_rate}%</p>
                 <div className="flex items-center gap-1 pt-1 mt-1 border-t border-gray-200">
                   <p>👤 <strong>Quản lý bởi:</strong> {project.Manager ? project.Manager.User?.full_name : 'Admin (Hệ thống)'}</p>
-                  <button 
-                    onClick={() => setAssignManagerProject(project)}
-                    className="ml-auto text-gray-400 hover:text-indigo-600 p-1"
-                    title="Cấp quyền quản lý"
-                  >
-                    ⚙️
-                  </button>
+                  
                 </div>
               </div>
             </div>
@@ -683,7 +552,7 @@ export default function InternalProjectsPage() {
 
               {project.Workspace && (
                 <Link
-                  to={`/admin/workspaces/${project.Workspace.id}`}
+                  to={`/candidate/workspaces/${project.Workspace.id}`}
                   className="btn-primary text-xs py-1.5 px-3"
                 >
                   Vào Workspace →
@@ -996,20 +865,13 @@ export default function InternalProjectsPage() {
           onClose={() => setInterviewApp(null)}
           onSuccess={() => {
             setInterviewApp(null);
-            if (viewJobsProject) qc.invalidateQueries(['admin-project-jobs', viewJobsProject.id]);
+            if (viewJobsProject) qc.invalidateQueries(['managed-project-jobs', viewJobsProject.id]);
           }}
         />
       )}
 
       {/* Assign Manager Modal */}
-      {assignManagerProject && (
-        <AssignManagerModal
-          project={assignManagerProject}
-          skills={skillsRes?.data?.data || []}
-          onClose={() => setAssignManagerProject(null)}
-          onAssign={(manager_id) => assignManagerMutation.mutate({ projectId: assignManagerProject.id, manager_id })}
-        />
-      )}
+      
     </div>
   );
 }

@@ -5,6 +5,8 @@ const { generateAccessToken, generateRefreshToken, generateRandomToken } = requi
 const sendEmail = require('../utils/sendEmail');
 const AppError = require('../utils/AppError');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -96,6 +98,67 @@ exports.login = async (req, res, next) => {
       data: { user: userWithRoles, accessToken },
     });
   } catch (error) { next(error); }
+};
+
+// POST /api/auth/google
+exports.googleLogin = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    
+    // Verify Google Token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+    
+    // Check if user exists
+    let user = await User.findOne({ where: { email } });
+    if (user && user.status === 'LOCKED') {
+      throw new AppError('Account is locked. Contact support.', 403);
+    }
+    
+    if (!user) {
+      // Create new user via Google
+      const password_hash = await bcrypt.hash(generateRandomToken(), 12);
+      user = await User.create({
+        email,
+        full_name: name,
+        password_hash,
+        email_verified: true,
+        status: 'ACTIVE'
+      });
+      // Assign default CANDIDATE role
+      const roleRecord = await Role.findOne({ where: { name: 'CANDIDATE' } });
+      if (roleRecord) await user.addRole(roleRecord);
+    } else if (!user.email_verified) {
+      // Auto verify if logging in with Google
+      await user.update({ email_verified: true, status: 'ACTIVE' });
+    }
+    
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+    
+    await user.update({ refresh_token: refreshToken });
+    res.cookie('refreshToken', refreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    
+    const userWithRoles = await User.findByPk(user.id, {
+      attributes: { exclude: ['password_hash', 'refresh_token', 'email_verify_token', 'reset_password_token'] },
+      include: [{ association: 'Roles', attributes: ['name'] }],
+    });
+    
+    res.json({
+      success: true,
+      data: { user: userWithRoles, accessToken },
+    });
+  } catch (error) {
+    if (error.message.includes('wrong number of segments') || error.message.includes('Token used too late')) {
+       next(new AppError('Google login failed', 401));
+    } else {
+       next(error);
+    }
+  }
 };
 
 // POST /api/auth/refresh

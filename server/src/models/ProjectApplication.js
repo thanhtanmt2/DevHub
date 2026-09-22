@@ -6,9 +6,12 @@ module.exports = (sequelize, DataTypes) => {
     cover_letter: { type: DataTypes.TEXT },
     cv_url: { type: DataTypes.STRING(500) },
     status: { 
-      type: DataTypes.ENUM('PENDING', 'REVIEWING', 'ACCEPTED', 'REJECTED'), 
+      type: DataTypes.ENUM('PENDING', 'REVIEWING', 'ACCEPTED', 'REJECTED', 'INTERVIEW'), 
       defaultValue: 'PENDING' 
     },
+    interview_time: { type: DataTypes.DATE },
+    meet_url: { type: DataTypes.STRING(500) },
+    interview_note: { type: DataTypes.TEXT },
     applied_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, { 
     tableName: 'project_applications', 
@@ -17,3 +20,4 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: 'applied_at' 
   });
 };
+

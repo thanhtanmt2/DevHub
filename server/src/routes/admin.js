@@ -44,12 +44,18 @@ router.get('/projects', wsCtrl.getProjects);
 router.post('/projects', [body('name').notEmpty()], validate, wsCtrl.createProject);
 router.get('/projects/:id', wsCtrl.getProjectById);
 router.put('/projects/:id', wsCtrl.updateProject);
+router.put('/projects/:id/manager', wsCtrl.updateProjectManager);
+
+// Candidates search for admin
+const candidateCtrl = require('../controllers/candidateController');
+router.get('/candidates/search', candidateCtrl.adminSearchCandidates);
 
 // Project Jobs & Applications
 const projectJobCtrl = require('../controllers/projectJobController');
 router.get('/projects/:projectId/jobs', projectJobCtrl.adminGetProjectJobs);
 router.post('/projects/:projectId/jobs', [body('title').notEmpty()], validate, projectJobCtrl.adminCreateProjectJob);
-router.put('/project-applications/:id/status', [body('status').isIn(['REVIEWING', 'ACCEPTED', 'REJECTED'])], validate, projectJobCtrl.adminUpdateProjectApplicationStatus);
+router.put('/project-applications/:id/status', [body('status').isIn(['REVIEWING', 'ACCEPTED', 'REJECTED', 'INTERVIEW'])], validate, projectJobCtrl.adminUpdateProjectApplicationStatus);
+router.post('/project-applications/:id/schedule-interview', [body('interview_time').notEmpty(), body('meet_url').notEmpty()], validate, projectJobCtrl.adminScheduleInterview);
 
 // Evaluations
 router.post('/workspaces/:workspaceId/members/:memberId/evaluate', [body('score').isFloat({ min: 0, max: 10 })], validate, evalCtrl.evaluateCandidate);

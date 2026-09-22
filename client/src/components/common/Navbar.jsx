@@ -43,22 +43,13 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={openLoginModal}
-                  className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors"
-                >
-                  Đăng nhập
-                </button>
-                <button
-                  type="button"
-                  onClick={openRegisterModal}
-                  className="btn-primary text-sm"
-                >
-                  Đăng ký
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={openLoginModal}
+                className="btn-primary text-sm"
+              >
+                Đăng nhập
+              </button>
             )}
           </div>
         </div>

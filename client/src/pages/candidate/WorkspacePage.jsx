@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { workspaceApi } from '@/api/workspaceApi';
+import { managerApi } from '@/api/managerApi';
 import { taskApi } from '@/api/taskApi';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -28,6 +29,10 @@ export default function WorkspacePage() {
     queryFn: () => taskApi.getWorkspaceTasks(id),
   });
 
+  const workspace = wsData?.data?.data;
+  const tasks = tasksData?.data?.data || [];
+  const members = workspace?.WorkspaceMembers || [];
+
   const updateTaskMutation = useMutation({
     mutationFn: ({ taskId, data }) => taskApi.updateTask(taskId, data),
     onSuccess: () => qc.invalidateQueries(['workspace-tasks', id]),
@@ -35,14 +40,14 @@ export default function WorkspacePage() {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (data) => taskApi.createTask(id, data),
+    mutationFn: (data) => {
+      if (isAdmin()) return taskApi.createTask(id, data);
+      return managerApi.createTask(id, data);
+    },
     onSuccess: () => { qc.invalidateQueries(['workspace-tasks', id]); setShowTaskModal(false); toast.success('Đã tạo task'); setNewTask({title:'', description:'', workspace_member_id:''}); }
   });
 
   if (wsLoading || tasksLoading) return <LoadingSpinner />;
-  const workspace = wsData?.data?.data;
-  const tasks = tasksData?.data?.data || [];
-  const members = workspace?.WorkspaceMembers || [];
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -68,7 +73,7 @@ export default function WorkspacePage() {
           <p className="text-gray-500 text-sm">Dự án: {workspace?.InternalProject?.name}</p>
         </div>
         <div className="flex gap-2">
-          {isAdmin() && (
+          {(isAdmin() || workspace?.isManager) && (
             <button onClick={() => setShowTaskModal(true)} className="btn-primary">
               + Thêm Task
             </button>

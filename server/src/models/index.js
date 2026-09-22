@@ -91,6 +91,9 @@ ApplicationStatusHistory.belongsTo(Application, { foreignKey: 'application_id' }
 User.hasMany(Project, { foreignKey: 'created_by_user_id' });
 Project.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'creator' });
 
+CandidateProfile.hasMany(Project, { foreignKey: 'manager_id', as: 'ManagedProjects' });
+Project.belongsTo(CandidateProfile, { foreignKey: 'manager_id', as: 'Manager' });
+
 Project.hasMany(ProjectJob, { foreignKey: 'project_id' });
 ProjectJob.belongsTo(Project, { foreignKey: 'project_id' });
 
@@ -98,6 +101,7 @@ ProjectJob.belongsToMany(Skill, { through: ProjectJobSkill, foreignKey: 'project
 Skill.belongsToMany(ProjectJob, { through: ProjectJobSkill, foreignKey: 'skill_id' });
 
 ProjectJob.hasMany(ProjectApplication, { foreignKey: 'project_job_id' });
+ProjectJob.hasMany(ProjectApplication, { foreignKey: 'project_job_id', as: 'apps' });
 ProjectApplication.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 
 CandidateProfile.hasMany(ProjectApplication, { foreignKey: 'candidate_profile_id' });
@@ -110,7 +114,8 @@ Workspace.belongsTo(Project, { foreignKey: 'project_id' });
 // WorkspaceMember
 Workspace.hasMany(WorkspaceMember, { foreignKey: 'workspace_id' });
 WorkspaceMember.belongsTo(Workspace, { foreignKey: 'workspace_id' });
-CandidateProfile.hasMany(WorkspaceMember, { foreignKey: 'candidate_profile_id' });
+CandidateProfile.hasMany(WorkspaceMember, { foreignKey: 'candidate_profile_id', as: 'WorkspaceMembers' });
+CandidateProfile.hasMany(WorkspaceMember, { foreignKey: 'candidate_profile_id', as: 'ws_members' });
 WorkspaceMember.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
 ProjectJob.hasMany(WorkspaceMember, { foreignKey: 'project_job_id' });
 WorkspaceMember.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });

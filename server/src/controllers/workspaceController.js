@@ -37,6 +37,12 @@ exports.getProjects = async (req, res, next) => {
         { 
           model: ProjectJob, 
           include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }]
+        },
+        {
+          model: CandidateProfile,
+          as: 'Manager',
+          attributes: ['id', 'professional_title'],
+          include: [{ model: User, attributes: ['full_name', 'email'] }]
         }
       ],
       order: [['created_at', 'DESC']]
@@ -70,6 +76,49 @@ exports.updateProject = async (req, res, next) => {
     
     await project.update(req.body);
     res.json({ success: true, data: project });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/admin/projects/:id/manager
+exports.updateProjectManager = async (req, res, next) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) throw new AppError('Project not found', 404);
+    
+    const { manager_id } = req.body;
+    await project.update({ manager_id: manager_id || null });
+    
+    // Auto-add manager to workspace if not already a member
+    if (manager_id) {
+      const workspace = await Workspace.findOne({ where: { project_id: project.id } });
+      if (workspace) {
+        const existingMember = await WorkspaceMember.findOne({
+          where: { workspace_id: workspace.id, candidate_profile_id: manager_id }
+        });
+        if (!existingMember) {
+          await WorkspaceMember.create({
+            workspace_id: workspace.id,
+            candidate_profile_id: manager_id,
+            status: 'ACTIVE',
+            joined_at: new Date()
+          });
+        }
+      }
+    }
+    
+    // Return updated project with manager info
+    const updatedProject = await Project.findByPk(req.params.id, {
+      include: [
+        {
+          model: CandidateProfile,
+          as: 'Manager',
+          attributes: ['id', 'professional_title'],
+          include: [{ model: User, attributes: ['full_name', 'email'] }]
+        }
+      ]
+    });
+    
+    res.json({ success: true, data: updatedProject });
   } catch (error) { next(error); }
 };
 
@@ -123,10 +172,18 @@ exports.getWorkspaceDetail = async (req, res, next) => {
       if (!profile) throw new AppError('Access denied', 403);
       
       const isMember = workspace.WorkspaceMembers.some(m => m.candidate_profile_id === profile.id);
-      if (!isMember) throw new AppError('Access denied. Not a member of this workspace', 403);
-    }
+      const isManager = workspace.Project?.manager_id === profile.id;
 
-    res.json({ success: true, data: workspace });
+      if (!isMember && !isManager) throw new AppError('Access denied. Not a member or manager of this workspace', 403);
+      
+      const workspaceData = workspace.toJSON();
+      workspaceData.isManager = isManager;
+      res.json({ success: true, data: workspaceData });
+    } else {
+      const workspaceData = workspace.toJSON();
+      workspaceData.isManager = true; // Admin has full access
+      res.json({ success: true, data: workspaceData });
+    }
   } catch (error) { next(error); }
 };
 

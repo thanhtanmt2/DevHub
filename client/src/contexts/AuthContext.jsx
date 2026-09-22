@@ -62,6 +62,13 @@ export const AuthProvider = ({ children }) => {
     return data.data.user;
   };
 
+  const googleLogin = async (token) => {
+    const { data } = await authApi.googleLogin(token);
+    localStorage.setItem('accessToken', data.data.accessToken);
+    setUser(data.data.user);
+    return data.data.user;
+  };
+
   const logout = async () => {
     try { await authApi.logout(); } catch {}
     localStorage.removeItem('accessToken');
@@ -80,6 +87,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
+        googleLogin,
         logout,
         getUserRoles,
         hasRole,
