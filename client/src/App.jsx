@@ -8,11 +8,12 @@ import EmployerLayout from '@/layouts/EmployerLayout';
 import AdminLayout from '@/layouts/AdminLayout';
 
 // Auth pages
-import LoginPage from '@/pages/auth/LoginPage';
-import RegisterPage from '@/pages/auth/RegisterPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import VerifyEmailPage from '@/pages/auth/VerifyEmailPage';
+
+// Modals
+import AuthModal from '@/components/auth/AuthModal';
 
 // Public pages
 import HomePage from '@/pages/public/HomePage';
@@ -59,8 +60,8 @@ function AppRoutes() {
       </Route>
 
       {/* Auth */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/login" element={<Navigate to="/?auth=login" replace />} />
+      <Route path="/register" element={<Navigate to="/?auth=register" replace />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
@@ -107,6 +108,8 @@ export default function App() {
   return (
     <AuthProvider>
       <AppRoutes />
+      <AuthModal />
     </AuthProvider>
   );
 }
+

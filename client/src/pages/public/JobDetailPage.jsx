@@ -16,7 +16,7 @@ const formatSalary = (min, max) => {
 
 export default function JobDetailPage() {
   const { id } = useParams();
-  const { user, isCandidate } = useAuth();
+  const { user, isCandidate, openLoginModal } = useAuth();
   const navigate = useNavigate();
   const [showApply, setShowApply] = useState(false);
   const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
@@ -58,9 +58,10 @@ export default function JobDetailPage() {
             <button onClick={() => setShowApply(true)} className="btn-primary">Ứng tuyển ngay</button>
           )}
           {!user && (
-            <button onClick={() => navigate('/login')} className="btn-primary">Đăng nhập để ứng tuyển</button>
+            <button onClick={openLoginModal} className="btn-primary">Đăng nhập để ứng tuyển</button>
           )}
         </div>
+
 
         {/* Info Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 p-4 bg-gray-50 rounded-lg">

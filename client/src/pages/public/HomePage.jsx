@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
+  const { user, openRegisterModal } = useAuth();
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-16">
       <div className="text-center mb-16">
@@ -12,9 +15,18 @@ export default function HomePage() {
         </p>
         <div className="mt-8 flex gap-4 justify-center">
           <Link to="/jobs" className="btn-primary px-8 py-3 text-base">Tìm việc ngay</Link>
-          <Link to="/register" className="btn-secondary px-8 py-3 text-base">Đăng ký miễn phí</Link>
+          {!user && (
+            <button
+              type="button"
+              onClick={openRegisterModal}
+              className="btn-secondary px-8 py-3 text-base"
+            >
+              Đăng ký miễn phí
+            </button>
+          )}
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[{icon:'💼', title:'Việc làm IT chất lượng', desc:'Kết nối với hàng trăm cơ hội từ các doanh nghiệp uy tín'},
           {icon:'⭐', title:'Hồ sơ được xác thực', desc:'Điểm năng lực được đánh giá từ dự án thực chiến, không chỉ tự khai báo'},

@@ -92,8 +92,8 @@ WorkspaceMember.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id'
 // Task
 Workspace.hasMany(Task, { foreignKey: 'workspace_id' });
 Task.belongsTo(Workspace, { foreignKey: 'workspace_id' });
-WorkspaceMember.hasMany(Task, { foreignKey: 'assignee_member_id' });
-Task.belongsTo(WorkspaceMember, { foreignKey: 'assignee_member_id', as: 'assignee' });
+WorkspaceMember.hasMany(Task, { foreignKey: 'workspace_member_id' });
+Task.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id' });
 
 // TaskSubmission
 Task.hasMany(TaskSubmission, { foreignKey: 'task_id' });

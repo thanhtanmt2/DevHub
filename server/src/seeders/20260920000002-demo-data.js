@@ -33,8 +33,9 @@ module.exports = {
         id: employerId,
         full_name: 'Trần Nhà Tuyển Dụng',
         email: 'employer@fpt.com',
-        password: hashPassword,
-        is_active: true,
+        password_hash: hashPassword,
+        status: 'ACTIVE',
+        email_verified: true,
         created_at: new Date(),
         updated_at: new Date()
       },
@@ -42,8 +43,9 @@ module.exports = {
         id: candidate1Id,
         full_name: 'Nguyễn Văn Dev',
         email: 'dev1@gmail.com',
-        password: hashPassword,
-        is_active: true,
+        password_hash: hashPassword,
+        status: 'ACTIVE',
+        email_verified: true,
         created_at: new Date(),
         updated_at: new Date()
       },
@@ -51,8 +53,9 @@ module.exports = {
         id: candidate2Id,
         full_name: 'Lê Thị Code',
         email: 'dev2@gmail.com',
-        password: hashPassword,
-        is_active: true,
+        password_hash: hashPassword,
+        status: 'ACTIVE',
+        email_verified: true,
         created_at: new Date(),
         updated_at: new Date()
       }
@@ -60,9 +63,9 @@ module.exports = {
 
     // Map Users to Roles
     await queryInterface.bulkInsert('user_roles', [
-      { user_id: employerId, role_id: employerRoleId, created_at: new Date(), updated_at: new Date() },
-      { user_id: candidate1Id, role_id: candidateRoleId, created_at: new Date(), updated_at: new Date() },
-      { user_id: candidate2Id, role_id: candidateRoleId, created_at: new Date(), updated_at: new Date() }
+      { user_id: employerId, role_id: employerRoleId },
+      { user_id: candidate1Id, role_id: candidateRoleId },
+      { user_id: candidate2Id, role_id: candidateRoleId }
     ]);
 
     // 3. Tạo Company cho Employer
@@ -112,9 +115,9 @@ module.exports = {
 
     // Add Candidate Skills
     await queryInterface.bulkInsert('candidate_skills', [
-      { candidate_profile_id: profile1Id, skill_id: reactSkillId, level: 'ADVANCED', years_of_experience: 2, created_at: new Date(), updated_at: new Date() },
-      { candidate_profile_id: profile1Id, skill_id: nodeSkillId, level: 'INTERMEDIATE', years_of_experience: 1.5, created_at: new Date(), updated_at: new Date() },
-      { candidate_profile_id: profile2Id, skill_id: reactSkillId, level: 'EXPERT', years_of_experience: 3, created_at: new Date(), updated_at: new Date() }
+      { candidate_profile_id: profile1Id, skill_id: reactSkillId, level: 'ADVANCED', years_of_experience: 2 },
+      { candidate_profile_id: profile1Id, skill_id: nodeSkillId, level: 'INTERMEDIATE', years_of_experience: 1.5 },
+      { candidate_profile_id: profile2Id, skill_id: reactSkillId, level: 'EXPERT', years_of_experience: 3 }
     ]);
 
     // 5. Tạo Job Posts (1 PARTNER, 1 INTERNAL)
@@ -157,9 +160,9 @@ module.exports = {
 
     // Job Skills
     await queryInterface.bulkInsert('job_post_skills', [
-      { job_post_id: jobPartnerId, skill_id: reactSkillId, created_at: new Date(), updated_at: new Date() },
-      { job_post_id: jobInternalId, skill_id: reactSkillId, created_at: new Date(), updated_at: new Date() },
-      { job_post_id: jobInternalId, skill_id: nodeSkillId, created_at: new Date(), updated_at: new Date() }
+      { job_post_id: jobPartnerId, skill_id: reactSkillId },
+      { job_post_id: jobInternalId, skill_id: reactSkillId },
+      { job_post_id: jobInternalId, skill_id: nodeSkillId }
     ]);
 
     // 6. Tạo Applications
@@ -174,7 +177,6 @@ module.exports = {
         cover_letter: 'Tôi rất thích FPT và mong muốn được tham gia dự án này.',
         status: 'VIEWED',
         applied_at: new Date(),
-        created_at: new Date(),
         updated_at: new Date()
       },
       {
@@ -184,7 +186,6 @@ module.exports = {
         cover_letter: 'Tôi tự tin có thể hoàn thành dự án quản lý kho đúng hạn.',
         status: 'HIRED', // Trúng tuyển nội bộ
         applied_at: new Date(),
-        created_at: new Date(),
         updated_at: new Date()
       }
     ]);
@@ -226,11 +227,8 @@ module.exports = {
         id: memberId,
         workspace_id: workspaceId,
         candidate_profile_id: profile2Id,
-        role: 'LEAD',
         status: 'ACTIVE',
-        start_date: new Date(),
-        created_at: new Date(),
-        updated_at: new Date()
+        joined_at: new Date()
       }
     ]);
 
@@ -281,11 +279,9 @@ module.exports = {
         id: uuidv4(),
         workspace_member_id: memberId,
         amount: 3000000, // Tạm ứng 3 củ
-        note: 'Tạm ứng đợt 1 (30%)',
         status: 'PAID',
-        payment_date: new Date(),
-        created_at: new Date(),
-        updated_at: new Date()
+        paid_at: new Date(),
+        created_at: new Date()
       }
     ]);
 

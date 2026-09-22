@@ -3,13 +3,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Navbar() {
-  const { user, logout, isAdmin, isCandidate, isEmployer } = useAuth();
+  const { user, logout, isAdmin, isCandidate, isEmployer, openLoginModal, openRegisterModal } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     toast.success('Đã đăng xuất');
-    navigate('/login');
+    navigate('/');
   };
 
   const getDashboardLink = () => {
@@ -41,12 +41,20 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link to="/login" className="text-sm text-gray-600 hover:text-primary-600">
+                <button
+                  type="button"
+                  onClick={openLoginModal}
+                  className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors"
+                >
                   Đăng nhập
-                </Link>
-                <Link to="/register" className="btn-primary text-sm">
+                </button>
+                <button
+                  type="button"
+                  onClick={openRegisterModal}
+                  className="btn-primary text-sm"
+                >
                   Đăng ký
-                </Link>
+                </button>
               </>
             )}
           </div>
@@ -55,3 +63,4 @@ export default function Navbar() {
     </nav>
   );
 }
+
