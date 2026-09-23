@@ -8,6 +8,7 @@ const navItems = [
   { to: '/admin/projects', label: 'Dự án nội bộ' },
   { to: '/admin/payments', label: 'Thanh toán' },
   { to: '/admin/stats', label: 'Thống kê' },
+  { to: '/admin/logs', label: 'Nhật ký hệ thống' },
 ];
 
 export default function AdminLayout() {
@@ -32,7 +33,7 @@ export default function AdminLayout() {
             </nav>
           </div>
         </aside>
-        <main className="flex-1"><Outlet /></main>
+        <main className="flex-1 min-w-0"><Outlet /></main>
       </div>
     </div>
   );

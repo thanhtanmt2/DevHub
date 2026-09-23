@@ -30,9 +30,15 @@ const ProjectApplication = require('./ProjectApplication')(sequelize, DataTypes)
 const Workspace = require('./Workspace')(sequelize, DataTypes);
 const WorkspaceMember = require('./WorkspaceMember')(sequelize, DataTypes);
 const Task = require('./Task')(sequelize, DataTypes);
+const TaskAssignee = require('./TaskAssignee')(sequelize, DataTypes);
+const SubTask = require('./SubTask')(sequelize, DataTypes);
+const TaskComment = require('./TaskComment')(sequelize, DataTypes);
+const TaskActivity = require('./TaskActivity')(sequelize, DataTypes);
 const TaskSubmission = require('./TaskSubmission')(sequelize, DataTypes);
 const CandidateEvaluation = require('./CandidateEvaluation')(sequelize, DataTypes);
 const Payment = require('./Payment')(sequelize, DataTypes);
+const Notification = require('./Notification')(sequelize, DataTypes);
+const ActivityLog = require('./ActivityLog')(sequelize, DataTypes);
 
 // ── Associations ──────────────────────────────────────────────────
 // Role <-> Permission (many-to-many)
@@ -123,10 +129,28 @@ WorkspaceMember.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 // Task
 Workspace.hasMany(Task, { foreignKey: 'workspace_id' });
 Task.belongsTo(Workspace, { foreignKey: 'workspace_id' });
-WorkspaceMember.hasMany(Task, { foreignKey: 'workspace_member_id' });
-Task.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id' });
 
-// TaskSubmission
+// Task <-> WorkspaceMember (many-to-many via TaskAssignee)
+Task.belongsToMany(WorkspaceMember, { through: TaskAssignee, foreignKey: 'task_id', otherKey: 'workspace_member_id', as: 'Assignees' });
+WorkspaceMember.belongsToMany(Task, { through: TaskAssignee, foreignKey: 'workspace_member_id', otherKey: 'task_id', as: 'AssignedTasks' });
+TaskAssignee.belongsTo(Task, { foreignKey: 'task_id' });
+TaskAssignee.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id' });
+
+// SubTask
+Task.hasMany(SubTask, { foreignKey: 'task_id', as: 'SubTasks' });
+SubTask.belongsTo(Task, { foreignKey: 'task_id' });
+
+// TaskComment
+Task.hasMany(TaskComment, { foreignKey: 'task_id', as: 'Comments' });
+TaskComment.belongsTo(Task, { foreignKey: 'task_id' });
+TaskComment.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id', as: 'Author' });
+
+// TaskActivity
+Task.hasMany(TaskActivity, { foreignKey: 'task_id', as: 'Activities' });
+TaskActivity.belongsTo(Task, { foreignKey: 'task_id' });
+TaskActivity.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id', as: 'Actor' });
+
+// TaskSubmission (kept for legacy compatibility)
 Task.hasMany(TaskSubmission, { foreignKey: 'task_id' });
 TaskSubmission.belongsTo(Task, { foreignKey: 'task_id' });
 
@@ -137,6 +161,14 @@ CandidateEvaluation.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_i
 // Payment
 WorkspaceMember.hasMany(Payment, { foreignKey: 'workspace_member_id' });
 Payment.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id' });
+
+// Notification (user receives many notifications)
+User.hasMany(Notification, { foreignKey: 'user_id' });
+Notification.belongsTo(User, { foreignKey: 'user_id' });
+
+// ActivityLog (user performs many actions)
+User.hasMany(ActivityLog, { foreignKey: 'user_id', as: 'ActivityLogs' });
+ActivityLog.belongsTo(User, { foreignKey: 'user_id' });
 
 // Backwards compatibility alias
 const InternalProject = Project;
@@ -153,7 +185,9 @@ module.exports = {
   Project, ProjectJob, ProjectJobSkill, ProjectApplication,
   InternalProject, // alias
   Workspace, WorkspaceMember,
-  Task, TaskSubmission,
+  Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission,
   CandidateEvaluation,
   Payment,
+  Notification,
+  ActivityLog,
 };

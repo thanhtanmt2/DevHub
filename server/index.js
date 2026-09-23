@@ -41,6 +41,7 @@ app.use('/api/applications', require('./src/routes/applications'));
 app.use('/api/workspaces', require('./src/routes/workspaces'));
 app.use('/api/tasks', require('./src/routes/tasks'));
 app.use('/api/skills', require('./src/routes/skills'));
+app.use('/api/notifications', require('./src/routes/notifications'));
 
 // 404
 app.use((req, res) => {
@@ -53,11 +54,14 @@ app.use(errorHandler);
 // Start
 const startServer = async () => {
   try {
+    if (process.env.NODE_ENV === 'development') {
+      sequelize.options.logging = (msg) => {
+        require('fs').appendFileSync('e:/Desktop/tlcn/server/sql_logs.txt', msg + '\n');
+      };
+    }
     await sequelize.authenticate();
     console.log('✅ Database connected');
-    // In development, sync models
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: false });
       console.log('✅ Models synced');
     }
     app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

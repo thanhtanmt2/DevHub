@@ -8,9 +8,11 @@ export const workspaceApi = {
   updateProject: (id, data) => api.put(`/admin/projects/${id}`, data),
   updateProjectManager: (id, data) => api.put(`/admin/projects/${id}/manager`, data),
   searchCandidates: (query) => api.get('/admin/candidates/search', { params: query }),
-  
+
   // Workspace & Members
   getWorkspaceDetail: (id) => api.get(`/workspaces/${id}`),
+  getWorkspaceStats: (id) => api.get(`/workspaces/${id}/stats`),
   addMember: (workspaceId, data) => api.post(`/admin/workspaces/${workspaceId}/members`, data),
   removeMember: (workspaceId, memberId) => api.delete(`/admin/workspaces/${workspaceId}/members/${memberId}`),
+  updateMemberRole: (workspaceId, memberId, role) => api.put(`/workspaces/${workspaceId}/members/${memberId}/role`, { role }),
 };

@@ -6,23 +6,39 @@ const ctrl = require('../controllers/taskController');
 
 router.use(protect);
 
-// Workspace tasks routes (nested under workspaces logically, but implemented via path param)
-// E.g., /api/tasks/workspace/:workspaceId
+// GET all tasks for a workspace
 router.get('/workspace/:workspaceId', ctrl.getWorkspaceTasks);
-router.post('/workspace/:workspaceId', authorize('ADMIN'), [
-  body('title').notEmpty()
-], validate, ctrl.createTask);
 
-// Task specific routes
+// GET single task with full details
+router.get('/:id', ctrl.getTaskById);
+
+// POST create task (Admin or Manager/Lead — controller handles permission check)
+router.post('/workspace/:workspaceId', [body('title').notEmpty()], validate, ctrl.createTask);
+
+// PUT update task (full edit for managers, status-only for members)
 router.put('/:id', ctrl.updateTask);
-router.post('/:id/submissions', [
-  body('submission_url').notEmpty().withMessage('Submission URL is required')
-], validate, ctrl.submitTask);
-router.get('/:id/submissions', ctrl.getTaskSubmissions);
 
-// Submissions review
-router.put('/submissions/:id/review', authorize('ADMIN'), [
-  body('status').isIn(['APPROVED', 'REJECTED'])
-], validate, ctrl.reviewSubmission);
+// DELETE task (Admin/Manager only - handled in controller)
+router.delete('/:id', ctrl.deleteTask);
+
+// PUT review task → APPROVE or REVISION
+router.put('/:id/review', [body('action').isIn(['APPROVE', 'REVISION'])], validate, ctrl.reviewTask);
+
+// Reorder (drag & drop)
+router.put('/workspace/:workspaceId/reorder', ctrl.reorderTasks);
+
+// ─── Sub-tasks
+router.post('/:id/subtasks', [body('title').notEmpty()], validate, ctrl.addSubTask);
+router.put('/:id/subtasks/:subId', ctrl.updateSubTask);
+router.delete('/:id/subtasks/:subId', ctrl.deleteSubTask);
+
+// ─── Comments
+router.post('/:id/comments', [body('content').notEmpty()], validate, ctrl.addComment);
+router.delete('/:id/comments/:commentId', ctrl.deleteComment);
+
+// ─── Legacy compat endpoints
+router.post('/:id/submissions', ctrl.submitTask);
+router.get('/:id/submissions', ctrl.getTaskSubmissions);
+router.put('/submissions/:id/review', authorize('ADMIN'), ctrl.reviewSubmission);
 
 module.exports = router;

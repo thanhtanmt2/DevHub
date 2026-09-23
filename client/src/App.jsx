@@ -42,6 +42,8 @@ import InternalProjectsPage from '@/pages/admin/InternalProjectsPage';
 import AdminWorkspacePage from '@/pages/admin/WorkspacePage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
 import StatsPage from '@/pages/admin/StatsPage';
+import SystemLogsPage from '@/pages/admin/SystemLogsPage';
+
 
 // Components
 import ProtectedRoute from '@/components/common/ProtectedRoute';
@@ -100,6 +102,7 @@ function AppRoutes() {
           <Route path="/admin/workspaces/:id" element={<AdminWorkspacePage />} />
           <Route path="/admin/payments" element={<PaymentsPage />} />
           <Route path="/admin/stats" element={<StatsPage />} />
+          <Route path="/admin/logs" element={<SystemLogsPage />} />
         </Route>
       </Route>
 

@@ -210,6 +210,8 @@ export default function AuthModal() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
+                name="email"
+                autoComplete="username"
                 required
                 className="input-field"
                 placeholder="you@example.com"
@@ -221,6 +223,8 @@ export default function AuthModal() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 required
                 className="input-field"
                 placeholder="••••••••"
@@ -228,7 +232,20 @@ export default function AuthModal() {
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
               />
             </div>
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+                  checked={loginForm.rememberMe || false}
+                  onChange={(e) => setLoginForm({ ...loginForm, rememberMe: e.target.checked })}
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer">
+                  Lưu mật khẩu
+                </label>
+              </div>
               <button
                 type="button"
                 onClick={() => setAuthModalView('forgot')}

@@ -6,6 +6,7 @@ const {
 } = require('../models');
 const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
+const { logActivity } = require('../utils/activityLogger');
 
 // GET /api/project-jobs — Public listing of project jobs
 exports.getProjectJobs = async (req, res, next) => {
@@ -107,6 +108,15 @@ exports.applyProjectJob = async (req, res, next) => {
       cover_letter,
       cv_url,
       status: 'PENDING'
+    });
+
+    await logActivity(req, {
+      action: 'APPLICATION_SUBMITTED',
+      entity_type: 'project_application',
+      entity_id: application.id,
+      entity_name: `Ứng tuyển vị trí ${projectJob.title}`,
+      description: `Đã nộp đơn ứng tuyển cho vị trí "${projectJob.title}"`,
+      metadata: { project_job_id: projectJob.id, project_id: projectJob.project_id },
     });
 
     res.status(201).json({ success: true, data: application, message: 'Ứng tuyển thành công' });
@@ -260,6 +270,22 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
       }
     }
 
+    const cp = await CandidateProfile.findByPk(application.candidate_profile_id, { include: [{ model: User, attributes: ['id', 'full_name'] }] });
+    const u = cp?.User;
+
+    if (u) {
+      await logActivity(req, {
+        action: 'APPLICATION_STATUS_CHANGED',
+        entity_type: 'project_application',
+        entity_id: application.id,
+        entity_name: application.ProjectJob?.title || 'Vị trí dự án',
+        new_value: status,
+        description: `Đơn ứng tuyển của ${u.full_name} đã chuyển sang trạng thái: ${status}`,
+        metadata: { project_job_id: application.project_job_id, user_id: u.id },
+        notify_user_ids: [u.id],
+      });
+    }
+
     res.json({ 
       success: true, 
       data: application, 
@@ -390,6 +416,19 @@ exports.adminScheduleInterview = async (req, res, next) => {
             </div>
           </div>
         `
+      });
+    }
+
+    const u = application.CandidateProfile?.User;
+    if (u) {
+      await logActivity(req, {
+        action: 'INTERVIEW_SCHEDULED',
+        entity_type: 'project_application',
+        entity_id: application.id,
+        entity_name: positionName,
+        description: `Đã xếp lịch phỏng vấn cho ${u.full_name} lúc ${formattedTime} ${formattedDate}`,
+        metadata: { project_job_id: application.project_job_id, user_id: u.id },
+        notify_user_ids: [u.id],
       });
     }
 

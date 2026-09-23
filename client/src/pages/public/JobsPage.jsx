@@ -233,15 +233,6 @@ export default function JobsPage() {
                       </div>
                     </div>
 
-                    {/* Footer Button */}
-                    <div className="pt-2">
-                      <button
-                        onClick={() => handleApplyClick(selectedJob.id)}
-                        className="btn-primary w-full py-3 shadow-md text-center justify-center flex items-center gap-2"
-                      >
-                        Ứng tuyển ngay (Mở tab mới) ↗
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}

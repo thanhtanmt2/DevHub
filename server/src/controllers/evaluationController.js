@@ -1,5 +1,6 @@
 const { CandidateEvaluation, CandidateProfile, WorkspaceMember, Workspace, User } = require('../models');
 const AppError = require('../utils/AppError');
+const { logActivity } = require('../utils/activityLogger');
 
 // POST /api/admin/workspaces/:workspaceId/members/:memberId/evaluate
 exports.evaluateCandidate = async (req, res, next) => {
@@ -10,7 +11,7 @@ exports.evaluateCandidate = async (req, res, next) => {
     // Check if member exists in workspace
     const member = await WorkspaceMember.findOne({
       where: { id: memberId, workspace_id: workspaceId },
-      include: [{ model: CandidateProfile }]
+      include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] }]
     });
 
     if (!member) throw new AppError('Workspace member not found', 404);
@@ -26,10 +27,25 @@ exports.evaluateCandidate = async (req, res, next) => {
     } else {
       // Create new
       evaluation = await CandidateEvaluation.create({
+        candidate_profile_id: member.candidate_profile_id,
         workspace_member_id: member.id,
         score,
         comments,
         evaluation_date: new Date()
+      });
+    }
+
+    const u = member.CandidateProfile?.User;
+    if (u) {
+      await logActivity(req, {
+        action: 'MEMBER_EVALUATED',
+        entity_type: 'evaluation',
+        entity_id: evaluation.id,
+        entity_name: `Đánh giá ${u.full_name}`,
+        description: `Đã đánh giá thành viên ${u.full_name} với ${score} điểm`,
+        metadata: { workspace_id: workspaceId, user_id: u.id },
+        notify_user_ids: [u.id],
+        notify_link: `/candidate/workspaces/${workspaceId}`,
       });
     }
 

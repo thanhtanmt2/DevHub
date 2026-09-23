@@ -15,10 +15,13 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findByPk(decoded.id, {
       attributes: { exclude: ['password_hash', 'refresh_token', 'email_verify_token', 'reset_password_token'] },
+      include: [{ association: 'Roles', attributes: ['name'] }]
     });
     if (!user) return res.status(401).json({ success: false, message: 'User not found' });
     if (user.status === 'LOCKED') return res.status(403).json({ success: false, message: 'Account is locked' });
+    
     req.user = user;
+    req.userRoles = user.Roles ? user.Roles.map(r => r.name) : [];
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: 'Token invalid or expired' });
@@ -27,17 +30,12 @@ const protect = async (req, res, next) => {
 
 // Check if user has a specific role
 const authorize = (...roles) => {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     try {
-      const userWithRoles = await User.findByPk(req.user.id, {
-        include: [{ association: 'Roles', attributes: ['name'] }],
-      });
-      const userRoles = userWithRoles.Roles.map(r => r.name);
-      const hasRole = roles.some(role => userRoles.includes(role));
+      const hasRole = roles.some(role => req.userRoles && req.userRoles.includes(role));
       if (!hasRole) {
         return res.status(403).json({ success: false, message: `Access denied. Required role: ${roles.join(' or ')}` });
       }
-      req.userRoles = userRoles;
       next();
     } catch (error) {
       next(error);

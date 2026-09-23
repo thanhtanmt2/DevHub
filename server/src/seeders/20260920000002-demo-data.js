@@ -299,7 +299,6 @@ module.exports = {
       {
         id: task1Id,
         workspace_id: workspaceId,
-        workspace_member_id: memberId,
         title: 'Thiết kế giao diện Dashboard kho',
         description: 'Tạo layout thống kê số lượng hàng nhập xuất tồn theo tuần.',
         status: 'DONE',
@@ -310,7 +309,6 @@ module.exports = {
       {
         id: task2Id,
         workspace_id: workspaceId,
-        workspace_member_id: memberId,
         title: 'Tích hợp bảng quét mã vạch sản phẩm',
         description: 'Xây dựng component quét và nhập liệu tức thời.',
         status: 'IN_PROGRESS',
@@ -321,7 +319,6 @@ module.exports = {
       {
         id: task3Id,
         workspace_id: workspaceId,
-        workspace_member_id: null,
         title: 'Tối ưu Responsive trên máy tính bảng',
         description: 'Kiểm thử hiển thị trên màn hình iPad và tablet công nghiệp.',
         status: 'TODO',
@@ -329,6 +326,11 @@ module.exports = {
         created_at: new Date(),
         updated_at: new Date()
       }
+    ]);
+
+    await queryInterface.bulkInsert('task_assignees', [
+      { id: uuidv4(), task_id: task1Id, workspace_member_id: memberId },
+      { id: uuidv4(), task_id: task2Id, workspace_member_id: memberId }
     ]);
 
     // 11. Thanh toán mẫu cho thành viên dự án

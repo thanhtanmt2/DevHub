@@ -65,4 +65,8 @@ router.get('/payments', payCtrl.getAllPayments);
 router.post('/payments', [body('amount').isNumeric(), body('workspace_member_id').isUUID()], validate, payCtrl.createPayment);
 router.put('/payments/:id/process', [body('status').isIn(['PROCESSING', 'PAID', 'FAILED'])], validate, payCtrl.processPayment);
 
+// Logs
+const logCtrl = require('../controllers/activityLogController');
+router.get('/logs', logCtrl.getLogs);
+
 module.exports = router;

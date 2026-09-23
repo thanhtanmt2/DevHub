@@ -7,6 +7,7 @@ const AppError = require('../utils/AppError');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const { logActivity } = require('../utils/activityLogger');
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -47,6 +48,15 @@ exports.register = async (req, res, next) => {
              <p>Nhấn vào link bên dưới để xác thực tài khoản:</p>
              <a href="${verifyUrl}">${verifyUrl}</a>
              <p>Link có hiệu lực trong 24 giờ.</p>`,
+    });
+
+    // Log registration
+    await logActivity({ ip: req.ip, headers: req.headers, user: { id: user.id, role } }, {
+      action: 'USER_REGISTER',
+      entity_type: 'user',
+      entity_id: user.id,
+      entity_name: full_name,
+      description: `${full_name} (${email}) đã đăng ký tài khoản mới với vai trò ${role}`,
     });
 
     res.status(201).json({
@@ -91,6 +101,15 @@ exports.login = async (req, res, next) => {
     const userWithRoles = await User.findByPk(user.id, {
       attributes: { exclude: ['password_hash', 'refresh_token', 'email_verify_token', 'reset_password_token'] },
       include: [{ association: 'Roles', attributes: ['name'] }],
+    });
+
+    // Log login
+    await logActivity({ ip: req.ip, headers: req.headers, user: { id: user.id, role: userWithRoles.Roles?.[0]?.name } }, {
+      action: 'USER_LOGIN',
+      entity_type: 'user',
+      entity_id: user.id,
+      entity_name: user.full_name,
+      description: `${user.full_name} đã đăng nhập vào hệ thống`,
     });
 
     res.json({
@@ -180,11 +199,23 @@ exports.refresh = async (req, res, next) => {
 exports.logout = async (req, res, next) => {
   try {
     const token = req.cookies?.refreshToken;
+    let loggedUser = null;
     if (token) {
-      const user = await User.findOne({ where: { refresh_token: token } });
-      if (user) await user.update({ refresh_token: null });
+      loggedUser = await User.findOne({ where: { refresh_token: token } });
+      if (loggedUser) await loggedUser.update({ refresh_token: null });
     }
     res.clearCookie('refreshToken', COOKIE_OPTIONS);
+
+    if (loggedUser) {
+      await logActivity({ ip: req.ip, headers: req.headers, user: { id: loggedUser.id, role: req.user?.role } }, {
+        action: 'USER_LOGOUT',
+        entity_type: 'user',
+        entity_id: loggedUser.id,
+        entity_name: loggedUser.full_name,
+        description: `${loggedUser.full_name} đã đăng xuất`,
+      });
+    }
+
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) { next(error); }
 };
