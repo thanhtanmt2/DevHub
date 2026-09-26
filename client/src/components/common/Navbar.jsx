@@ -115,6 +115,9 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    const isConfirmed = window.confirm("Bạn có chắc chắn muốn thoát không?");
+    if (!isConfirmed) return;
+
     await logout();
     toast.success('Đã đăng xuất');
     navigate('/');

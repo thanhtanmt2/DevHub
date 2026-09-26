@@ -9,12 +9,13 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
+    // nếu là development thì hiện câu lệnh sql còn không thì không hiện 
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {
-      max: 10,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
+      max: 10, // tối đa 10 kết nối 
+      min: 0, // tối thiểu 0 kết nối 
+      acquire: 30000, // tối đa 30 giây để kết nối 
+      idle: 10000, // tối đa 10 giây để ngắt kết nối 
     },
   }
 );

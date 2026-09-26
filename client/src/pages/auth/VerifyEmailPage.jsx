@@ -1,17 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { authApi } from '@/api/authApi';
 
 export default function VerifyEmailPage() {
+  // trích xuất chuỗi token từ URL lưu vào biến token
   const { token } = useParams();
+  // trạng thái ban đầu là loading 
   const [status, setStatus] = useState('loading');
+  const calledOnce = useRef(false);
 
   useEffect(() => {
+    if (calledOnce.current) return;
+    calledOnce.current = true;
+
     authApi.verifyEmail(token)
       .then(() => setStatus('success'))
       .catch(() => setStatus('error'));
   }, [token]);
 
+  // form được bật lên khi người dùng nhấp vào link xác thực email 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="card text-center max-w-md">

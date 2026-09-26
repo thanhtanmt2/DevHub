@@ -56,7 +56,7 @@ const startServer = async () => {
   try {
     if (process.env.NODE_ENV === 'development') {
       sequelize.options.logging = (msg) => {
-        require('fs').appendFileSync('e:/Desktop/tlcn/server/sql_logs.txt', msg + '\n');
+        require('fs').appendFileSync(require('path').join(__dirname, 'sql_logs.txt'), msg + '\n');
       };
     }
     await sequelize.authenticate();

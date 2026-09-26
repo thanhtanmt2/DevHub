@@ -13,17 +13,27 @@ export default function AuthModal() {
   // Login form state
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginLoading, setLoginLoading] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
+  // Register form visibility state
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
+
+  // hàm xử lý đăng nhập gg thành công 
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoginLoading(true);
     try {
+      // gọi api login google truyền token cho back end xử lý 
       const user = await googleLogin(credentialResponse.credential);
+      // lấy danh sách vai trò của user
       const roles = user.Roles?.map((r) => r.name) || [];
       toast.success(`Chào mừng trở lại, ${user.full_name}!`);
       closeAuthModal();
 
+      // kiểm tra xem trước khi đăng nhập user đã cố gắng truy cập vào trang nào khác 
       const from = location.state?.from?.pathname;
       if (from) {
+        // replace true để tránh back về trang login sau khi đăng nhập
         navigate(from, { replace: true });
       } else if (roles.includes('ADMIN')) {
         navigate('/admin');
@@ -40,12 +50,13 @@ export default function AuthModal() {
   };
 
   // Register form state
+  // hook useState để tạo ra một cấu trúc lưu trữ toàn bộ dữ liệu
   const [registerForm, setRegisterForm] = useState({
     full_name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'CANDIDATE',
+    role: 'CANDIDATE', // mặc định sẽ là ứng viên 
   });
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
@@ -55,14 +66,17 @@ export default function AuthModal() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
 
-  // Close on Escape key
+  // Đóng cửa sổ bằng phím tắt 
   useEffect(() => {
+    // hàm chứa toàn bộ thông tin phím được bấm 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && authModal.isOpen) {
         closeAuthModal();
       }
     };
+    // truyền hàm vào window để lắng nghe sự kiện gõ phím 
     window.addEventListener('keydown', handleKeyDown);
+    // gỡ bộ lắng nghe phím khi thoát khỏi Modal 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [authModal.isOpen, closeAuthModal]);
 
@@ -76,12 +90,13 @@ export default function AuthModal() {
 
   if (!authModal.isOpen) return null;
 
-  // Handle Login Submit
+  // Hàm xử lý khi bấm Đăng nhập 
   const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setLoginLoading(true);
+    e.preventDefault(); // chặn load lại trang web 
+    setLoginLoading(true); // bật loading
     try {
       const user = await login(loginForm);
+      // gán vai trò của user vào biến roles 
       const roles = user.Roles?.map((r) => r.name) || [];
       toast.success(`Chào mừng trở lại, ${user.full_name}!`);
       closeAuthModal();
@@ -103,7 +118,7 @@ export default function AuthModal() {
     }
   };
 
-  // Handle Register Submit
+  // Hàm xử lý khi bấm Đăng ký 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (registerForm.password !== registerForm.confirmPassword) {
@@ -114,6 +129,7 @@ export default function AuthModal() {
     }
     setRegisterLoading(true);
     try {
+      // gọi hàm API để gửi dữ liệu lên server 
       await authApi.register({
         full_name: registerForm.full_name,
         email: registerForm.email,
@@ -128,7 +144,7 @@ export default function AuthModal() {
     }
   };
 
-  // Handle Forgot Password Submit
+  // Hàm xử lý khi bấm gửi link đặt lại mk 
   const handleForgotSubmit = async (e) => {
     e.preventDefault();
     setForgotLoading(true);
@@ -145,7 +161,7 @@ export default function AuthModal() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
-      onClick={(e) => {
+      onMouseDown={(e) => {
         if (e.target === e.currentTarget) closeAuthModal();
       }}
     >
@@ -178,11 +194,10 @@ export default function AuthModal() {
                 setAuthModalView('login');
                 setRegisterSuccess(false);
               }}
-              className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors relative ${
-                authModal.view === 'login'
-                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-[1px]'
-                  : 'text-gray-500 hover:text-gray-800'
-              }`}
+              className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors relative ${authModal.view === 'login'
+                ? 'text-primary-600 border-b-2 border-primary-600 -mb-[1px]'
+                : 'text-gray-500 hover:text-gray-800'
+                }`}
             >
               Đăng nhập
             </button>
@@ -192,11 +207,10 @@ export default function AuthModal() {
                 setAuthModalView('register');
                 setRegisterSuccess(false);
               }}
-              className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors relative ${
-                authModal.view === 'register'
-                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-[1px]'
-                  : 'text-gray-500 hover:text-gray-800'
-              }`}
+              className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors relative ${authModal.view === 'register'
+                ? 'text-primary-600 border-b-2 border-primary-600 -mb-[1px]'
+                : 'text-gray-500 hover:text-gray-800'
+                }`}
             >
               Đăng ký
             </button>
@@ -205,13 +219,16 @@ export default function AuthModal() {
 
         {/* --- VIEW: LOGIN --- */}
         {authModal.view === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
+            {/* Hidden dummy inputs để đánh lừa trình duyệt không autofill */}
+            <input type="text" style={{ display: 'none' }} />
+            <input type="password" style={{ display: 'none' }} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
-                name="email"
-                autoComplete="username"
+                name="email_devhub"
+                autoComplete="new-password"
                 required
                 className="input-field"
                 placeholder="you@example.com"
@@ -221,16 +238,36 @@ export default function AuthModal() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                required
-                className="input-field"
-                placeholder="••••••••"
-                value={loginForm.password}
-                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-              />
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  name="password_devhub"
+                  autoComplete="new-password"
+                  required
+                  className="input-field pr-10"
+                  placeholder="••••••••"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={showLoginPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                >
+                  {showLoginPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -306,11 +343,16 @@ export default function AuthModal() {
               </button>
             </div>
           ) : (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3.5 max-h-[70vh] overflow-y-auto pr-1">
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5 max-h-[70vh] overflow-y-auto pr-1" autoComplete="off">
+              {/* Hidden dummy inputs để đánh lừa trình duyệt không autofill */}
+              <input type="text" style={{ display: 'none' }} />
+              <input type="password" style={{ display: 'none' }} />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
                 <input
                   type="text"
+                  name="fullname_devhub"
+                  autoComplete="new-password"
                   required
                   className="input-field"
                   placeholder="Nguyễn Văn A"
@@ -322,6 +364,8 @@ export default function AuthModal() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
                   type="email"
+                  name="email_devhub"
+                  autoComplete="new-password"
                   required
                   className="input-field"
                   placeholder="you@example.com"
@@ -342,25 +386,69 @@ export default function AuthModal() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-                <input
-                  type="password"
-                  required
-                  className="input-field"
-                  placeholder="Tối thiểu 8 ký tự"
-                  value={registerForm.password}
-                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    name="password_devhub"
+                    autoComplete="new-password"
+                    required
+                    className="input-field pr-10"
+                    placeholder="Tối thiểu 8 ký tự"
+                    value={registerForm.password}
+                    onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={showRegisterPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showRegisterPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
-                <input
-                  type="password"
-                  required
-                  className="input-field"
-                  placeholder="Nhập lại mật khẩu"
-                  value={registerForm.confirmPassword}
-                  onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterConfirmPassword ? 'text' : 'password'}
+                    name="confirm_password_devhub"
+                    autoComplete="new-password"
+                    required
+                    className="input-field pr-10"
+                    placeholder="Nhập lại mật khẩu"
+                    value={registerForm.confirmPassword}
+                    onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowRegisterConfirmPassword(!showRegisterConfirmPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={showRegisterConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showRegisterConfirmPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <button type="submit" disabled={registerLoading} className="btn-primary w-full mt-2">
                 {registerLoading ? 'Đang xử lý...' : 'Tạo tài khoản'}

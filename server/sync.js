@@ -1,5 +1,15 @@
-const fs = require('fs');
-let content = fs.readFileSync('e:/Desktop/tlcn/client/src/pages/candidate/WorkspacePage.jsx', 'utf8');
-content = content.replace('from "./components/WorkspaceLogs"', 'from "../candidate/components/WorkspaceLogs"');
-fs.writeFileSync('e:/Desktop/tlcn/client/src/pages/admin/WorkspacePage.jsx', content, 'utf8');
-console.log('Synced!');
+require('dotenv').config();
+const { sequelize } = require('./src/models');
+
+(async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Kết nối database thành công!');
+    await sequelize.sync({ alter: true });
+    console.log('✅ Đồng bộ tất cả các bảng thành công!');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Lỗi:', error.message);
+    process.exit(1);
+  }
+})();

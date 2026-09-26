@@ -8,7 +8,9 @@
     "dev": "nodemon index.js",
     "db:migrate": "node sync.js",
     "db:seed": "npx sequelize-cli db:seed:all",
-    "db:reset": "node sync.js --force && npx sequelize-cli db:seed:all"
+    "db:reset": "node sync.js --force && npx sequelize-cli db:seed:all",
+    "db:export": "node scripts/export-db.js",
+    "db:import": "node scripts/import-db.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
