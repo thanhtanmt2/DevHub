@@ -1,7 +1,10 @@
+// nạp các bảng liên quan đến ứng viên trong model 
 const { CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject } = require('../models');
+// nạp class AppError để hiển thị lỗi 
 const AppError = require('../utils/AppError');
 
 // GET /api/candidates/profile
+// Lấy thông tin hồ sơ của ứng viên
 exports.getMyProfile = async (req, res, next) => {
   try {
     let profile = await CandidateProfile.findOne({
@@ -13,7 +16,7 @@ exports.getMyProfile = async (req, res, next) => {
       ],
     });
     if (!profile) {
-      // Auto-create empty profile
+      // tạo profile rỗng nếu chưa có 
       profile = await CandidateProfile.create({ user_id: req.user.id });
     }
     res.json({ success: true, data: profile });
@@ -21,6 +24,7 @@ exports.getMyProfile = async (req, res, next) => {
 };
 
 // PUT /api/candidates/profile
+// Cập nhật thông tin hồ sơ của ứng viên 
 exports.updateProfile = async (req, res, next) => {
   try {
     const { professional_title, introduction, phone, address, github_url, portfolio_url, cv_url, cv_name } = req.body;
@@ -43,6 +47,7 @@ exports.updateProfile = async (req, res, next) => {
 };
 
 // GET /api/candidates/skills
+// Lấy kỹ năng của ứng viên
 exports.getMySkills = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -56,6 +61,7 @@ exports.getMySkills = async (req, res, next) => {
 };
 
 // POST /api/candidates/skills
+// Thêm kỹ năng cho ứng viên
 exports.addSkill = async (req, res, next) => {
   try {
     const { skill_id, level, years_of_experience } = req.body;
@@ -69,6 +75,7 @@ exports.addSkill = async (req, res, next) => {
 };
 
 // PUT /api/candidates/skills/:skill_id
+// Cập nhật kỹ năng của ứng viên
 exports.updateSkill = async (req, res, next) => {
   try {
     const { skill_id } = req.params;
@@ -83,6 +90,7 @@ exports.updateSkill = async (req, res, next) => {
 };
 
 // DELETE /api/candidates/skills/:skill_id
+// Xóa kỹ năng của ứng viên
 exports.removeSkill = async (req, res, next) => {
   try {
     const { skill_id } = req.params;
@@ -95,6 +103,7 @@ exports.removeSkill = async (req, res, next) => {
 };
 
 // GET /api/candidates/experiences
+// Lấy kinh nghiệm của ứng viên
 exports.getExperiences = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -105,6 +114,7 @@ exports.getExperiences = async (req, res, next) => {
 };
 
 // POST /api/candidates/experiences
+// Thêm kinh nghiệm cho ứng viên
 exports.addExperience = async (req, res, next) => {
   try {
     const { job_title, company_name, start_date, end_date, description } = req.body;
@@ -116,6 +126,7 @@ exports.addExperience = async (req, res, next) => {
 };
 
 // PUT /api/candidates/experiences/:id
+// Cập nhật kinh nghiệm của ứng viên
 exports.updateExperience = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -128,6 +139,7 @@ exports.updateExperience = async (req, res, next) => {
 };
 
 // DELETE /api/candidates/experiences/:id
+// Xóa kinh nghiệm của ứng viên
 exports.deleteExperience = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -139,6 +151,7 @@ exports.deleteExperience = async (req, res, next) => {
 };
 
 // GET /api/candidates/payment-info
+// Lấy thông tin thanh toán của ứng viên
 exports.getPaymentInfo = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -149,6 +162,7 @@ exports.getPaymentInfo = async (req, res, next) => {
 };
 
 // POST/PUT /api/candidates/payment-info
+// Tạo hoặc cập nhật thông tin thanh toán của ứng viên
 exports.upsertPaymentInfo = async (req, res, next) => {
   try {
     const { account_holder_name, bank_name, account_number } = req.body;
@@ -164,6 +178,7 @@ exports.upsertPaymentInfo = async (req, res, next) => {
 };
 
 // GET /api/candidates/workspaces — list workspaces the candidate is in
+// Lấy danh sách các workspace mà ứng viên đang tham gia
 exports.getMyWorkspaces = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -180,6 +195,7 @@ exports.getMyWorkspaces = async (req, res, next) => {
 };
 
 // GET /api/candidates/payments — payment history
+// Lấy lịch sử thanh toán của ứng viên
 exports.getMyPayments = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -198,6 +214,7 @@ exports.getMyPayments = async (req, res, next) => {
 };
 
 // GET /api/candidates/:id/public — public profile for employers
+// Lấy hồ sơ công khai của ứng viên
 exports.getPublicProfile = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findByPk(req.params.id, {
@@ -331,7 +348,7 @@ exports.adminSearchCandidates = async (req, res, next) => {
     const { email, name, skill_ids, min_score, manager_status } = req.query;
     const { Op } = require('sequelize');
     const { Skill, Project } = require('../models');
-    
+
     let userWhere = {};
     // If user provides a single string for both email or name, the frontend will probably send it as "query"
     // Let's support a general "q" param or email/name
