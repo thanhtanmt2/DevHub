@@ -26,6 +26,11 @@ export default function ManageSkillsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Thêm thất bại'),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => skillApi.updateSkill(id, data),
+    onSuccess: () => { qc.invalidateQueries(['admin-skills']); toast.success('Đã cập nhật trạng thái kỹ năng'); },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => skillApi.deleteSkill(id),
     onSuccess: () => { qc.invalidateQueries(['admin-skills']); toast.success('Đã vô hiệu hóa kỹ năng'); },
@@ -84,8 +89,10 @@ export default function ManageSkillsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-2">
-                    {skill.status === 'ACTIVE' && (
+                    {skill.status === 'ACTIVE' ? (
                       <button onClick={() => deleteMutation.mutate(skill.id)} className="text-xs text-red-500 hover:underline">Vô hiệu hóa</button>
+                    ) : (
+                      <button onClick={() => updateMutation.mutate({ id: skill.id, data: { status: 'ACTIVE' } })} className="text-xs text-green-600 font-medium hover:underline">Khôi phục</button>
                     )}
                   </td>
                 </tr>

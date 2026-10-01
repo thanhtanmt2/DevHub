@@ -6,7 +6,7 @@ const { Company, CandidateProfile } = require('../models');
 // Hàm xử lý dọn rác
 const cleanupOrphanFiles = async () => {
   try {
-    console.log('\n[CRON] 🧹 Bắt đầu tiến trình dọn dẹp file rác...');
+    // console.log('\n[CRON] 🧹 Bắt đầu tiến trình dọn dẹp file rác...');
 
     // 1. DỌN DẸP ẢNH (Logo Doanh nghiệp, Avatar...)
     const imageDir = path.join(__dirname, '../../uploads/images');
@@ -36,7 +36,7 @@ const cleanupOrphanFiles = async () => {
           deletedImages++;
         }
       });
-      console.log(`[CRON] 🗑️ Đã dọn dẹp thành công ${deletedImages} ảnh rác (Images).`);
+      // console.log(`[CRON] 🗑️ Đã dọn dẹp thành công ${deletedImages} ảnh rác (Images).`);
     }
 
     // 2. DỌN DẸP FILE PDF (CV Ứng viên)
@@ -61,10 +61,10 @@ const cleanupOrphanFiles = async () => {
           deletedCvs++;
         }
       });
-      console.log(`[CRON] 🗑️ Đã dọn dẹp thành công ${deletedCvs} tệp CV rác.`);
+      // console.log(`[CRON] 🗑️ Đã dọn dẹp thành công ${deletedCvs} tệp CV rác.`);
     }
 
-    console.log('[CRON] ✨ Hoàn tất tiến trình dọn dẹp.\n');
+    // console.log('[CRON] ✨ Hoàn tất tiến trình dọn dẹp.\n');
   } catch (error) {
     console.error('[CRON] ❌ Lỗi khi dọn dẹp file rác:', error);
   }
@@ -75,7 +75,7 @@ const startCronJobs = () => {
   // Cú pháp cron: 'Phút Giờ Ngày Tháng Thứ'
   // '0 2 * * *' = Chạy vào đúng 2:00 AM (sáng sớm) mỗi ngày.
   cron.schedule('0 2 * * *', cleanupOrphanFiles);
-  console.log('[SYSTEM] 🕒 CronJobs dọn rác tự động đã được kích hoạt (Chạy lúc 2:00 sáng mỗi ngày).');
+  // console.log('[SYSTEM] 🕒 CronJobs dọn rác tự động đã được kích hoạt (Chạy lúc 2:00 sáng mỗi ngày).');
 };
 
 module.exports = { startCronJobs, cleanupOrphanFiles };
