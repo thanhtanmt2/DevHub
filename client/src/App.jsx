@@ -33,6 +33,7 @@ import EmployerDashboard from '@/pages/employer/EmployerDashboard';
 import ManageJobsPage from '@/pages/employer/ManageJobsPage';
 import SearchCandidatesPage from '@/pages/employer/SearchCandidatesPage';
 import ManageApplicationsPage from '@/pages/employer/ManageApplicationsPage';
+import CompanyPage from '@/pages/employer/CompanyPage';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -86,6 +87,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
         <Route element={<EmployerLayout />}>
           <Route path="/employer" element={<EmployerDashboard />} />
+          <Route path="/employer/company" element={<CompanyPage />} />
           <Route path="/employer/jobs" element={<ManageJobsPage />} />
           <Route path="/employer/candidates" element={<SearchCandidatesPage />} />
           <Route path="/employer/applications" element={<ManageApplicationsPage />} />

@@ -36,4 +36,34 @@ const uploadCV = multer({
   fileFilter
 });
 
-module.exports = { uploadCV };
+const uploadImageDir = path.join(__dirname, '../../uploads/images');
+if (!fs.existsSync(uploadImageDir)) {
+  fs.mkdirSync(uploadImageDir, { recursive: true });
+}
+
+const imageStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadImageDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `img-${uniqueSuffix}${ext}`);
+  }
+});
+
+const imageFilter = (req, file, cb) => {
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedExtensions.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Chỉ chấp nhận file hình ảnh (.jpg, .png, .gif, .webp)'), false);
+  }
+};
+
+const uploadImage = multer({
+  storage: imageStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: imageFilter
+});
+
+module.exports = { uploadCV, uploadImage };

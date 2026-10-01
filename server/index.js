@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const { sequelize } = require('./src/models');
 const errorHandler = require('./src/middleware/errorHandler');
+const { startCronJobs, cleanupOrphanFiles } = require('./src/utils/cronJobs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -66,7 +67,14 @@ const startServer = async () => {
     if (process.env.NODE_ENV === 'development') {
       console.log('✅ Models synced');
     }
-    app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      // Khởi động hệ thống dọn rác ngầm
+      startCronJobs();
+      
+      // (Tuỳ chọn) Chạy dọn dẹp ngay lần đầu bật server nếu muốn nghiệm thu
+      setTimeout(() => cleanupOrphanFiles(), 5000); 
+    });
   } catch (error) {
     console.error('❌ Unable to start server:', error);
     process.exit(1);
