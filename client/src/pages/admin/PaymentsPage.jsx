@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -9,7 +9,7 @@ export default function PaymentsPage() {
   
   const processMutation = useMutation({
     mutationFn: ({ id, status }) => adminApi.processPayment(id, { status }),
-    onSuccess: () => { qc.invalidateQueries(['admin-payments']); toast.success('Đã cập nhật thanh toán'); }
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-payments'] }); toast.success('Đã cập nhật thanh toán'); }
   });
 
   if (isLoading) return <LoadingSpinner />;

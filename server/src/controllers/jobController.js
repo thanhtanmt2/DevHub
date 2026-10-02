@@ -82,7 +82,7 @@ exports.createEmployerJob = async (req, res, next) => {
       post_type: 'PARTNER',
       created_by_user_id: req.user.id,
       company_id: company.id,
-      status: 'OPEN',
+      status: 'PENDING_APPROVAL',
       posted_at: new Date(),
     });
 
@@ -167,10 +167,34 @@ exports.getAdminJobs = async (req, res, next) => {
       where,
       include: [
         { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
-        { model: Company, attributes: ['id', 'name'] },
+        { model: Company, attributes: ['id', 'name', 'logo_url', 'address'] },
+        { model: User, as: 'creator', attributes: ['id', 'full_name', 'email'] },
       ],
       order: [['created_at', 'DESC']],
     });
     res.json({ success: true, data: jobs });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/admin/jobs/:id/approve — admin approves a PARTNER job
+exports.approveJob = async (req, res, next) => {
+  try {
+    const job = await JobPost.findByPk(req.params.id);
+    if (!job) throw new AppError('Job not found', 404);
+    if (job.post_type !== 'PARTNER') throw new AppError('Only PARTNER jobs need approval', 400);
+    await job.update({ status: 'OPEN' });
+    res.json({ success: true, message: 'Tin tuyển dụng đã được duyệt', data: job });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/admin/jobs/:id/reject — admin rejects a PARTNER job
+exports.rejectJob = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const job = await JobPost.findByPk(req.params.id);
+    if (!job) throw new AppError('Job not found', 404);
+    if (job.post_type !== 'PARTNER') throw new AppError('Only PARTNER jobs can be rejected', 400);
+    await job.update({ status: 'HIDDEN' });
+    res.json({ success: true, message: 'Tin tuyển dụng đã bị từ chối', data: job });
   } catch (error) { next(error); }
 };

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { uploadApi } from '@/api/uploadApi';
 import { candidateApi } from '@/api/candidateApi';
@@ -88,8 +88,8 @@ export default function CvSelector({ profile, value, onChange }) {
           file_size: file.size,
           is_default: makeDefault,
         });
-        qc.invalidateQueries(['candidate-cvs']);
-        qc.invalidateQueries(['candidate-profile']);
+        qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
+        qc.invalidateQueries({ queryKey: ['candidate-profile'] });
       }
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Tải lên CV thất bại');

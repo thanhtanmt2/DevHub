@@ -39,6 +39,8 @@ import CompanyPage from '@/pages/employer/CompanyPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ManageUsersPage from '@/pages/admin/ManageUsersPage';
 import ManageSkillsPage from '@/pages/admin/ManageSkillsPage';
+import AdminManageJobsPage from '@/pages/admin/ManageJobsPage';
+import ManageCompaniesPage from '@/pages/admin/ManageCompaniesPage';
 import InternalProjectsPage from '@/pages/admin/InternalProjectsPage';
 import AdminWorkspacePage from '@/pages/admin/WorkspacePage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
@@ -100,6 +102,8 @@ function AppRoutes() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<ManageUsersPage />} />
           <Route path="/admin/skills" element={<ManageSkillsPage />} />
+          <Route path="/admin/jobs" element={<AdminManageJobsPage />} />
+          <Route path="/admin/companies" element={<ManageCompaniesPage />} />
           <Route path="/admin/projects" element={<InternalProjectsPage />} />
           <Route path="/admin/workspaces/:id" element={<AdminWorkspacePage />} />
           <Route path="/admin/payments" element={<PaymentsPage />} />

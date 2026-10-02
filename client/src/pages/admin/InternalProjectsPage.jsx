@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { workspaceApi } from '@/api/workspaceApi';
@@ -505,7 +505,7 @@ export default function InternalProjectsPage() {
   const createProjectMutation = useMutation({
     mutationFn: (data) => workspaceApi.createProject({ ...data, budget: parseFloat(data.budget) || 0 }),
     onSuccess: () => {
-      qc.invalidateQueries(['admin-projects']);
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
       setShowAddProject(false);
       setProjectForm({ name: '', description: '', budget: '', expected_end_date: '' });
       toast.success('Đã tạo dự án & Workspace!');
@@ -517,7 +517,7 @@ export default function InternalProjectsPage() {
   const assignManagerMutation = useMutation({
     mutationFn: ({ projectId, manager_id }) => workspaceApi.updateProjectManager(projectId, { manager_id }),
     onSuccess: () => {
-      qc.invalidateQueries(['admin-projects']);
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
       setAssignManagerProject(null);
       toast.success('Đã cập nhật quyền quản lý dự án!');
     },
@@ -531,8 +531,8 @@ export default function InternalProjectsPage() {
       budget: parseFloat(data.budget) || 0
     }),
     onSuccess: () => {
-      qc.invalidateQueries(['admin-projects']);
-      if (viewJobsProject) qc.invalidateQueries(['admin-project-jobs', viewJobsProject.id]);
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
+      if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
       setActiveProjectForJob(null);
       setJobForm({ title: '', description: '', budget: '', deadline: '', skill_ids: [] });
       toast.success('Đã thêm vị trí công việc vào dự án!');
@@ -544,8 +544,8 @@ export default function InternalProjectsPage() {
   const reviewAppMutation = useMutation({
     mutationFn: ({ appId, status }) => projectJobApi.updateProjectApplicationStatus(appId, { status }),
     onSuccess: (res) => {
-      if (viewJobsProject) qc.invalidateQueries(['admin-project-jobs', viewJobsProject.id]);
-      qc.invalidateQueries(['admin-projects']);
+      if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
       toast.success(res.data?.message || 'Đã cập nhật hồ sơ');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi duyệt hồ sơ'),
@@ -996,7 +996,7 @@ export default function InternalProjectsPage() {
           onClose={() => setInterviewApp(null)}
           onSuccess={() => {
             setInterviewApp(null);
-            if (viewJobsProject) qc.invalidateQueries(['admin-project-jobs', viewJobsProject.id]);
+            if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
           }}
         />
       )}

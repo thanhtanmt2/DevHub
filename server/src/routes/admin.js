@@ -30,6 +30,8 @@ router.delete('/skills/:id', skillCtrl.deleteSkill);
 // Jobs
 router.get('/jobs', jobCtrl.getAdminJobs);
 router.post('/jobs', [body('title').notEmpty(), body('description').notEmpty()], validate, jobCtrl.createAdminJob);
+router.put('/jobs/:id/approve', jobCtrl.approveJob);
+router.put('/jobs/:id/reject', jobCtrl.rejectJob);
 
 // Applications
 router.get('/jobs/:jobId/applications', appCtrl.getAdminJobApplications);

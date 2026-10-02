@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
 import { skillApi } from '@/api/skillApi';
@@ -113,7 +113,7 @@ function ProfileInfoTab({ profile, qc }) {
 
   const mutation = useMutation({
     mutationFn: (data) => candidateApi.updateProfile(data),
-    onSuccess: () => { qc.invalidateQueries(['candidate-profile']); toast.success('Cập nhật hồ sơ thành công!'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-profile'] }); toast.success('Cập nhật hồ sơ thành công!'); },
     onError: (err) => {
       // Backend thường trả về mảng lỗi trong err.response.data.errors nếu dùng express-validator
       const errors = err.response?.data?.errors;
@@ -255,8 +255,8 @@ function CvTab({ profile, qc }) {
         is_default: makeDefault || cvList.length === 0,
       });
 
-      qc.invalidateQueries(['candidate-cvs']);
-      qc.invalidateQueries(['candidate-profile']);
+      qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
+      qc.invalidateQueries({ queryKey: ['candidate-profile'] });
       toast.success('Đã tải lên và lưu CV thành công!');
       setCvTitle('');
       setMakeDefault(false);
@@ -272,8 +272,8 @@ function CvTab({ profile, qc }) {
   const handleSetDefault = async (cvId) => {
     try {
       await candidateApi.setDefaultCv(cvId);
-      qc.invalidateQueries(['candidate-cvs']);
-      qc.invalidateQueries(['candidate-profile']);
+      qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
+      qc.invalidateQueries({ queryKey: ['candidate-profile'] });
       toast.success('Đã đặt làm CV mặc định');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Không thể đặt làm mặc định');
@@ -284,8 +284,8 @@ function CvTab({ profile, qc }) {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bản CV này khỏi hồ sơ không?')) return;
     try {
       await candidateApi.deleteCv(cvId);
-      qc.invalidateQueries(['candidate-cvs']);
-      qc.invalidateQueries(['candidate-profile']);
+      qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
+      qc.invalidateQueries({ queryKey: ['candidate-profile'] });
       toast.success('Đã xóa CV khỏi danh sách');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Xóa CV thất bại');
@@ -508,13 +508,13 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
 
   const addMutation = useMutation({
     mutationFn: (data) => candidateApi.addSkill(data),
-    onSuccess: () => { qc.invalidateQueries(['candidate-skills']); setShowAdd(false); toast.success('Đã thêm kỹ năng!'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-skills'] }); setShowAdd(false); toast.success('Đã thêm kỹ năng!'); },
     onError: (err) => toast.error(err.response?.data?.message || 'Thêm kỹ năng thất bại'),
   });
 
   const removeMutation = useMutation({
     mutationFn: (skillId) => candidateApi.removeSkill(skillId),
-    onSuccess: () => { qc.invalidateQueries(['candidate-skills']); toast.success('Đã xóa kỹ năng'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-skills'] }); toast.success('Đã xóa kỹ năng'); },
   });
 
   const mySkillIds = mySkills.map(s => s.skill_id);
@@ -582,13 +582,13 @@ function ExperienceTab({ experiences, qc }) {
 
   const addMutation = useMutation({
     mutationFn: (data) => editId ? candidateApi.updateExperience(editId, data) : candidateApi.addExperience(data),
-    onSuccess: () => { qc.invalidateQueries(['candidate-experiences']); setShowForm(false); setEditId(null); toast.success(editId ? 'Đã cập nhật!' : 'Đã thêm kinh nghiệm!'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-experiences'] }); setShowForm(false); setEditId(null); toast.success(editId ? 'Đã cập nhật!' : 'Đã thêm kinh nghiệm!'); },
     onError: (err) => toast.error(err.response?.data?.message || 'Thất bại'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => candidateApi.deleteExperience(id),
-    onSuccess: () => { qc.invalidateQueries(['candidate-experiences']); toast.success('Đã xóa'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-experiences'] }); toast.success('Đã xóa'); },
   });
 
   const startEdit = (exp) => {
@@ -736,7 +736,7 @@ function PaymentTab({ paymentInfo, qc }) {
 
   const mutation = useMutation({
     mutationFn: (data) => candidateApi.upsertPaymentInfo(data),
-    onSuccess: () => { qc.invalidateQueries(['payment-info']); toast.success('Đã lưu thông tin nhận tiền!'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['payment-info'] }); toast.success('Đã lưu thông tin nhận tiền!'); },
     onError: (err) => toast.error(err.response?.data?.message || 'Lưu thất bại'),
   });
 

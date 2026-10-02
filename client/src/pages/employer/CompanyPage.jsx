@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companyApi } from '@/api/companyApi';
 import { uploadApi } from '@/api/uploadApi';
@@ -11,12 +11,16 @@ export default function CompanyPage() {
     name: '',
     tax_code: '',
     address: '',
-    email: '',
     website: '',
     description: '',
     logo_url: ''
   });
   const [isUploading, setIsUploading] = useState(false);
+
+  // Email verification state
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
 
   // Lấy dữ liệu công ty hiện tại
   const { data, isLoading } = useQuery({
@@ -25,7 +29,7 @@ export default function CompanyPage() {
   });
 
   const company = data?.data?.data;
-  const isUpdating = !!company; // Nếu đã có dữ liệu => Cập nhật, ngược lại => Tạo mới
+  const isUpdating = !!company;
 
   // Đổ dữ liệu vào form khi fetch thành công
   useEffect(() => {
@@ -34,11 +38,11 @@ export default function CompanyPage() {
         name: company.name || '',
         tax_code: company.tax_code || '',
         address: company.address || '',
-        email: company.email || '',
         website: company.website || '',
         description: company.description || '',
         logo_url: company.logo_url || ''
       });
+      setVerifyEmail(company.email || '');
     }
   }, [company]);
 
@@ -46,7 +50,7 @@ export default function CompanyPage() {
   const mutation = useMutation({
     mutationFn: (payload) => isUpdating ? companyApi.updateCompany(payload) : companyApi.createCompany(payload),
     onSuccess: () => {
-      qc.invalidateQueries(['employer-company']);
+      qc.invalidateQueries({ queryKey: ['employer-company'] });
       toast.success(isUpdating ? 'Cập nhật thành công!' : 'Tạo hồ sơ thành công!');
     },
     onError: (err) => {
@@ -54,8 +58,29 @@ export default function CompanyPage() {
     }
   });
 
+  // Mutation gửi OTP
+  const sendOtpMutation = useMutation({
+    mutationFn: () => companyApi.sendVerifyEmail(verifyEmail),
+    onSuccess: () => {
+      setOtpSent(true);
+      toast.success(`📧 Đã gửi OTP đến ${verifyEmail}`);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Gửi OTP thất bại'),
+  });
+
+  // Mutation xác thực OTP
+  const verifyOtpMutation = useMutation({
+    mutationFn: () => companyApi.verifyEmail(otp),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employer-company'] });
+      setOtpSent(false);
+      setOtp('');
+      toast.success('✅ Email doanh nghiệp đã được xác thực!');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'OTP không đúng hoặc đã hết hạn'),
+  });
+
   const handleSave = () => {
-    // Validate cơ bản
     if (!form.name || !form.tax_code || !form.address) {
       toast.error('Vui lòng điền đủ Tên, Mã số thuế và Địa chỉ');
       return;
@@ -173,16 +198,6 @@ export default function CompanyPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email liên hệ</label>
-              <input 
-                className="input-field bg-gray-50 focus:bg-white transition-colors" 
-                value={form.email} 
-                onChange={e => setForm({...form, email: e.target.value})} 
-                placeholder="VD: tuyendung@fpt.com" 
-              />
-            </div>
-
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ trụ sở <span className="text-red-500">*</span></label>
               <input 
@@ -215,6 +230,88 @@ export default function CompanyPage() {
               />
             </div>
           </div>
+
+          {/* ===== EMAIL XÁC THỰC DOANH NGHIỆP ===== */}
+          {company && (
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-1">Xác thực email doanh nghiệp</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Sử dụng email công ty để xác thực danh tính. Email miễn phí (Gmail, Yahoo...) không được chấp nhận.
+              </p>
+
+              {company.company_email_verified ? (
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <p className="font-semibold text-green-700">Email đã được xác thực</p>
+                    <p className="text-sm text-green-600">{company.email}</p>
+                  </div>
+                  <button
+                    onClick={() => { setOtpSent(false); setOtp(''); setVerifyEmail(''); }}
+                    className="ml-auto text-xs text-gray-400 hover:text-gray-600 underline"
+                  >
+                    Đổi email khác
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-3">
+                  <div className="flex items-center gap-2 text-yellow-700">
+                    <span>⚠️</span>
+                    <p className="text-sm font-medium">Tài khoản chưa được xác thực — bạn chưa thể đăng tin tuyển dụng</p>
+                  </div>
+
+                  {!otpSent ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        className="input-field flex-1 bg-white"
+                        placeholder="hr@congty.vn"
+                        value={verifyEmail}
+                        onChange={e => setVerifyEmail(e.target.value)}
+                      />
+                      <button
+                        disabled={sendOtpMutation.isPending || !verifyEmail}
+                        onClick={() => sendOtpMutation.mutate()}
+                        className="btn-primary px-5 whitespace-nowrap"
+                      >
+                        {sendOtpMutation.isPending ? 'Đang gửi...' : '📧 Gửi OTP'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">
+                        Nhập mã OTP 6 chữ số đã gửi đến <strong>{verifyEmail}</strong>
+                        <span className="text-xs text-gray-400 ml-1">(hiệu lực 10 phút)</span>
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          className="input-field bg-white font-mono text-center text-xl tracking-widest w-40"
+                          placeholder="______"
+                          value={otp}
+                          onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                        />
+                        <button
+                          disabled={verifyOtpMutation.isPending || otp.length !== 6}
+                          onClick={() => verifyOtpMutation.mutate()}
+                          className="btn-primary px-5"
+                        >
+                          {verifyOtpMutation.isPending ? 'Đang xác thực...' : 'Xác nhận'}
+                        </button>
+                        <button
+                          onClick={() => { setOtpSent(false); setOtp(''); }}
+                          className="px-4 text-sm text-gray-500 hover:text-gray-700 underline"
+                        >
+                          Gửi lại
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3">
             <button 

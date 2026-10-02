@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,11 +21,11 @@ function NotificationBell() {
 
   const markReadMut = useMutation({
     mutationFn: (id) => notificationApi.markRead(id),
-    onSuccess: () => qc.invalidateQueries(['notifications']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
   const markAllMut = useMutation({
     mutationFn: () => notificationApi.markAllRead(),
-    onSuccess: () => { qc.invalidateQueries(['notifications']); toast.success('Đã đọc tất cả'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); toast.success('Đã đọc tất cả'); },
   });
 
   // Close on outside click

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { skillApi } from '@/api/skillApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -17,8 +17,8 @@ export default function ManageSkillsPage() {
   const createMutation = useMutation({
     mutationFn: (data) => skillApi.createSkill(data),
     onSuccess: () => {
-      qc.invalidateQueries(['admin-skills']);
-      qc.invalidateQueries(['public-skills']);
+      qc.invalidateQueries({ queryKey: ['admin-skills'] });
+      qc.invalidateQueries({ queryKey: ['public-skills'] });
       setShowAdd(false);
       setForm({ name: '', description: '' });
       toast.success('Đã thêm kỹ năng!');
@@ -28,12 +28,12 @@ export default function ManageSkillsPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => skillApi.updateSkill(id, data),
-    onSuccess: () => { qc.invalidateQueries(['admin-skills']); toast.success('Đã cập nhật trạng thái kỹ năng'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-skills'] }); toast.success('Đã cập nhật trạng thái kỹ năng'); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => skillApi.deleteSkill(id),
-    onSuccess: () => { qc.invalidateQueries(['admin-skills']); toast.success('Đã vô hiệu hóa kỹ năng'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-skills'] }); toast.success('Đã vô hiệu hóa kỹ năng'); },
   });
 
   const skills = data?.data?.data || [];
