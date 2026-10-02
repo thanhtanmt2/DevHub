@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+﻿import { useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -621,7 +621,7 @@ function CreateTaskModal({ workspaceId, members, onClose, onCreated }) {
   const createMut = useMutation({
     mutationFn: (data) => taskApi.createTask(workspaceId, data),
     onSuccess: () => {
-      qc.invalidateQueries(['workspace-tasks', workspaceId]);
+      qc.invalidateQueries({ queryKey: ['workspace-tasks', workspaceId] });
       toast.success('✅ Đã tạo task!');
       onCreated?.();
     },
@@ -786,11 +786,11 @@ export default function WorkspacePage() {
 
   const updateRoleMut = useMutation({
     mutationFn: ({ memberId, role }) => workspaceApi.updateMemberRole(id, memberId, role),
-    onSuccess: () => { qc.invalidateQueries(['workspace', id]); toast.success('Đã cập nhật vai trò'); }
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['workspace', id] }); toast.success('Đã cập nhật vai trò'); }
   });
   const removeMemberMut = useMutation({
     mutationFn: (memberId) => workspaceApi.removeMember(id, memberId),
-    onSuccess: () => { qc.invalidateQueries(['workspace', id]); toast.success('Đã xóa thành viên'); }
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['workspace', id] }); toast.success('Đã xóa thành viên'); }
   });
 
   // Filter tasks
@@ -839,7 +839,7 @@ export default function WorkspacePage() {
 
     taskApi.updateTask(draggableId, { status: newStatus })
       .then(() => {
-        qc.invalidateQueries(['workspace-tasks', id]);
+        qc.invalidateQueries({ queryKey: ['workspace-tasks', id] });
         setOptimisticTasks(null);
       })
       .catch((e) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectJobApi } from '@/api/projectJobApi';
 import { candidateApi } from '@/api/candidateApi';
@@ -54,9 +54,9 @@ export default function ProjectsPage() {
       toast.success('Nộp đơn ứng tuyển dự án thành công!');
       setSelectedJobForApply(null);
       setApplyForm({ cover_letter: '', cv_url: '' });
-      qc.invalidateQueries(['project-jobs']);
-      qc.invalidateQueries(['my-project-applications']);
-      qc.invalidateQueries(['my-applications']);
+      qc.invalidateQueries({ queryKey: ['project-jobs'] });
+      qc.invalidateQueries({ queryKey: ['my-project-applications'] });
+      qc.invalidateQueries({ queryKey: ['my-applications'] });
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi nộp đơn');

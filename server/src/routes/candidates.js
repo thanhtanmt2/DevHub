@@ -13,9 +13,9 @@ router.use(protect, authorize('CANDIDATE'));
 // Profile
 router.get('/profile', ctrl.getMyProfile);
 router.put('/profile', [
-  body('phone').optional({ checkFalsy: true }).isMobilePhone().withMessage('Invalid phone number'),
-  body('github_url').optional({ checkFalsy: true }).isURL().withMessage('Invalid GitHub URL'),
-  body('portfolio_url').optional({ checkFalsy: true }).isURL().withMessage('Invalid portfolio URL'),
+  body('phone').optional({ checkFalsy: true }).matches(/(84|0[3|5|7|8|9])+([0-9]{8})\b/).withMessage('Số điện thoại không hợp lệ (phải là số VN)'),
+  body('github_url').optional({ checkFalsy: true }).isURL({ require_protocol: false }).withMessage('Link GitHub không hợp lệ'),
+  body('portfolio_url').optional({ checkFalsy: true }).isURL({ require_protocol: false }).withMessage('Link Portfolio không hợp lệ'),
 ], validate, ctrl.updateProfile);
 
 // Skills

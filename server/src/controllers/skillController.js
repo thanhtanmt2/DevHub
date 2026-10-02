@@ -1,5 +1,6 @@
-const { Skill, CandidateSkill, JobPostSkill } = require('../models');
+const { Skill, CandidateSkill, JobPostSkill, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
+const { Op } = require('sequelize');
 
 // GET /api/admin/skills — all skills with usage count
 exports.getAllSkills = async (req, res, next) => {
@@ -12,10 +13,18 @@ exports.getAllSkills = async (req, res, next) => {
 // POST /api/admin/skills
 exports.createSkill = async (req, res, next) => {
   try {
-    const { name, description } = req.body;
-    const existing = await Skill.findOne({ where: { name } });
-    if (existing) throw new AppError('Skill name already exists', 409);
-    const skill = await Skill.create({ name, description });
+    let { name, description } = req.body;
+    name = name.trim(); // Loại bỏ khoảng trắng thừa ở 2 đầu
+    
+    // Kiểm tra trùng lặp không phân biệt hoa thường bằng Op.iLike của PostgreSQL
+    const existing = await Skill.findOne({ 
+      where: { 
+        name: { [Op.iLike]: name } 
+      }
+    });
+    if (existing) throw new AppError(`Kỹ năng '${name}' đã tồn tại trong hệ thống`, 409);
+    
+    const skill = await Skill.create({ name, description: description?.trim() });
     res.status(201).json({ success: true, data: skill });
   } catch (error) { next(error); }
 };
@@ -34,9 +43,11 @@ exports.updateSkill = async (req, res, next) => {
 exports.deleteSkill = async (req, res, next) => {
   try {
     const skill = await Skill.findByPk(req.params.id);
-    if (!skill) throw new AppError('Skill not found', 404);
+    if (!skill) throw new AppError('Không tìm thấy kỹ năng', 404);
+    
+    // Đổi trạng thái thành INACTIVE thay vì xóa vật lý
     await skill.update({ status: 'INACTIVE' });
-    res.json({ success: true, message: 'Skill deactivated' });
+    res.json({ success: true, message: 'Đã vô hiệu hóa kỹ năng' });
   } catch (error) { next(error); }
 };
 

@@ -10,5 +10,8 @@ module.exports = (sequelize, DataTypes) => {
     logo_url: { type: DataTypes.STRING(500) },
     description: { type: DataTypes.TEXT },
     verification_status: { type: DataTypes.ENUM('PENDING', 'VERIFIED', 'REJECTED'), defaultValue: 'PENDING' },
+    company_email_verified: { type: DataTypes.BOOLEAN, defaultValue: false },
+    company_email_token: { type: DataTypes.STRING(10) },
+    company_email_token_expires: { type: DataTypes.DATE },
   }, { tableName: 'companies', underscored: true });
 };

@@ -11,7 +11,7 @@ exports.getAdminStats = async (req, res, next) => {
     const totalPayout = paidPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
     const recentApplications = await Application.count({
-      where: { created_at: { [require('sequelize').Op.gte]: new Date(new Date() - 7 * 24 * 60 * 60 * 1000) } }
+      where: { applied_at: { [require('sequelize').Op.gte]: new Date(new Date() - 7 * 24 * 60 * 60 * 1000) } }
     });
 
     res.json({

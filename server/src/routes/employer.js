@@ -16,6 +16,8 @@ router.get('/stats', statsCtrl.getEmployerStats);
 router.get('/company', compCtrl.getMyCompany);
 router.post('/company', [body('name').notEmpty(), body('tax_code').notEmpty(), body('address').notEmpty()], validate, compCtrl.createCompany);
 router.put('/company', compCtrl.updateCompany);
+router.post('/company/send-verify-email', [body('email').isEmail()], validate, compCtrl.sendCompanyVerifyEmail);
+router.post('/company/verify-email', [body('otp').notEmpty()], validate, compCtrl.verifyCompanyEmail);
 
 // Job posts
 router.get('/jobs', jobCtrl.getEmployerJobs);

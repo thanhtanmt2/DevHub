@@ -33,11 +33,14 @@ import EmployerDashboard from '@/pages/employer/EmployerDashboard';
 import ManageJobsPage from '@/pages/employer/ManageJobsPage';
 import SearchCandidatesPage from '@/pages/employer/SearchCandidatesPage';
 import ManageApplicationsPage from '@/pages/employer/ManageApplicationsPage';
+import CompanyPage from '@/pages/employer/CompanyPage';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ManageUsersPage from '@/pages/admin/ManageUsersPage';
 import ManageSkillsPage from '@/pages/admin/ManageSkillsPage';
+import AdminManageJobsPage from '@/pages/admin/ManageJobsPage';
+import ManageCompaniesPage from '@/pages/admin/ManageCompaniesPage';
 import InternalProjectsPage from '@/pages/admin/InternalProjectsPage';
 import AdminWorkspacePage from '@/pages/admin/WorkspacePage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
@@ -86,6 +89,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
         <Route element={<EmployerLayout />}>
           <Route path="/employer" element={<EmployerDashboard />} />
+          <Route path="/employer/company" element={<CompanyPage />} />
           <Route path="/employer/jobs" element={<ManageJobsPage />} />
           <Route path="/employer/candidates" element={<SearchCandidatesPage />} />
           <Route path="/employer/applications" element={<ManageApplicationsPage />} />
@@ -98,6 +102,8 @@ function AppRoutes() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<ManageUsersPage />} />
           <Route path="/admin/skills" element={<ManageSkillsPage />} />
+          <Route path="/admin/jobs" element={<AdminManageJobsPage />} />
+          <Route path="/admin/companies" element={<ManageCompaniesPage />} />
           <Route path="/admin/projects" element={<InternalProjectsPage />} />
           <Route path="/admin/workspaces/:id" element={<AdminWorkspacePage />} />
           <Route path="/admin/payments" element={<PaymentsPage />} />

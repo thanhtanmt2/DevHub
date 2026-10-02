@@ -2,13 +2,15 @@ import { Outlet, NavLink } from 'react-router-dom';
 import Navbar from '@/components/common/Navbar';
 
 const navItems = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/users', label: 'Quản lý người dùng' },
-  { to: '/admin/skills', label: 'Danh mục kỹ năng' },
-  { to: '/admin/projects', label: 'Dự án nội bộ' },
-  { to: '/admin/payments', label: 'Thanh toán' },
-  { to: '/admin/stats', label: 'Thống kê' },
-  { to: '/admin/logs', label: 'Nhật ký hệ thống' },
+  { to: '/admin', label: '🏠 Dashboard', end: true },
+  { to: '/admin/users', label: '👥 Quản lý người dùng' },
+  { to: '/admin/companies', label: '🏢 Xác thực doanh nghiệp' },
+  { to: '/admin/jobs', label: '📋 Duyệt tin tuyển dụng' },
+  { to: '/admin/skills', label: '🔧 Danh mục kỹ năng' },
+  { to: '/admin/projects', label: '📁 Dự án nội bộ' },
+  { to: '/admin/payments', label: '💳 Thanh toán' },
+  { to: '/admin/stats', label: '📊 Thống kê' },
+  { to: '/admin/logs', label: '📜 Nhật ký hệ thống' },
 ];
 
 export default function AdminLayout() {

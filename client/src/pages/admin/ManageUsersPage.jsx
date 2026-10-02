@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/api/adminApi';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -11,7 +11,7 @@ export default function ManageUsersPage() {
   
   const toggleMutation = useMutation({
     mutationFn: (id) => adminApi.toggleUserStatus(id),
-    onSuccess: () => { qc.invalidateQueries(['admin-users']); toast.success('Đã cập nhật trạng thái user'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('Đã cập nhật trạng thái user'); },
     onError: (err) => { toast.error(err?.response?.data?.message || 'Có lỗi xảy ra'); }
   });
 

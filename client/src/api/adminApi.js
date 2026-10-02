@@ -15,4 +15,13 @@ export const adminApi = {
   
   // Evaluation
   evaluateCandidate: (workspaceId, memberId, data) => api.post(`/admin/workspaces/${workspaceId}/members/${memberId}/evaluate`, data),
+  
+  // Jobs moderation
+  getJobs: (params) => api.get('/admin/jobs', { params }),
+  approveJob: (id) => api.put(`/admin/jobs/${id}/approve`),
+  rejectJob: (id, data) => api.put(`/admin/jobs/${id}/reject`, data),
+
+  // Company verification
+  getCompanies: (params) => api.get('/admin/companies', { params }),
+  verifyCompany: (id, data) => api.put(`/admin/companies/${id}/verify`, data),
 };

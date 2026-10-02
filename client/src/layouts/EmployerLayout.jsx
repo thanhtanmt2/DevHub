@@ -3,6 +3,7 @@ import Navbar from '@/components/common/Navbar';
 
 const navItems = [
   { to: '/employer', label: 'Dashboard', end: true },
+  { to: '/employer/company', label: 'Hồ sơ doanh nghiệp' },
   { to: '/employer/jobs', label: 'Tin tuyển dụng' },
   { to: '/employer/candidates', label: 'Tìm ứng viên' },
   { to: '/employer/applications', label: 'Hồ sơ ứng tuyển' },

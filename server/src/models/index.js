@@ -69,6 +69,12 @@ CandidateCv.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
 CandidateProfile.belongsToMany(Skill, { through: CandidateSkill, foreignKey: 'candidate_profile_id' });
 Skill.belongsToMany(CandidateProfile, { through: CandidateSkill, foreignKey: 'skill_id' });
 
+// CandidateSkill direct associations for include queries
+CandidateSkill.belongsTo(Skill, { foreignKey: 'skill_id' });
+Skill.hasMany(CandidateSkill, { foreignKey: 'skill_id' });
+CandidateSkill.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
+CandidateProfile.hasMany(CandidateSkill, { foreignKey: 'candidate_profile_id' });
+
 // CandidateProfile -> PaymentInformation (one-to-one)
 CandidateProfile.hasOne(PaymentInformation, { foreignKey: 'candidate_profile_id' });
 PaymentInformation.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });

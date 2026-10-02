@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict JtK1BZSeJw7jltV9J0uDqvQy2t67gpyMUec93RDypDpc7kfITEaKMpqys2ekUk2
+\restrict Vpd0Kxd9Wd8sIhabB3gLigLqIBOX4PP8zsbCnvNrvPAu5mnn977XOGyIBjbldjh
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1086,6 +1086,20 @@ INSERT INTO public.activity_logs VALUES ('b6ac8c60-93d6-4f9d-87e2-5f1e793acaac',
 INSERT INTO public.activity_logs VALUES ('3304b7fe-a90d-4e80-b246-5ac1a8815746', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', 'Đào Minh Nhựt ', 'CANDIDATE', 'USER_LOGIN', 'user', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', 'Đào Minh Nhựt ', NULL, NULL, 'Đào Minh Nhựt  đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0', '2026-09-26 18:05:30.676+07');
 INSERT INTO public.activity_logs VALUES ('368cee57-7590-45e9-beea-05bb21001462', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', 'Đào Minh Nhựt ', 'CANDIDATE', 'USER_LOGOUT', 'user', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', 'Đào Minh Nhựt ', NULL, NULL, 'Đào Minh Nhựt  đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0', '2026-09-26 18:05:38.733+07');
 INSERT INTO public.activity_logs VALUES ('a76a5755-0284-4940-9d82-c570643b3439', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', 'Đào Minh Nhựt ', 'CANDIDATE', 'USER_LOGOUT', 'user', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', 'Đào Minh Nhựt ', NULL, NULL, 'Đào Minh Nhựt  đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-26 18:35:25.24+07');
+INSERT INTO public.activity_logs VALUES ('01256d35-b4d8-42bd-a9dd-4d5abe4cbf7d', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-28 15:51:54.759+07');
+INSERT INTO public.activity_logs VALUES ('d6b5a76b-6307-4c05-a687-f104b149a286', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-28 16:24:37.636+07');
+INSERT INTO public.activity_logs VALUES ('dba8cb54-159b-4ddd-aa25-33a3a219a8b9', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', 'EMPLOYER', 'USER_LOGIN', 'user', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', NULL, NULL, 'Trần Nhà Tuyển Dụng đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-30 22:38:31.947+07');
+INSERT INTO public.activity_logs VALUES ('42db588b-2f0d-49c4-82ca-9130165222cb', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 10:53:22.207+07');
+INSERT INTO public.activity_logs VALUES ('d7637c41-35fd-4eff-988a-6ff5f202ad91', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGOUT', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 10:53:58.977+07');
+INSERT INTO public.activity_logs VALUES ('79974496-cd74-4bce-9f77-5ac6bc5f4ae9', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', 'EMPLOYER', 'USER_LOGIN', 'user', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', NULL, NULL, 'Trần Nhà Tuyển Dụng đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 10:54:42.643+07');
+INSERT INTO public.activity_logs VALUES ('306b2c9e-014f-4a87-ba45-2e1a1a60478e', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', 'CANDIDATE', 'USER_LOGOUT', 'user', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', NULL, NULL, 'Trần Nhà Tuyển Dụng đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 11:08:14.998+07');
+INSERT INTO public.activity_logs VALUES ('41e7d094-c4d1-4842-8897-2b0de863df62', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGIN', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 11:09:12.464+07');
+INSERT INTO public.activity_logs VALUES ('e8272c57-af4d-4cc3-9d0b-2b446ec2134e', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'CANDIDATE', 'USER_LOGOUT', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 11:42:18.033+07');
+INSERT INTO public.activity_logs VALUES ('d293cfc5-b188-41ab-b035-887d5c8a8222', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGIN', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 11:42:21.863+07');
+INSERT INTO public.activity_logs VALUES ('52b67a7b-0619-4130-aec0-37e9a06fecdf', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 21:15:35.339+07');
+INSERT INTO public.activity_logs VALUES ('cde5c0ca-5c03-44fd-b3f6-4599312b76a8', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGOUT', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 21:15:58.441+07');
+INSERT INTO public.activity_logs VALUES ('84253f39-7f68-414b-aa93-cfed1013537f', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', 'EMPLOYER', 'USER_LOGIN', 'user', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', NULL, NULL, 'Trần Nhà Tuyển Dụng đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 21:16:26.091+07');
+INSERT INTO public.activity_logs VALUES ('a8023a0a-e029-420c-8b0b-b0e52723cb78', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', 'CANDIDATE', 'USER_LOGOUT', 'user', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', NULL, NULL, 'Trần Nhà Tuyển Dụng đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36', '2026-10-01 21:35:34.118+07');
 
 
 --
@@ -1105,6 +1119,7 @@ INSERT INTO public.applications VALUES ('5d562f3d-64d8-414b-a102-38ad03b3f4ad', 
 -- Data for Name: candidate_cvs; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO public.candidate_cvs VALUES ('ed691ebb-ef5e-4816-be10-147f5589ea53', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'CV tester intern', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1790586398555-46155785.pdf', 'CV_Software_Tester_Intern_DaoMinhNhut.pdf', 158570, true, '2026-09-28 16:06:38.591+07', '2026-09-28 16:08:04.769+07');
 
 
 --
@@ -1117,31 +1132,32 @@ INSERT INTO public.applications VALUES ('5d562f3d-64d8-414b-a102-38ad03b3f4ad', 
 -- Data for Name: candidate_profiles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.candidate_profiles VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Fullstack Web Developer', 'Đam mê lập trình web với React và Node.js, có 2 năm kinh nghiệm.', NULL, NULL, 'https://github.com/nguyenvandev', NULL, NULL, 'https://example.com/cvs/CV_Nguyen_Van_Dev_Fullstack.pdf', 'CV_Nguyen_Van_Dev_Fullstack.pdf', 8.50, '2026-09-26 17:32:17.237+07', '2026-09-26 17:32:17.237+07');
 INSERT INTO public.candidate_profiles VALUES ('f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', '4e332674-295d-444c-a507-2d60b50f1be1', 'Frontend Developer', 'Chuyên gia React, UI/UX, thích viết code sạch.', NULL, NULL, 'https://github.com/lethicode', NULL, NULL, 'https://example.com/cvs/CV_Le_Thi_Code_React.pdf', 'CV_Le_Thi_Code_React.pdf', 9.00, '2026-09-26 17:32:17.237+07', '2026-09-26 17:32:17.237+07');
 INSERT INTO public.candidate_profiles VALUES ('2c5056d1-7578-4c20-b657-483d737cc3c9', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, '2026-09-26 17:55:23.246+07', '2026-09-26 17:55:23.246+07');
+INSERT INTO public.candidate_profiles VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Fullstack Web Developer', 'Đam mê lập trình web với React và Node.js, có 2 năm kinh nghiệm.', '0345595206 ', 'TPHCM ', 'https://github.com/nguyenvandev', '', NULL, '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1790586398555-46155785.pdf', 'CV tester intern', 8.50, '2026-09-26 17:32:17.237+07', '2026-09-28 16:15:52.553+07');
 
 
 --
 -- Data for Name: candidate_skills; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'd1009b02-93eb-4707-8468-62345af8c63a', 'ADVANCED', 2.0);
 INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'c68921a4-bd99-456e-9582-44e1f367028a', 'INTERMEDIATE', 1.5);
 INSERT INTO public.candidate_skills VALUES ('f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', 'd1009b02-93eb-4707-8468-62345af8c63a', 'EXPERT', 3.0);
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'b6dbabb9-e952-40b0-a17a-4f3d449c0af2', 'ADVANCED', 1.0);
 
 
 --
 -- Data for Name: companies; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.companies VALUES ('70ea000b-37fd-428f-b400-d22be6184df2', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'FPT Software', '0101248141', 'F-Town 3, Quận 9, TP.HCM', 'tuyendung@fpt.com', 'https://fptsoftware.com', NULL, 'Tập đoàn công nghệ hàng đầu Việt Nam', 'VERIFIED', '2026-09-26 17:32:17.232+07', '2026-09-26 17:32:17.232+07');
+INSERT INTO public.companies VALUES ('70ea000b-37fd-428f-b400-d22be6184df2', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'FPT Software', '0101248141', 'F-Town 3, Quận 9, TP.HCM', 'tuyendung@fpt.com', 'https://fptsoftware.com', '/uploads/images/img-1790783433690-272681409.jpg', 'Tập đoàn công nghệ hàng đầu Việt Nam', 'VERIFIED', '2026-09-26 17:32:17.232+07', '2026-10-01 10:55:08.76+07');
 
 
 --
 -- Data for Name: experiences; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO public.experiences VALUES ('798a0f19-c23a-4766-9c69-98a26e2dd9df', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Tester Intern ', 'FPT Softwave', '2026-01-01', NULL, 'Thực hiện kiểm thử web, thiết kế testcase, phối hợp vs team phát triển ', '2026-09-28 16:34:16.942+07', '2026-09-28 16:34:54.429+07');
 
 
 --
@@ -1170,6 +1186,7 @@ INSERT INTO public.job_posts VALUES ('9146785e-fd1e-476c-a82d-3546251da74d', '9c
 -- Data for Name: payment_information; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+INSERT INTO public.payment_information VALUES ('8399b9a3-fc5f-4f69-866c-34632eb40c20', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'DAO MINH NHUT ', 'Vietcombank (VCB)', '1040432283 ', 'ACTIVE', '2026-09-28 16:32:38.141+07', '2026-09-28 17:05:52.308+07');
 
 
 --
@@ -1239,7 +1256,6 @@ INSERT INTO public.skills VALUES ('e09f2d9c-8aff-46c0-a5be-1ea3b84bd7d7', 'JavaS
 INSERT INTO public.skills VALUES ('b01896aa-61aa-4788-bbbd-0978659a6555', 'TypeScript', 'TypeScript skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('d1009b02-93eb-4707-8468-62345af8c63a', 'React', 'React skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('a5588328-32fa-4df2-b675-c5a27eb6fcfe', 'Vue.js', 'Vue.js skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
-INSERT INTO public.skills VALUES ('94c14711-6783-4048-a43a-21a84bbbb24c', 'Angular', 'Angular skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('c68921a4-bd99-456e-9582-44e1f367028a', 'Node.js', 'Node.js skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('3d92719c-ec11-4fc3-a21f-b8f14243d2aa', 'Express.js', 'Express.js skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('fbbdb61f-e043-40dc-9689-e6a2822b16fd', 'NestJS', 'NestJS skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
@@ -1256,7 +1272,6 @@ INSERT INTO public.skills VALUES ('5417399f-e1e2-4434-a2d8-7c4a6a5552f5', 'Mongo
 INSERT INTO public.skills VALUES ('30355d31-0742-4c73-9879-1f81297cdbfb', 'Redis', 'Redis skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('f7832dad-28de-4c0a-b576-c2589d07c90f', 'Docker', 'Docker skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('e7b70dd9-bbcf-4831-b064-90f3a8aa3a63', 'Kubernetes', 'Kubernetes skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
-INSERT INTO public.skills VALUES ('a57f615c-5778-47ea-9307-6cc2510d34f6', 'AWS', 'AWS skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('680b8ee1-708a-459d-a68b-91185aee9310', 'Azure', 'Azure skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('fe41cce7-2ced-49ca-8a9e-d283cbf17a26', 'GCP', 'GCP skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('58448363-6c20-4fc8-a15b-e8dc514fb065', 'Git', 'Git skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
@@ -1265,6 +1280,8 @@ INSERT INTO public.skills VALUES ('8ec294db-d8db-4af6-8442-c9434223356a', 'Graph
 INSERT INTO public.skills VALUES ('400acb28-69ab-48f1-8d45-d51a9b408c61', 'REST API', 'REST API skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('b6dbabb9-e952-40b0-a17a-4f3d449c0af2', 'Figma', 'Figma skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
 INSERT INTO public.skills VALUES ('c730b201-a760-4628-a61e-60ed2b68c917', 'UI/UX Design', 'UI/UX Design skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-09-26 17:32:16.314+07');
+INSERT INTO public.skills VALUES ('a57f615c-5778-47ea-9307-6cc2510d34f6', 'AWS', 'AWS skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-10-01 11:27:22.853+07');
+INSERT INTO public.skills VALUES ('94c14711-6783-4048-a43a-21a84bbbb24c', 'Angular', 'Angular skill', 'ACTIVE', '2026-09-26 17:32:16.314+07', '2026-10-01 11:40:18.963+07');
 
 
 --
@@ -1324,11 +1341,11 @@ INSERT INTO public.user_roles VALUES ('36fe63da-2f81-4530-96a7-4bd67ea88a2d', '6
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.users VALUES ('9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'employer@fpt.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Trần Nhà Tuyển Dụng', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-09-26 17:32:17.228+07');
-INSERT INTO public.users VALUES ('aa1af617-5227-4f42-a47b-7c4dd00250dd', 'dev1@gmail.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Nguyễn Văn Dev', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-09-26 17:32:17.228+07');
 INSERT INTO public.users VALUES ('4e332674-295d-444c-a507-2d60b50f1be1', 'dev2@gmail.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Lê Thị Code', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-09-26 17:32:17.228+07');
-INSERT INTO public.users VALUES ('db7c670f-1493-4391-8c34-722b0e3a487e', 'admin@devhub.vn', '$2a$12$eH0DtaDA8561du8X4fItiu5aNrwHsaC8VpcvBtkFhePftmj2Y6Lju', 'DevHub Admin', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:16.774+07', '2026-09-26 17:35:28.457+07');
 INSERT INTO public.users VALUES ('f676e1a5-3807-4995-b14c-310100cd183a', 'daominhnhut2017@gmail.com', '$2a$12$6TAJnajRVlI.3XN80IUe/.RnotRxg2br2s2v9/YdTh.m7m.xMbgxi', 'Đào Minh Nhựt ', 'INACTIVE', false, 'af1da30efe0e1866ae38ee0346af3448776668ce69266ec7a8d282407cb16ee5', NULL, NULL, NULL, '2026-09-26 17:37:03.079+07', '2026-09-26 17:37:03.079+07');
+INSERT INTO public.users VALUES ('db7c670f-1493-4391-8c34-722b0e3a487e', 'admin@devhub.vn', '$2a$12$eH0DtaDA8561du8X4fItiu5aNrwHsaC8VpcvBtkFhePftmj2Y6Lju', 'DevHub Admin', 'ACTIVE', true, NULL, NULL, NULL, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRiN2M2NzBmLTE0OTMtNDM5MS04YzM0LTcyMmIwZTNhNDg3ZSIsImlhdCI6MTc5MDgyOTc0MSwiZXhwIjoxNzkxNDM0NTQxfQ.gar9VE5sqLfT1_-K7DxQPcJZMqZok_D8F3OZrxfZ218', '2026-09-26 17:32:16.774+07', '2026-10-01 11:42:21.852+07');
+INSERT INTO public.users VALUES ('aa1af617-5227-4f42-a47b-7c4dd00250dd', 'dev1@gmail.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Nguyễn Văn Dev', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-10-01 21:15:58.434+07');
+INSERT INTO public.users VALUES ('9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'employer@fpt.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Trần Nhà Tuyển Dụng', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-10-01 21:35:34.11+07');
 INSERT INTO public.users VALUES ('36fe63da-2f81-4530-96a7-4bd67ea88a2d', '23110282@student.hcmute.edu.vn', '$2a$12$8X7PXXymdwebWo2Z.FKfLOxdNcbjHMFeDS7.qoMrEHYxeS7LkWPDS', 'Đào Minh Nhựt ', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:50:39.239+07', '2026-09-26 18:35:25.232+07');
 
 
@@ -2058,5 +2075,5 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JtK1BZSeJw7jltV9J0uDqvQy2t67gpyMUec93RDypDpc7kfITEaKMpqys2ekUk2
+\unrestrict Vpd0Kxd9Wd8sIhabB3gLigLqIBOX4PP8zsbCnvNrvPAu5mnn977XOGyIBjbldjh
 
