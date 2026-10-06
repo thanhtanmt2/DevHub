@@ -102,6 +102,31 @@ exports.updateProject = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// DELETE /api/admin/projects/:id
+exports.deleteProject = async (req, res, next) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) throw new AppError('Không tìm thấy dự án', 404);
+    
+    await project.destroy();
+
+    await logActivity(req, {
+      action: 'PROJECT_DELETED',
+      entity_type: 'project',
+      entity_id: project.id,
+      entity_name: project.name,
+      description: `Đã xóa dự án "${project.name}"`,
+    });
+
+    res.json({ success: true, message: 'Đã xóa dự án thành công' });
+  } catch (error) { 
+    if (error.name === 'SequelizeForeignKeyConstraintError') {
+      return next(new AppError('Không thể xóa dự án này vì đã có dữ liệu liên quan (vị trí tuyển dụng, ứng viên, task...). Vui lòng cập nhật trạng thái dự án thành "Đã hủy" thay vì xóa.', 400));
+    }
+    next(error); 
+  }
+};
+
 // PUT /api/admin/projects/:id/manager
 exports.updateProjectManager = async (req, res, next) => {
   try {

@@ -7,6 +7,8 @@ export const adminApi = {
   // Users
   getUsers: () => api.get('/admin/users'),
   toggleUserStatus: (id) => api.put(`/admin/users/${id}/toggle-status`),
+  activateUser: (id) => api.put(`/admin/users/${id}/activate`),
+  assignRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
   
   // Payments
   getPayments: () => api.get('/admin/payments'),
