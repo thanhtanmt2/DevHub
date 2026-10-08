@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,8 +8,10 @@ import toast from 'react-hot-toast';
 // ─── Notification Bell ────────────────────────────────────────────────────────
 function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState(null);
   const ref = useRef(null);
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const { data, refetch } = useQuery({
     queryKey: ['notifications'],
@@ -89,19 +91,66 @@ function NotificationBell() {
               <div
                 key={n.id}
                 className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${!n.is_read ? 'bg-blue-50/50' : ''}`}
-                onClick={() => { if (!n.is_read) markReadMut.mutate(n.id); setOpen(false); if (n.link) window.location.href = n.link; }}
+                onClick={() => { 
+                  if (!n.is_read) markReadMut.mutate(n.id); 
+                  setSelectedNotif(n);
+                  setOpen(false);
+                }}
               >
                 <div className="text-lg flex-shrink-0 mt-0.5">{NOTIF_ICONS[n.type] || '📣'}</div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm leading-snug ${!n.is_read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
                   {n.message && <p className="text-xs text-gray-500 mt-0.5 truncate">{n.message}</p>}
                   <p className="text-[10px] text-gray-400 mt-1">
-                    {new Date(n.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
+                    {new Date(n.createdAt || n.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
                   </p>
                 </div>
                 {!n.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Notification Detail Modal */}
+      {selectedNotif && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full relative overflow-hidden">
+            <div className="bg-primary-50 p-4 border-b border-primary-100 flex items-start gap-3">
+              <div className="text-3xl">{NOTIF_ICONS[selectedNotif.type] || '📣'}</div>
+              <div className="flex-1">
+                <h3 className="font-bold text-primary-900 leading-tight">{selectedNotif.title}</h3>
+                <p className="text-xs text-primary-600 mt-1">
+                  {new Date(selectedNotif.createdAt || selectedNotif.created_at).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-5">
+              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100">
+                {selectedNotif.message || 'Không có nội dung chi tiết.'}
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button 
+                  onClick={() => setSelectedNotif(null)} 
+                  className="btn-secondary"
+                >
+                  Đóng
+                </button>
+                {selectedNotif.link && (
+                  <button 
+                    onClick={() => {
+                      setSelectedNotif(null);
+                      navigate(selectedNotif.link);
+                    }}
+                    className="btn-primary"
+                  >
+                    Đi đến liên kết ↗
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
