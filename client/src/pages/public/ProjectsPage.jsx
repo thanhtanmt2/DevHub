@@ -1,5 +1,6 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { projectJobApi } from '@/api/projectJobApi';
 import { candidateApi } from '@/api/candidateApi';
 import { skillApi } from '@/api/skillApi';
@@ -17,10 +18,19 @@ export default function ProjectsPage() {
   const { user, isCandidate, openLoginModal } = useAuth();
   const qc = useQueryClient();
 
+  const [keyword, setKeyword] = useState('');
   const [filters, setFilters] = useState({ keyword: '', skill_id: '', page: 1 });
   const [activeDetailJob, setActiveDetailJob] = useState(null);
   const [selectedJobForApply, setSelectedJobForApply] = useState(null);
   const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
+
+  // Debounce keyword: chờ 400ms sau khi người dùng ngừng gõ mới gửi request
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, keyword, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [keyword]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['project-jobs', filters],
@@ -73,6 +83,16 @@ export default function ProjectsPage() {
       toast.error('Chỉ tài khoản Ứng viên mới có thể nộp đơn dự án');
       return;
     }
+    if (!profile) {
+      toast.error(
+        <span>
+          Bạn cần tạo hồ sơ ứng viên trước.{' '}
+          <a href="/candidate/profile" className="underline font-semibold">Tạo ngay →</a>
+        </span>,
+        { duration: 5000 }
+      );
+      return;
+    }
     setSelectedJobForApply(job);
     setApplyForm({
       cover_letter: '',
@@ -102,8 +122,8 @@ export default function ProjectsPage() {
           <input
             className="input-field flex-1"
             placeholder="Tìm vị trí công việc, dự án..."
-            value={filters.keyword}
-            onChange={(e) => setFilters({ ...filters, keyword: e.target.value, page: 1 })}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
           />
           <select
             className="input-field md:w-56"
@@ -251,6 +271,12 @@ export default function ProjectsPage() {
                         <p className="text-sm font-semibold text-primary-600 mt-1">
                           📁 {activeDetailJob.Project?.name}
                         </p>
+                        <Link
+                          to={`/projects/${activeDetailJob.id}`}
+                          className="text-xs text-gray-400 hover:text-primary-600 mt-1 inline-flex items-center gap-1 transition-colors"
+                        >
+                          ↗ Xem trang chi tiết riêng
+                        </Link>
                       </div>
 
                       <button
@@ -298,9 +324,9 @@ export default function ProjectsPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Tiến độ dự án:</p>
+                          <p className="text-gray-500">Trạng thái dự án:</p>
                           <p className="font-semibold text-gray-800 text-sm mt-0.5">
-                            {activeDetailJob.Project?.completion_rate || 0}% hoàn thành
+                            {activeDetailJob.Project?.status || 'Đang thực hiện'}
                           </p>
                         </div>
                         <div>
@@ -400,16 +426,16 @@ export default function ProjectsPage() {
                   type="button"
                   onClick={() => setSelectedJobForApply(null)}
                   className="btn-secondary"
-                  disabled={applyMutation.isLoading}
+                  disabled={applyMutation.isPending}
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={applyMutation.isLoading}
+                  disabled={applyMutation.isPending}
                 >
-                  {applyMutation.isLoading ? 'Đang gửi...' : 'Xác nhận nộp đơn'}
+                  {applyMutation.isPending ? 'Đang gửi...' : 'Xác nhận nộp đơn'}
                 </button>
               </div>
             </form>

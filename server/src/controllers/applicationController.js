@@ -180,3 +180,24 @@ exports.adminUpdateApplicationStatus = async (req, res, next) => {
     res.json({ success: true, data: application });
   } catch (error) { next(error); }
 };
+
+// DELETE /api/applications/:id — candidate withdraws their application
+exports.withdrawApplication = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) throw new AppError('Profile not found', 404);
+
+    const application = await Application.findOne({
+      where: { id: req.params.id, candidate_profile_id: profile.id },
+    });
+    if (!application) throw new AppError('Application not found or access denied', 404);
+
+    // Only allow withdraw if status is PENDING
+    if (!['PENDING'].includes(application.status)) {
+      throw new AppError('Chỉ có thể rút đơn khi hồ sơ đang ở trạng thái Chờ xem xét', 400);
+    }
+
+    await application.destroy();
+    res.json({ success: true, message: 'Đã rút đơn ứng tuyển thành công' });
+  } catch (error) { next(error); }
+};

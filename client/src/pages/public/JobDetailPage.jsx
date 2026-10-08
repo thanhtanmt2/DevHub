@@ -47,6 +47,17 @@ export default function JobDetailPage() {
   });
 
   const handleOpenApply = () => {
+    // Kiểm tra candidate đã tạo profile chưa
+    if (user && isCandidate() && !profile) {
+      toast.error(
+        <span>
+          Bạn cần tạo hồ sơ ứng viên trước.{' '}
+          <a href="/candidate/profile" className="underline font-semibold">Tạo ngay →</a>
+        </span>,
+        { duration: 5000 }
+      );
+      return;
+    }
     setApplyForm({
       cover_letter: '',
       cv_url: profile?.cv_url || '',
@@ -105,8 +116,8 @@ export default function JobDetailPage() {
             <p className="font-medium text-sm mt-0.5">{job.work_type || 'Thỏa thuận'}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400">Số lượng</p>
-            <p className="font-medium text-sm mt-0.5">{job.quantity || 1} người</p>
+            <p className="text-xs text-gray-400">Địa điểm</p>
+            <p className="font-medium text-sm mt-0.5">{job.location || 'Toàn quốc / Remote'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400">Hạn nộp</p>
@@ -124,6 +135,38 @@ export default function JobDetailPage() {
                   {s.name}
                 </span>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Company Info */}
+        {job.Company && (
+          <div className="mb-5 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
+            <h3 className="font-semibold text-sm text-gray-900 mb-3 uppercase tracking-wide">Thông tin công ty</h3>
+            <div className="flex items-start gap-3">
+              {job.Company.logo_url && (
+                <img
+                  src={job.Company.logo_url}
+                  alt={job.Company.name}
+                  className="w-12 h-12 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                />
+              )}
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">{job.Company.name}</p>
+                {job.Company.address && (
+                  <p className="text-xs text-gray-500 mt-1">📍 {job.Company.address}</p>
+                )}
+                {job.Company.website && (
+                  <a
+                    href={job.Company.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary-600 hover:underline mt-1 inline-block"
+                  >
+                    🌐 {job.Company.website}
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         )}

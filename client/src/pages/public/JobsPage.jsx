@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import { jobApi } from '@/api/jobApi';
 import { skillApi } from '@/api/skillApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -16,8 +17,18 @@ const formatSalary = (min, max) => {
 };
 
 export default function JobsPage() {
-  const [filters, setFilters] = useState({ keyword: '', work_type: '', page: 1 });
+  const navigate = useNavigate();
+  const [keyword, setKeyword] = useState('');
+  const [filters, setFilters] = useState({ keyword: '', work_type: '', skill_id: '', page: 1 });
   const [selectedJob, setSelectedJob] = useState(null);
+
+  // Debounce keyword: chờ 400ms sau khi người dùng ngừng gõ mới gửi request
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, keyword, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [keyword]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', filters],
@@ -35,7 +46,7 @@ export default function JobsPage() {
   const skills = skillsRes?.data?.data || [];
 
   const handleApplyClick = (jobId) => {
-    window.open(`/jobs/${jobId}`, '_blank');
+    navigate(`/jobs/${jobId}`);
   };
 
   return (
@@ -46,20 +57,30 @@ export default function JobsPage() {
           <input
             className="input-field flex-1"
             placeholder="Tìm theo vị trí, công nghệ, công ty..."
-            value={filters.keyword}
-            onChange={e => setFilters({ ...filters, keyword: e.target.value, page: 1 })}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
           />
-          <div className="flex gap-2 flex-wrap">
-            {WORK_TYPES.map(type => (
-              <button key={type}
-                onClick={() => setFilters({ ...filters, work_type: type, page: 1 })}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filters.work_type === type ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}>
-                {WORK_TYPE_LABELS[type]}
-              </button>
+          <select
+            className="input-field md:w-52"
+            value={filters.skill_id}
+            onChange={e => setFilters({ ...filters, skill_id: e.target.value, page: 1 })}
+          >
+            <option value="">-- Tất cả kỹ năng --</option>
+            {skills.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
             ))}
-          </div>
+          </select>
+        </div>
+        <div className="flex gap-2 flex-wrap mt-3">
+          {WORK_TYPES.map(type => (
+            <button key={type}
+              onClick={() => setFilters({ ...filters, work_type: type, page: 1 })}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filters.work_type === type ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}>
+              {WORK_TYPE_LABELS[type]}
+            </button>
+          ))}
         </div>
       </div>
 

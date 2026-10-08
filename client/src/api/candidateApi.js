@@ -33,4 +33,5 @@ export const candidateApi = {
   getMyApplications: () => api.get('/applications/mine'),
   getMyProjectApplications: () => api.get('/candidates/project-applications'),
   getApplicationDetail: (id) => api.get(`/applications/${id}`),
+  withdrawApplication: (id) => api.delete(`/applications/${id}`),
 };

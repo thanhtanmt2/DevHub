@@ -20,6 +20,7 @@ import HomePage from '@/pages/public/HomePage';
 import JobsPage from '@/pages/public/JobsPage';
 import ProjectsPage from '@/pages/public/ProjectsPage';
 import JobDetailPage from '@/pages/public/JobDetailPage';
+import ProjectJobDetailPage from '@/pages/public/ProjectJobDetailPage';
 
 // Candidate pages
 import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
@@ -65,6 +66,7 @@ function AppRoutes() {
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/jobs/:id" element={<JobDetailPage />} />
+        <Route path="/projects/:id" element={<ProjectJobDetailPage />} />
       </Route>
 
       {/* Auth */}
