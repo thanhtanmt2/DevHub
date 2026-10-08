@@ -190,6 +190,32 @@ export default function MyApplicationsPage() {
                           </a>
                         )}
                       </div>
+
+                      {app.status === 'INTERVIEW' && app.interview_time && (
+                        <div className="mt-4 bg-purple-50 p-3.5 rounded-xl border border-purple-100">
+                          <p className="text-sm font-bold text-purple-800 mb-1.5 flex items-center gap-1.5">
+                            <span>📅</span> Thông tin lịch phỏng vấn
+                          </p>
+                          <div className="space-y-1">
+                            <p className="text-sm text-purple-700">
+                              <span className="font-semibold">Thời gian:</span> {new Date(app.interview_time).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            {app.meet_url && (
+                              <p className="text-sm text-purple-700 flex items-center gap-1 flex-wrap">
+                                <span className="font-semibold">Phòng họp:</span>
+                                <a href={app.meet_url} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-purple-900 break-all font-medium">
+                                  {app.meet_url} ↗
+                                </a>
+                              </p>
+                            )}
+                            {app.interview_note && (
+                              <p className="text-sm text-purple-700 mt-2 bg-white/60 p-2 rounded-lg border border-purple-100/50">
+                                <span className="font-semibold">Ghi chú:</span> <span className="italic">{app.interview_note}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-end gap-2 min-w-fit">

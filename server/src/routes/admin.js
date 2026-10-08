@@ -20,6 +20,8 @@ router.get('/stats', statsCtrl.getAdminStats);
 // Users
 router.get('/users', userCtrl.getUsers);
 router.put('/users/:id/toggle-status', userCtrl.toggleUserStatus);
+router.put('/users/:id/activate', userCtrl.activateUser);
+router.put('/users/:id/role', [require('express-validator').body('role').isIn(['CANDIDATE', 'EMPLOYER', 'ADMIN'])], validate, userCtrl.assignRole);
 
 // Skills
 router.get('/skills', skillCtrl.getAllSkills);
@@ -46,6 +48,7 @@ router.get('/projects', wsCtrl.getProjects);
 router.post('/projects', [body('name').notEmpty()], validate, wsCtrl.createProject);
 router.get('/projects/:id', wsCtrl.getProjectById);
 router.put('/projects/:id', wsCtrl.updateProject);
+router.delete('/projects/:id', wsCtrl.deleteProject);
 router.put('/projects/:id/manager', wsCtrl.updateProjectManager);
 
 // Candidates search for admin
