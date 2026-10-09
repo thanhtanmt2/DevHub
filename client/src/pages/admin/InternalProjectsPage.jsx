@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { workspaceApi } from '@/api/workspaceApi';
@@ -513,6 +513,16 @@ export default function InternalProjectsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi tạo dự án'),
   });
 
+  // Delete Project
+  const deleteProjectMutation = useMutation({
+    mutationFn: (id) => workspaceApi.deleteProject(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
+      toast.success('Đã xóa dự án thành công!');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi xóa dự án'),
+  });
+
   // Assign Manager
   const assignManagerMutation = useMutation({
     mutationFn: ({ projectId, manager_id }) => workspaceApi.updateProjectManager(projectId, { manager_id }),
@@ -641,9 +651,23 @@ export default function InternalProjectsPage() {
             <div>
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-bold text-lg text-gray-900">{project.name}</h3>
-                <span className="badge bg-blue-100 text-blue-700 text-xs font-semibold">
-                  {project.status}
-                </span>
+                <div className="flex gap-2 items-center">
+                  <span className="badge bg-blue-100 text-blue-700 text-xs font-semibold">
+                    {project.status}
+                  </span>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(`Bạn có chắc chắn muốn xóa dự án "${project.name}" không?`)) {
+                        deleteProjectMutation.mutate(project.id);
+                      }
+                    }}
+                    disabled={deleteProjectMutation.isPending}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title="Xóa dự án"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
 
               <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>

@@ -1,8 +1,13 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { jobApi } from '@/api/jobApi';
 import { skillApi } from '@/api/skillApi';
+import { candidateApi } from '@/api/candidateApi';
+import { useAuth } from '@/contexts/AuthContext';
+import CvSelector from '@/components/candidate/CvSelector';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import toast from 'react-hot-toast';
 
 const WORK_TYPES = ['', 'FULL_TIME', 'PART_TIME', 'REMOTE', 'FREELANCE'];
 const WORK_TYPE_LABELS = { '': 'Tất cả', FULL_TIME: 'Full-time', PART_TIME: 'Part-time', REMOTE: 'Remote', FREELANCE: 'Freelance' };
@@ -16,8 +21,24 @@ const formatSalary = (min, max) => {
 };
 
 export default function JobsPage() {
-  const [filters, setFilters] = useState({ keyword: '', work_type: '', page: 1 });
+  const navigate = useNavigate();
+  const { user, isCandidate, openLoginModal } = useAuth();
+  const qc = useQueryClient();
+
+  // Debounce: tách keyword ra state riêng
+  const [keyword, setKeyword] = useState('');
+  const [filters, setFilters] = useState({ keyword: '', work_type: '', skill_id: '', page: 1 });
   const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedJobForApply, setSelectedJobForApply] = useState(null);
+  const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
+
+  // Debounce keyword: chờ 400ms sau khi người dùng ngừng gõ mới gửi request
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, keyword, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [keyword]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', filters],
@@ -25,17 +46,77 @@ export default function JobsPage() {
     keepPreviousData: true,
   });
 
+  const { data: profileRes } = useQuery({
+    queryKey: ['candidate-profile'],
+    queryFn: () => candidateApi.getProfile(),
+    enabled: !!user && isCandidate(),
+  });
+
+  const { data: myAppsRes } = useQuery({
+    queryKey: ['my-applications'],
+    queryFn: () => candidateApi.getMyApplications(),
+    enabled: !!user && isCandidate(),
+  });
+
+  const profile = profileRes?.data?.data;
+  const appliedJobIds = new Set(myAppsRes?.data?.data?.map((a) => a.job_post_id) || []);
+
   const { data: skillsRes } = useQuery({
     queryKey: ['public-skills'],
     queryFn: () => skillApi.getPublicSkills(),
+  });
+
+  const applyMutation = useMutation({
+    mutationFn: ({ jobId, data }) => jobApi.apply({ job_post_id: jobId, ...data }),
+    onSuccess: () => {
+      toast.success('Nộp đơn ứng tuyển thành công!');
+      setSelectedJobForApply(null);
+      setApplyForm({ cover_letter: '', cv_url: '' });
+      qc.invalidateQueries({ queryKey: ['my-applications'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi nộp đơn');
+    }
   });
 
   const jobs = data?.data?.data || [];
   const pagination = data?.data?.pagination;
   const skills = skillsRes?.data?.data || [];
 
-  const handleApplyClick = (jobId) => {
-    window.open(`/jobs/${jobId}`, '_blank');
+  const handleApplyClick = (job) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    if (!isCandidate()) {
+      toast.error('Chỉ tài khoản Ứng viên mới có thể nộp đơn');
+      return;
+    }
+    if (!profile) {
+      toast.error(
+        <span>
+          Bạn cần tạo hồ sơ ứng viên trước.{' '}
+          <a href="/candidate/profile" className="underline font-semibold">Tạo ngay →</a>
+        </span>,
+        { duration: 5000 }
+      );
+      return;
+    }
+    setSelectedJobForApply(job);
+    setApplyForm({
+      cover_letter: '',
+      cv_url: profile?.cv_url || ''
+    });
+  };
+
+  const handleApplySubmit = (e) => {
+    e.preventDefault();
+    if (!selectedJobForApply) return;
+    if (!applyForm.cv_url) {
+      toast.error('Vui lòng chọn hoặc tải lên file CV để nộp hồ sơ');
+      return;
+    }
+    applyMutation.mutate({ jobId: selectedJobForApply.id, data: applyForm });
   };
 
   return (
@@ -46,20 +127,30 @@ export default function JobsPage() {
           <input
             className="input-field flex-1"
             placeholder="Tìm theo vị trí, công nghệ, công ty..."
-            value={filters.keyword}
-            onChange={e => setFilters({ ...filters, keyword: e.target.value, page: 1 })}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
           />
-          <div className="flex gap-2 flex-wrap">
-            {WORK_TYPES.map(type => (
-              <button key={type}
-                onClick={() => setFilters({ ...filters, work_type: type, page: 1 })}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filters.work_type === type ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}>
-                {WORK_TYPE_LABELS[type]}
-              </button>
+          <select
+            className="input-field md:w-52"
+            value={filters.skill_id}
+            onChange={e => setFilters({ ...filters, skill_id: e.target.value, page: 1 })}
+          >
+            <option value="">-- Tất cả kỹ năng --</option>
+            {skills.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
             ))}
-          </div>
+          </select>
+        </div>
+        <div className="flex gap-2 flex-wrap mt-3">
+          {WORK_TYPES.map(type => (
+            <button key={type}
+              onClick={() => setFilters({ ...filters, work_type: type, page: 1 })}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filters.work_type === type ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}>
+              {WORK_TYPE_LABELS[type]}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -169,12 +260,18 @@ export default function JobsPage() {
                         </p>
                       </div>
 
-                      <button
-                        onClick={() => handleApplyClick(selectedJob.id)}
-                        className="btn-primary px-6 py-2.5 shadow-md flex items-center gap-1.5 whitespace-nowrap"
-                      >
-                        Ứng tuyển ngay ↗
-                      </button>
+                      {appliedJobIds.has(selectedJob.id) ? (
+                        <div className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-sm">
+                          <span className="font-bold">✓</span> Đã nộp hồ sơ
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleApplyClick(selectedJob)}
+                          className="btn-primary px-6 py-2.5 shadow-md flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                          Ứng tuyển ngay
+                        </button>
+                      )}
                     </div>
 
                     {/* General Info Grid */}
@@ -239,6 +336,57 @@ export default function JobsPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Apply Modal */}
+      {selectedJobForApply && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
+            <h2 className="text-xl font-bold mb-1">Ứng tuyển công việc</h2>
+            <p className="text-sm font-medium text-primary-600 mb-1">{selectedJobForApply.title}</p>
+            <p className="text-xs text-gray-500 mb-4">🏢 Doanh nghiệp: {selectedJobForApply.Company?.name}</p>
+
+            <form onSubmit={handleApplySubmit} className="space-y-4">
+              {/* CV Selector */}
+              <CvSelector
+                profile={profile}
+                value={applyForm.cv_url}
+                onChange={(url) => setApplyForm({ ...applyForm, cv_url: url })}
+              />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Thư giới thiệu (Cover Letter)
+                </label>
+                <textarea
+                  className="input-field"
+                  rows={4}
+                  placeholder="Giới thiệu năng lực, kinh nghiệm thực chiến..."
+                  value={applyForm.cover_letter}
+                  onChange={(e) => setApplyForm({ ...applyForm, cover_letter: e.target.value })}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setSelectedJobForApply(null)}
+                  className="btn-secondary"
+                  disabled={applyMutation.isPending}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={applyMutation.isPending}
+                >
+                  {applyMutation.isPending ? 'Đang gửi...' : 'Xác nhận nộp đơn'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

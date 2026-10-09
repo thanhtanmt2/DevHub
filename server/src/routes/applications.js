@@ -15,4 +15,7 @@ router.post('/', authorize('CANDIDATE'), [
 router.get('/mine', authorize('CANDIDATE'), ctrl.getMyApplications);
 router.get('/:id', authorize('CANDIDATE'), ctrl.getApplicationDetail);
 
+// Candidate withdraws their application (only if PENDING)
+router.delete('/:id', authorize('CANDIDATE'), ctrl.withdrawApplication);
+
 module.exports = router;

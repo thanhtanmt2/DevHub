@@ -1,5 +1,6 @@
 const { Application, ApplicationStatusHistory, CandidateProfile, JobPost, Company, User, Skill } = require('../models');
 const AppError = require('../utils/AppError');
+const sendEmail = require('../utils/sendEmail');
 
 // POST /api/applications — candidate submits application
 exports.apply = async (req, res, next) => {
@@ -136,14 +137,102 @@ exports.updateApplicationStatus = async (req, res, next) => {
     if (!validStatuses.includes(status)) throw new AppError('Invalid status', 400);
 
     const company = await Company.findOne({ where: { user_id: req.user.id } });
-    // Verify this application belongs to this employer's job
     const application = await Application.findByPk(req.params.id, {
-      include: [{ model: JobPost, where: { company_id: company?.id } }],
+      include: [
+        { model: JobPost, where: { company_id: company?.id } },
+        { model: CandidateProfile, include: [{ model: User }] }
+      ],
     });
     if (!application) throw new AppError('Application not found or access denied', 404);
 
     await application.update({ status });
     await ApplicationStatusHistory.create({ application_id: application.id, status, note });
+
+    // --- SEND PROFESSIONAL EMAIL ---
+    const candidateEmail = application.CandidateProfile?.User?.email;
+    const candidateName = application.CandidateProfile?.User?.full_name || 'Ứng viên';
+    const positionName = application.JobPost?.title || 'Vị trí công việc';
+    const companyName = company.name;
+
+    if (candidateEmail && ['INTERVIEW', 'HIRED', 'REJECTED'].includes(status)) {
+      let subject = '';
+      let titleHtml = '';
+      let bodyHtml = '';
+
+      if (status === 'INTERVIEW') {
+        subject = `[DevHub] Cập nhật hồ sơ: Vòng phỏng vấn - ${companyName}`;
+        titleHtml = 'Chúc mừng bạn bước vào Vòng phỏng vấn';
+        bodyHtml = `
+          <p style="color: #374151; margin: 0 0 16px;">
+            Hồ sơ của bạn cho vị trí <strong>${positionName}</strong> đã vượt qua vòng sơ loại và chúng tôi rất ấn tượng với năng lực của bạn.
+          </p>
+          <p style="color: #374151; margin: 0 0 16px;">
+            Chúng tôi sẽ sớm liên hệ với bạn qua email hoặc điện thoại để sắp xếp lịch phỏng vấn chính thức. Hãy chú ý hộp thư đến nhé!
+          </p>
+        `;
+      } else if (status === 'HIRED') {
+        subject = `[DevHub] Chúc mừng! Bạn đã trúng tuyển vị trí ${positionName} tại ${companyName}`;
+        titleHtml = 'Chúc mừng bạn đã Trúng tuyển! 🎉';
+        bodyHtml = `
+          <p style="color: #374151; margin: 0 0 16px;">
+            Chúng tôi vô cùng vui mừng thông báo rằng bạn đã <strong>chính thức trúng tuyển</strong> vào vị trí <strong>${positionName}</strong>.
+          </p>
+          <p style="color: #374151; margin: 0 0 16px;">
+            Bộ phận Nhân sự của công ty sẽ liên hệ với bạn trong thời gian sớm nhất để trao đổi về Offer (Lương, thưởng, phúc lợi) và ngày bắt đầu công việc (Onboarding).
+          </p>
+          <p style="color: #374151; margin: 0 0 16px;">
+            Chào mừng bạn gia nhập đội ngũ của chúng tôi!
+          </p>
+        `;
+      } else if (status === 'REJECTED') {
+        subject = `[DevHub] Cập nhật kết quả ứng tuyển - ${companyName}`;
+        titleHtml = 'Cập nhật kết quả ứng tuyển';
+        bodyHtml = `
+          <p style="color: #374151; margin: 0 0 16px;">
+            Cảm ơn bạn đã quan tâm và dành thời gian ứng tuyển vào vị trí <strong>${positionName}</strong> tại <strong>${companyName}</strong>.
+          </p>
+          <p style="color: #374151; margin: 0 0 16px;">
+            Sau khi xem xét kỹ lưỡng hồ sơ, chúng tôi rất tiếc phải thông báo rằng kinh nghiệm của bạn hiện tại chưa hoàn toàn phù hợp với định hướng của vị trí này. 
+            Tuy nhiên, chúng tôi đánh giá cao những kỹ năng của bạn và sẽ lưu lại hồ sơ để liên hệ khi có vị trí khác phù hợp hơn trong tương lai.
+          </p>
+          <p style="color: #374151; margin: 0 0 16px;">Chúc bạn gặp nhiều may mắn và thành công trên con đường sự nghiệp!</p>
+        `;
+      }
+
+      await sendEmail({
+        to: candidateEmail,
+        subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px; border-radius: 12px;">
+            <div style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); padding: 24px; border-radius: 8px 8px 0 0; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">${companyName}</h1>
+              <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0; font-size: 14px;">Thông báo từ Nhà tuyển dụng</p>
+            </div>
+            <div style="background: white; padding: 28px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
+              <h2 style="color: #111827; margin: 0 0 20px; font-size: 18px;">${titleHtml}</h2>
+              <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${candidateName}</strong>,</p>
+              
+              ${bodyHtml}
+              
+              ${note ? `
+              <div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 12px 16px; margin: 20px 0;">
+                <p style="color: #475569; margin: 0; font-size: 14px; font-style: italic;">
+                  <strong>Ghi chú từ HR:</strong> ${note}
+                </p>
+              </div>
+              ` : ''}
+
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0; text-align: center;">
+                DevHub — Nền tảng kết nối ứng viên IT với các doanh nghiệp<br>
+                Email này được gửi tự động, vui lòng không trả lời.
+              </p>
+            </div>
+          </div>
+        `
+      }).catch(err => console.error('Failed to send status update email:', err));
+    }
+    // --- END EMAIL ---
 
     res.json({ success: true, data: application });
   } catch (error) { next(error); }
@@ -178,5 +267,26 @@ exports.adminUpdateApplicationStatus = async (req, res, next) => {
     await application.update({ status });
     await ApplicationStatusHistory.create({ application_id: application.id, status, note });
     res.json({ success: true, data: application });
+  } catch (error) { next(error); }
+};
+
+// DELETE /api/applications/:id — candidate withdraws their application
+exports.withdrawApplication = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) throw new AppError('Profile not found', 404);
+
+    const application = await Application.findOne({
+      where: { id: req.params.id, candidate_profile_id: profile.id },
+    });
+    if (!application) throw new AppError('Application not found or access denied', 404);
+
+    // Only allow withdraw if status is PENDING
+    if (!['PENDING'].includes(application.status)) {
+      throw new AppError('Chỉ có thể rút đơn khi hồ sơ đang ở trạng thái Chờ xem xét', 400);
+    }
+
+    await application.destroy();
+    res.json({ success: true, message: 'Đã rút đơn ứng tuyển thành công' });
   } catch (error) { next(error); }
 };

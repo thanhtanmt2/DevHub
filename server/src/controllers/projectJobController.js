@@ -270,7 +270,7 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
       }
     }
 
-    const cp = await CandidateProfile.findByPk(application.candidate_profile_id, { include: [{ model: User, attributes: ['id', 'full_name'] }] });
+    const cp = await CandidateProfile.findByPk(application.candidate_profile_id, { include: [{ model: User, attributes: ['id', 'full_name', 'email'] }] });
     const u = cp?.User;
 
     if (u) {
@@ -284,6 +284,81 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
         metadata: { project_job_id: application.project_job_id, user_id: u.id },
         notify_user_ids: [u.id],
       });
+
+      // --- SEND EMAIL NOTIFICATION ---
+      const candidateEmail = u.email;
+      const candidateName = u.full_name;
+      const positionName = application.ProjectJob?.title || 'Vị trí dự án';
+      const projectName = application.ProjectJob?.Project?.name || 'Dự án nội bộ';
+
+      if (candidateEmail && ['ACCEPTED', 'REJECTED'].includes(status)) {
+        let subject = '';
+        let titleHtml = '';
+        let bodyHtml = '';
+
+        if (status === 'ACCEPTED') {
+          subject = `[DevHub] Chúc mừng! Bạn đã trúng tuyển dự án ${projectName}`;
+          titleHtml = 'Chúc mừng bạn đã Trúng tuyển! 🎉';
+          bodyHtml = `
+            <p style="color: #374151; margin: 0 0 16px;">
+              Chúng tôi vô cùng vui mừng thông báo rằng bạn đã <strong>chính thức được chọn</strong> vào vị trí <strong>${positionName}</strong> của dự án <strong>${projectName}</strong>.
+            </p>
+            <p style="color: #374151; margin: 0 0 16px;">
+              Hệ thống đã tự động thêm bạn vào Không gian làm việc (Workspace) của dự án. 
+              Bạn có thể truy cập vào DevHub ngay bây giờ để xem các nhiệm vụ (tasks) đầu tiên và bắt đầu làm việc cùng team.
+            </p>
+            <p style="color: #374151; margin: 0 0 16px;">
+              Chào mừng bạn gia nhập đội ngũ!
+            </p>
+          `;
+        } else if (status === 'REJECTED') {
+          subject = `[DevHub] Cập nhật kết quả ứng tuyển dự án ${projectName}`;
+          titleHtml = 'Cập nhật kết quả ứng tuyển';
+          bodyHtml = `
+            <p style="color: #374151; margin: 0 0 16px;">
+              Cảm ơn bạn đã quan tâm và dành thời gian ứng tuyển vào vị trí <strong>${positionName}</strong> của dự án <strong>${projectName}</strong>.
+            </p>
+            <p style="color: #374151; margin: 0 0 16px;">
+              Sau khi xem xét kỹ lưỡng hồ sơ và kết quả phỏng vấn, chúng tôi rất tiếc phải thông báo rằng bạn chưa phù hợp với yêu cầu hiện tại của dự án này.
+            </p>
+            <p style="color: #374151; margin: 0 0 16px;">
+              DevHub vẫn còn rất nhiều dự án và cơ hội khác đang chờ đón bạn. Chúc bạn sẽ sớm tìm được một dự án phù hợp nhé!
+            </p>
+          `;
+        }
+
+        await sendEmail({
+          to: candidateEmail,
+          subject,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px; border-radius: 12px;">
+              <div style="background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%); padding: 24px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">DevHub Internal</h1>
+                <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0; font-size: 14px;">Thông báo từ Ban quản lý dự án</p>
+              </div>
+              <div style="background: white; padding: 28px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
+                <h2 style="color: #111827; margin: 0 0 20px; font-size: 18px;">${titleHtml}</h2>
+                <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${candidateName}</strong>,</p>
+                
+                ${bodyHtml}
+
+                <div style="text-align: center; margin: 32px 0 16px;">
+                  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/candidate/applications" target="_blank"
+                     style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%); color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                    Xem chi tiết trên DevHub
+                  </a>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+                <p style="color: #9ca3af; font-size: 12px; margin: 0; text-align: center;">
+                  DevHub — Nền tảng kết nối ứng viên IT với các dự án thực tế<br>
+                  Email này được gửi tự động, vui lòng không trả lời.
+                </p>
+              </div>
+            </div>
+          `
+        }).catch(err => console.error('Failed to send project status update email:', err));
+      }
     }
 
     res.json({ 
