@@ -10,20 +10,22 @@ router.use(protect);
 router.get('/:id', ctrl.getWorkspaceDetail);
 router.get('/:id/stats', ctrl.getWorkspaceStats);
 
-// Admin or Manager can update member role
+// Admin or Manager (quyền kiểm tra trong controller)
 router.put('/:workspaceId/members/:memberId/role', [
   body('role').isIn(['MANAGER', 'LEAD', 'MEMBER', 'VIEWER'])
 ], validate, ctrl.updateMemberRole);
+router.delete('/:workspaceId/members/:memberId', ctrl.removeWorkspaceMember);
 
 const logCtrl = require('../controllers/activityLogController');
 router.get('/:id/logs', logCtrl.getWorkspaceLogs);
 
 // Admin Only
 router.use(authorize('ADMIN'));
+router.get('/:id/eligible-candidates', ctrl.getEligibleCandidates);
 router.post('/:id/members', [
   body('candidate_profile_id').isUUID(),
-  body('role').optional().isString()
+  body('project_job_id').optional({ nullable: true }).isUUID(),
+  body('role').optional().isIn(['MANAGER', 'LEAD', 'MEMBER', 'VIEWER'])
 ], validate, ctrl.addWorkspaceMember);
-router.delete('/:workspaceId/members/:memberId', ctrl.removeWorkspaceMember);
 
 module.exports = router;

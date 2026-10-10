@@ -1,5 +1,7 @@
 const { ActivityLog, User } = require('../models');
 const { Op } = require('sequelize');
+const AppError = require('../utils/AppError');
+const { getWorkspaceAccess } = require('../utils/workspaceAccess');
 
 // GET /api/admin/logs
 exports.getLogs = async (req, res, next) => {
@@ -59,7 +61,10 @@ exports.getWorkspaceLogs = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 50 } = req.query;
-    
+
+    const access = await getWorkspaceAccess(req, id);
+    if (!access.canView) throw new AppError('Access denied. Not a member or manager of this workspace', 403);
+
     const offset = (page - 1) * limit;
 
     const { count, rows } = await ActivityLog.findAndCountAll({

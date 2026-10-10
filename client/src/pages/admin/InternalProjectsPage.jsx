@@ -970,11 +970,16 @@ export default function InternalProjectsPage() {
                                   {/* Status Dropdown */}
                                   <select
                                     value={app.status}
-                                    onChange={(e) => reviewAppMutation.mutate({ appId: app.id, status: e.target.value })}
-                                    disabled={reviewAppMutation.isPending}
-                                    className="ml-auto text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400 cursor-pointer"
+                                    onChange={(e) => {
+                                      const status = e.target.value;
+                                      if (status === 'ACCEPTED' && !confirm('Duyệt ứng viên vào Workspace? Sau khi duyệt sẽ không thể đổi trạng thái hồ sơ nữa.')) return;
+                                      reviewAppMutation.mutate({ appId: app.id, status });
+                                    }}
+                                    disabled={reviewAppMutation.isPending || app.status === 'ACCEPTED'}
+                                    title={app.status === 'ACCEPTED' ? 'Hồ sơ đã trúng tuyển — muốn cho ứng viên rời dự án, hãy xóa khỏi Workspace' : undefined}
+                                    className="ml-auto text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400 cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-50"
                                   >
-                                    <option value="PENDING">Chờ duyệt</option>
+                                    <option value="PENDING" disabled>Chờ duyệt</option>
                                     <option value="REVIEWING">Đang xét duyệt</option>
                                     <option value="INTERVIEW">Mời phỏng vấn</option>
                                     <option value="ACCEPTED">Duyệt vào WS ✅</option>

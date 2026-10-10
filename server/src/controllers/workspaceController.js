@@ -1,6 +1,7 @@
-const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, Skill } = require('../models');
+const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, ProjectApplication, Skill } = require('../models');
 const AppError = require('../utils/AppError');
 const { logActivity } = require('../utils/activityLogger');
+const { getWorkspaceAccess } = require('../utils/workspaceAccess');
 
 // POST /api/admin/projects
 exports.createProject = async (req, res, next) => {
@@ -191,25 +192,84 @@ exports.updateProjectManager = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// POST /api/admin/workspaces/:id/members
+// Danh sách hồ sơ đã trúng tuyển (ACCEPTED) vào các vị trí của dự án
+const getAcceptedApplications = (projectId, candidateProfileId) => ProjectApplication.findAll({
+  where: { status: 'ACCEPTED', ...(candidateProfileId && { candidate_profile_id: candidateProfileId }) },
+  include: [
+    { model: ProjectJob, where: { project_id: projectId }, attributes: ['id', 'title'] },
+    {
+      model: CandidateProfile,
+      attributes: ['id', 'professional_title', 'avatar_url'],
+      include: [{ model: User, attributes: ['full_name', 'email'] }]
+    }
+  ],
+  order: [['updated_at', 'DESC']]
+});
+
+// GET /api/workspaces/:id/eligible-candidates — ứng viên trúng tuyển chưa có trong workspace
+exports.getEligibleCandidates = async (req, res, next) => {
+  try {
+    const workspace = await Workspace.findByPk(req.params.id);
+    if (!workspace) throw new AppError('Không tìm thấy Workspace', 404);
+
+    const [applications, activeMembers] = await Promise.all([
+      getAcceptedApplications(workspace.project_id),
+      WorkspaceMember.findAll({ where: { workspace_id: workspace.id, status: 'ACTIVE' }, attributes: ['candidate_profile_id'] })
+    ]);
+    const activeIds = new Set(activeMembers.map(m => m.candidate_profile_id));
+
+    // Mỗi ứng viên chỉ hiện 1 lần (lấy hồ sơ trúng tuyển gần nhất)
+    const seen = new Set();
+    const candidates = [];
+    for (const app of applications) {
+      if (activeIds.has(app.candidate_profile_id) || seen.has(app.candidate_profile_id)) continue;
+      seen.add(app.candidate_profile_id);
+      candidates.push({
+        candidate_profile_id: app.candidate_profile_id,
+        project_job_id: app.project_job_id,
+        job_title: app.ProjectJob?.title,
+        full_name: app.CandidateProfile?.User?.full_name,
+        email: app.CandidateProfile?.User?.email,
+        professional_title: app.CandidateProfile?.professional_title,
+      });
+    }
+
+    res.json({ success: true, data: candidates });
+  } catch (error) { next(error); }
+};
+
+// POST /api/workspaces/:id/members (Admin)
 exports.addWorkspaceMember = async (req, res, next) => {
   try {
-    const { candidate_profile_id, project_job_id } = req.body;
+    const { candidate_profile_id, project_job_id, role } = req.body;
     const workspace = await Workspace.findByPk(req.params.id);
-    if (!workspace) throw new AppError('Workspace not found', 404);
+    if (!workspace) throw new AppError('Không tìm thấy Workspace', 404);
+
+    // Chỉ cho phép thêm ứng viên đã trúng tuyển vào dự án này
+    const accepted = await getAcceptedApplications(workspace.project_id, candidate_profile_id);
+    if (!accepted.length) {
+      throw new AppError('Ứng viên không hợp lệ: chưa trúng tuyển vào dự án này', 400);
+    }
+    const jobId = project_job_id && accepted.some(a => a.project_job_id === project_job_id)
+      ? project_job_id
+      : accepted[0].project_job_id;
 
     const existing = await WorkspaceMember.findOne({
       where: { workspace_id: workspace.id, candidate_profile_id }
     });
-    if (existing) throw new AppError('Thành viên này đã có trong không gian làm việc', 409);
+    if (existing?.status === 'ACTIVE') throw new AppError('Thành viên này đã có trong không gian làm việc', 409);
 
-    const member = await WorkspaceMember.create({
-      workspace_id: workspace.id,
-      candidate_profile_id,
-      project_job_id: project_job_id || null,
-      status: 'ACTIVE',
-      joined_at: new Date()
-    });
+    // Thành viên từng bị xóa/đã kết thúc → kích hoạt lại thay vì tạo bản ghi mới
+    const member = existing
+      ? await existing.update({ status: 'ACTIVE', role: role || 'MEMBER', project_job_id: jobId, joined_at: new Date() })
+      : await WorkspaceMember.create({
+          workspace_id: workspace.id,
+          candidate_profile_id,
+          project_job_id: jobId,
+          role: role || 'MEMBER',
+          status: 'ACTIVE',
+          joined_at: new Date()
+        });
 
     const cp = await CandidateProfile.findByPk(candidate_profile_id, { include: [{ model: User, attributes: ['id', 'full_name'] }] });
     const u = cp?.User;
@@ -281,15 +341,29 @@ exports.getWorkspaceDetail = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// DELETE /api/admin/workspaces/:workspaceId/members/:memberId
+// Kiểm tra user hiện tại có được thay đổi (đổi vai trò / xóa) thành viên này không
+const assertCanModifyMember = (access, member) => {
+  if (member.candidate_profile_id === access.projectManagerId) {
+    throw new AppError('Không thể thay đổi Quản lý dự án tại đây. Hãy đổi Quản lý dự án trong trang Dự án nội bộ trước.', 403);
+  }
+  if (!access.isAdmin && member.candidate_profile_id === access.profileId) {
+    throw new AppError('Bạn không thể tự thay đổi vai trò hoặc tự xóa chính mình', 403);
+  }
+};
+
+// DELETE /api/workspaces/:workspaceId/members/:memberId (Admin / Quản lý dự án)
 exports.removeWorkspaceMember = async (req, res, next) => {
   try {
+    const access = await getWorkspaceAccess(req, req.params.workspaceId);
+    if (!access.canManageMembers) throw new AppError('Bạn không có quyền quản lý thành viên của Workspace này', 403);
+
     const member = await WorkspaceMember.findOne({
-      where: { id: req.params.memberId, workspace_id: req.params.workspaceId },
+      where: { id: req.params.memberId, workspace_id: req.params.workspaceId, status: 'ACTIVE' },
       include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] }]
     });
-    if (!member) throw new AppError('Member not found', 404);
-    
+    if (!member) throw new AppError('Không tìm thấy thành viên', 404);
+    assertCanModifyMember(access, member);
+
     await member.update({ status: 'REMOVED' });
 
     const u = member.CandidateProfile?.User;
@@ -315,11 +389,15 @@ exports.updateMemberRole = async (req, res, next) => {
     const { role } = req.body;
     if (!['MANAGER', 'LEAD', 'MEMBER', 'VIEWER'].includes(role)) throw new AppError('Invalid role', 400);
 
+    const access = await getWorkspaceAccess(req, req.params.workspaceId);
+    if (!access.canManageMembers) throw new AppError('Bạn không có quyền thay đổi vai trò thành viên', 403);
+
     const member = await WorkspaceMember.findOne({
-      where: { id: req.params.memberId, workspace_id: req.params.workspaceId },
+      where: { id: req.params.memberId, workspace_id: req.params.workspaceId, status: 'ACTIVE' },
       include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] }]
     });
-    if (!member) throw new AppError('Member not found', 404);
+    if (!member) throw new AppError('Không tìm thấy thành viên', 404);
+    assertCanModifyMember(access, member);
 
     const oldRole = member.role;
     await member.update({ role });
@@ -351,6 +429,9 @@ exports.getWorkspaceStats = async (req, res, next) => {
     const { Op } = require('sequelize');
 
     const workspaceId = req.params.id;
+    const access = await getWorkspaceAccess(req, workspaceId);
+    if (!access.canView) throw new AppError('Access denied. Not a member or manager of this workspace', 403);
+
     const tasks = await Task.findAll({
       where: { workspace_id: workspaceId },
       include: [{ model: WM, as: 'Assignees', through: { attributes: [] }, attributes: ['id'] }]

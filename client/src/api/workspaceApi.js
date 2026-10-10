@@ -13,7 +13,8 @@ export const workspaceApi = {
   // Workspace & Members
   getWorkspaceDetail: (id) => api.get(`/workspaces/${id}`),
   getWorkspaceStats: (id) => api.get(`/workspaces/${id}/stats`),
-  addMember: (workspaceId, data) => api.post(`/admin/workspaces/${workspaceId}/members`, data),
-  removeMember: (workspaceId, memberId) => api.delete(`/admin/workspaces/${workspaceId}/members/${memberId}`),
+  getEligibleCandidates: (workspaceId) => api.get(`/workspaces/${workspaceId}/eligible-candidates`),
+  addMember: (workspaceId, data) => api.post(`/workspaces/${workspaceId}/members`, data),
+  removeMember: (workspaceId, memberId) => api.delete(`/workspaces/${workspaceId}/members/${memberId}`),
   updateMemberRole: (workspaceId, memberId, role) => api.put(`/workspaces/${workspaceId}/members/${memberId}/role`, { role }),
 };

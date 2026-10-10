@@ -784,13 +784,41 @@ export default function WorkspacePage() {
   });
   const wsStats = statsData?.data?.data;
 
+  // Quyền đổi vai trò / xóa thành viên (khớp với kiểm tra ở backend)
+  const canManageMembers = isAdmin() || workspace?.isManager || workspace?.myRole === 'MANAGER';
+  const projectManagerId = workspace?.Project?.manager_id;
+  const [showAddMember, setShowAddMember] = useState(false);
+
   const updateRoleMut = useMutation({
     mutationFn: ({ memberId, role }) => workspaceApi.updateMemberRole(id, memberId, role),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['workspace', id] }); toast.success('Đã cập nhật vai trò'); }
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['workspace', id] }); toast.success('Đã cập nhật vai trò'); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Cập nhật vai trò thất bại'),
   });
   const removeMemberMut = useMutation({
     mutationFn: (memberId) => workspaceApi.removeMember(id, memberId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['workspace', id] }); toast.success('Đã xóa thành viên'); }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workspace', id] });
+      qc.invalidateQueries({ queryKey: ['workspace-eligible', id] });
+      toast.success('Đã xóa thành viên');
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Xóa thành viên thất bại'),
+  });
+
+  const { data: eligibleData, isLoading: eligibleLoading } = useQuery({
+    queryKey: ['workspace-eligible', id],
+    queryFn: () => workspaceApi.getEligibleCandidates(id),
+    enabled: isAdmin() && showAddMember,
+  });
+  const eligibleCandidates = eligibleData?.data?.data || [];
+
+  const addMemberMut = useMutation({
+    mutationFn: (c) => workspaceApi.addMember(id, { candidate_profile_id: c.candidate_profile_id, project_job_id: c.project_job_id }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workspace', id] });
+      qc.invalidateQueries({ queryKey: ['workspace-eligible', id] });
+      toast.success('Đã thêm thành viên vào Workspace');
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Thêm thành viên thất bại'),
   });
 
   // Filter tasks
@@ -1068,12 +1096,51 @@ export default function WorkspacePage() {
             <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b bg-gray-50">
                 <h3 className="font-bold text-gray-800">👥 Quản lý thành viên ({members.length})</h3>
+                {isAdmin() && (
+                  <button onClick={() => setShowAddMember(v => !v)} className="btn-primary text-xs py-1.5 px-3">
+                    {showAddMember ? 'Đóng' : '+ Thêm thành viên'}
+                  </button>
+                )}
               </div>
+
+              {/* Thêm ứng viên trúng tuyển vào workspace (Admin) */}
+              {isAdmin() && showAddMember && (
+                <div className="px-5 py-4 border-b bg-primary-50/40">
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Ứng viên đã trúng tuyển chưa có trong Workspace</p>
+                  {eligibleLoading ? (
+                    <div className="flex justify-center py-4"><LoadingSpinner /></div>
+                  ) : eligibleCandidates.length ? (
+                    <div className="space-y-2">
+                      {eligibleCandidates.map(c => (
+                        <div key={c.candidate_profile_id} className="flex items-center gap-3 bg-white rounded-lg border px-3 py-2">
+                          <Avatar name={c.full_name} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{c.full_name}</p>
+                            <p className="text-xs text-gray-400 truncate">{c.email} · Vị trí: {c.job_title}</p>
+                          </div>
+                          <button
+                            onClick={() => addMemberMut.mutate(c)}
+                            disabled={addMemberMut.isPending}
+                            className="text-xs text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50 transition-colors disabled:opacity-50"
+                          >
+                            Thêm
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-3">Không có ứng viên trúng tuyển nào đang chờ thêm vào Workspace</p>
+                  )}
+                </div>
+              )}
+
               <div className="divide-y">
                 {members.map(m => {
                   const name = m.CandidateProfile?.User?.full_name;
                   const email = m.CandidateProfile?.User?.email;
                   const isMe = m.CandidateProfile?.user_id === user?.id;
+                  const isProjectManager = m.candidate_profile_id === projectManagerId;
+                  const canModify = canManageMembers && !isMe && !isProjectManager;
                   return (
                     <div key={m.id} className="flex items-center gap-3 px-5 py-3">
                       <Avatar name={name} size="sm" />
@@ -1086,12 +1153,13 @@ export default function WorkspacePage() {
                         className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-400"
                         value={m.role || 'MEMBER'}
                         onChange={e => updateRoleMut.mutate({ memberId: m.id, role: e.target.value })}
-                        disabled={!canManage || updateRoleMut.isPending}
+                        disabled={!canModify || updateRoleMut.isPending}
+                        title={isProjectManager ? 'Quản lý dự án — đổi trong trang Dự án nội bộ' : undefined}
                       >
                         {Object.entries(MEMBER_ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                       </select>
-                      {/* Remove button (admin only) */}
-                      {(isAdmin() || workspace?.isManager) && !isMe && (
+                      {/* Remove button (Admin / Quản lý dự án) */}
+                      {canModify && (
                         <button
                           onClick={() => { if (confirm(`Xóa ${name} khỏi workspace?`)) removeMemberMut.mutate(m.id); }}
                           className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors"

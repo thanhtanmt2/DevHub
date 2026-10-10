@@ -242,6 +242,11 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
     });
     if (!application) throw new AppError('Application not found', 404);
 
+    // Hồ sơ đã trúng tuyển (đã vào Workspace) thì khóa trạng thái
+    if (application.status === 'ACCEPTED') {
+      throw new AppError('Hồ sơ đã trúng tuyển nên không thể thay đổi trạng thái. Nếu muốn cho ứng viên rời dự án, hãy xóa ứng viên khỏi Workspace.', 400);
+    }
+
     await application.update({ status });
 
     // If ACCEPTED -> Automatically add candidate into project's Workspace!
@@ -264,6 +269,13 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
             candidate_profile_id: application.candidate_profile_id,
             project_job_id: application.project_job_id,
             status: 'ACTIVE',
+            joined_at: new Date()
+          });
+        } else if (existingMember.status !== 'ACTIVE') {
+          // Từng bị xóa khỏi workspace → kích hoạt lại
+          await existingMember.update({
+            status: 'ACTIVE',
+            project_job_id: application.project_job_id,
             joined_at: new Date()
           });
         }
