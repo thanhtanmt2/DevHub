@@ -1,5 +1,6 @@
 // nạp các bảng liên quan đến ứng viên trong model 
-const { CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject } = require('../models');
+const { CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject, Task, SubTask, ProjectJob } = require('../models');
+const { Op } = require('sequelize');
 // nạp class AppError để hiển thị lỗi 
 const AppError = require('../utils/AppError');
 
@@ -177,20 +178,98 @@ exports.upsertPaymentInfo = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// Quá hạn = đã qua hết ngày deadline mà task vẫn chưa gửi duyệt (giống bảng Kanban)
+const isTaskOverdue = (t) => {
+  if (!t.deadline || !['TODO', 'IN_PROGRESS'].includes(t.status)) return false;
+  const end = new Date(t.deadline);
+  end.setHours(23, 59, 59, 999);
+  return end < new Date();
+};
+
+// Đếm task theo trạng thái
+const summarizeTasks = (tasks) => ({
+  total: tasks.length,
+  TODO: tasks.filter(t => t.status === 'TODO').length,
+  IN_PROGRESS: tasks.filter(t => t.status === 'IN_PROGRESS').length,
+  REVIEW: tasks.filter(t => t.status === 'REVIEW').length,
+  DONE: tasks.filter(t => t.status === 'DONE').length,
+  overdue: tasks.filter(isTaskOverdue).length,
+  needs_revision: tasks.filter(t => t.status === 'IN_PROGRESS' && t.review_status === 'REVISION_REQUIRED').length,
+});
+
 // GET /api/candidates/workspaces — list workspaces the candidate is in
-// Lấy danh sách các workspace mà ứng viên đang tham gia
+// Lấy danh sách workspace ứng viên đang (hoặc đã) tham gia, kèm số task của mình và tiến độ chung
 exports.getMyWorkspaces = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) return res.json({ success: true, data: [] });
     const members = await WorkspaceMember.findAll({
-      where: { candidate_profile_id: profile.id },
-      include: [{
-        model: Workspace,
-        include: [{ model: InternalProject, attributes: ['id', 'name', 'status', 'completion_rate'] }],
-      }],
+      // REMOVED = đã bị xóa khỏi workspace → không hiển thị
+      where: { candidate_profile_id: profile.id, status: { [Op.in]: ['ACTIVE', 'COMPLETED'] } },
+      include: [
+        {
+          model: Workspace,
+          attributes: ['id', 'name', 'status'],
+          include: [{ model: InternalProject, attributes: ['id', 'name', 'status', 'expected_end_date', 'manager_id'] }],
+        },
+        { model: ProjectJob, attributes: ['id', 'title'] },
+      ],
+      order: [['joined_at', 'DESC']],
     });
-    res.json({ success: true, data: members });
+    if (!members.length) return res.json({ success: true, data: [] });
+
+    const tasks = await Task.findAll({
+      where: { workspace_id: { [Op.in]: members.map(m => m.workspace_id) }, status: { [Op.ne]: 'CANCELLED' } },
+      attributes: ['id', 'workspace_id', 'status', 'deadline', 'review_status', 'completion_rate'],
+      include: [{ model: WorkspaceMember, as: 'Assignees', attributes: ['id'], through: { attributes: [] } }],
+    });
+
+    const data = members.map(m => {
+      const wsTasks = tasks.filter(t => t.workspace_id === m.workspace_id);
+      const mine = wsTasks.filter(t => t.Assignees.some(a => a.id === m.id));
+      return {
+        ...m.toJSON(),
+        is_project_manager: m.Workspace?.Project?.manager_id === profile.id,
+        // Tiến độ chung = trung bình % hoàn thành các task của workspace (giống tab Thống kê)
+        progress: wsTasks.length
+          ? Math.round(wsTasks.reduce((sum, t) => sum + (t.completion_rate || 0), 0) / wsTasks.length)
+          : 0,
+        total_tasks: wsTasks.length,
+        my_tasks: summarizeTasks(mine),
+      };
+    });
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+};
+
+// GET /api/candidates/my-tasks — tất cả task được giao cho mình ở các workspace đang tham gia
+exports.getMyTasks = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) return res.json({ success: true, data: [] });
+    const members = await WorkspaceMember.findAll({
+      where: { candidate_profile_id: profile.id, status: 'ACTIVE' },
+      attributes: ['id'],
+    });
+    if (!members.length) return res.json({ success: true, data: [] });
+
+    const tasks = await Task.findAll({
+      where: { status: { [Op.ne]: 'CANCELLED' } },
+      attributes: ['id', 'title', 'status', 'priority', 'deadline', 'review_status', 'completion_rate', 'workspace_id', 'updated_at'],
+      include: [
+        // Chỉ lấy task có mình trong danh sách người thực hiện
+        { model: WorkspaceMember, as: 'Assignees', attributes: ['id'], through: { attributes: [] }, where: { id: { [Op.in]: members.map(m => m.id) } } },
+        { model: SubTask, as: 'SubTasks', attributes: ['id', 'is_done'] },
+        { model: Workspace, attributes: ['id', 'name'], include: [{ model: InternalProject, attributes: ['id', 'name'] }] },
+      ],
+    });
+
+    // Thứ tự ưu tiên: quá hạn → đang làm/cần làm → chờ duyệt → đã hoàn thành; cùng nhóm thì deadline gần trước
+    const rank = (t) => (t.status === 'DONE' ? 3 : isTaskOverdue(t) ? 0 : t.status === 'REVIEW' ? 2 : 1);
+    const deadlineOf = (t) => (t.deadline ? new Date(t.deadline).getTime() : Number.MAX_SAFE_INTEGER);
+    tasks.sort((a, b) => rank(a) - rank(b) || deadlineOf(a) - deadlineOf(b));
+
+    res.json({ success: true, data: tasks.map(t => ({ ...t.toJSON(), is_overdue: isTaskOverdue(t) })) });
   } catch (error) { next(error); }
 };
 

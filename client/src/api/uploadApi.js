@@ -19,4 +19,17 @@ export const uploadApi = {
       },
     });
   },
+  // File sản phẩm nộp cho task (tối đa 20MB); onProgress nhận % đã tải
+  uploadTaskFile: (file, onProgress) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload/task-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+      },
+    });
+  },
 };

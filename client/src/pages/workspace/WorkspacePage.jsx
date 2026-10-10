@@ -1,12 +1,14 @@
-﻿import { useState, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import WorkspaceLogs from '../candidate/components/WorkspaceLogs';
 import { workspaceApi } from '@/api/workspaceApi';
 import { taskApi } from '@/api/taskApi';
+import { uploadApi } from '@/api/uploadApi';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { getUploadedFileName, formatFileSize } from '@/utils/fileHelper';
 import toast from 'react-hot-toast';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -36,25 +38,57 @@ const LABEL_COLORS = {
 const ALL_LABELS = Object.keys(LABEL_COLORS);
 const MEMBER_ROLE_LABELS = { MANAGER: 'Quản lý', LEAD: 'Lead', MEMBER: 'Thành viên', VIEWER: 'Xem' };
 
+// Luồng trạng thái hợp lệ (khớp với backend). Ra khỏi "Chờ duyệt" chỉ qua nghiệm thu.
+const TRANSITIONS = { TODO: ['IN_PROGRESS'], IN_PROGRESS: ['TODO', 'REVIEW'], REVIEW: [], DONE: [] };
+// Trạng thái còn được cập nhật tiến độ / subtask
+const EDITABLE_STATUSES = ['TODO', 'IN_PROGRESS'];
+
+// Ngày hôm nay theo giờ máy (YYYY-MM-DD) cho ô chọn deadline
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Quá hạn = đã qua hết ngày deadline mà task vẫn chưa gửi duyệt
+const isTaskOverdue = (task) => {
+  if (!task.deadline || !EDITABLE_STATUSES.includes(task.status)) return false;
+  const end = new Date(task.deadline);
+  end.setHours(23, 59, 59, 999);
+  return end < new Date();
+};
+
+// Kết quả nghiệm thu của từng lần nộp sản phẩm
+const SUBMISSION_STATUS = {
+  PENDING_REVIEW:    { label: 'Chờ duyệt',   color: 'bg-amber-100 text-amber-700' },
+  ACCEPTED:          { label: 'Đã duyệt',    color: 'bg-green-100 text-green-700' },
+  REVISION_REQUIRED: { label: 'Yêu cầu sửa', color: 'bg-orange-100 text-orange-700' },
+};
+// File sản phẩm được phép nộp (khớp với backend)
+const TASK_FILE_ACCEPT = '.zip,.rar,.7z,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.png,.jpg,.jpeg,.gif,.webp,.sql,.json,.fig';
+const MAX_TASK_FILE_SIZE = 20 * 1024 * 1024;
+const isHttpUrl = (s) => /^https?:\/\/\S+$/i.test(s.trim());
+const formatDateTime = (d) => new Date(d).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
 // ─── Helper: Avatar initials ──────────────────────────────────────────────────
-function Avatar({ name, size = 'sm', className = '' }) {
+function Avatar({ name, size = 'sm', className = '', onClick }) {
   const initials = name?.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase() || '?';
   const sz = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-sm';
   const colors = ['bg-indigo-500','bg-purple-500','bg-pink-500','bg-blue-500','bg-teal-500','bg-green-500'];
   const color = colors[(name?.charCodeAt(0) || 0) % colors.length];
   return (
-    <div className={`${sz} ${color} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${className}`}>
+    <div onClick={onClick} className={`${sz} ${color} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${className}`}>
       {initials}
     </div>
   );
 }
 
 // ─── Task Card (Kanban) ───────────────────────────────────────────────────────
-function TaskCard({ task, onClick, provided, snapshot, canManage }) {
+function TaskCard({ task, onClick, provided, snapshot, isMine }) {
   const pm = PRIORITY_META[task.priority] || PRIORITY_META.MEDIUM;
   const totalSubs = task.SubTasks?.length || 0;
   const doneSubs = task.SubTasks?.filter(s => s.is_done).length || 0;
-  const isOverdue = task.deadline && new Date(task.deadline) < new Date() && task.status !== 'DONE';
+  const isOverdue = isTaskOverdue(task);
+  const needsRevision = task.status === 'IN_PROGRESS' && task.review_status === 'REVISION_REQUIRED';
 
   return (
     <div
@@ -62,8 +96,10 @@ function TaskCard({ task, onClick, provided, snapshot, canManage }) {
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       onClick={onClick}
+      title={isMine ? 'Task của bạn' : undefined}
       className={`bg-white rounded-xl border border-gray-100 shadow-sm p-3 cursor-pointer
         hover:shadow-md hover:border-primary-200 transition-all select-none
+        ${isMine ? 'border-l-4 border-l-primary-400' : ''}
         ${snapshot.isDragging ? 'shadow-xl ring-2 ring-primary-400 rotate-1' : ''}
         ${task.status === 'DONE' ? 'opacity-75' : ''}`}
     >
@@ -78,8 +114,16 @@ function TaskCard({ task, onClick, provided, snapshot, canManage }) {
         </div>
       )}
 
+      {/* Bị yêu cầu chỉnh sửa sau nghiệm thu */}
+      {needsRevision && (
+        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold bg-orange-100 text-orange-700 mb-1.5">
+          ↩️ Cần chỉnh sửa
+        </span>
+      )}
+
       {/* Title */}
-      <p className={`text-sm font-semibold text-gray-900 leading-snug mb-2 ${task.status === 'DONE' ? 'line-through text-gray-400' : ''}`}>
+      {/* Không gạch ngang task Hoàn thành: cột + dấu "✅ Xong" + thẻ hơi mờ đã đủ phân biệt */}
+      <p className="text-sm font-semibold text-gray-900 leading-snug mb-2">
         {task.title}
       </p>
 
@@ -141,10 +185,159 @@ function TaskCard({ task, onClick, provided, snapshot, canManage }) {
   );
 }
 
-// ─── Task Detail Drawer ──────────────────────────────────────────────────────
-function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) {
+// ─── Một lần nộp sản phẩm ─────────────────────────────────────────────────────
+function SubmissionCard({ submission: s, highlight = false }) {
+  const st = SUBMISSION_STATUS[s.review_status] || SUBMISSION_STATUS.PENDING_REVIEW;
+  const fileName = getUploadedFileName(s.attachment_url);
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 space-y-1.5 ${highlight ? 'border-amber-300 bg-amber-50/60' : 'border-gray-100 bg-gray-50'}`}>
+      <div className="flex items-center gap-2 text-xs flex-wrap">
+        <span className="font-semibold text-gray-700">Lần #{s.version}</span>
+        <span className={`px-1.5 py-0.5 rounded font-semibold ${st.color}`}>{st.label}</span>
+        <span className="ml-auto text-gray-400">
+          {formatDateTime(s.submitted_at)}{s.submitted_by ? ` · ${s.submitted_by}` : ''}
+        </span>
+      </div>
+      {s.product_url && (
+        <a href={s.product_url} target="_blank" rel="noopener noreferrer"
+          className="flex items-start gap-1.5 text-sm text-primary-600 hover:underline break-all">
+          <span className="flex-shrink-0">🔗</span><span>{s.product_url}</span>
+        </a>
+      )}
+      {s.attachment_url && (
+        <a href={s.attachment_url} target="_blank" rel="noopener noreferrer" download={fileName}
+          className="flex items-start gap-1.5 text-sm text-primary-600 hover:underline break-all">
+          <span className="flex-shrink-0">📎</span><span>{fileName}</span>
+        </a>
+      )}
+      {s.note && <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.note}</p>}
+    </div>
+  );
+}
+
+// ─── Nộp sản phẩm & gửi duyệt (Đang làm → Chờ duyệt) ─────────────────────────
+function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted }) {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const [productUrl, setProductUrl] = useState('');
+  const [attachment, setAttachment] = useState(null); // { url, filename, size }
+  const [note, setNote] = useState('');
+  const [uploadPct, setUploadPct] = useState(null); // null = không tải; 0..100 = đang tải
+
+  const urlInvalid = productUrl.trim() !== '' && !isHttpUrl(productUrl);
+  const canSubmit = (isHttpUrl(productUrl) || !!attachment) && !urlInvalid && uploadPct === null;
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // cho phép chọn lại đúng file đó
+    if (!file) return;
+    if (file.size > MAX_TASK_FILE_SIZE) { toast.error('File vượt quá dung lượng cho phép (tối đa 20MB)'); return; }
+    setUploadPct(0);
+    try {
+      const res = await uploadApi.uploadTaskFile(file, setUploadPct);
+      setAttachment(res.data.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Tải file thất bại');
+    } finally {
+      setUploadPct(null);
+    }
+  };
+
+  const submitMut = useMutation({
+    mutationFn: () => taskApi.submitTask(task.id, {
+      product_url: productUrl.trim() || undefined,
+      attachment_url: attachment?.url,
+      note: note.trim() || undefined,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workspace-tasks', workspaceId] });
+      qc.invalidateQueries({ queryKey: ['task', task.id] });
+      qc.invalidateQueries({ queryKey: ['my-tasks'] });
+      qc.invalidateQueries({ queryKey: ['my-workspaces'] });
+      toast.success('Đã nộp sản phẩm. Task chuyển sang "Chờ duyệt"');
+      onSubmitted?.();
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Nộp sản phẩm thất bại'),
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] flex flex-col animate-fade-in">
+        <div className="flex items-start justify-between px-6 py-4 border-b">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-900">📦 Nộp sản phẩm & gửi duyệt</h2>
+            <p className="text-xs text-gray-500 truncate mt-0.5">
+              {task.title}{nextVersion > 1 ? ` · Lần nộp #${nextVersion}` : ''}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl ml-3">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+            Đính kèm <b>link</b> hoặc <b>file</b> sản phẩm (ít nhất một) để Quản lý nghiệm thu.
+            Sau khi nộp, task chuyển sang cột "Chờ duyệt".
+          </p>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Link sản phẩm</label>
+            <input className={`input-field ${urlInvalid ? 'border-red-300 focus:ring-red-300' : ''}`} maxLength={500}
+              placeholder="https://github.com/... hoặc link Google Drive, Figma..."
+              value={productUrl} onChange={e => setProductUrl(e.target.value)} />
+            {urlInvalid && <p className="text-xs text-red-500 mt-1">Link cần bắt đầu bằng http:// hoặc https://</p>}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">File đính kèm</label>
+            {attachment ? (
+              <div className="flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2">
+                <span>📎</span>
+                <span className="text-sm text-gray-800 truncate flex-1">{attachment.filename}</span>
+                <span className="text-xs text-gray-400 flex-shrink-0">{formatFileSize(attachment.size)}</span>
+                <button onClick={() => setAttachment(null)} title="Bỏ file"
+                  className="text-xs text-gray-400 hover:text-red-500 px-1">✕</button>
+              </div>
+            ) : uploadPct !== null ? (
+              <div className="border border-gray-200 rounded-lg px-3 py-3">
+                <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                  <span>Đang tải file lên...</span><span>{uploadPct}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div className="bg-primary-500 h-1.5 rounded-full transition-all" style={{ width: `${uploadPct}%` }} />
+                </div>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-gray-200 rounded-lg px-3 py-4 cursor-pointer hover:border-primary-300 hover:bg-primary-50/40 transition-colors">
+                <span className="text-sm text-gray-600">📤 Chọn file để tải lên</span>
+                <span className="text-[11px] text-gray-400">Tối đa 20MB · zip, rar, pdf, docx, xlsx, pptx, ảnh...</span>
+                <input type="file" className="hidden" accept={TASK_FILE_ACCEPT} onChange={handleFile} />
+              </label>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Ghi chú cho Quản lý</label>
+            <textarea className="input-field resize-none text-sm" rows={3} maxLength={2000}
+              placeholder="Mô tả những gì đã làm, cách kiểm tra, lưu ý..."
+              value={note} onChange={e => setNote(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-t flex gap-2">
+          <button onClick={() => submitMut.mutate()} disabled={!canSubmit || submitMut.isPending}
+            className="btn-primary flex-1 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed">
+            {submitMut.isPending ? 'Đang nộp...' : '✅ Nộp & gửi duyệt'}
+          </button>
+          <button onClick={onClose} className="btn-secondary px-5 py-2.5">Hủy</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Task Detail Drawer ──────────────────────────────────────────────────────
+function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, initialReview = null }) {
+  const qc = useQueryClient();
+  const { user, isAdmin } = useAuth();
   const [commentText, setCommentText] = useState('');
   const [newSubTask, setNewSubTask] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -152,19 +345,28 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
   const [editData, setEditData] = useState(null);
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'activity'
   const [reviewNote, setReviewNote] = useState('');
-  const [showReviewPanel, setShowReviewPanel] = useState(false);
+  // Mở sẵn bảng nghiệm thu khi Quản lý kéo task ra khỏi cột "Chờ duyệt"
+  const [showReviewPanel, setShowReviewPanel] = useState(!!initialReview);
+  const [showSubmit, setShowSubmit] = useState(false);       // form nộp sản phẩm
+  const [progressDraft, setProgressDraft] = useState(0);     // % đang kéo trên thanh tiến độ
 
   const { data, isLoading } = useQuery({
     queryKey: ['task', taskId],
     queryFn: () => taskApi.getTaskById(taskId),
     enabled: !!taskId,
+    staleTime: 0, // mỗi lần mở đều lấy dữ liệu mới (thành viên khác có thể vừa cập nhật)
   });
   const task = data?.data?.data;
+
+  // Đồng bộ thanh tiến độ với % đã lưu
+  useEffect(() => { setProgressDraft(task?.completion_rate ?? 0); }, [task?.completion_rate]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['task', taskId] });
     qc.invalidateQueries({ queryKey: ['workspace-tasks', workspaceId], exact: false });
     qc.invalidateQueries({ queryKey: ['workspace', workspaceId] });
+    qc.invalidateQueries({ queryKey: ['my-tasks'] });
+    qc.invalidateQueries({ queryKey: ['my-workspaces'] });
   };
 
   const updateMut = useMutation({
@@ -174,23 +376,48 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
   });
   const reviewMut = useMutation({
     mutationFn: (d) => taskApi.reviewTask(taskId, d),
-    onSuccess: () => { invalidate(); setShowReviewPanel(false); toast.success('Đã duyệt task'); }
+    onSuccess: (_, vars) => {
+      invalidate();
+      setShowReviewPanel(false);
+      setReviewNote('');
+      toast.success(vars.action === 'APPROVE' ? 'Đã duyệt task' : 'Đã yêu cầu chỉnh sửa');
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
   });
   const addCommentMut = useMutation({
     mutationFn: (content) => taskApi.addComment(taskId, content),
-    onSuccess: () => { invalidate(); setCommentText(''); }
+    onSuccess: () => { invalidate(); setCommentText(''); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
+  });
+  const deleteCommentMut = useMutation({
+    mutationFn: (commentId) => taskApi.deleteComment(taskId, commentId),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
   });
   const addSubTaskMut = useMutation({
     mutationFn: (title) => taskApi.addSubTask(taskId, title),
-    onSuccess: () => { invalidate(); setNewSubTask(''); }
+    onSuccess: () => { invalidate(); setNewSubTask(''); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
   });
   const updateSubTaskMut = useMutation({
     mutationFn: ({ subId, data }) => taskApi.updateSubTask(taskId, subId, data),
     onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
+  });
+  const deleteSubTaskMut = useMutation({
+    mutationFn: (subId) => taskApi.deleteSubTask(taskId, subId),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
   });
   const deleteTaskMut = useMutation({
     mutationFn: () => taskApi.deleteTask(taskId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['workspace-tasks', workspaceId], exact: false }); onClose(); toast.success('Đã xóa task'); }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workspace-tasks', workspaceId], exact: false });
+      qc.invalidateQueries({ queryKey: ['my-tasks'] });
+      onClose();
+      toast.success('Đã xóa task');
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
   });
 
   if (!taskId) return null;
@@ -206,10 +433,21 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
   const pm = PRIORITY_META[task.priority] || PRIORITY_META.MEDIUM;
   const totalSubs = task.SubTasks?.length || 0;
   const doneSubs = task.SubTasks?.filter(s => s.is_done).length || 0;
-  const isOverdue = task.deadline && new Date(task.deadline) < new Date() && task.status !== 'DONE';
-  const canReview = canManage && task.status === 'REVIEW';
-  const myMemberId = members.find(m => m.CandidateProfile?.user_id === user?.id)?.id;
+  const pendingSubs = totalSubs - doneSubs;
+  const isOverdue = isTaskOverdue(task);
+  const isDone = task.status === 'DONE';
+  const myMember = members.find(m => m.CandidateProfile?.user_id === user?.id);
+  const myMemberId = myMember?.id;
   const isAssignedToMe = task.Assignees?.some(a => a.id === myMemberId);
+  const canReview = canManage && task.status === 'REVIEW';
+  // Người thực hiện không được tự nghiệm thu task của mình (trừ Admin)
+  const isSelfReview = isAssignedToMe && !isAdmin();
+  // Cập nhật tiến độ / subtask khi task chưa gửi duyệt
+  const canEditProgress = EDITABLE_STATUSES.includes(task.status) && (canManage || isAssignedToMe);
+  // Thành viên vai trò "Xem" không được giao task
+  const assignableMembers = members.filter(m => m.role !== 'VIEWER');
+  // Các lần nộp sản phẩm (mới nhất trước)
+  const submissions = task.TaskSubmissions || [];
 
   const startEdit = () => {
     setEditData({
@@ -217,12 +455,13 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
       description: task.description || '',
       priority: task.priority,
       deadline: task.deadline ? task.deadline.slice(0,10) : '',
-      estimated_hours: task.estimated_hours || '',
       labels: task.labels || [],
       assignee_ids: task.Assignees?.map(a => a.id) || [],
     });
     setEditMode(true);
   };
+  // Task đã bắt đầu làm thì phải còn ít nhất 1 người thực hiện
+  const editMissingAssignee = editData && task.status !== 'TODO' && !editData.assignee_ids.length;
 
   return (
     <>
@@ -238,12 +477,14 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
             {STATUS_META[task.status]?.label}
           </div>
           <div className="flex-1" />
-          {canManage && (
+          {/* Task đã nghiệm thu thì khóa, không sửa/xóa */}
+          {isDone && <span className="text-[11px] text-gray-400">🔒 Đã nghiệm thu</span>}
+          {canManage && !isDone && (
             <button onClick={startEdit} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-200">
               ✏️ Sửa
             </button>
           )}
-          {canManage && (
+          {canManage && !isDone && (
             <button onClick={() => { if(confirm('Xóa task này?')) deleteTaskMut.mutate(); }}
               className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50">
               🗑 Xóa
@@ -260,7 +501,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
               <h2 className="font-bold text-gray-700 mb-2">Chỉnh sửa Task</h2>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Tiêu đề</label>
-                <input className="input-field" value={editData.title} onChange={e => setEditData({...editData, title: e.target.value})} />
+                <input className="input-field" maxLength={255} value={editData.title} onChange={e => setEditData({...editData, title: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Mô tả</label>
@@ -275,12 +516,9 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Deadline</label>
-                  <input type="date" className="input-field text-sm" value={editData.deadline} onChange={e => setEditData({...editData, deadline: e.target.value})} />
+                  <input type="date" className="input-field text-sm" value={editData.deadline} min={todayStr()}
+                    onChange={e => setEditData({...editData, deadline: e.target.value})} />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Ước tính (giờ)</label>
-                <input type="number" className="input-field text-sm" step="0.5" value={editData.estimated_hours} onChange={e => setEditData({...editData, estimated_hours: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Labels</label>
@@ -297,8 +535,11 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Người thực hiện</label>
+                {editMissingAssignee && (
+                  <p className="text-xs text-red-500 mb-1.5">Task đã bắt đầu làm nên phải có ít nhất một người thực hiện</p>
+                )}
                 <div className="space-y-1.5">
-                  {members.map(m => {
+                  {assignableMembers.map(m => {
                     const name = m.CandidateProfile?.User?.full_name;
                     const checked = editData.assignee_ids.includes(m.id);
                     return (
@@ -314,7 +555,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 </div>
               </div>
               <div className="flex gap-2 pt-2 border-t">
-                <button onClick={() => updateMut.mutate(editData)} disabled={updateMut.isPending || !editData.title}
+                <button onClick={() => updateMut.mutate(editData)} disabled={updateMut.isPending || !editData.title.trim() || editMissingAssignee}
                   className="btn-primary flex-1 py-2">
                   {updateMut.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
@@ -338,11 +579,6 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                     {task.deadline ? `${isOverdue ? '⚠️ ' : ''}${new Date(task.deadline).toLocaleDateString('vi-VN', { day:'numeric', month:'long', year:'numeric' })}` : '—'}
                   </div>
                   
-                  {task.estimated_hours && (<>
-                    <div className="text-gray-400 text-xs font-semibold uppercase">Ước tính</div>
-                    <div className="text-sm text-gray-700">{task.estimated_hours} giờ</div>
-                  </>)}
-
                   {task.labels?.length > 0 && (<>
                     <div className="text-gray-400 text-xs font-semibold uppercase">Labels</div>
                     <div className="flex flex-wrap gap-1">
@@ -358,22 +594,26 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
               <div className="px-5 py-4 border-b">
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-xs font-semibold text-gray-400 uppercase">Người thực hiện</p>
-                  {canManage && !isAssigning && (
+                  {canManage && !isDone && !isAssigning && (
                     <button onClick={() => setIsAssigning(true)} className="text-[10px] text-primary-600 font-medium hover:underline">+ Giao việc</button>
                   )}
-                  {canManage && isAssigning && (
+                  {canManage && !isDone && isAssigning && (
                     <button onClick={() => setIsAssigning(false)} className="text-[10px] text-gray-500 font-medium hover:underline">Đóng</button>
                   )}
                 </div>
-                
-                {isAssigning && canManage && (
+
+                {isAssigning && canManage && !isDone && (
                   <div className="mb-3 space-y-1.5 p-2 bg-gray-50 rounded-lg border">
-                    {members.map(m => {
+                    {assignableMembers.map(m => {
                       const name = m.CandidateProfile?.User?.full_name;
                       const isAssigned = task.Assignees?.some(a => a.id === m.id);
+                      // Task đã bắt đầu làm thì không được bỏ người thực hiện cuối cùng
+                      const isLastAssignee = isAssigned && task.Assignees.length === 1 && task.status !== 'TODO';
                       return (
-                        <label key={m.id} className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-all ${isAssigned ? 'bg-primary-50' : 'hover:bg-white'}`}>
+                        <label key={m.id} title={isLastAssignee ? 'Task đang thực hiện phải có ít nhất một người thực hiện' : undefined}
+                          className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-all ${isAssigned ? 'bg-primary-50' : 'hover:bg-white'}`}>
                           <input type="checkbox" className="rounded accent-primary-600" checked={isAssigned}
+                            disabled={isLastAssignee || updateMut.isPending}
                             onChange={() => {
                               const newIds = isAssigned 
                                 ? task.Assignees.filter(a => a.id !== m.id).map(a => a.id)
@@ -403,7 +643,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 ) : (
                   <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2.5 border border-dashed border-gray-300">
                     <span className="text-sm text-gray-500">Chưa có người thực hiện</span>
-                    {myMemberId && (
+                    {myMemberId && myMember?.role !== 'VIEWER' && task.status === 'TODO' && (
                       <button onClick={() => updateMut.mutate({ assignee_ids: [myMemberId] })} disabled={updateMut.isPending} className="text-xs bg-white border shadow-sm px-2.5 py-1 rounded hover:bg-gray-50 font-medium text-gray-700">
                         {updateMut.isPending ? '...' : '✋ Nhận việc này'}
                       </button>
@@ -420,6 +660,15 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 </div>
               )}
 
+              {/* Yêu cầu chỉnh sửa sau nghiệm thu: đặt trên phần tiến độ để người làm thấy ngay */}
+              {task.status === 'IN_PROGRESS' && task.review_status === 'REVISION_REQUIRED' && task.review_note && (
+                <div className="px-5 py-3 bg-orange-50 border-b border-orange-100">
+                  <p className="text-xs font-semibold text-orange-600 mb-1">📝 Yêu cầu chỉnh sửa từ Quản lý:</p>
+                  <p className="text-sm text-orange-700 italic whitespace-pre-wrap">"{task.review_note}"</p>
+                  {task.reviewed_at && <p className="text-[10px] text-orange-400 mt-1">{formatDateTime(task.reviewed_at)}</p>}
+                </div>
+              )}
+
               {/* Progress & Workflow */}
               <div className="px-5 py-4 border-b">
                 <div className="flex justify-between items-center mb-2">
@@ -429,26 +678,61 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
                   <div className="bg-primary-500 h-2 rounded-full transition-all" style={{ width: `${task.completion_rate}%` }} />
                 </div>
-                
-                {/* Workflow Actions */}
-                {(isAssignedToMe || canManage) && task.status !== 'DONE' && (
-                  <div className="flex gap-2 flex-wrap">
-                    {task.status === 'TODO' && (
-                      <button onClick={() => updateMut.mutate({ status: 'IN_PROGRESS' })} className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors">
-                        🚀 Bắt đầu làm (In Progress)
+
+                {/* Cập nhật % hoàn thành: task không có subtask thì kéo thanh, có subtask thì tự tính */}
+                {task.status === 'IN_PROGRESS' && canEditProgress && (totalSubs === 0 ? (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-3">
+                      <input type="range" min="0" max="100" step="5" value={progressDraft}
+                        onChange={e => setProgressDraft(Number(e.target.value))}
+                        className="flex-1 accent-primary-600 cursor-pointer" />
+                      <span className="text-xs font-semibold text-gray-700 w-10 text-right">{progressDraft}%</span>
+                      <button onClick={() => updateMut.mutate({ completion_rate: progressDraft })}
+                        disabled={progressDraft === task.completion_rate || updateMut.isPending}
+                        className="text-xs px-2.5 py-1 rounded-lg font-medium bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        Lưu
                       </button>
-                    )}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">Kéo thanh để cập nhật % hoàn thành rồi bấm Lưu</p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-400 -mt-2 mb-3">% hoàn thành được tính tự động theo subtask đã xong</p>
+                ))}
+
+                {/* Workflow Actions: Cần làm → Đang làm → Chờ duyệt (→ Quản lý nghiệm thu) */}
+                {canEditProgress && (
+                  <div className="flex gap-2 flex-wrap items-center">
+                    {task.status === 'TODO' && (task.Assignees?.length ? (
+                      <button onClick={() => updateMut.mutate({ status: 'IN_PROGRESS' })} disabled={updateMut.isPending}
+                        className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors">
+                        🚀 Bắt đầu làm
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-500">Cần giao người thực hiện trước khi bắt đầu</span>
+                    ))}
                     {task.status === 'IN_PROGRESS' && (
-                      <button onClick={() => updateMut.mutate({ status: 'REVIEW' })} className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-green-500 text-white hover:bg-green-600 shadow-sm transition-colors">
-                        ✅ Hoàn thành & Gửi duyệt
-                      </button>
-                    )}
-                    {task.status === 'REVIEW' && !canManage && (
-                      <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
-                        ⏳ Đang chờ Quản lý duyệt...
-                      </span>
+                      <>
+                        <button onClick={() => setShowSubmit(true)}
+                          disabled={pendingSubs > 0 || updateMut.isPending}
+                          title={pendingSubs > 0 ? `Còn ${pendingSubs} subtask chưa hoàn thành` : undefined}
+                          className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-green-500 text-white hover:bg-green-600 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                          📦 Nộp sản phẩm & gửi duyệt
+                        </button>
+                        <button onClick={() => updateMut.mutate({ status: 'TODO' })} disabled={updateMut.isPending}
+                          className="text-xs px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:bg-gray-100 border border-gray-200 transition-colors">
+                          ↩ Về Cần làm
+                        </button>
+                        {pendingSubs > 0 && (
+                          <span className="text-xs text-gray-500 w-full">Hoàn thành {pendingSubs} subtask còn lại để gửi duyệt</span>
+                        )}
+                      </>
                     )}
                   </div>
+                )}
+                {task.status === 'REVIEW' && !canManage && (
+                  <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
+                    ⏳ Đang chờ Quản lý duyệt...
+                  </span>
                 )}
               </div>
 
@@ -461,24 +745,34 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 </div>
                 <div className="space-y-2 mb-3">
                   {task.SubTasks?.map(sub => (
-                    <label key={sub.id} className="flex items-center gap-2.5 group cursor-pointer">
+                    <label key={sub.id} className={`flex items-center gap-2.5 group ${canEditProgress ? 'cursor-pointer' : 'cursor-default'}`}>
                       <input type="checkbox" className="rounded accent-primary-600 w-4 h-4 flex-shrink-0"
                         checked={sub.is_done}
+                        disabled={!canEditProgress || updateSubTaskMut.isPending}
                         onChange={() => updateSubTaskMut.mutate({ subId: sub.id, data: { is_done: !sub.is_done } })}
                       />
                       <span className={`text-sm flex-1 ${sub.is_done ? 'line-through text-gray-400' : 'text-gray-800'}`}>
                         {sub.title}
                       </span>
+                      {canEditProgress && (
+                        <button type="button"
+                          onClick={(e) => { e.preventDefault(); if (confirm(`Xóa subtask "${sub.title}"?`)) deleteSubTaskMut.mutate(sub.id); }}
+                          className="text-gray-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity px-1">
+                          ✕
+                        </button>
+                      )}
                     </label>
                   ))}
+                  {!totalSubs && <p className="text-xs text-gray-400">Chưa có subtask</p>}
                 </div>
-                {(canManage || isAssignedToMe) && (
+                {canEditProgress && (
                   <div className="flex gap-2">
-                    <input className="input-field py-1.5 text-sm flex-1" placeholder="Thêm subtask..."
+                    <input className="input-field py-1.5 text-sm flex-1" placeholder="Thêm subtask..." maxLength={255}
                       value={newSubTask} onChange={e => setNewSubTask(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && newSubTask.trim()) { addSubTaskMut.mutate(newSubTask); } }}
+                      onKeyDown={e => { if (e.key === 'Enter' && newSubTask.trim() && !addSubTaskMut.isPending) { addSubTaskMut.mutate(newSubTask.trim()); } }}
                     />
-                    <button onClick={() => newSubTask.trim() && addSubTaskMut.mutate(newSubTask)}
+                    <button onClick={() => newSubTask.trim() && addSubTaskMut.mutate(newSubTask.trim())}
+                      disabled={addSubTaskMut.isPending}
                       className="btn-secondary px-3 py-1.5 text-sm">
                       +
                     </button>
@@ -486,26 +780,47 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 )}
               </div>
 
+              {/* Sản phẩm đã nộp (mới nhất trước) */}
+              {submissions.length > 0 && (
+                <div className="px-5 py-4 border-b">
+                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">📦 Sản phẩm đã nộp ({submissions.length})</p>
+                  <div className="space-y-2">
+                    {submissions.map((s, i) => (
+                      <SubmissionCard key={s.id} submission={s} highlight={i === 0 && task.status === 'REVIEW'} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Manager review panel */}
               {canReview && (
                 <div className="px-5 py-4 border-b bg-amber-50">
-                  <p className="text-sm font-semibold text-amber-700 mb-2">⏳ Task đang chờ duyệt</p>
-                  {!showReviewPanel ? (
+                  <p className="text-sm font-semibold text-amber-700 mb-1">⏳ Task đang chờ duyệt</p>
+                  <p className="text-xs text-amber-700 mb-2">
+                    {submissions.length
+                      ? `Kiểm tra sản phẩm nộp lần #${submissions[0].version} ở mục bên trên trước khi nghiệm thu.`
+                      : 'Task này chưa có sản phẩm đính kèm.'}
+                  </p>
+                  {isSelfReview ? (
+                    <p className="text-xs text-amber-700">Bạn là người thực hiện task này nên không thể tự nghiệm thu. Quản lý khác hoặc Admin sẽ duyệt.</p>
+                  ) : !showReviewPanel ? (
                     <button onClick={() => setShowReviewPanel(true)} className="btn-primary text-sm py-1.5 px-3">
                       Duyệt task này
                     </button>
                   ) : (
                     <div className="space-y-2">
-                      <textarea className="input-field resize-none text-sm" rows={2} placeholder="Nhận xét (tùy chọn)..."
+                      <textarea className="input-field resize-none text-sm" rows={2} autoFocus={initialReview === 'REVISION'}
+                        placeholder={initialReview === 'REVISION' ? 'Nhập nội dung cần chỉnh sửa...' : 'Nhận xét (bắt buộc khi yêu cầu sửa)...'}
                         value={reviewNote} onChange={e => setReviewNote(e.target.value)} />
                       <div className="flex gap-2">
                         <button onClick={() => reviewMut.mutate({ action: 'APPROVE', review_note: reviewNote })}
                           disabled={reviewMut.isPending}
                           className="btn-primary bg-green-600 hover:bg-green-700 flex-1 py-1.5 text-sm">
-                          ✅ Duyệt (Approve)
+                          ✅ Duyệt hoàn thành
                         </button>
                         <button onClick={() => reviewMut.mutate({ action: 'REVISION', review_note: reviewNote })}
-                          disabled={reviewMut.isPending || !reviewNote}
+                          disabled={reviewMut.isPending || !reviewNote.trim()}
+                          title={!reviewNote.trim() ? 'Nhập nội dung cần chỉnh sửa trước' : undefined}
                           className="btn-secondary text-amber-600 border-amber-300 flex-1 py-1.5 text-sm">
                           ↩️ Yêu cầu sửa
                         </button>
@@ -515,13 +830,6 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                 </div>
               )}
 
-              {/* Review note (if rejected) */}
-              {task.review_status === 'REVISION_REQUIRED' && task.review_note && (
-                <div className="px-5 py-3 bg-orange-50 border-b border-orange-100">
-                  <p className="text-xs font-semibold text-orange-600 mb-1">📝 Yêu cầu chỉnh sửa từ Manager:</p>
-                  <p className="text-sm text-orange-700 italic">"{task.review_note}"</p>
-                </div>
-              )}
 
               {/* Tab bar */}
               <div className="flex border-b px-5 gap-4 mt-2">
@@ -539,36 +847,50 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
               {activeTab === 'details' && (
                 <div className="px-5 py-4">
                   <div className="space-y-3 mb-4">
-                    {task.Comments?.map(c => (
-                      <div key={c.id} className="flex gap-2.5">
-                        <Avatar name={c.Author?.CandidateProfile?.User?.full_name} size="sm" className="flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
-                          <p className="text-xs font-semibold text-gray-700 mb-0.5">
-                            {c.Author?.CandidateProfile?.User?.full_name}
-                            <span className="text-gray-400 font-normal ml-2">
-                              {new Date(c.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-800 whitespace-pre-wrap">{c.content}</p>
+                    {task.Comments?.map(c => {
+                      const canDeleteComment = c.workspace_member_id === myMemberId || canManage;
+                      return (
+                        <div key={c.id} className="flex gap-2.5 group">
+                          <Avatar name={c.Author?.CandidateProfile?.User?.full_name} size="sm" className="flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
+                            <p className="text-xs font-semibold text-gray-700 mb-0.5 flex items-center">
+                              {c.Author?.CandidateProfile?.User?.full_name}
+                              <span className="text-gray-400 font-normal ml-2">
+                                {new Date(c.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
+                              </span>
+                              {canDeleteComment && (
+                                <button onClick={() => { if (confirm('Xóa bình luận này?')) deleteCommentMut.mutate(c.id); }}
+                                  className="ml-auto text-[10px] font-normal text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  Xóa
+                                </button>
+                              )}
+                            </p>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap">{c.content}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {!task.Comments?.length && (
                       <p className="text-center text-sm text-gray-400 py-4">Chưa có bình luận nào</p>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <textarea className="input-field resize-none text-sm flex-1" rows={2}
-                      placeholder="Viết bình luận..."
-                      value={commentText} onChange={e => setCommentText(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && commentText.trim()) { e.preventDefault(); addCommentMut.mutate(commentText); } }}
-                    />
-                    <button onClick={() => commentText.trim() && addCommentMut.mutate(commentText)}
-                      disabled={addCommentMut.isPending}
-                      className="btn-primary self-end px-3 py-2 text-sm">
-                      Gửi
-                    </button>
-                  </div>
+                  {/* Bình luận gắn với thành viên Workspace (Admin không phải thành viên) */}
+                  {myMemberId ? (
+                    <div className="flex gap-2">
+                      <textarea className="input-field resize-none text-sm flex-1" rows={2}
+                        placeholder="Viết bình luận..."
+                        value={commentText} onChange={e => setCommentText(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && commentText.trim() && !addCommentMut.isPending) { e.preventDefault(); addCommentMut.mutate(commentText.trim()); } }}
+                      />
+                      <button onClick={() => commentText.trim() && addCommentMut.mutate(commentText.trim())}
+                        disabled={addCommentMut.isPending}
+                        className="btn-primary self-end px-3 py-2 text-sm">
+                        Gửi
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 text-center">Chỉ thành viên Workspace mới có thể bình luận</p>
+                  )}
                 </div>
               )}
 
@@ -583,13 +905,14 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
                            a.action === 'TASK_CREATED' ? '✨' :
                            a.action === 'TASK_APPROVED' ? '✅' :
                            a.action === 'TASK_REVISION' ? '↩️' :
-                           a.action === 'COMMENT_ADDED' ? '💬' :
-                           a.action === 'ASSIGNED' ? '👤' : '📝'}
+                           a.action === 'ASSIGNED' ? '👤' :
+                           a.action === 'UPDATED' ? '✏️' : '📝'}
                         </div>
                         <div className="flex-1 pt-0.5">
                           <p className="text-sm text-gray-700">{a.description}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">
-                            {a.Actor?.CandidateProfile?.User?.full_name || 'Hệ thống'} · {new Date(a.created_at).toLocaleString('vi-VN')}
+                            {/* Không gắn thành viên = thao tác của Admin */}
+                            {a.Actor?.CandidateProfile?.User?.full_name || 'Quản trị viên'} · {new Date(a.created_at).toLocaleString('vi-VN')}
                           </p>
                         </div>
                       </div>
@@ -604,6 +927,17 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
           )}
         </div>
       </div>
+
+      {/* Form nộp sản phẩm & gửi duyệt */}
+      {showSubmit && (
+        <SubmitWorkModal
+          task={task}
+          workspaceId={workspaceId}
+          nextVersion={submissions.length + 1}
+          onClose={() => setShowSubmit(false)}
+          onSubmitted={() => setShowSubmit(false)}
+        />
+      )}
     </>
   );
 }
@@ -612,7 +946,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId }) 
 function CreateTaskModal({ workspaceId, members, onClose, onCreated }) {
   const [form, setForm] = useState({
     title: '', description: '', priority: 'MEDIUM', deadline: '',
-    estimated_hours: '', labels: [], assignee_ids: [], sub_tasks: []
+    labels: [], assignee_ids: [], sub_tasks: []
   });
   const [subInput, setSubInput] = useState('');
   const qc = useQueryClient();
@@ -646,8 +980,9 @@ function CreateTaskModal({ workspaceId, members, onClose, onCreated }) {
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tiêu đề *</label>
-            <input className="input-field" placeholder="VD: Thiết kế màn hình Login"
+            <input className="input-field" placeholder="VD: Thiết kế màn hình Login" maxLength={255}
               value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
+            <p className="text-[11px] text-gray-400 mt-1">Task mới sẽ nằm ở cột "Cần làm"</p>
           </div>
 
           <div>
@@ -666,16 +1001,9 @@ function CreateTaskModal({ workspaceId, members, onClose, onCreated }) {
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Deadline</label>
               <input type="date" className="input-field text-sm" value={form.deadline}
-                min={new Date().toISOString().split('T')[0]}
+                min={todayStr()}
                 onChange={e => setForm({...form, deadline: e.target.value})} />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Ước tính (giờ)</label>
-            <input type="number" className="input-field text-sm" step="0.5" min="0"
-              placeholder="8" value={form.estimated_hours}
-              onChange={e => setForm({...form, estimated_hours: e.target.value})} />
           </div>
 
           <div>
@@ -695,7 +1023,8 @@ function CreateTaskModal({ workspaceId, members, onClose, onCreated }) {
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Giao cho</label>
             <div className="space-y-1.5 max-h-36 overflow-y-auto">
-              {members.map(m => {
+              {/* Thành viên vai trò "Xem" không được giao task */}
+              {members.filter(m => m.role !== 'VIEWER').map(m => {
                 const name = m.CandidateProfile?.User?.full_name;
                 const checked = form.assignee_ids.includes(m.id);
                 return (
@@ -724,7 +1053,7 @@ function CreateTaskModal({ workspaceId, members, onClose, onCreated }) {
               ))}
             </div>
             <div className="flex gap-2">
-              <input className="input-field py-1.5 text-sm flex-1" placeholder="Thêm subtask..."
+              <input className="input-field py-1.5 text-sm flex-1" placeholder="Thêm subtask..." maxLength={255}
                 value={subInput} onChange={e => setSubInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addSub()} />
               <button onClick={addSub} className="btn-secondary px-3 text-sm">+</button>
@@ -733,7 +1062,7 @@ function CreateTaskModal({ workspaceId, members, onClose, onCreated }) {
         </div>
 
         <div className="px-6 py-4 border-t flex gap-2">
-          <button onClick={() => createMut.mutate(form)} disabled={!form.title || createMut.isPending}
+          <button onClick={() => createMut.mutate({ ...form, title: form.title.trim() })} disabled={!form.title.trim() || createMut.isPending}
             className="btn-primary flex-1 py-2.5">
             {createMut.isPending ? 'Đang tạo...' : '✨ Tạo Task'}
           </button>
@@ -754,33 +1083,52 @@ export default function WorkspacePage() {
   const [activeSection, setActiveSection] = useState('board'); // 'board' | 'stats' | 'members'
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [reviewIntent, setReviewIntent] = useState(null); // 'APPROVE' | 'REVISION' khi kéo task ra khỏi "Chờ duyệt"
   const [filters, setFilters] = useState({ priority: '', assignee_id: '', label: '' });
-  const [optimisticTasks, setOptimisticTasks] = useState(null);
-  const [kanbanZoom, setKanbanZoom] = useState(0.85); // Default hơi nhỏ lại một chút cho dễ nhìn
+  const [draggingTask, setDraggingTask] = useState(null);
+  const [submitTarget, setSubmitTarget] = useState(null); // task đang mở form nộp sản phẩm (khi kéo sang "Chờ duyệt")
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: wsData, isLoading: wsLoading } = useQuery({
+  const { data: wsData, isLoading: wsLoading, error: wsError } = useQuery({
     queryKey: ['workspace', id],
     queryFn: () => workspaceApi.getWorkspaceDetail(id),
+    retry: false, // không có quyền / không tồn tại thì báo ngay
   });
 
+  // Luôn lấy toàn bộ task rồi lọc ở client: số liệu tổng không đổi theo bộ lọc
+  // và thứ tự kéo thả được tính trên cả cột (kể cả task đang bị lọc ẩn)
+  const tasksQueryKey = ['workspace-tasks', id];
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
-    queryKey: ['workspace-tasks', id, filters],
-    queryFn: () => taskApi.getWorkspaceTasks(id, { 
-      priority: filters.priority || undefined,
-      label: filters.label || undefined,
-    }),
+    queryKey: tasksQueryKey,
+    queryFn: () => taskApi.getWorkspaceTasks(id),
+    enabled: !wsError,
+    staleTime: 0,               // thành viên khác có thể vừa cập nhật bảng
+    refetchOnWindowFocus: true, // quay lại tab là thấy bảng mới nhất
   });
 
   const workspace = wsData?.data?.data;
   const members = workspace?.WorkspaceMembers?.filter(m => m.status === 'ACTIVE') || [];
-  const allTasks = optimisticTasks || tasksData?.data?.data || [];
-  const canManage = isAdmin() || workspace?.isManager || 
-    ['MANAGER', 'LEAD'].includes(members.find(m => m.CandidateProfile?.user_id === user?.id)?.role);
+  const allTasks = tasksData?.data?.data || [];
+  const myMember = members.find(m => m.CandidateProfile?.user_id === user?.id);
+  const canManage = isAdmin() || workspace?.isManager || ['MANAGER', 'LEAD'].includes(myMember?.role);
+  const isMine = (task) => !!myMember && task.Assignees?.some(a => a.id === myMember.id);
+  const myOpenTaskCount = allTasks.filter(t => t.status !== 'DONE' && isMine(t)).length;
+
+  // Mở thẳng task từ link (thông báo, trang "Dự án của tôi"): /workspaces/:id?task=<taskId>
+  const taskParam = searchParams.get('task');
+  useEffect(() => {
+    if (!taskParam || !tasksData) return;
+    const list = tasksData?.data?.data || [];
+    if (list.some(t => t.id === taskParam)) setSelectedTaskId(taskParam);
+    else toast.error('Task không còn tồn tại hoặc đã bị xóa');
+    setSearchParams(prev => { const p = new URLSearchParams(prev); p.delete('task'); return p; }, { replace: true });
+  }, [taskParam, tasksData, setSearchParams]);
 
   const { data: statsData } = useQuery({
     queryKey: ['workspace-stats', id],
     queryFn: () => workspaceApi.getWorkspaceStats(id),
     enabled: activeSection === 'stats',
+    staleTime: 0,
   });
   const wsStats = statsData?.data?.data;
 
@@ -821,21 +1169,26 @@ export default function WorkspacePage() {
     onError: (e) => toast.error(e.response?.data?.message || 'Thêm thành viên thất bại'),
   });
 
-  // Filter tasks
+  // Filter tasks (lọc ở client)
   const filteredTasks = allTasks.filter(t => {
+    if (filters.priority && t.priority !== filters.priority) return false;
+    if (filters.label && !t.labels?.includes(filters.label)) return false;
+    if (filters.assignee_id === '__unassigned') return !t.Assignees?.length;
     if (filters.assignee_id && !t.Assignees?.some(a => a.id === filters.assignee_id)) return false;
     return true;
   });
 
-  // Stats
+  // Stats (trên toàn bộ task, không phụ thuộc bộ lọc)
+  const activeTasks = allTasks.filter(t => t.status !== 'CANCELLED');
   const stats = {
-    total: allTasks.length,
+    total: activeTasks.length,
     inProgress: allTasks.filter(t => t.status === 'IN_PROGRESS').length,
     done: allTasks.filter(t => t.status === 'DONE').length,
-    overdue: allTasks.filter(t => t.deadline && new Date(t.deadline) < new Date() && t.status !== 'DONE').length,
+    overdue: allTasks.filter(isTaskOverdue).length,
   };
-  const completionRate = stats.total > 0 
-    ? Math.round(allTasks.reduce((acc, t) => acc + (t.completion_rate || 0), 0) / stats.total) 
+  // Cùng công thức với tab Thống kê: trung bình % của các task chưa hủy
+  const completionRate = activeTasks.length > 0
+    ? Math.round(activeTasks.reduce((acc, t) => acc + (t.completion_rate || 0), 0) / activeTasks.length)
     : 0;
 
   // Group by status for kanban
@@ -844,45 +1197,115 @@ export default function WorkspacePage() {
     return acc;
   }, {});
 
-  // Drag & drop
-  const onDragEnd = useCallback((result) => {
-    if (!result.destination) return;
+  // ─── Quy tắc kéo thả ───
+  // Ai được kéo task này
+  const canDragTask = (task) => {
+    if (task.status === 'DONE') return false;               // đã nghiệm thu → khóa
+    if (canManage) return true;
+    if (task.status === 'REVIEW') return false;             // đang chờ Quản lý duyệt
+    return !!myMember && task.Assignees?.some(a => a.id === myMember.id);
+  };
+  // Task được thả vào cột nào
+  const canDropTo = (task, toStatus) => {
+    if (task.status === toStatus) return canManage;          // sắp xếp thứ tự trong cột: chỉ Quản lý
+    if (task.status === 'REVIEW') return canManage && ['DONE', 'IN_PROGRESS'].includes(toStatus); // → mở bảng nghiệm thu
+    if (!TRANSITIONS[task.status]?.includes(toStatus)) return false;
+    if (toStatus !== 'TODO' && !task.Assignees?.length) return false; // chưa giao thì chỉ ở "Cần làm"
+    if (toStatus === 'REVIEW' && task.SubTasks?.some(s => !s.is_done)) return false; // còn subtask chưa xong
+    return true;
+  };
+
+  const onDragStart = ({ draggableId }) => setDraggingTask(allTasks.find(t => t.id === draggableId) || null);
+
+  const onDragEnd = async (result) => {
+    setDraggingTask(null);
     const { draggableId, destination, source } = result;
+    if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    let newStatus = destination.droppableId;
     const task = allTasks.find(t => t.id === draggableId);
     if (!task) return;
+    const toStatus = destination.droppableId;
 
-    if (newStatus === 'DONE' && !canManage) {
-      newStatus = 'REVIEW';
-      toast('Tự động chuyển sang Chờ duyệt để Quản lý xác nhận', { icon: '⏳' });
+    // Kéo ra khỏi "Chờ duyệt" = nghiệm thu → mở bảng duyệt để Quản lý xác nhận/nhập nhận xét
+    if (task.status === 'REVIEW' && toStatus !== 'REVIEW') {
+      if (canManage) {
+        setReviewIntent(toStatus === 'DONE' ? 'APPROVE' : 'REVISION');
+        setSelectedTaskId(task.id);
+      }
+      return;
+    }
+    if (!canDropTo(task, toStatus)) return;
+
+    // Kéo sang "Chờ duyệt" = nộp sản phẩm → mở form nộp (task chỉ chuyển cột sau khi nộp xong)
+    if (toStatus === 'REVIEW') {
+      setSubmitTarget(task);
+      return;
     }
 
-    // Optimistic update
-    setOptimisticTasks(prev => {
-      const tasks = prev || allTasks;
-      return tasks.map(t => t.id === draggableId ? { ...t, status: newStatus } : t);
+    // Vị trí trong toàn bộ cột đích (kể cả task đang bị bộ lọc ẩn)
+    const anchor = columns[toStatus].filter(t => t.id !== task.id)[destination.index]; // task đứng ngay sau
+    const fullColumn = allTasks.filter(t => t.status === toStatus && t.id !== task.id);
+    const position = anchor ? fullColumn.findIndex(t => t.id === anchor.id) : fullColumn.length;
+
+    // Cập nhật giao diện ngay, lỗi thì hoàn tác
+    await qc.cancelQueries({ queryKey: tasksQueryKey });
+    const previous = qc.getQueryData(tasksQueryKey);
+    qc.setQueryData(tasksQueryKey, (old) => {
+      const list = old?.data?.data;
+      if (!list) return old;
+      const rest = list.filter(t => t.id !== task.id);
+      let insertAt = anchor ? rest.findIndex(t => t.id === anchor.id) : -1;
+      if (insertAt === -1) {
+        const lastInColumn = rest.map(t => t.status).lastIndexOf(toStatus);
+        insertAt = lastInColumn === -1 ? rest.length : lastInColumn + 1;
+      }
+      rest.splice(insertAt, 0, { ...task, status: toStatus });
+      return { ...old, data: { ...old.data, data: rest } };
     });
 
-    taskApi.updateTask(draggableId, { status: newStatus })
-      .then(() => {
-        qc.invalidateQueries({ queryKey: ['workspace-tasks', id] });
-        setOptimisticTasks(null);
-      })
-      .catch((e) => {
-        setOptimisticTasks(null);
-        toast.error(e.response?.data?.message || 'Cập nhật thất bại');
-      });
-  }, [allTasks, id, qc, canManage]);
+    try {
+      await taskApi.updateTask(task.id, task.status === toStatus ? { position } : { status: toStatus, position });
+    } catch (e) {
+      qc.setQueryData(tasksQueryKey, previous);
+      toast.error(e.response?.data?.message || 'Cập nhật thất bại');
+    } finally {
+      qc.invalidateQueries({ queryKey: tasksQueryKey });
+      qc.invalidateQueries({ queryKey: ['task', task.id] });
+      qc.invalidateQueries({ queryKey: ['my-tasks'] });
+    }
+  };
+
+  // Trang quay lại: Admin → Dự án nội bộ, ứng viên → Dự án của tôi
+  const backLink = isAdmin()
+    ? { to: '/admin/projects', label: 'Dự án nội bộ' }
+    : { to: '/candidate/workspaces', label: 'Dự án của tôi' };
 
   if (wsLoading) return <LoadingSpinner />;
+
+  // Không có quyền (đã rời dự án...) hoặc Workspace không tồn tại
+  if (wsError || !workspace) {
+    const notFound = wsError?.response?.status === 404;
+    return (
+      <div className="card text-center py-16 max-w-lg mx-auto mt-10">
+        <p className="text-4xl mb-3">{notFound ? '🔍' : '🔒'}</p>
+        <p className="font-semibold text-gray-800">
+          {notFound ? 'Không tìm thấy Workspace' : 'Bạn không có quyền truy cập Workspace này'}
+        </p>
+        <p className="text-sm text-gray-500 mt-1">
+          {notFound ? 'Workspace có thể đã bị xóa.' : 'Có thể bạn đã rời dự án hoặc chưa được thêm vào Workspace.'}
+        </p>
+        <Link to={backLink.to} className="btn-primary inline-block mt-5">← {backLink.label}</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col bg-gray-50/50 border border-gray-200 rounded-xl overflow-hidden min-w-0 w-full relative">
       {/* Header */}
       <div className="bg-white border-b px-5 py-3 flex items-center gap-3 flex-wrap">
         <div className="mr-2">
+          <Link to={backLink.to} className="text-[11px] text-gray-400 hover:text-primary-600">← {backLink.label}</Link>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">{workspace?.name}</h1>
           <p className="text-xs text-gray-500">{workspace?.Project?.name}</p>
         </div>
@@ -941,20 +1364,6 @@ export default function WorkspacePage() {
           {/* View toggle (only in board mode) */}
           {activeSection === 'board' && (
             <>
-              {viewMode === 'kanban' && (
-                <div className="flex items-center bg-gray-100 rounded-lg px-3 py-1.5 hidden sm:flex border border-gray-200 mr-2">
-                  <span className="text-xs text-gray-500 mr-2">🔍</span>
-                  <input 
-                    type="range" min="0.5" max="1.5" step="0.05" 
-                    value={kanbanZoom} onChange={(e) => setKanbanZoom(parseFloat(e.target.value))}
-                    className="w-20 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                    title="Thu phóng Kanban"
-                  />
-                  <span className="text-[10px] text-gray-500 w-8 text-right font-medium">
-                    {Math.round(kanbanZoom * 100)}%
-                  </span>
-                </div>
-              )}
               <div className="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200">
                 <button onClick={() => setViewMode('kanban')}
                   className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${viewMode === 'kanban' ? 'bg-white shadow text-gray-800 font-medium' : 'text-gray-500'}`}>
@@ -979,6 +1388,19 @@ export default function WorkspacePage() {
       {/* Filter bar */}
       <div className="bg-white border-b px-5 py-2 flex items-center gap-3 text-sm flex-wrap">
         <span className="text-xs text-gray-400 font-semibold uppercase">Bộ lọc:</span>
+
+        {/* Lọc nhanh task của mình */}
+        {myMember && (
+          <button
+            onClick={() => setFilters(f => ({ ...f, assignee_id: f.assignee_id === myMember.id ? '' : myMember.id }))}
+            className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${
+              filters.assignee_id === myMember.id
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300'
+            }`}>
+            👤 Task của tôi{myOpenTaskCount ? ` (${myOpenTaskCount})` : ''}
+          </button>
+        )}
         
         <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
           value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}>
@@ -995,6 +1417,7 @@ export default function WorkspacePage() {
         <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
           value={filters.assignee_id} onChange={e => setFilters(f => ({...f, assignee_id: e.target.value}))}>
           <option value="">Tất cả thành viên</option>
+          <option value="__unassigned">Chưa giao</option>
           {members.map(m => <option key={m.id} value={m.id}>{m.CandidateProfile?.User?.full_name}</option>)}
         </select>
 
@@ -1154,7 +1577,7 @@ export default function WorkspacePage() {
                         value={m.role || 'MEMBER'}
                         onChange={e => updateRoleMut.mutate({ memberId: m.id, role: e.target.value })}
                         disabled={!canModify || updateRoleMut.isPending}
-                        title={isProjectManager ? 'Quản lý dự án — đổi trong trang Dự án nội bộ' : undefined}
+                        title={isProjectManager ? 'Quản lý dự án — Admin đổi trong trang Dự án nội bộ' : undefined}
                       >
                         {Object.entries(MEMBER_ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                       </select>
@@ -1193,14 +1616,18 @@ export default function WorkspacePage() {
       ) : activeSection === 'board' && viewMode === 'kanban' ? (
         /* ─── Kanban View ─── */
         <div className="flex-1 overflow-x-auto overflow-y-auto px-5 py-4 min-h-0 min-w-0">
-          <DragDropContext onDragEnd={onDragEnd}>
-            <div className="flex gap-4 h-full min-w-max" style={{ zoom: kanbanZoom }}>
-              {STATUS_COLUMNS.map(statusId => (
-                <Droppable key={statusId} droppableId={statusId}>
+          <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
+            <div className="flex gap-4 h-full min-w-max">
+              {STATUS_COLUMNS.map(statusId => {
+                // Khi đang kéo: cột không hợp lệ bị khóa và làm mờ
+                const dropBlocked = !!draggingTask && !canDropTo(draggingTask, statusId);
+                return (
+                <Droppable key={statusId} droppableId={statusId} isDropDisabled={dropBlocked}>
                   {(provided, snapshot) => (
                     <div ref={provided.innerRef} {...provided.droppableProps}
-                      className={`flex flex-col rounded-2xl w-72 min-h-[200px] transition-colors
-                        ${snapshot.isDraggingOver ? 'bg-primary-50 ring-2 ring-primary-300' : STATUS_META[statusId].color}`}>
+                      className={`flex flex-col rounded-2xl w-72 min-h-[200px] transition-all
+                        ${snapshot.isDraggingOver ? 'bg-primary-50 ring-2 ring-primary-300' : STATUS_META[statusId].color}
+                        ${dropBlocked && draggingTask.status !== statusId ? 'opacity-40' : ''}`}>
                       
                       {/* Column header */}
                       <div className="flex items-center gap-2 px-3 pt-3 pb-2">
@@ -1217,28 +1644,35 @@ export default function WorkspacePage() {
                       <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
                         {columns[statusId].map((task, index) => (
                           <Draggable key={task.id} draggableId={task.id} index={index}
-                            isDragDisabled={!canManage && !task.Assignees?.some(a => a.CandidateProfile?.user_id === user?.id)}>
+                            isDragDisabled={!canDragTask(task)}>
                             {(prov, snap) => (
-                              <TaskCard task={task} provided={prov} snapshot={snap}
-                                canManage={canManage}
+                              <TaskCard task={task} provided={prov} snapshot={snap} isMine={isMine(task)}
                                 onClick={() => setSelectedTaskId(task.id)} />
                             )}
                           </Draggable>
                         ))}
                         {provided.placeholder}
 
-                        {/* Add task shortcut */}
-                        {canManage && (
+                        {!columns[statusId].length && !snapshot.isDraggingOver && statusId !== 'TODO' && (
+                          <p className="text-xs text-gray-400 text-center py-6">Chưa có task</p>
+                        )}
+
+                        {/* Task mới chỉ được tạo ở cột "Cần làm" */}
+                        {statusId === 'TODO' && canManage && (
                           <button onClick={() => setShowCreateModal(true)}
                             className="w-full text-left text-xs text-gray-400 hover:text-gray-600 px-2 py-2 rounded-lg hover:bg-white/60 transition-colors">
                             + Thêm task...
                           </button>
                         )}
+                        {statusId === 'TODO' && !canManage && !columns[statusId].length && !snapshot.isDraggingOver && (
+                          <p className="text-xs text-gray-400 text-center py-6">Chưa có task</p>
+                        )}
                       </div>
                     </div>
                   )}
                 </Droppable>
-              ))}
+                );
+              })}
             </div>
           </DragDropContext>
         </div>
@@ -1261,10 +1695,13 @@ export default function WorkspacePage() {
                   <p className="font-medium">Không có task nào</p>
                   {canManage && <button onClick={() => setShowCreateModal(true)} className="btn-primary mt-3 text-sm">Tạo task đầu tiên</button>}
                 </div>
-              ) : filteredTasks.map(task => {
+              ) : [...filteredTasks]
+                // Sắp theo thứ tự cột Kanban (giữ nguyên thứ tự trong từng cột)
+                .sort((a, b) => STATUS_COLUMNS.indexOf(a.status) - STATUS_COLUMNS.indexOf(b.status))
+                .map(task => {
                 const pm = PRIORITY_META[task.priority] || PRIORITY_META.MEDIUM;
                 const sm = STATUS_META[task.status] || STATUS_META.TODO;
-                const isOverdue = task.deadline && new Date(task.deadline) < new Date() && task.status !== 'DONE';
+                const isOverdue = isTaskOverdue(task);
                 return (
                   <div key={task.id}
                     onClick={() => setSelectedTaskId(task.id)}
@@ -1272,7 +1709,7 @@ export default function WorkspacePage() {
                     
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <p className={`text-sm font-medium ${task.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                        <p className={`text-sm font-medium ${task.status === 'DONE' ? 'text-gray-500' : 'text-gray-900'}`}>
                           {task.title}
                         </p>
                       </div>
@@ -1317,11 +1754,23 @@ export default function WorkspacePage() {
       {/* Task Detail Drawer */}
       {selectedTaskId && (
         <TaskDetailDrawer
+          key={selectedTaskId} // mở task khác thì làm mới trạng thái (chế độ sửa, bảng duyệt...)
           taskId={selectedTaskId}
           members={members}
           canManage={canManage}
           workspaceId={id}
-          onClose={() => setSelectedTaskId(null)}
+          initialReview={reviewIntent}
+          onClose={() => { setSelectedTaskId(null); setReviewIntent(null); }}
+        />
+      )}
+
+      {/* Nộp sản phẩm khi kéo task sang "Chờ duyệt" */}
+      {submitTarget && (
+        <SubmitWorkModal
+          task={submitTarget}
+          workspaceId={id}
+          onClose={() => setSubmitTarget(null)}
+          onSubmitted={() => setSubmitTarget(null)}
         />
       )}
 

@@ -367,6 +367,32 @@ exports.removeWorkspaceMember = async (req, res, next) => {
     await member.update({ status: 'REMOVED' });
 
     const u = member.CandidateProfile?.User;
+
+    // Gỡ thành viên khỏi các task chưa nghiệm thu (task đã Hoàn thành giữ nguyên để làm lịch sử).
+    // Task đang làm / chờ duyệt mà không còn ai thực hiện thì đưa về "Cần làm".
+    const { Task, TaskAssignee, TaskActivity } = require('../models');
+    const assigned = await TaskAssignee.findAll({
+      where: { workspace_member_id: member.id },
+      include: [{ model: Task, attributes: ['id', 'status', 'workspace_id'] }]
+    });
+    for (const a of assigned) {
+      const task = a.Task;
+      if (!task || task.status === 'DONE') continue;
+      await TaskAssignee.destroy({ where: { task_id: task.id, workspace_member_id: member.id } });
+      const remaining = await TaskAssignee.count({ where: { task_id: task.id } });
+      let description = `Gỡ ${u?.full_name || 'thành viên'} khỏi task do rời Workspace`;
+      if (!remaining && task.status !== 'TODO') {
+        const maxPos = await Task.max('position', { where: { workspace_id: task.workspace_id, status: 'TODO' } });
+        await task.update({ status: 'TODO', review_status: 'PENDING', position: (maxPos ?? -1) + 1 });
+        description += ', task được đưa về "Cần làm"';
+      }
+      await TaskActivity.create({
+        task_id: task.id,
+        workspace_member_id: access.member?.id || null,
+        action: 'ASSIGNED',
+        description,
+      }).catch(() => {});
+    }
     if (u) {
       await logActivity(req, {
         action: 'WORKSPACE_MEMBER_REMOVED',
@@ -438,21 +464,29 @@ exports.getWorkspaceStats = async (req, res, next) => {
     });
 
     const now = new Date();
+    // Deadline tính hết ngày; chỉ task chưa gửi duyệt (Cần làm / Đang làm) mới bị coi là quá hạn
+    const deadlineEnd = (d) => { const end = new Date(d); end.setHours(23, 59, 59, 999); return end; };
+    const isOpen = (t) => ['TODO', 'IN_PROGRESS'].includes(t.status);
+    const isOverdue = (t) => t.deadline && isOpen(t) && deadlineEnd(t.deadline) < now;
+    // Tiến độ tổng thể = trung bình % hoàn thành của các task (không tính task đã hủy)
+    const activeTasks = tasks.filter(t => t.status !== 'CANCELLED');
     const stats = {
-      total: tasks.length,
+      total: activeTasks.length,
       by_status: {
         TODO: tasks.filter(t => t.status === 'TODO').length,
         IN_PROGRESS: tasks.filter(t => t.status === 'IN_PROGRESS').length,
         REVIEW: tasks.filter(t => t.status === 'REVIEW').length,
         DONE: tasks.filter(t => t.status === 'DONE').length,
       },
-      overdue: tasks.filter(t => t.deadline && new Date(t.deadline) < now && t.status !== 'DONE').length,
+      overdue: tasks.filter(isOverdue).length,
       due_soon: tasks.filter(t => {
-        if (!t.deadline || t.status === 'DONE') return false;
-        const diff = (new Date(t.deadline) - now) / (1000 * 60 * 60 * 24);
+        if (!t.deadline || !isOpen(t)) return false;
+        const diff = (deadlineEnd(t.deadline) - now) / (1000 * 60 * 60 * 24);
         return diff >= 0 && diff <= 3;
       }).length,
-      completion_rate: tasks.length ? Math.round((tasks.filter(t => t.status === 'DONE').length / tasks.length) * 100) : 0,
+      completion_rate: activeTasks.length
+        ? Math.round(activeTasks.reduce((acc, t) => acc + (t.completion_rate || 0), 0) / activeTasks.length)
+        : 0,
     };
 
     // Per-member stats
@@ -470,7 +504,7 @@ exports.getWorkspaceStats = async (req, res, next) => {
         total_assigned: assigned.length,
         done: assigned.filter(t => t.status === 'DONE').length,
         in_progress: assigned.filter(t => t.status === 'IN_PROGRESS').length,
-        overdue: assigned.filter(t => t.deadline && new Date(t.deadline) < now && t.status !== 'DONE').length,
+        overdue: assigned.filter(isOverdue).length,
       };
     }));
 

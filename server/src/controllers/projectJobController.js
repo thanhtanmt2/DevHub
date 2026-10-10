@@ -250,12 +250,14 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
     await application.update({ status });
 
     // If ACCEPTED -> Automatically add candidate into project's Workspace!
+    let workspaceLink = null; // link vào Workspace cho thông báo / email trúng tuyển
     if (status === 'ACCEPTED') {
       const workspace = await Workspace.findOne({
         where: { project_id: application.ProjectJob.project_id }
       });
 
       if (workspace) {
+        workspaceLink = `/candidate/workspaces/${workspace.id}`;
         const existingMember = await WorkspaceMember.findOne({
           where: {
             workspace_id: workspace.id,
@@ -295,6 +297,7 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
         description: `Đơn ứng tuyển của ${u.full_name} đã chuyển sang trạng thái: ${status}`,
         metadata: { project_job_id: application.project_job_id, user_id: u.id },
         notify_user_ids: [u.id],
+        notify_link: workspaceLink || '/candidate/applications',
       });
 
       // --- SEND EMAIL NOTIFICATION ---
@@ -355,9 +358,9 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
                 ${bodyHtml}
 
                 <div style="text-align: center; margin: 32px 0 16px;">
-                  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/candidate/applications" target="_blank"
+                  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}${workspaceLink || '/candidate/applications'}" target="_blank"
                      style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%); color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-                    Xem chi tiết trên DevHub
+                    ${workspaceLink ? 'Vào Không gian làm việc' : 'Xem chi tiết trên DevHub'}
                   </a>
                 </div>
 

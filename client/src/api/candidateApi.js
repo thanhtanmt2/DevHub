@@ -29,6 +29,7 @@ export const candidateApi = {
   
   // Workspaces & payments
   getMyWorkspaces: () => api.get('/candidates/workspaces'),
+  getMyTasks: () => api.get('/candidates/my-tasks'),
   getMyPayments: () => api.get('/candidates/payments'),
   getMyApplications: () => api.get('/applications/mine'),
   getMyProjectApplications: () => api.get('/candidates/project-applications'),

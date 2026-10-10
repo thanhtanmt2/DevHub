@@ -15,7 +15,7 @@ router.get('/:id', ctrl.getTaskById);
 // POST create task (Admin or Manager/Lead — controller handles permission check)
 router.post('/workspace/:workspaceId', [body('title').notEmpty()], validate, ctrl.createTask);
 
-// PUT update task (full edit for managers, status-only for members)
+// PUT update task (full edit for managers, status/progress for assignees, position for drag & drop)
 router.put('/:id', ctrl.updateTask);
 
 // DELETE task (Admin/Manager only - handled in controller)
@@ -23,9 +23,6 @@ router.delete('/:id', ctrl.deleteTask);
 
 // PUT review task → APPROVE or REVISION
 router.put('/:id/review', [body('action').isIn(['APPROVE', 'REVISION'])], validate, ctrl.reviewTask);
-
-// Reorder (drag & drop)
-router.put('/workspace/:workspaceId/reorder', ctrl.reorderTasks);
 
 // ─── Sub-tasks
 router.post('/:id/subtasks', [body('title').notEmpty()], validate, ctrl.addSubTask);
@@ -36,9 +33,11 @@ router.delete('/:id/subtasks/:subId', ctrl.deleteSubTask);
 router.post('/:id/comments', [body('content').notEmpty()], validate, ctrl.addComment);
 router.delete('/:id/comments/:commentId', ctrl.deleteComment);
 
-// ─── Legacy compat endpoints
+// ─── Nộp sản phẩm & gửi duyệt (Đang làm → Chờ duyệt), lịch sử các lần nộp
 router.post('/:id/submissions', ctrl.submitTask);
 router.get('/:id/submissions', ctrl.getTaskSubmissions);
+
+// ─── Legacy compat endpoint
 router.put('/submissions/:id/review', authorize('ADMIN'), ctrl.reviewSubmission);
 
 module.exports = router;

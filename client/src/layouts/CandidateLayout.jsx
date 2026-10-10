@@ -5,6 +5,7 @@ const navItems = [
   { to: '/candidate', label: 'Dashboard', end: true },
   { to: '/candidate/profile', label: 'Hồ sơ năng lực' },
   { to: '/candidate/applications', label: 'Hồ sơ ứng tuyển' },
+  { to: '/candidate/workspaces', label: 'Dự án của tôi' },
   { to: '/candidate/managed-projects', label: 'Dự án quản lý' },
 ];
 

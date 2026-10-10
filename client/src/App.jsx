@@ -26,8 +26,11 @@ import ProjectJobDetailPage from '@/pages/public/ProjectJobDetailPage';
 import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
 import ProfilePage from '@/pages/candidate/ProfilePage';
 import MyApplicationsPage from '@/pages/candidate/MyApplicationsPage';
-import CandidateWorkspacePage from '@/pages/candidate/WorkspacePage';
 import ManagedProjectsPage from '@/pages/candidate/ManagedProjectsPage';
+import MyWorkspacesPage from '@/pages/candidate/MyWorkspacesPage';
+
+// Workspace (dùng chung cho Ứng viên và Admin, quyền được kiểm tra bên trong)
+import WorkspacePage from '@/pages/workspace/WorkspacePage';
 
 // Employer pages
 import EmployerDashboard from '@/pages/employer/EmployerDashboard';
@@ -43,7 +46,6 @@ import ManageSkillsPage from '@/pages/admin/ManageSkillsPage';
 import AdminManageJobsPage from '@/pages/admin/ManageJobsPage';
 import ManageCompaniesPage from '@/pages/admin/ManageCompaniesPage';
 import InternalProjectsPage from '@/pages/admin/InternalProjectsPage';
-import AdminWorkspacePage from '@/pages/admin/WorkspacePage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
 import StatsPage from '@/pages/admin/StatsPage';
 import SystemLogsPage from '@/pages/admin/SystemLogsPage';
@@ -83,7 +85,8 @@ function AppRoutes() {
           <Route path="/candidate/profile" element={<ProfilePage />} />
           <Route path="/candidate/applications" element={<MyApplicationsPage />} />
           <Route path="/candidate/managed-projects" element={<ManagedProjectsPage />} />
-          <Route path="/candidate/workspaces/:id" element={<CandidateWorkspacePage />} />
+          <Route path="/candidate/workspaces" element={<MyWorkspacesPage />} />
+          <Route path="/candidate/workspaces/:id" element={<WorkspacePage />} />
         </Route>
       </Route>
 
@@ -107,7 +110,7 @@ function AppRoutes() {
           <Route path="/admin/jobs" element={<AdminManageJobsPage />} />
           <Route path="/admin/companies" element={<ManageCompaniesPage />} />
           <Route path="/admin/projects" element={<InternalProjectsPage />} />
-          <Route path="/admin/workspaces/:id" element={<AdminWorkspacePage />} />
+          <Route path="/admin/workspaces/:id" element={<WorkspacePage />} />
           <Route path="/admin/payments" element={<PaymentsPage />} />
           <Route path="/admin/stats" element={<StatsPage />} />
           <Route path="/admin/logs" element={<SystemLogsPage />} />

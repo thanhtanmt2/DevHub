@@ -66,4 +66,47 @@ const uploadImage = multer({
   fileFilter: imageFilter
 });
 
-module.exports = { uploadCV, uploadImage };
+// ─── File sản phẩm nộp cho task ───────────────────────────────────────────────
+const uploadTaskDir = path.join(__dirname, '../../uploads/tasks');
+if (!fs.existsSync(uploadTaskDir)) {
+  fs.mkdirSync(uploadTaskDir, { recursive: true });
+}
+
+// Chỉ nhận tài liệu, ảnh, file nén... Không nhận .html/.svg/.js vì file được phục vụ công khai (tránh XSS)
+const TASK_FILE_EXTENSIONS = [
+  '.zip', '.rar', '.7z',
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.md', '.csv',
+  '.png', '.jpg', '.jpeg', '.gif', '.webp',
+  '.sql', '.json', '.fig',
+];
+
+const taskFileStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadTaskDir),
+  filename: (req, file, cb) => {
+    // Tên gốc (multer đọc theo latin1) → UTF-8 để giữ tiếng Việt khi hiển thị
+    file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = path.basename(file.originalname, path.extname(file.originalname))
+      .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
+      .replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'file';
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `${safeName}-${uniqueSuffix}${ext}`);
+  }
+});
+
+const taskFileFilter = (req, file, cb) => {
+  const ext = path.extname(Buffer.from(file.originalname, 'latin1').toString('utf8')).toLowerCase();
+  if (TASK_FILE_EXTENSIONS.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Định dạng file không được hỗ trợ. Chấp nhận: ${TASK_FILE_EXTENSIONS.join(', ')}`), false);
+  }
+};
+
+const uploadTaskFile = multer({
+  storage: taskFileStorage,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+  fileFilter: taskFileFilter
+});
+
+module.exports = { uploadCV, uploadImage, uploadTaskFile, TASK_FILE_EXTENSIONS };

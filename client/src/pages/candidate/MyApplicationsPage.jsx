@@ -46,6 +46,13 @@ export default function MyApplicationsPage() {
     queryFn: () => candidateApi.getMyApplications(),
   });
 
+  // Workspace đang tham gia → link "Vào Workspace" cho hồ sơ đã trúng tuyển
+  const { data: workspacesRes } = useQuery({
+    queryKey: ['my-workspaces'],
+    queryFn: () => candidateApi.getMyWorkspaces(),
+    staleTime: 0,
+  });
+
   const { data: detailRes, isLoading: loadingDetail } = useQuery({
     queryKey: ['application-detail', selectedAppId],
     queryFn: () => candidateApi.getApplicationDetail(selectedAppId),
@@ -73,6 +80,12 @@ export default function MyApplicationsPage() {
   const projectApps = projectAppsRes?.data?.data || [];
   const companyApps = companyAppsRes?.data?.data || [];
   const appDetail = detailRes?.data?.data;
+  // project_id → workspace_id (chỉ Workspace còn tham gia)
+  const workspaceByProject = Object.fromEntries(
+    (workspacesRes?.data?.data || [])
+      .filter(m => m.status === 'ACTIVE' && m.Workspace?.Project?.id)
+      .map(m => [m.Workspace.Project.id, m.Workspace.id])
+  );
 
   const isLoading = loadingProjects || loadingCompany;
   if (isLoading) return <LoadingSpinner />;
@@ -222,8 +235,15 @@ export default function MyApplicationsPage() {
                       <span className={`badge text-xs px-3 py-1 font-semibold ${STATUS_COLORS[app.status] || 'bg-gray-100 text-gray-700'}`}>
                         {STATUS_LABELS[app.status] || app.status}
                       </span>
-                      {app.status === 'ACCEPTED' && (
-                        <p className="text-xs text-emerald-600 font-medium mt-1">✓ Bạn đã được thêm vào Không gian làm việc</p>
+                      {app.status === 'ACCEPTED' && workspacesRes && (
+                        workspaceByProject[app.ProjectJob?.Project?.id] ? (
+                          <Link to={`/candidate/workspaces/${workspaceByProject[app.ProjectJob.Project.id]}`}
+                            className="btn-primary text-xs px-3 py-1.5 mt-1">
+                            Vào Workspace →
+                          </Link>
+                        ) : (
+                          <p className="text-xs text-gray-400 mt-1">Bạn không còn trong Workspace của dự án này</p>
+                        )
                       )}
                       {/* [Critical] Hiển thị thông tin phỏng vấn khi status = INTERVIEW */}
                       {app.status === 'INTERVIEW' && (

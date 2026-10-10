@@ -51,6 +51,7 @@ router.post('/payment-info', [
 
 // Workspaces & Payments
 router.get('/workspaces', ctrl.getMyWorkspaces);
+router.get('/my-tasks', ctrl.getMyTasks);
 router.get('/payments', ctrl.getMyPayments);
 
 // CVs
