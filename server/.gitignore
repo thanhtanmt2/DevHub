@@ -2,3 +2,5 @@ node_modules/
 .env
 dist/
 *.log
+# Log SQL khi chạy development (index.js) — mỗi máy tự sinh, không đưa lên git
+sql_logs.txt
