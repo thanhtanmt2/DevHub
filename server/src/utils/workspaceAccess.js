@@ -1,19 +1,17 @@
-const { Workspace, WorkspaceMember, CandidateProfile, Project } = require('../models');
+const { Workspace, WorkspaceMember, CandidateProfile } = require('../models');
 const AppError = require('./AppError');
 
-// Xác định quyền của user hiện tại trong một workspace
-// - canView: Admin, Quản lý dự án hoặc thành viên đang ACTIVE
-// - canManageMembers: Admin, Quản lý dự án hoặc thành viên có vai trò MANAGER
-// - canManageTasks: Admin, Quản lý dự án hoặc thành viên có vai trò MANAGER/LEAD
+// Xác định quyền của user hiện tại trong một workspace.
+// Mô hình quyền: Admin là chủ (toàn quyền); Admin cử Lead để phân chia công việc; còn lại là Thành viên.
+// - canView: Admin hoặc thành viên đang ACTIVE
+// - canManageMembers: chỉ Admin (thêm/xóa thành viên, cử/gỡ Lead)
+// - canManageTasks: Admin hoặc Lead (tạo/giao/sửa/xóa task, nghiệm thu, bình luận)
 // - member: bản ghi WorkspaceMember (ACTIVE) của user, null nếu là Admin/không thuộc workspace
 const getWorkspaceAccess = async (req, workspaceId) => {
-  const workspace = await Workspace.findByPk(workspaceId, {
-    include: [{ model: Project, attributes: ['id', 'manager_id'] }]
-  });
+  const workspace = await Workspace.findByPk(workspaceId);
   if (!workspace) throw new AppError('Không tìm thấy Workspace', 404);
 
-  const projectManagerId = workspace.Project?.manager_id || null;
-  const none = { workspace, projectManagerId, member: null, canView: false, canManageMembers: false, canManageTasks: false };
+  const none = { workspace, member: null, canView: false, canManageMembers: false, canManageTasks: false };
 
   if (req.userRoles?.includes('ADMIN')) {
     return { ...none, isAdmin: true, profileId: null, canView: true, canManageMembers: true, canManageTasks: true };
@@ -25,17 +23,15 @@ const getWorkspaceAccess = async (req, workspaceId) => {
   const member = await WorkspaceMember.findOne({
     where: { workspace_id: workspace.id, candidate_profile_id: profile.id, status: 'ACTIVE' }
   });
-  const isProjectManager = projectManagerId === profile.id;
 
   return {
     workspace,
-    projectManagerId,
     member,
     isAdmin: false,
     profileId: profile.id,
-    canView: isProjectManager || !!member,
-    canManageMembers: isProjectManager || member?.role === 'MANAGER',
-    canManageTasks: isProjectManager || ['MANAGER', 'LEAD'].includes(member?.role),
+    canView: !!member,
+    canManageMembers: false,
+    canManageTasks: member?.role === 'LEAD',
   };
 };
 

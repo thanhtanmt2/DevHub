@@ -210,7 +210,7 @@ exports.getMyWorkspaces = async (req, res, next) => {
         {
           model: Workspace,
           attributes: ['id', 'name', 'status'],
-          include: [{ model: InternalProject, attributes: ['id', 'name', 'status', 'expected_end_date', 'manager_id'] }],
+          include: [{ model: InternalProject, attributes: ['id', 'name', 'status', 'expected_end_date'] }],
         },
         { model: ProjectJob, attributes: ['id', 'title'] },
       ],
@@ -229,7 +229,6 @@ exports.getMyWorkspaces = async (req, res, next) => {
       const mine = wsTasks.filter(t => t.Assignees.some(a => a.id === m.id));
       return {
         ...m.toJSON(),
-        is_project_manager: m.Workspace?.Project?.manager_id === profile.id,
         // Tiến độ chung = trung bình % hoàn thành các task của workspace (giống tab Thống kê)
         progress: wsTasks.length
           ? Math.round(wsTasks.reduce((sum, t) => sum + (t.completion_rate || 0), 0) / wsTasks.length)
@@ -418,80 +417,5 @@ exports.deleteCv = async (req, res, next) => {
     }
 
     res.json({ success: true, message: 'Đã xóa CV thành công' });
-  } catch (error) { next(error); }
-};
-
-// GET /api/admin/candidates/search
-exports.adminSearchCandidates = async (req, res, next) => {
-  try {
-    const { email, name, skill_ids, min_score, manager_status } = req.query;
-    const { Op } = require('sequelize');
-    const { Skill, Project } = require('../models');
-
-    let userWhere = {};
-    // If user provides a single string for both email or name, the frontend will probably send it as "query"
-    // Let's support a general "q" param or email/name
-    const q = req.query.q;
-    if (q) {
-      userWhere = {
-        [Op.or]: [
-          { email: { [Op.iLike]: `%${q}%` } },
-          { full_name: { [Op.iLike]: `%${q}%` } }
-        ]
-      };
-    } else {
-      if (email) userWhere.email = { [Op.iLike]: `%${email}%` };
-      if (name) userWhere.full_name = { [Op.iLike]: `%${name}%` };
-    }
-
-    let profileWhere = {};
-    if (min_score) {
-      profileWhere.competency_score = { [Op.gte]: parseFloat(min_score) };
-    }
-
-    let includeSkills = [];
-    if (skill_ids) {
-      const ids = Array.isArray(skill_ids) ? skill_ids : [skill_ids];
-      includeSkills = [
-        {
-          model: Skill,
-          where: { id: { [Op.in]: ids } },
-          through: { attributes: [] },
-          attributes: ['id', 'name']
-        }
-      ];
-    } else {
-      includeSkills = [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }];
-    }
-
-    // Determine manager status by left joining Projects where they are manager
-    const candidates = await CandidateProfile.findAll({
-      where: profileWhere,
-      include: [
-        { model: User, attributes: ['full_name', 'email'], where: userWhere },
-        ...includeSkills,
-        { model: Project, as: 'ManagedProjects', attributes: ['id', 'name', 'status'] }
-      ],
-      attributes: ['id', 'professional_title', 'competency_score'],
-      limit: 20,
-      order: [['competency_score', 'DESC']]
-    });
-
-    // Map manager status manually
-    let result = candidates.map(c => {
-      const cJson = c.toJSON();
-      const activeProjects = cJson.ManagedProjects?.filter(p => p.status !== 'COMPLETED') || [];
-      cJson.is_managing = activeProjects.length > 0;
-      cJson.managed_project_names = activeProjects.map(p => p.name).join(', ');
-      return cJson;
-    });
-
-    if (manager_status === 'AVAILABLE') {
-      result = result.filter(c => !c.is_managing);
-    } else if (manager_status === 'MANAGING_OTHER') {
-      result = result.filter(c => c.is_managing);
-    }
-
-    res.json({ success: true, data: result });
   } catch (error) { next(error); }
 };

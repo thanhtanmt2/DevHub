@@ -298,6 +298,8 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
         metadata: { project_job_id: application.project_job_id, user_id: u.id },
         notify_user_ids: [u.id],
         notify_link: workspaceLink || '/candidate/applications',
+        // Trúng tuyển / Từ chối đã có email riêng (bên dưới) → không gửi thêm email chung
+        skip_email: ['ACCEPTED', 'REJECTED'].includes(status),
       });
 
       // --- SEND EMAIL NOTIFICATION ---
@@ -519,6 +521,7 @@ exports.adminScheduleInterview = async (req, res, next) => {
         description: `Đã xếp lịch phỏng vấn cho ${u.full_name} lúc ${formattedTime} ${formattedDate}`,
         metadata: { project_job_id: application.project_job_id, user_id: u.id },
         notify_user_ids: [u.id],
+        skip_email: true, // thư mời phỏng vấn đã được gửi riêng (bên trên)
       });
     }
 

@@ -12,13 +12,13 @@ router.get('/workspace/:workspaceId', ctrl.getWorkspaceTasks);
 // GET single task with full details
 router.get('/:id', ctrl.getTaskById);
 
-// POST create task (Admin or Manager/Lead — controller handles permission check)
+// POST create task (Admin hoặc Lead — controller kiểm tra quyền)
 router.post('/workspace/:workspaceId', [body('title').notEmpty()], validate, ctrl.createTask);
 
-// PUT update task (full edit for managers, status/progress for assignees, position for drag & drop)
+// PUT update task (Admin/Lead sửa toàn bộ; người được giao cập nhật trạng thái/tiến độ; kéo thả sắp xếp)
 router.put('/:id', ctrl.updateTask);
 
-// DELETE task (Admin/Manager only - handled in controller)
+// DELETE task (chỉ Admin/Lead — kiểm tra trong controller)
 router.delete('/:id', ctrl.deleteTask);
 
 // PUT review task → APPROVE or REVISION

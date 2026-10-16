@@ -7,8 +7,7 @@ export const workspaceApi = {
   createProject: (data) => api.post('/admin/projects', data),
   updateProject: (id, data) => api.put(`/admin/projects/${id}`, data),
   deleteProject: (id) => api.delete(`/admin/projects/${id}`),
-  updateProjectManager: (id, data) => api.put(`/admin/projects/${id}/manager`, data),
-  searchCandidates: (query) => api.get('/admin/candidates/search', { params: query }),
+  createWorkspace: (projectId) => api.post(`/admin/projects/${projectId}/workspace`),
 
   // Workspace & Members
   getWorkspaceDetail: (id) => api.get(`/workspaces/${id}`),

@@ -6,26 +6,25 @@ const ctrl = require('../controllers/workspaceController');
 
 router.use(protect);
 
-// All authenticated users (Admin + Members)
+// Mọi người đã đăng nhập (quyền xem được kiểm tra trong controller: Admin hoặc thành viên Workspace)
 router.get('/:id', ctrl.getWorkspaceDetail);
 router.get('/:id/stats', ctrl.getWorkspaceStats);
 
-// Admin or Manager (quyền kiểm tra trong controller)
-router.put('/:workspaceId/members/:memberId/role', [
-  body('role').isIn(['MANAGER', 'LEAD', 'MEMBER', 'VIEWER'])
-], validate, ctrl.updateMemberRole);
-router.delete('/:workspaceId/members/:memberId', ctrl.removeWorkspaceMember);
-
+// Nhật ký hoạt động: Admin và Lead (kiểm tra trong controller)
 const logCtrl = require('../controllers/activityLogController');
 router.get('/:id/logs', logCtrl.getWorkspaceLogs);
 
-// Admin Only
+// Chỉ Admin (chủ dự án): thêm/xóa thành viên, cử hoặc gỡ Lead
 router.use(authorize('ADMIN'));
 router.get('/:id/eligible-candidates', ctrl.getEligibleCandidates);
 router.post('/:id/members', [
   body('candidate_profile_id').isUUID(),
   body('project_job_id').optional({ nullable: true }).isUUID(),
-  body('role').optional().isIn(['MANAGER', 'LEAD', 'MEMBER', 'VIEWER'])
+  body('role').optional().isIn(['LEAD', 'MEMBER'])
 ], validate, ctrl.addWorkspaceMember);
+router.put('/:workspaceId/members/:memberId/role', [
+  body('role').isIn(['LEAD', 'MEMBER'])
+], validate, ctrl.updateMemberRole);
+router.delete('/:workspaceId/members/:memberId', ctrl.removeWorkspaceMember);
 
 module.exports = router;

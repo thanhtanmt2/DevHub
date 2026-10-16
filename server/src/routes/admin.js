@@ -49,11 +49,7 @@ router.post('/projects', [body('name').notEmpty()], validate, wsCtrl.createProje
 router.get('/projects/:id', wsCtrl.getProjectById);
 router.put('/projects/:id', wsCtrl.updateProject);
 router.delete('/projects/:id', wsCtrl.deleteProject);
-router.put('/projects/:id/manager', wsCtrl.updateProjectManager);
-
-// Candidates search for admin
-const candidateCtrl = require('../controllers/candidateController');
-router.get('/candidates/search', candidateCtrl.adminSearchCandidates);
+router.post('/projects/:id/workspace', wsCtrl.createProjectWorkspace);
 
 // Project Jobs & Applications
 const projectJobCtrl = require('../controllers/projectJobController');

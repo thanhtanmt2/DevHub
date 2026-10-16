@@ -23,7 +23,7 @@ const PROJECT_STATUS = {
   COMPLETED:   { label: 'Hoàn thành',     color: 'bg-green-100 text-green-700' },
   CANCELLED:   { label: 'Đã hủy',         color: 'bg-red-100 text-red-600' },
 };
-const MEMBER_ROLE_LABELS = { MANAGER: 'Quản lý', LEAD: 'Lead', MEMBER: 'Thành viên', VIEWER: 'Xem' };
+const MEMBER_ROLE_LABELS = { LEAD: 'Lead', MEMBER: 'Thành viên' };
 
 const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -219,7 +219,7 @@ function WorkspaceCard({ membership: m, ended = false }) {
 
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="px-2 py-0.5 rounded bg-primary-50 text-primary-700 font-medium">
-          {m.is_project_manager ? '⭐ Quản lý dự án' : `Vai trò: ${MEMBER_ROLE_LABELS[m.role] || m.role}`}
+          {m.role === 'LEAD' ? '⭐ Lead — phân chia công việc' : `Vai trò: ${MEMBER_ROLE_LABELS[m.role] || m.role}`}
         </span>
         {m.ProjectJob?.title && <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-600">Vị trí: {m.ProjectJob.title}</span>}
         {m.joined_at && <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-500">Tham gia {formatDate(m.joined_at)}</span>}

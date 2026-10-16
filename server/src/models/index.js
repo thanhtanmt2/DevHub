@@ -103,9 +103,6 @@ ApplicationStatusHistory.belongsTo(Application, { foreignKey: 'application_id' }
 User.hasMany(Project, { foreignKey: 'created_by_user_id' });
 Project.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'creator' });
 
-CandidateProfile.hasMany(Project, { foreignKey: 'manager_id', as: 'ManagedProjects' });
-Project.belongsTo(CandidateProfile, { foreignKey: 'manager_id', as: 'Manager' });
-
 Project.hasMany(ProjectJob, { foreignKey: 'project_id' });
 ProjectJob.belongsTo(Project, { foreignKey: 'project_id' });
 
@@ -150,6 +147,7 @@ SubTask.belongsTo(Task, { foreignKey: 'task_id' });
 Task.hasMany(TaskComment, { foreignKey: 'task_id', as: 'Comments' });
 TaskComment.belongsTo(Task, { foreignKey: 'task_id' });
 TaskComment.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id', as: 'Author' });
+TaskComment.belongsTo(User, { foreignKey: 'user_id', as: 'AuthorUser' });
 
 // TaskActivity
 Task.hasMany(TaskActivity, { foreignKey: 'task_id', as: 'Activities' });

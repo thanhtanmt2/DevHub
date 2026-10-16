@@ -1,10 +1,13 @@
 const { Notification } = require('../models');
 const AppError = require('../utils/AppError');
+const { emailNotification } = require('../utils/notificationMailer');
 
 // Helper to create notification
-exports.createNotification = async ({ user_id, type, title, message, link, metadata }) => {
+// email = false khi sự kiện đã có email riêng (tránh gửi trùng)
+exports.createNotification = async ({ user_id, type, title, message, link, metadata, email = true }) => {
   try {
     await Notification.create({ user_id, type, title, message, link, metadata: metadata || {} });
+    if (email) emailNotification({ user_id, title, message, link }); // gửi nền, không chờ
   } catch (e) {
     console.error('Notification create error:', e.message);
   }

@@ -1,6 +1,6 @@
 const {
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission,
-  Workspace, WorkspaceMember, CandidateProfile, User, Project
+  WorkspaceMember, CandidateProfile, User
 } = require('../models');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
@@ -9,6 +9,7 @@ const path = require('path');
 const notifCtrl = require('./notificationController');
 const { logActivity } = require('../utils/activityLogger');
 const { getWorkspaceAccess } = require('../utils/workspaceAccess');
+const { syncProjectProgress } = require('../utils/projectProgress');
 
 // ─── Quy tắc nghiệp vụ của bảng Kanban ──────────────────────────────────────
 const STATUS_LABELS = { TODO: 'Cần làm', IN_PROGRESS: 'Đang làm', REVIEW: 'Chờ duyệt', DONE: 'Hoàn thành', CANCELLED: 'Đã hủy' };
@@ -18,18 +19,21 @@ const PRIORITIES = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 const TRANSITIONS = { TODO: ['IN_PROGRESS'], IN_PROGRESS: ['TODO', 'REVIEW'], REVIEW: [], DONE: [], CANCELLED: [] };
 // Trạng thái còn được cập nhật tiến độ / subtask
 const EDITABLE_STATUSES = ['TODO', 'IN_PROGRESS'];
+// Task bị yêu cầu chỉnh sửa: % tối đa 90 cho tới khi nộp lại (nộp lại / nghiệm thu mới lên 100%)
+const REVISION_RATE_CAP = 90;
+const isInRevision = (task) => task.status === 'IN_PROGRESS' && task.review_status === 'REVISION_REQUIRED';
 
-// Helper: quyền xem workspace (thành viên ACTIVE, Quản lý dự án, Admin)
+// Helper: quyền xem workspace (thành viên ACTIVE hoặc Admin)
 async function requireView(req, workspaceId) {
   const access = await getWorkspaceAccess(req, workspaceId);
   if (!access.canView) throw new AppError('Bạn không phải thành viên của Workspace này', 403);
   return access;
 }
 
-// Helper: quyền quản lý task (Admin, Quản lý dự án, MANAGER, LEAD)
+// Helper: quyền quản lý task (Admin hoặc Lead)
 async function requireManageTasks(req, workspaceId) {
   const access = await getWorkspaceAccess(req, workspaceId);
-  if (!access.canManageTasks) throw new AppError('Chỉ Quản lý hoặc Lead mới có quyền thực hiện thao tác này', 403);
+  if (!access.canManageTasks) throw new AppError('Chỉ Admin hoặc Lead mới có quyền thực hiện thao tác này', 403);
   return access;
 }
 
@@ -45,17 +49,15 @@ async function getAssigneeIds(taskId) {
   return rows.map(r => r.workspace_member_id);
 }
 
-// Helper: người được giao phải là thành viên ACTIVE của workspace và không phải vai trò "Xem" (UC: phân công thất bại)
+// Helper: người được giao phải là thành viên ACTIVE của workspace (UC: phân công thất bại)
 async function validateAssignees(workspaceId, assigneeIds) {
   if (!Array.isArray(assigneeIds)) throw new AppError('Danh sách người được giao không hợp lệ', 400);
   const ids = [...new Set(assigneeIds)];
   if (!ids.length) return ids;
-  const members = await WorkspaceMember.findAll({
+  const count = await WorkspaceMember.count({
     where: { id: { [Op.in]: ids }, workspace_id: workspaceId, status: 'ACTIVE' },
-    attributes: ['id', 'role']
   });
-  if (members.length !== ids.length) throw new AppError('Không thể phân công: có người được giao không thuộc Workspace này', 400);
-  if (members.some(m => m.role === 'VIEWER')) throw new AppError('Không thể giao task cho thành viên có vai trò "Xem"', 400);
+  if (count !== ids.length) throw new AppError('Không thể phân công: có người được giao không thuộc Workspace này', 400);
   return ids;
 }
 
@@ -183,35 +185,59 @@ async function getMemberUserIds(memberIds) {
   return members.map(m => m.CandidateProfile?.user_id).filter(Boolean);
 }
 
-// Helper: user_id của những người có quyền nghiệm thu (Quản lý dự án, MANAGER, LEAD)
+// Helper: user_id của các Lead trong Workspace (cùng Admin, họ là người nghiệm thu)
 async function getReviewerUserIds(workspaceId) {
-  const workspace = await Workspace.findByPk(workspaceId, { include: [{ model: Project, attributes: ['manager_id'] }] });
-  const reviewers = await WorkspaceMember.findAll({
-    where: { workspace_id: workspaceId, status: 'ACTIVE', role: { [Op.in]: ['MANAGER', 'LEAD'] } },
+  const leads = await WorkspaceMember.findAll({
+    where: { workspace_id: workspaceId, status: 'ACTIVE', role: 'LEAD' },
     attributes: ['candidate_profile_id']
   });
-  const profileIds = new Set(reviewers.map(m => m.candidate_profile_id));
-  if (workspace?.Project?.manager_id) profileIds.add(workspace.Project.manager_id);
-  if (!profileIds.size) return [];
-  const profiles = await CandidateProfile.findAll({ where: { id: { [Op.in]: [...profileIds] } }, attributes: ['user_id'] });
+  if (!leads.length) return [];
+  const profiles = await CandidateProfile.findAll({
+    where: { id: { [Op.in]: leads.map(m => m.candidate_profile_id) } },
+    attributes: ['user_id']
+  });
   return profiles.map(p => p.user_id);
 }
 
-// Helper: link mở thẳng task trong Workspace (trang Workspace tự mở chi tiết task từ ?task=)
-const taskLink = (task) => `/candidate/workspaces/${task.workspace_id}?task=${task.id}`;
+// Helper: user_id của các Quản trị viên (người nghiệm thu theo đặc tả)
+async function getAdminUserIds() {
+  const admins = await User.findAll({
+    attributes: ['id'],
+    where: { status: 'ACTIVE' },
+    include: [{ association: 'Roles', where: { name: 'ADMIN' }, attributes: [], through: { attributes: [] } }],
+  });
+  return admins.map(u => u.id);
+}
 
-// Helper: gửi thông báo (bỏ qua chính người thao tác)
-async function notifyUsers(userIds, req, { type, title, message, task }) {
+// Helper: link mở thẳng task trong Workspace (trang Workspace tự mở chi tiết task từ ?task=)
+// Admin dùng đường dẫn /admin/..., ứng viên dùng /candidate/...
+const taskLink = (task, area = 'candidate') => `/${area}/workspaces/${task.workspace_id}?task=${task.id}`;
+
+// Helper: gửi thông báo trong hệ thống + email (bỏ qua chính người thao tác)
+// link: ghi đè đường dẫn (vd. task đã xóa thì chỉ mở Workspace)
+async function notifyUsers(userIds, req, { type, title, message, task, area = 'candidate', link }) {
   const ids = [...new Set(userIds)].filter(uid => uid && uid !== req.user.id);
   await Promise.all(ids.map(uid => notifCtrl.createNotification({
     user_id: uid,
     type,
     title,
     message,
-    link: taskLink(task), // mở thẳng task trong Workspace
+    link: link || taskLink(task, area), // mở thẳng task trong Workspace
     metadata: { task_id: task.id, workspace_id: task.workspace_id }
   })));
 }
+
+// Helper: tên người thao tác, dùng trong nội dung thông báo / email
+const actorName = (req) => req.user?.full_name || 'Quản trị viên';
+
+const PRIORITY_VI = { URGENT: 'Khẩn cấp', HIGH: 'Cao', MEDIUM: 'Bình thường', LOW: 'Thấp' };
+const formatVnDate = (d) => new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+// Helper: thông tin ngắn của task đưa vào thông báo giao việc: hạn chót, độ ưu tiên
+const taskBrief = (task) => [
+  task.deadline ? `Hạn: ${formatVnDate(task.deadline)}` : null,
+  `Ưu tiên: ${PRIORITY_VI[task.priority] || task.priority}`,
+].filter(Boolean).join(' · ');
 
 // Helper: ghi lịch sử của từng task (tab "Lịch sử")
 async function logInternalTaskActivity(taskId, memberId, action, description, oldVal = null, newVal = null) {
@@ -249,14 +275,18 @@ const TASK_INCLUDE = [
     model: TaskComment,
     as: 'Comments',
     separate: true,
-    include: [{
-      model: WorkspaceMember,
-      as: 'Author',
-      include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['full_name'] }], attributes: ['avatar_url'] }],
-      attributes: ['id']
-    }],
+    include: [
+      {
+        model: WorkspaceMember,
+        as: 'Author',
+        include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['full_name'] }], attributes: ['avatar_url'] }],
+        attributes: ['id']
+      },
+      // Người viết là Admin (không phải thành viên Workspace) thì lấy tên từ tài khoản
+      { model: User, as: 'AuthorUser', attributes: ['id', 'full_name'] },
+    ],
     order: [['created_at', 'ASC']],
-    attributes: ['id', 'content', 'created_at', 'workspace_member_id']
+    attributes: ['id', 'content', 'created_at', 'workspace_member_id', 'user_id']
   },
   {
     model: TaskActivity,
@@ -380,11 +410,11 @@ exports.createTask = async (req, res, next) => {
 
     await logInternalTaskActivity(task.id, access.member?.id, 'TASK_CREATED', `Tạo task "${title}"`);
 
-    // Thông báo cho người được giao
+    // Thông báo + email cho người được giao
     await notifyUsers(await getMemberUserIds(assignee_ids), req, {
       type: 'TASK_ASSIGNED',
       title: '📌 Bạn được giao task mới',
-      message: `Task: "${title}" đã được giao cho bạn`,
+      message: `${actorName(req)} đã giao cho bạn task "${title}".\n${taskBrief(task)}`,
       task,
     });
 
@@ -397,6 +427,7 @@ exports.createTask = async (req, res, next) => {
       metadata: { workspace_id: workspaceId },
     });
 
+    await syncProjectProgress(workspaceId);
     const fullTask = await Task.findByPk(task.id, { include: TASK_INCLUDE });
     res.status(201).json({ success: true, data: fullTask });
   } catch (error) { next(error); }
@@ -463,7 +494,6 @@ exports.updateTask = async (req, res, next) => {
         const isSelfClaim = !!member && currentIds.length === 0 && Array.isArray(assignee_ids) &&
           assignee_ids.length === 1 && assignee_ids[0] === member.id;
         if (!isSelfClaim) throw new AppError('Bạn không có quyền thay đổi người thực hiện của task này', 403);
-        if (member.role === 'VIEWER') throw new AppError('Thành viên có vai trò "Xem" không thể nhận task', 403);
         newAssigneeIds = [member.id];
       }
     }
@@ -500,6 +530,9 @@ exports.updateTask = async (req, res, next) => {
         const subCount = await SubTask.count({ where: { task_id: task.id } });
         if (subCount) throw new AppError('Task có subtask nên % hoàn thành được tính tự động theo subtask', 400);
         const rate = validateRate(completion_rate);
+        if (isInRevision(task) && rate > REVISION_RATE_CAP) {
+          throw new AppError(`Task đang được yêu cầu chỉnh sửa nên tiến độ tối đa ${REVISION_RATE_CAP}% cho tới khi bạn nộp lại`, 400);
+        }
         if (rate !== task.completion_rate) {
           updateData.completion_rate = rate;
           changes.push({
@@ -516,14 +549,15 @@ exports.updateTask = async (req, res, next) => {
     if (position !== undefined) {
       targetIndex = Number(position);
       if (!Number.isInteger(targetIndex) || targetIndex < 0) throw new AppError('Vị trí không hợp lệ', 400);
-      if (!statusChanged && !canManageTasks) throw new AppError('Chỉ Quản lý hoặc Lead mới được sắp xếp thứ tự task', 403);
+      if (!statusChanged && !canManageTasks) throw new AppError('Chỉ Admin hoặc Lead mới được sắp xếp thứ tự task', 403);
     }
 
     // ── 2. Ghi dữ liệu ────────────────────────────────────────────────────────
     let addedIds = [];
+    let removedIds = [];
     if (newAssigneeIds) {
       addedIds = newAssigneeIds.filter(id => !currentIds.includes(id));
-      const removedIds = currentIds.filter(id => !newAssigneeIds.includes(id));
+      removedIds = currentIds.filter(id => !newAssigneeIds.includes(id));
       if (removedIds.length) await TaskAssignee.destroy({ where: { task_id: task.id, workspace_member_id: { [Op.in]: removedIds } } });
       if (addedIds.length) await TaskAssignee.bulkCreate(addedIds.map(wm_id => ({ task_id: task.id, workspace_member_id: wm_id })));
       if (addedIds.length || removedIds.length) {
@@ -536,6 +570,7 @@ exports.updateTask = async (req, res, next) => {
 
     if (Object.keys(updateData).length) await task.update(updateData);
     if (statusChanged || targetIndex !== null) await placeInColumn(task, finalStatus, targetIndex);
+    if (updateData.completion_rate !== undefined) await syncProjectProgress(task.workspace_id);
 
     // ── 3. Nhật ký + thông báo ───────────────────────────────────────────────
     for (const change of changes) {
@@ -552,14 +587,39 @@ exports.updateTask = async (req, res, next) => {
       });
     }
 
-    // Người mới được giao (do Quản lý giao) nhận thông báo
-    if (addedIds.length && canManageTasks) {
-      await notifyUsers(await getMemberUserIds(addedIds), req, {
-        type: 'TASK_ASSIGNED',
-        title: '📌 Bạn được giao task mới',
-        message: `Task: "${task.title}" đã được giao cho bạn`,
-        task,
-      });
+    // Thông báo + email cho những người liên quan (người thao tác luôn được bỏ qua)
+    if (canManageTasks) {
+      // Người mới được giao
+      if (addedIds.length) {
+        await notifyUsers(await getMemberUserIds(addedIds), req, {
+          type: 'TASK_ASSIGNED',
+          title: '📌 Bạn được giao task mới',
+          message: `${actorName(req)} đã giao cho bạn task "${task.title}".\n${taskBrief(task)}`,
+          task,
+        });
+      }
+      // Người bị bỏ khỏi task
+      if (removedIds.length) {
+        await notifyUsers(await getMemberUserIds(removedIds), req, {
+          type: 'TASK_ASSIGNED',
+          title: '↩️ Bạn không còn được giao task',
+          message: `${actorName(req)} đã bỏ bạn khỏi danh sách người thực hiện task "${task.title}".`,
+          task,
+        });
+      }
+      // Những người vẫn đang làm task: báo khi sửa thông tin (tiêu đề, deadline, độ ưu tiên...) hoặc Quản lý đổi trạng thái
+      const stayingIds = finalAssigneeIds.filter(id => !addedIds.includes(id));
+      const infoChanges = changes.filter(c => c.activity === 'UPDATED').map(c => c.desc);
+      const statusChange = changes.find(c => c.activity === 'STATUS_CHANGED');
+      const lines = [...infoChanges, ...(statusChange && !isAssignedNow ? [statusChange.desc] : [])];
+      if (stayingIds.length && lines.length) {
+        await notifyUsers(await getMemberUserIds(stayingIds), req, {
+          type: statusChange && !infoChanges.length ? 'TASK_STATUS_CHANGED' : 'PROJECT_UPDATE',
+          title: statusChange && !infoChanges.length ? '🔄 Task thay đổi trạng thái' : '✏️ Task được cập nhật',
+          message: `${actorName(req)} đã cập nhật task "${task.title}":\n${lines.map(l => `• ${l}`).join('\n')}`,
+          task,
+        });
+      }
     }
 
     const updatedTask = await Task.findByPk(task.id, { include: TASK_INCLUDE });
@@ -575,7 +635,10 @@ exports.deleteTask = async (req, res, next) => {
     await requireManageTasks(req, task.workspace_id);
     if (task.status === 'DONE') throw new AppError('Task đã được nghiệm thu, không thể xóa', 400);
     const { title, workspace_id } = task;
+    // Lấy người đang làm task trước khi xóa để còn báo cho họ
+    const assigneeUserIds = await getMemberUserIds(await getAssigneeIds(task.id));
     await task.destroy();
+    await syncProjectProgress(workspace_id);
     await logActivity(req, {
       action: 'TASK_DELETED',
       entity_type: 'task',
@@ -583,6 +646,13 @@ exports.deleteTask = async (req, res, next) => {
       entity_name: title,
       description: `Đã xóa task "${title}"`,
       metadata: { workspace_id },
+    });
+    await notifyUsers(assigneeUserIds, req, {
+      type: 'PROJECT_UPDATE',
+      title: '🗑 Task đã bị xóa',
+      message: `${actorName(req)} đã xóa task "${title}" mà bạn đang thực hiện.`,
+      task,
+      link: `/candidate/workspaces/${workspace_id}`, // task không còn nữa → mở thẳng Workspace
     });
     res.json({ success: true, message: 'Đã xóa task' });
   } catch (error) { next(error); }
@@ -599,7 +669,7 @@ exports.reviewTask = async (req, res, next) => {
     if (task.status !== 'REVIEW') throw new AppError('Task chưa ở trạng thái chờ duyệt', 400);
 
     const access = await getWorkspaceAccess(req, task.workspace_id);
-    if (!access.canManageTasks) throw new AppError('Chỉ Manager hoặc Lead mới có quyền duyệt task', 403);
+    if (!access.canManageTasks) throw new AppError('Chỉ Admin hoặc Lead mới có quyền duyệt task', 403);
     const member = access.member;
 
     if (!['APPROVE', 'REVISION'].includes(action)) throw new AppError('Action phải là APPROVE hoặc REVISION', 400);
@@ -617,9 +687,11 @@ exports.reviewTask = async (req, res, next) => {
       review_note: review_note || null,
       reviewed_by: member?.id || null,
       reviewed_at: new Date(),
-      ...(approve && { completion_rate: 100 }),
+      // Duyệt → 100%. Yêu cầu sửa → hạ tối đa 90% cho tới khi ứng viên nộp lại
+      completion_rate: approve ? 100 : Math.min(task.completion_rate ?? 0, REVISION_RATE_CAP),
     });
     await placeInColumn(task, newStatus);
+    await syncProjectProgress(task.workspace_id);
 
     // Ghi kết quả nghiệm thu vào lần nộp sản phẩm gần nhất
     const latestSubmission = await TaskSubmission.findOne({ where: { task_id: task.id }, order: [['version', 'DESC']] });
@@ -658,11 +730,12 @@ const updateTaskProgress = async (taskId) => {
   const task = await Task.findByPk(taskId);
   if (!task) return;
   const subs = await SubTask.findAll({ where: { task_id: taskId } });
-  if (subs.length > 0) {
-    const done = subs.filter(s => s.is_done).length;
-    const rate = Math.round((done / subs.length) * 100);
-    await task.update({ completion_rate: rate });
-  }
+  // Có subtask: % = số subtask đã xong / tổng. Hết subtask: về 0 để nhập tay lại từ đầu.
+  let rate = subs.length ? Math.round((subs.filter(s => s.is_done).length / subs.length) * 100) : 0;
+  // Đang làm lại sau khi bị yêu cầu sửa: tối đa 90% cho tới khi nộp lại
+  if (isInRevision(task)) rate = Math.min(rate, REVISION_RATE_CAP);
+  if (rate !== task.completion_rate) await task.update({ completion_rate: rate });
+  await syncProjectProgress(task.workspace_id);
 };
 
 // Helper: quyền sửa subtask (người quản lý task hoặc người được giao, khi task chưa gửi duyệt)
@@ -734,15 +807,20 @@ exports.addComment = async (req, res, next) => {
     const task = await Task.findByPk(req.params.id);
     if (!task) throw new AppError('Task not found', 404);
 
-    const { member } = await requireView(req, task.workspace_id);
-    // Bình luận gắn với thành viên workspace (Admin không phải thành viên)
-    if (!member) throw new AppError('Chỉ thành viên Workspace mới có thể bình luận', 403);
+    // Admin (chủ dự án) và Lead bình luận ở mọi task; thành viên chỉ bình luận/phản hồi trong task ĐƯỢC GIAO cho mình.
+    // Task của người khác thì chỉ đọc.
+    const { member, canManageTasks } = await requireView(req, task.workspace_id);
+    if (!canManageTasks && !(await isAssignee(task.id, member))) {
+      throw new AppError('Bạn chỉ bình luận được trong task được giao cho mình. Bạn vẫn xem được các bình luận.', 403);
+    }
     const content = typeof req.body.content === 'string' ? req.body.content.trim() : '';
     if (!content) throw new AppError('Nội dung bình luận không được để trống', 400);
+    if (content.length > 5000) throw new AppError('Bình luận tối đa 5000 ký tự', 400);
 
     const comment = await TaskComment.create({
       task_id: task.id,
-      workspace_member_id: member.id,
+      workspace_member_id: member?.id || null, // Admin không phải thành viên Workspace
+      user_id: req.user.id,
       content,
     });
 
@@ -755,13 +833,27 @@ exports.addComment = async (req, res, next) => {
       metadata: { workspace_id: task.workspace_id },
     });
 
+    // Báo cho những người liên quan tới task: người thực hiện, Lead và Admin (người nghiệm thu)
+    const commentNotice = {
+      type: 'TASK_COMMENT',
+      title: '💬 Bình luận mới trong task',
+      message: `${actorName(req)} đã bình luận trong task "${task.title}":\n"${content.length > 200 ? `${content.slice(0, 200)}…` : content}"`,
+      task,
+    };
+    const participantIds = [...await getMemberUserIds(await getAssigneeIds(task.id)), ...await getReviewerUserIds(task.workspace_id)];
+    await notifyUsers(participantIds, req, commentNotice);
+    await notifyUsers(await getAdminUserIds(), req, { ...commentNotice, area: 'admin' });
+
     const fullComment = await TaskComment.findByPk(comment.id, {
-      include: [{
-        model: WorkspaceMember,
-        as: 'Author',
-        include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['full_name'] }], attributes: ['avatar_url'] }],
-        attributes: ['id']
-      }]
+      include: [
+        {
+          model: WorkspaceMember,
+          as: 'Author',
+          include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['full_name'] }], attributes: ['avatar_url'] }],
+          attributes: ['id']
+        },
+        { model: User, as: 'AuthorUser', attributes: ['id', 'full_name'] },
+      ]
     });
 
     res.status(201).json({ success: true, data: fullComment });
@@ -777,7 +869,8 @@ exports.deleteComment = async (req, res, next) => {
 
     // Chỉ người viết hoặc người quản lý task mới được xóa bình luận
     const access = await requireView(req, task.workspace_id);
-    const isAuthor = access.member && comment.workspace_member_id === access.member.id;
+    const isAuthor = comment.user_id === req.user.id
+      || (access.member && comment.workspace_member_id === access.member.id);
     if (!isAuthor && !access.canManageTasks) throw new AppError('Bạn chỉ được xóa bình luận của mình', 403);
 
     await comment.destroy();
@@ -821,10 +914,10 @@ exports.submitTask = async (req, res, next) => {
       submitted_at: new Date(),
     });
 
-    // Task không có subtask: nộp sản phẩm nghĩa là đã làm xong → 100%
-    const subCount = await SubTask.count({ where: { task_id: task.id } });
-    await task.update({ status: 'REVIEW', review_status: 'PENDING', ...(!subCount && { completion_rate: 100 }) });
+    // Nộp sản phẩm nghĩa là đã làm xong phần mình → 100% (kể cả khi nộp lại sau yêu cầu sửa)
+    await task.update({ status: 'REVIEW', review_status: 'PENDING', completion_rate: 100 });
     await placeInColumn(task, 'REVIEW');
+    await syncProjectProgress(task.workspace_id);
 
     await logInternalTaskActivity(task.id, access.member?.id, 'SUBMITTED', `Nộp sản phẩm lần ${version} và gửi duyệt`, null, version);
     await logActivity(req, {
@@ -838,13 +931,15 @@ exports.submitTask = async (req, res, next) => {
       metadata: { workspace_id: task.workspace_id },
     });
 
-    // Báo cho những người có quyền nghiệm thu
-    await notifyUsers(await getReviewerUserIds(task.workspace_id), req, {
+    // Báo cho những người có quyền nghiệm thu: Lead của Workspace và Admin
+    const reviewNotice = {
       type: 'TASK_STATUS_CHANGED',
       title: '⏳ Task chờ duyệt',
       message: `Task "${task.title}" đã được nộp sản phẩm (lần ${version}) và đang chờ duyệt`,
       task,
-    });
+    };
+    await notifyUsers(await getReviewerUserIds(task.workspace_id), req, reviewNotice);
+    await notifyUsers(await getAdminUserIds(), req, { ...reviewNotice, area: 'admin' });
 
     res.status(201).json({ success: true, data: submission });
   } catch (error) { next(error); }
