@@ -5,7 +5,7 @@ const { logActivity } = require('../utils/activityLogger');
 // POST /api/admin/workspaces/:workspaceId/members/:memberId/evaluate
 exports.evaluateCandidate = async (req, res, next) => {
   try {
-    const { score, comments } = req.body;
+    const { score, comment } = req.body;
     const { workspaceId, memberId } = req.params;
 
     // Check if member exists in workspace
@@ -23,15 +23,14 @@ exports.evaluateCandidate = async (req, res, next) => {
 
     if (evaluation) {
       // Update existing
-      await evaluation.update({ score, comments, evaluation_date: new Date() });
+      await evaluation.update({ score, comment, evaluated_at: new Date() });
     } else {
       // Create new
       evaluation = await CandidateEvaluation.create({
-        candidate_profile_id: member.candidate_profile_id,
         workspace_member_id: member.id,
         score,
-        comments,
-        evaluation_date: new Date()
+        comment,
+        evaluated_at: new Date()
       });
     }
 
@@ -50,11 +49,13 @@ exports.evaluateCandidate = async (req, res, next) => {
     }
 
     // Recalculate candidate's average competency_score
+    const allMemberIds = await WorkspaceMember.findAll({
+      where: { candidate_profile_id: member.candidate_profile_id },
+      attributes: ['id'],
+    });
+    const memberIds = allMemberIds.map(m => m.id);
     const allEvaluations = await CandidateEvaluation.findAll({
-      include: [{
-        model: WorkspaceMember,
-        where: { candidate_profile_id: member.candidate_profile_id }
-      }]
+      where: { workspace_member_id: memberIds },
     });
 
     const totalScore = allEvaluations.reduce((sum, ev) => sum + ev.score, 0);

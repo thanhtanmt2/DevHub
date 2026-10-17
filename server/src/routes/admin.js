@@ -70,4 +70,10 @@ router.put('/payments/:id/process', [body('status').isIn(['PROCESSING', 'PAID', 
 const logCtrl = require('../controllers/activityLogController');
 router.get('/logs', logCtrl.getLogs);
 
+// Export Reports
+const exportCtrl = require('../controllers/exportController');
+router.get('/export/payments', exportCtrl.exportPaymentsExcel);
+router.get('/export/evaluations', exportCtrl.exportEvaluationsExcel);
+router.get('/export/applications', exportCtrl.exportApplicationsExcel);
+
 module.exports = router;

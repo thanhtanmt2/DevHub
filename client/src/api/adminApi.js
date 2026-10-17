@@ -26,4 +26,9 @@ export const adminApi = {
   // Company verification
   getCompanies: (params) => api.get('/admin/companies', { params }),
   verifyCompany: (id, data) => api.put(`/admin/companies/${id}/verify`, data),
+
+  // Export reports (blob)
+  exportPayments: () => api.get('/admin/export/payments', { responseType: 'blob' }),
+  exportEvaluations: () => api.get('/admin/export/evaluations', { responseType: 'blob' }),
+  exportApplications: () => api.get('/admin/export/applications', { responseType: 'blob' }),
 };

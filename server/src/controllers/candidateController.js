@@ -419,3 +419,57 @@ exports.deleteCv = async (req, res, next) => {
     res.json({ success: true, message: 'Đã xóa CV thành công' });
   } catch (error) { next(error); }
 };
+
+// GET /api/employer/candidates — Employer searches for candidates
+exports.searchCandidates = async (req, res, next) => {
+  try {
+    const { keyword, skill_id, score_min, score_max, address, page = 1, limit = 12 } = req.query;
+    const where = {};
+    if (address) where.address = { [Op.iLike]: `%${address}%` };
+    if (score_min || score_max) {
+      where.competency_score = {};
+      if (score_min) where.competency_score[Op.gte] = parseFloat(score_min);
+      if (score_max) where.competency_score[Op.lte] = parseFloat(score_max);
+    }
+
+    const include = [
+      { model: User, attributes: ['full_name'] },
+      {
+        model: Skill,
+        through: { attributes: ['level', 'years_of_experience'] },
+        attributes: ['id', 'name'],
+        ...(skill_id ? { where: { id: skill_id }, required: true } : {}),
+      },
+    ];
+
+    if (keyword) {
+      where[Op.or] = [
+        { professional_title: { [Op.iLike]: `%${keyword}%` } },
+        { introduction: { [Op.iLike]: `%${keyword}%` } },
+        { '$User.full_name$': { [Op.iLike]: `%${keyword}%` } },
+      ];
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const { count, rows } = await CandidateProfile.findAndCountAll({
+      where,
+      include,
+      limit: parseInt(limit),
+      offset,
+      order: [['competency_score', 'DESC']],
+      distinct: true,
+      subQuery: false,
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / parseInt(limit)),
+      },
+    });
+  } catch (error) { next(error); }
+};

@@ -1,11 +1,11 @@
-const { Payment, WorkspaceMember, CandidateProfile, Workspace, InternalProject, User } = require('../models');
+const { Payment, WorkspaceMember, CandidateProfile, Workspace, InternalProject, User, PaymentInformation } = require('../models');
 const AppError = require('../utils/AppError');
 const { logActivity } = require('../utils/activityLogger');
 
 // POST /api/admin/payments
 exports.createPayment = async (req, res, next) => {
   try {
-    const { workspace_member_id, amount, note } = req.body;
+    const { workspace_member_id, amount } = req.body;
     
     const member = await WorkspaceMember.findByPk(workspace_member_id, {
       include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] }]
@@ -15,7 +15,6 @@ exports.createPayment = async (req, res, next) => {
     const payment = await Payment.create({
       workspace_member_id,
       amount,
-      note,
       status: 'PENDING'
     });
 
@@ -38,7 +37,7 @@ exports.createPayment = async (req, res, next) => {
 // PUT /api/admin/payments/:id/process
 exports.processPayment = async (req, res, next) => {
   try {
-    const { status, transaction_id } = req.body; // PENDING -> PROCESSING -> PAID
+    const { status, transaction_code } = req.body; // PENDING -> PROCESSING -> PAID
     if (!['PROCESSING', 'PAID', 'FAILED'].includes(status)) throw new AppError('Invalid status', 400);
 
     const payment = await Payment.findByPk(req.params.id, {
@@ -46,7 +45,7 @@ exports.processPayment = async (req, res, next) => {
     });
     if (!payment) throw new AppError('Payment not found', 404);
 
-    const updateData = { status, transaction_id };
+    const updateData = { status, transaction_code };
     if (status === 'PAID') {
       updateData.payment_date = new Date();
     }
@@ -77,7 +76,10 @@ exports.getAllPayments = async (req, res, next) => {
       include: [{
         model: WorkspaceMember,
         include: [
-          { model: CandidateProfile, include: [{ model: User, attributes: ['full_name', 'email'] }] },
+          { model: CandidateProfile, include: [
+            { model: User, attributes: ['full_name', 'email'] },
+            { model: PaymentInformation, attributes: ['bank_name', 'account_number', 'account_holder_name'] }
+          ]},
           { model: Workspace, attributes: ['name'] }
         ]
       }],

@@ -30,4 +30,9 @@ router.get('/applications', appCtrl.getAllEmployerApplications);
 router.get('/jobs/:jobId/applications', appCtrl.getJobApplications);
 router.put('/applications/:id/status', [body('status').isIn(['VIEWED', 'INTERVIEW', 'HIRED', 'REJECTED'])], validate, appCtrl.updateApplicationStatus);
 
+// Candidate search
+const candidateCtrl = require('../controllers/candidateController');
+router.get('/candidates', candidateCtrl.searchCandidates);
+router.get('/candidates/:id', candidateCtrl.getPublicProfile);
+
 module.exports = router;
