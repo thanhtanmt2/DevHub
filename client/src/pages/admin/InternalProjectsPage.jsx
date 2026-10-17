@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { workspaceApi } from '@/api/workspaceApi';
 import { projectJobApi } from '@/api/projectJobApi';
 import { skillApi } from '@/api/skillApi';
+import { adminApi } from '@/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 
@@ -330,6 +331,10 @@ export default function InternalProjectsPage() {
   const [detailApp, setDetailApp] = useState(null);
   const [interviewApp, setInterviewApp] = useState(null);
 
+  // Evaluation state: { app, workspaceId, memberId }
+  const [evaluateTarget, setEvaluateTarget] = useState(null);
+  const [evalForm, setEvalForm] = useState({ score: '', comment: '' });
+
   const { data: projectsRes, isLoading } = useQuery({
     queryKey: ['admin-projects'],
     queryFn: () => workspaceApi.getProjects(),
@@ -404,6 +409,25 @@ export default function InternalProjectsPage() {
       toast.success(res.data?.message || 'Đã cập nhật hồ sơ');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi duyệt hồ sơ'),
+  });
+
+  // Evaluate Candidate
+  const evaluateMutation = useMutation({
+    mutationFn: async ({ workspaceId, candidateProfileId, data }) => {
+      // Tìm workspace member từ workspace + candidate profile
+      const wsRes = await workspaceApi.getWorkspaceDetail(workspaceId);
+      const members = wsRes?.data?.data?.WorkspaceMembers || [];
+      const member = members.find(m => m.candidate_profile_id === candidateProfileId);
+      if (!member) throw new Error('Không tìm thấy thành viên trong workspace. Ứng viên có thể chưa được thêm vào workspace.');
+      return adminApi.evaluateCandidate(workspaceId, member.id, data);
+    },
+    onSuccess: (res) => {
+      if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
+      toast.success(`Đã đánh giá thành công! Điểm TB mới: ${res.data?.new_avg_score?.toFixed(1) ?? ''}/10`);
+      setEvaluateTarget(null);
+      setEvalForm({ score: '', comment: '' });
+    },
+    onError: (err) => toast.error(err.message || err.response?.data?.message || 'Lỗi khi lưu đánh giá'),
   });
 
   const projects = projectsRes?.data?.data || [];
@@ -819,6 +843,25 @@ export default function InternalProjectsPage() {
                                     </button>
                                   )}
 
+                                  {/* Evaluate — chỉ hiển thị cho ứng viên đã ACCEPTED */}
+                                  {app.status === 'ACCEPTED' && (
+                                    <button
+                                      onClick={() => {
+                                        setEvaluateTarget({
+                                          app,
+                                          workspaceId: viewJobsProject?.Workspace?.id,
+                                          candidateProfileId: app.candidate_profile_id,
+                                          candidateName: app.CandidateProfile?.User?.full_name,
+                                          currentScore: app.CandidateProfile?.competency_score,
+                                        });
+                                        setEvalForm({ score: '', comment: '' });
+                                      }}
+                                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-medium border border-amber-200"
+                                    >
+                                      ⭐ Đánh giá năng lực
+                                    </button>
+                                  )}
+
                                   {/* Status Dropdown */}
                                   <select
                                     value={app.status}
@@ -880,6 +923,85 @@ export default function InternalProjectsPage() {
             if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
           }}
         />
+      )}
+
+      {/* Evaluate Candidate Modal */}
+      {evaluateTarget && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl p-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">⭐ Đánh giá năng lực</h3>
+                <p className="text-sm text-primary-600 font-medium">{evaluateTarget.candidateName}</p>
+              </div>
+              <button onClick={() => setEvaluateTarget(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+            </div>
+
+            {evaluateTarget.currentScore > 0 && (
+              <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 text-sm text-indigo-700">
+                Điểm năng lực hiện tại: <strong>{parseFloat(evaluateTarget.currentScore).toFixed(1)}/10</strong>
+                <span className="text-xs text-indigo-400 ml-1">(TB tất cả dự án)</span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Điểm đánh giá <span className="text-red-500">*</span>
+                  <span className="text-xs font-normal text-gray-400 ml-1">(thang điểm 0 – 10)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range" min="0" max="10" step="0.5"
+                    className="flex-1 accent-amber-500"
+                    value={evalForm.score || 0}
+                    onChange={e => setEvalForm(p => ({ ...p, score: e.target.value }))}
+                  />
+                  <span className={`text-2xl font-bold w-12 text-center ${
+                    parseFloat(evalForm.score) >= 8 ? 'text-emerald-600' :
+                    parseFloat(evalForm.score) >= 5 ? 'text-amber-600' : 'text-gray-400'
+                  }`}>
+                    {evalForm.score || '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Kém (0)</span><span>Trung bình (5)</span><span>Xuất sắc (10)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Nhận xét</label>
+                <textarea
+                  className="input-field resize-none"
+                  rows={3}
+                  placeholder="Nhận xét về chất lượng công việc, thái độ, kỹ năng..."
+                  value={evalForm.comment}
+                  onChange={e => setEvalForm(p => ({ ...p, comment: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-5">
+              <button onClick={() => setEvaluateTarget(null)} className="btn-secondary">Hủy</button>
+              <button
+                onClick={() => {
+                  if (!evalForm.score) return toast.error('Vui lòng chọn điểm đánh giá');
+                  const score = parseFloat(evalForm.score);
+                  if (score < 0 || score > 10) return toast.error('Điểm phải từ 0 đến 10');
+                  evaluateMutation.mutate({
+                    workspaceId: evaluateTarget.workspaceId,
+                    candidateProfileId: evaluateTarget.candidateProfileId,
+                    data: { score, comment: evalForm.comment },
+                  });
+                }}
+                disabled={evaluateMutation.isPending || !evalForm.score}
+                className="btn-primary flex items-center gap-2"
+              >
+                {evaluateMutation.isPending ? 'Đang lưu...' : '✓ Lưu đánh giá'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
