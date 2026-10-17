@@ -1,6 +1,7 @@
-const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, Skill } = require('../models');
+const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, ProjectApplication, Skill } = require('../models');
 const AppError = require('../utils/AppError');
 const { logActivity } = require('../utils/activityLogger');
+const { getWorkspaceAccess } = require('../utils/workspaceAccess');
 
 // POST /api/admin/projects
 exports.createProject = async (req, res, next) => {
@@ -38,21 +39,47 @@ exports.createProject = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// POST /api/admin/projects/:id/workspace — khởi tạo Workspace cho dự án (UC 3.3.3.16)
+// Dự án đã có Workspace thì trả về Workspace hiện tại (tình huống thay thế a), không tạo trùng
+exports.createProjectWorkspace = async (req, res, next) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) throw new AppError('Không tìm thấy dự án', 404);
+
+    const [workspace, created] = await Workspace.findOrCreate({
+      where: { project_id: project.id },
+      defaults: { name: `WS - ${project.name}`, status: 'ACTIVE' },
+    });
+
+    if (created) {
+      await logActivity(req, {
+        action: 'PROJECT_UPDATED',
+        entity_type: 'project',
+        entity_id: project.id,
+        entity_name: project.name,
+        description: `Khởi tạo Workspace cho dự án "${project.name}"`,
+        metadata: { workspace_id: workspace.id },
+      });
+    }
+
+    res.status(created ? 201 : 200).json({
+      success: true,
+      existed: !created,
+      message: created ? 'Đã khởi tạo Workspace cho dự án' : 'Dự án đã có Workspace',
+      data: workspace,
+    });
+  } catch (error) { next(error); }
+};
+
 // GET /api/admin/projects
 exports.getProjects = async (req, res, next) => {
   try {
     const projects = await Project.findAll({
       include: [
         { model: Workspace, attributes: ['id', 'status'] },
-        { 
-          model: ProjectJob, 
-          include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }]
-        },
         {
-          model: CandidateProfile,
-          as: 'Manager',
-          attributes: ['id', 'professional_title'],
-          include: [{ model: User, attributes: ['full_name', 'email'] }]
+          model: ProjectJob,
+          include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }]
         }
       ],
       order: [['created_at', 'DESC']]
@@ -127,89 +154,85 @@ exports.deleteProject = async (req, res, next) => {
   }
 };
 
-// PUT /api/admin/projects/:id/manager
-exports.updateProjectManager = async (req, res, next) => {
-  try {
-    const project = await Project.findByPk(req.params.id);
-    if (!project) throw new AppError('Project not found', 404);
-    
-    const { manager_id } = req.body;
-    await project.update({ manager_id: manager_id || null });
-    
-    let u = null;
-    const workspace = await Workspace.findOne({ where: { project_id: project.id } });
-
-    // Auto-add manager to workspace if not already a member
-    if (manager_id) {
-      if (workspace) {
-        const existingMember = await WorkspaceMember.findOne({
-          where: { workspace_id: workspace.id, candidate_profile_id: manager_id }
-        });
-        if (!existingMember) {
-          await WorkspaceMember.create({
-            workspace_id: workspace.id,
-            candidate_profile_id: manager_id,
-            role: 'MANAGER',
-            status: 'ACTIVE',
-            joined_at: new Date()
-          });
-        } else if (existingMember.role !== 'MANAGER') {
-           await existingMember.update({ role: 'MANAGER' });
-        }
-      }
-
-      const cp = await CandidateProfile.findByPk(manager_id, { include: [{ model: User, attributes: ['id', 'full_name'] }] });
-      u = cp?.User;
+// Danh sách hồ sơ đã trúng tuyển (ACCEPTED) vào các vị trí của dự án
+const getAcceptedApplications = (projectId, candidateProfileId) => ProjectApplication.findAll({
+  where: { status: 'ACCEPTED', ...(candidateProfileId && { candidate_profile_id: candidateProfileId }) },
+  include: [
+    { model: ProjectJob, where: { project_id: projectId }, attributes: ['id', 'title'] },
+    {
+      model: CandidateProfile,
+      attributes: ['id', 'professional_title', 'avatar_url'],
+      include: [{ model: User, attributes: ['full_name', 'email'] }]
     }
+  ],
+  order: [['updated_at', 'DESC']]
+});
 
-    if (u) {
-       await logActivity(req, {
-        action: 'PROJECT_MANAGER_ASSIGNED',
-        entity_type: 'project',
-        entity_id: project.id,
-        entity_name: project.name,
-        description: `Đã phân công ${u.full_name} làm Quản lý dự án "${project.name}"`,
-        metadata: { workspace_id: workspace?.id, user_id: u.id },
-        notify_user_ids: [u.id],
-        notify_link: workspace ? `/candidate/workspaces/${workspace.id}` : null,
+// GET /api/workspaces/:id/eligible-candidates — ứng viên trúng tuyển chưa có trong workspace
+exports.getEligibleCandidates = async (req, res, next) => {
+  try {
+    const workspace = await Workspace.findByPk(req.params.id);
+    if (!workspace) throw new AppError('Không tìm thấy Workspace', 404);
+
+    const [applications, activeMembers] = await Promise.all([
+      getAcceptedApplications(workspace.project_id),
+      WorkspaceMember.findAll({ where: { workspace_id: workspace.id, status: 'ACTIVE' }, attributes: ['candidate_profile_id'] })
+    ]);
+    const activeIds = new Set(activeMembers.map(m => m.candidate_profile_id));
+
+    // Mỗi ứng viên chỉ hiện 1 lần (lấy hồ sơ trúng tuyển gần nhất)
+    const seen = new Set();
+    const candidates = [];
+    for (const app of applications) {
+      if (activeIds.has(app.candidate_profile_id) || seen.has(app.candidate_profile_id)) continue;
+      seen.add(app.candidate_profile_id);
+      candidates.push({
+        candidate_profile_id: app.candidate_profile_id,
+        project_job_id: app.project_job_id,
+        job_title: app.ProjectJob?.title,
+        full_name: app.CandidateProfile?.User?.full_name,
+        email: app.CandidateProfile?.User?.email,
+        professional_title: app.CandidateProfile?.professional_title,
       });
     }
-    
-    // Return updated project with manager info
-    const updatedProject = await Project.findByPk(req.params.id, {
-      include: [
-        {
-          model: CandidateProfile,
-          as: 'Manager',
-          attributes: ['id', 'professional_title'],
-          include: [{ model: User, attributes: ['full_name', 'email'] }]
-        }
-      ]
-    });
-    
-    res.json({ success: true, data: updatedProject });
+
+    res.json({ success: true, data: candidates });
   } catch (error) { next(error); }
 };
 
-// POST /api/admin/workspaces/:id/members
+// POST /api/workspaces/:id/members (Admin)
 exports.addWorkspaceMember = async (req, res, next) => {
   try {
-    const { candidate_profile_id, project_job_id } = req.body;
+    const { candidate_profile_id, project_job_id, role } = req.body;
+    if (role && !ASSIGNABLE_ROLES.includes(role)) throw new AppError('Vai trò không hợp lệ (chỉ có Lead hoặc Thành viên)', 400);
     const workspace = await Workspace.findByPk(req.params.id);
-    if (!workspace) throw new AppError('Workspace not found', 404);
+    if (!workspace) throw new AppError('Không tìm thấy Workspace', 404);
+
+    // Chỉ cho phép thêm ứng viên đã trúng tuyển vào dự án này
+    const accepted = await getAcceptedApplications(workspace.project_id, candidate_profile_id);
+    if (!accepted.length) {
+      throw new AppError('Ứng viên không hợp lệ: chưa trúng tuyển vào dự án này', 400);
+    }
+    const jobId = project_job_id && accepted.some(a => a.project_job_id === project_job_id)
+      ? project_job_id
+      : accepted[0].project_job_id;
 
     const existing = await WorkspaceMember.findOne({
       where: { workspace_id: workspace.id, candidate_profile_id }
     });
-    if (existing) throw new AppError('Thành viên này đã có trong không gian làm việc', 409);
+    if (existing?.status === 'ACTIVE') throw new AppError('Thành viên này đã có trong không gian làm việc', 409);
 
-    const member = await WorkspaceMember.create({
-      workspace_id: workspace.id,
-      candidate_profile_id,
-      project_job_id: project_job_id || null,
-      status: 'ACTIVE',
-      joined_at: new Date()
-    });
+    // Thành viên từng bị xóa/đã kết thúc → kích hoạt lại thay vì tạo bản ghi mới
+    const member = existing
+      ? await existing.update({ status: 'ACTIVE', role: role || 'MEMBER', project_job_id: jobId, joined_at: new Date() })
+      : await WorkspaceMember.create({
+          workspace_id: workspace.id,
+          candidate_profile_id,
+          project_job_id: jobId,
+          role: role || 'MEMBER',
+          status: 'ACTIVE',
+          joined_at: new Date()
+        });
 
     const cp = await CandidateProfile.findByPk(candidate_profile_id, { include: [{ model: User, attributes: ['id', 'full_name'] }] });
     const u = cp?.User;
@@ -259,21 +282,15 @@ exports.getWorkspaceDetail = async (req, res, next) => {
       const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
       if (!profile) throw new AppError('Access denied', 403);
       
-      const isMember = workspace.WorkspaceMembers.some(m => m.candidate_profile_id === profile.id);
-      const isManager = workspace.Project?.manager_id === profile.id;
-
-      if (!isMember && !isManager) throw new AppError('Access denied. Not a member or manager of this workspace', 403);
-      
-      const workspaceData = workspace.toJSON();
-      workspaceData.isManager = isManager;
-      // also mark current user's member role
       const myMember = workspace.WorkspaceMembers.find(m => m.candidate_profile_id === profile.id);
-      workspaceData.myRole = myMember?.role || (isManager ? 'MANAGER' : null);
-      workspaceData.myMemberId = myMember?.id || null;
+      if (!myMember) throw new AppError('Access denied. Not a member of this workspace', 403);
+
+      const workspaceData = workspace.toJSON();
+      workspaceData.myRole = myMember.role; // LEAD | MEMBER
+      workspaceData.myMemberId = myMember.id;
       res.json({ success: true, data: workspaceData });
     } else {
       const workspaceData = workspace.toJSON();
-      workspaceData.isManager = true;
       workspaceData.myRole = 'ADMIN';
       workspaceData.myMemberId = null;
       res.json({ success: true, data: workspaceData });
@@ -281,18 +298,47 @@ exports.getWorkspaceDetail = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// DELETE /api/admin/workspaces/:workspaceId/members/:memberId
+// DELETE /api/workspaces/:workspaceId/members/:memberId (chỉ Admin — chủ dự án)
 exports.removeWorkspaceMember = async (req, res, next) => {
   try {
+    const access = await getWorkspaceAccess(req, req.params.workspaceId);
+    if (!access.canManageMembers) throw new AppError('Chỉ Admin mới có quyền xóa thành viên khỏi Workspace', 403);
+
     const member = await WorkspaceMember.findOne({
-      where: { id: req.params.memberId, workspace_id: req.params.workspaceId },
+      where: { id: req.params.memberId, workspace_id: req.params.workspaceId, status: 'ACTIVE' },
       include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] }]
     });
-    if (!member) throw new AppError('Member not found', 404);
-    
+    if (!member) throw new AppError('Không tìm thấy thành viên', 404);
+
     await member.update({ status: 'REMOVED' });
 
     const u = member.CandidateProfile?.User;
+
+    // Gỡ thành viên khỏi các task chưa nghiệm thu (task đã Hoàn thành giữ nguyên để làm lịch sử).
+    // Task đang làm / chờ duyệt mà không còn ai thực hiện thì đưa về "Cần làm".
+    const { Task, TaskAssignee, TaskActivity } = require('../models');
+    const assigned = await TaskAssignee.findAll({
+      where: { workspace_member_id: member.id },
+      include: [{ model: Task, attributes: ['id', 'status', 'workspace_id'] }]
+    });
+    for (const a of assigned) {
+      const task = a.Task;
+      if (!task || task.status === 'DONE') continue;
+      await TaskAssignee.destroy({ where: { task_id: task.id, workspace_member_id: member.id } });
+      const remaining = await TaskAssignee.count({ where: { task_id: task.id } });
+      let description = `Gỡ ${u?.full_name || 'thành viên'} khỏi task do rời Workspace`;
+      if (!remaining && task.status !== 'TODO') {
+        const maxPos = await Task.max('position', { where: { workspace_id: task.workspace_id, status: 'TODO' } });
+        await task.update({ status: 'TODO', review_status: 'PENDING', position: (maxPos ?? -1) + 1 });
+        description += ', task được đưa về "Cần làm"';
+      }
+      await TaskActivity.create({
+        task_id: task.id,
+        workspace_member_id: access.member?.id || null,
+        action: 'ASSIGNED',
+        description,
+      }).catch(() => {});
+    }
     if (u) {
       await logActivity(req, {
         action: 'WORKSPACE_MEMBER_REMOVED',
@@ -310,22 +356,37 @@ exports.removeWorkspaceMember = async (req, res, next) => {
 };
 
 // PUT /api/workspaces/:workspaceId/members/:memberId/role
+// Vai trò trong Workspace: Admin (chủ) cử Lead để phân chia công việc; còn lại là Thành viên.
+const ASSIGNABLE_ROLES = ['LEAD', 'MEMBER'];
+const ROLE_VI = { LEAD: 'Lead', MEMBER: 'Thành viên' };
+const ROLE_HINT = {
+  LEAD: 'Bạn có thể tạo task, phân công việc cho thành viên, chỉnh sửa, nghiệm thu công việc và bình luận trong task.',
+  MEMBER: 'Bạn thực hiện các task được giao, nộp sản phẩm và phản hồi bình luận của Lead/Admin trong task của mình.',
+};
+
 exports.updateMemberRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!['MANAGER', 'LEAD', 'MEMBER', 'VIEWER'].includes(role)) throw new AppError('Invalid role', 400);
+    if (!ASSIGNABLE_ROLES.includes(role)) {
+      throw new AppError('Vai trò không hợp lệ. Chỉ có Lead hoặc Thành viên', 400);
+    }
+
+    const access = await getWorkspaceAccess(req, req.params.workspaceId);
+    if (!access.canManageMembers) throw new AppError('Chỉ Admin mới có quyền cử hoặc gỡ Lead', 403);
 
     const member = await WorkspaceMember.findOne({
-      where: { id: req.params.memberId, workspace_id: req.params.workspaceId },
+      where: { id: req.params.memberId, workspace_id: req.params.workspaceId, status: 'ACTIVE' },
       include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] }]
     });
-    if (!member) throw new AppError('Member not found', 404);
+    if (!member) throw new AppError('Không tìm thấy thành viên', 404);
 
     const oldRole = member.role;
+    if (oldRole === role) return res.json({ success: true, data: member });
     await member.update({ role });
 
     const u = member.CandidateProfile?.User;
     if (u) {
+      const projectName = access.workspace?.name || 'dự án';
       await logActivity(req, {
         action: 'WORKSPACE_MEMBER_ROLE_CHANGED',
         entity_type: 'workspace_member',
@@ -333,7 +394,9 @@ exports.updateMemberRole = async (req, res, next) => {
         entity_name: u.full_name,
         old_value: oldRole,
         new_value: role,
-        description: `Đã đổi vai trò của ${u.full_name} thành ${role}`,
+        description: `Đã đổi vai trò của ${u.full_name} thành ${ROLE_VI[role]}`,
+        // Người được đổi vai trò nhận thông báo + email nói rõ vai trò mới và quyền hạn
+        notify_message: `${req.user?.full_name || 'Quản trị viên'} đã đổi vai trò của bạn trong Workspace "${projectName}" thành ${ROLE_VI[role]}.\n${ROLE_HINT[role]}`,
         metadata: { workspace_id: req.params.workspaceId, user_id: u.id },
         notify_user_ids: [u.id],
         notify_link: `/candidate/workspaces/${req.params.workspaceId}`,
@@ -351,27 +414,38 @@ exports.getWorkspaceStats = async (req, res, next) => {
     const { Op } = require('sequelize');
 
     const workspaceId = req.params.id;
+    const access = await getWorkspaceAccess(req, workspaceId);
+    if (!access.canView) throw new AppError('Access denied. Not a member of this workspace', 403);
+
     const tasks = await Task.findAll({
       where: { workspace_id: workspaceId },
       include: [{ model: WM, as: 'Assignees', through: { attributes: [] }, attributes: ['id'] }]
     });
 
     const now = new Date();
+    // Deadline tính hết ngày; chỉ task chưa gửi duyệt (Cần làm / Đang làm) mới bị coi là quá hạn
+    const deadlineEnd = (d) => { const end = new Date(d); end.setHours(23, 59, 59, 999); return end; };
+    const isOpen = (t) => ['TODO', 'IN_PROGRESS'].includes(t.status);
+    const isOverdue = (t) => t.deadline && isOpen(t) && deadlineEnd(t.deadline) < now;
+    // Tiến độ tổng thể = trung bình % hoàn thành của các task (không tính task đã hủy)
+    const activeTasks = tasks.filter(t => t.status !== 'CANCELLED');
     const stats = {
-      total: tasks.length,
+      total: activeTasks.length,
       by_status: {
         TODO: tasks.filter(t => t.status === 'TODO').length,
         IN_PROGRESS: tasks.filter(t => t.status === 'IN_PROGRESS').length,
         REVIEW: tasks.filter(t => t.status === 'REVIEW').length,
         DONE: tasks.filter(t => t.status === 'DONE').length,
       },
-      overdue: tasks.filter(t => t.deadline && new Date(t.deadline) < now && t.status !== 'DONE').length,
+      overdue: tasks.filter(isOverdue).length,
       due_soon: tasks.filter(t => {
-        if (!t.deadline || t.status === 'DONE') return false;
-        const diff = (new Date(t.deadline) - now) / (1000 * 60 * 60 * 24);
+        if (!t.deadline || !isOpen(t)) return false;
+        const diff = (deadlineEnd(t.deadline) - now) / (1000 * 60 * 60 * 24);
         return diff >= 0 && diff <= 3;
       }).length,
-      completion_rate: tasks.length ? Math.round((tasks.filter(t => t.status === 'DONE').length / tasks.length) * 100) : 0,
+      completion_rate: activeTasks.length
+        ? Math.round(activeTasks.reduce((acc, t) => acc + (t.completion_rate || 0), 0) / activeTasks.length)
+        : 0,
     };
 
     // Per-member stats
@@ -389,7 +463,7 @@ exports.getWorkspaceStats = async (req, res, next) => {
         total_assigned: assigned.length,
         done: assigned.filter(t => t.status === 'DONE').length,
         in_progress: assigned.filter(t => t.status === 'IN_PROGRESS').length,
-        overdue: assigned.filter(t => t.deadline && new Date(t.deadline) < now && t.status !== 'DONE').length,
+        overdue: assigned.filter(isOverdue).length,
       };
     }));
 

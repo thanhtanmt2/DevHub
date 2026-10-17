@@ -1,5 +1,7 @@
 const { ActivityLog, User } = require('../models');
 const { Op } = require('sequelize');
+const AppError = require('../utils/AppError');
+const { getWorkspaceAccess } = require('../utils/workspaceAccess');
 
 // GET /api/admin/logs
 exports.getLogs = async (req, res, next) => {
@@ -54,12 +56,15 @@ exports.getLogs = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// GET /api/workspaces/:id/logs (Manager/Lead only)
+// GET /api/workspaces/:id/logs (chỉ Admin và Lead)
 exports.getWorkspaceLogs = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 50 } = req.query;
-    
+
+    const access = await getWorkspaceAccess(req, id);
+    if (!access.canManageTasks) throw new AppError('Chỉ Admin và Lead mới xem được nhật ký hoạt động của Workspace', 403);
+
     const offset = (page - 1) * limit;
 
     const { count, rows } = await ActivityLog.findAndCountAll({

@@ -7,6 +7,9 @@ export const companyApi = {
   sendVerifyEmail: (email) => api.post('/employer/company/send-verify-email', { email }),
   verifyEmail: (otp) => api.post('/employer/company/verify-email', { otp }),
   getEmployerStats: () => api.get('/employer/stats'),
+  // Candidate search (Employer)
+  searchCandidates: (params) => api.get('/employer/candidates', { params }),
+  getCandidateProfile: (id) => api.get(`/employer/candidates/${id}`),
   // Admin
   getAllCompanies: (params) => api.get('/admin/companies', { params }),
   verifyCompany: (id, data) => api.put(`/admin/companies/${id}/verify`, data),

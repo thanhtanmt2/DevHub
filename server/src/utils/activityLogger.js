@@ -8,6 +8,7 @@
  */
 
 const { ActivityLog, Notification, User } = require('../models');
+const { emailNotification } = require('./notificationMailer');
 
 // Notification settings per action — admin có thể extend
 const NOTIFICATION_MAP = {
@@ -37,6 +38,8 @@ const NOTIFICATION_MAP = {
  *   - metadata: object — e.g. { project_id, workspace_id }
  *   - notify_user_ids: string[] — user IDs to notify
  *   - notify_link: string — frontend link for notification
+ *   - notify_message: string — nội dung thông báo/email cho người nhận (mặc định dùng description)
+ *   - skip_email: boolean — true nếu sự kiện đã có email riêng (tránh gửi trùng). Mặc định thông báo nào cũng kèm email.
  */
 async function logActivity(req, opts) {
   try {
@@ -70,6 +73,7 @@ async function logActivity(req, opts) {
     const notifConfig = NOTIFICATION_MAP[opts.action];
     if (notifConfig && opts.notify_user_ids?.length) {
       const link = opts.notify_link || null;
+      const notifyMessage = opts.notify_message || opts.description || opts.entity_name;
       await Promise.all(
         opts.notify_user_ids
           .filter(uid => uid && uid !== user?.id) // don't notify self
@@ -78,9 +82,14 @@ async function logActivity(req, opts) {
               user_id: uid,
               type: notifConfig.type,
               title: notifConfig.title,
-              message: opts.description || opts.entity_name,
+              message: notifyMessage,
               link,
               metadata: { log_id: log.id, ...opts.metadata },
+            }).then(() => {
+              // Kèm email cho người nhận (gửi nền, không chờ)
+              if (!opts.skip_email) {
+                emailNotification({ user_id: uid, title: notifConfig.title, message: notifyMessage, link });
+              }
             }).catch(() => {}) // non-blocking
           )
       );

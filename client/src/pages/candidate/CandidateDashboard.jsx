@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { candidateApi } from '@/api/candidateApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -24,8 +24,23 @@ const STATUS_COLORS = {
   ACCEPTED: 'bg-green-100 text-green-700'
 };
 
+const TASK_STATUS = {
+  TODO:        { label: 'Cần làm',   color: 'bg-gray-100 text-gray-600' },
+  IN_PROGRESS: { label: 'Đang làm',  color: 'bg-blue-100 text-blue-700' },
+  REVIEW:      { label: 'Chờ duyệt', color: 'bg-amber-100 text-amber-700' },
+};
+
 export default function CandidateDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Task được giao ở các dự án đang tham gia
+  const { data: myTasksRes } = useQuery({
+    queryKey: ['my-tasks'],
+    queryFn: () => candidateApi.getMyTasks(),
+    staleTime: 0,
+  });
+  const openTasks = (myTasksRes?.data?.data || []).filter(t => t.status !== 'DONE');
 
   const { data: profileRes } = useQuery({
     queryKey: ['candidate-profile'],
@@ -94,6 +109,48 @@ export default function CandidateDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Công việc dự án đang thực hiện */}
+      {openTasks.length > 0 && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">📋 Công việc dự án của tôi</h2>
+            <Link to="/candidate/workspaces" className="text-sm text-primary-600 hover:underline">Xem tất cả ({openTasks.length})</Link>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-3 text-xs">
+            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
+              ⚡ {openTasks.filter(t => t.status === 'IN_PROGRESS').length} đang làm
+            </span>
+            <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
+              ⏳ {openTasks.filter(t => t.status === 'REVIEW').length} chờ duyệt
+            </span>
+            {openTasks.some(t => t.is_overdue) && (
+              <span className="px-2 py-1 rounded-full bg-red-50 text-red-600 font-semibold">
+                ⚠️ {openTasks.filter(t => t.is_overdue).length} quá hạn
+              </span>
+            )}
+            {openTasks.some(t => t.status === 'IN_PROGRESS' && t.review_status === 'REVISION_REQUIRED') && (
+              <span className="px-2 py-1 rounded-full bg-orange-50 text-orange-700 font-semibold">
+                ↩️ {openTasks.filter(t => t.status === 'IN_PROGRESS' && t.review_status === 'REVISION_REQUIRED').length} cần chỉnh sửa
+              </span>
+            )}
+          </div>
+          {/* 3 task ưu tiên nhất (backend đã sắp: quá hạn → deadline gần) */}
+          <div className="divide-y divide-gray-100">
+            {openTasks.slice(0, 3).map(t => (
+              <button key={t.id} onClick={() => navigate(`/candidate/workspaces/${t.workspace_id}?task=${t.id}`)}
+                className="w-full text-left flex items-center gap-3 py-2 hover:bg-gray-50 rounded-lg px-1">
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${TASK_STATUS[t.status]?.color}`}>
+                  {TASK_STATUS[t.status]?.label}
+                </span>
+                <span className="text-sm text-gray-900 truncate flex-1">{t.title}</span>
+                <span className="text-xs text-gray-400 truncate max-w-[40%]">{t.Workspace?.Project?.name}</span>
+                {t.is_overdue && <span className="text-xs text-red-600 font-semibold flex-shrink-0">Quá hạn</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Profile completion hint */}
       {!profile?.professional_title && (

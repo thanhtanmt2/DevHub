@@ -51,6 +51,7 @@ router.post('/payment-info', [
 
 // Workspaces & Payments
 router.get('/workspaces', ctrl.getMyWorkspaces);
+router.get('/my-tasks', ctrl.getMyTasks);
 router.get('/payments', ctrl.getMyPayments);
 
 // CVs
@@ -65,27 +66,5 @@ router.delete('/cvs/:id', ctrl.deleteCv);
 // Project Applications
 const projectJobCtrl = require('../controllers/projectJobController');
 router.get('/project-applications', projectJobCtrl.getMyProjectApplications);
-
-// ─── PROJECT MANAGER ROUTES ────────────────────────────────────────────────
-const { authorizeManager } = require('../middleware/authorizeManager');
-const pmCtrl = require('../controllers/projectManagerController');
-const taskCtrl = require('../controllers/taskController');
-const evalCtrl = require('../controllers/evaluationController');
-
-// Managed Projects
-router.get('/managed-projects', pmCtrl.getManagedProjects);
-
-// Project Jobs & Applications (reuse projectJobController but via Manager auth)
-// Notice how we use params like applicationId for authorizeManager to catch them
-router.post('/managed-projects/:projectId/jobs', authorizeManager, projectJobCtrl.adminCreateProjectJob);
-router.get('/managed-projects/:projectId/jobs', authorizeManager, projectJobCtrl.adminGetProjectJobs);
-// Re-map :id to :applicationId so middleware can pick it up
-router.put('/managed-projects/applications/:applicationId/status', authorizeManager, (req, res, next) => { req.params.id = req.params.applicationId; next(); }, projectJobCtrl.adminUpdateProjectApplicationStatus);
-router.post('/managed-projects/applications/:applicationId/schedule-interview', authorizeManager, (req, res, next) => { req.params.id = req.params.applicationId; next(); }, projectJobCtrl.adminScheduleInterview);
-
-// Workspaces Tasks & Eval (reuse controllers)
-router.post('/managed-projects/workspaces/:workspaceId/tasks', authorizeManager, taskCtrl.createTask);
-router.put('/managed-projects/tasks/:taskId/review', authorizeManager, taskCtrl.reviewSubmission);
-router.post('/managed-projects/workspaces/:workspaceId/members/:memberId/evaluate', authorizeManager, evalCtrl.evaluateCandidate);
 
 module.exports = router;

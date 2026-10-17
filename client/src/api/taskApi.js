@@ -8,7 +8,8 @@ export const taskApi = {
   updateTask: (id, data) => api.put(`/tasks/${id}`, data),
   deleteTask: (id) => api.delete(`/tasks/${id}`),
   reviewTask: (id, data) => api.put(`/tasks/${id}/review`, data),
-  reorderTasks: (workspaceId, tasks) => api.put(`/tasks/workspace/${workspaceId}/reorder`, { tasks }),
+  // Nộp sản phẩm (link/file/ghi chú) và gửi duyệt
+  submitTask: (id, data) => api.post(`/tasks/${id}/submissions`, data),
 
   // Sub-tasks
   addSubTask: (taskId, title) => api.post(`/tasks/${taskId}/subtasks`, { title }),

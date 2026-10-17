@@ -37,6 +37,7 @@ function NotificationBell() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Icon hiển thị theo LOẠI thông báo (cột bên trái)
   const NOTIF_ICONS = {
     TASK_ASSIGNED: '📌',
     TASK_STATUS_CHANGED: '🔄',
@@ -46,16 +47,21 @@ function NotificationBell() {
     TASK_DEADLINE_SOON: '⚠️',
     MEMBER_ADDED: '👤',
     MEMBER_ROLE_CHANGED: '🔐',
-    PROJECT_UPDATE: '📁',
+    PROJECT_UPDATE: '✏️', // task được cập nhật / bị xóa
     INTERVIEW_SCHEDULED: '📅',
     APPLICATION_STATUS: '📋',
   };
+
+  // Tiêu đề thông báo từ server có sẵn emoji ở đầu ("📌 Bạn được giao task mới"); icon đã hiện ở cột trái
+  // nên bỏ emoji đầu tiêu đề để khỏi hiện 2 hình giống nhau (áp dụng cho cả thông báo cũ trong database)
+  const cleanTitle = (title) => (title || '').replace(/^[^\p{L}\p{N}]+/u, '').trim() || title;
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => { setOpen(o => !o); if (!open) refetch(); }}
         className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
+        aria-label="Thông báo"
       >
         <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -97,10 +103,10 @@ function NotificationBell() {
                   setOpen(false);
                 }}
               >
-                <div className="text-lg flex-shrink-0 mt-0.5">{NOTIF_ICONS[n.type] || '📣'}</div>
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-base flex-shrink-0">{NOTIF_ICONS[n.type] || '📣'}</div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm leading-snug ${!n.is_read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
-                  {n.message && <p className="text-xs text-gray-500 mt-0.5 truncate">{n.message}</p>}
+                  <p className={`text-sm leading-snug ${!n.is_read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{cleanTitle(n.title)}</p>
+                  {n.message && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 break-words">{n.message}</p>}
                   <p className="text-[10px] text-gray-400 mt-1">
                     {new Date(n.createdAt || n.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
                   </p>
@@ -119,7 +125,7 @@ function NotificationBell() {
             <div className="bg-primary-50 p-4 border-b border-primary-100 flex items-start gap-3">
               <div className="text-3xl">{NOTIF_ICONS[selectedNotif.type] || '📣'}</div>
               <div className="flex-1">
-                <h3 className="font-bold text-primary-900 leading-tight">{selectedNotif.title}</h3>
+                <h3 className="font-bold text-primary-900 leading-tight">{cleanTitle(selectedNotif.title)}</h3>
                 <p className="text-xs text-primary-600 mt-1">
                   {new Date(selectedNotif.createdAt || selectedNotif.created_at).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>

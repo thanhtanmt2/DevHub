@@ -1,4 +1,4 @@
-const { User, JobPost, InternalProject, Application, Payment, Company } = require('../models');
+const { User, JobPost, InternalProject, Application, Payment, Company, Role, ProjectApplication } = require('../models');
 
 exports.getAdminStats = async (req, res, next) => {
   try {
@@ -14,14 +14,32 @@ exports.getAdminStats = async (req, res, next) => {
       where: { applied_at: { [require('sequelize').Op.gte]: new Date(new Date() - 7 * 24 * 60 * 60 * 1000) } }
     });
 
+    // Extended stats
+    const totalCandidates = await User.count({ where: { '$Roles.name$': 'CANDIDATE' }, include: [{ model: Role }] });
+    const totalEmployers = await User.count({ where: { '$Roles.name$': 'EMPLOYER' }, include: [{ model: Role }] });
+    const pendingPayments = await Payment.count({ where: { status: 'PENDING' } });
+    const processingPayments = await Payment.count({ where: { status: 'PROCESSING' } });
+    const paidPayments2 = await Payment.count({ where: { status: 'PAID' } });
+    const totalApplications = await Application.count();
+    const totalProjectApplications = await ProjectApplication.count();
+
     res.json({
       success: true,
       data: {
         total_users: totalUsers,
+        total_candidates: totalCandidates,
+        total_employers: totalEmployers,
         total_jobs: totalJobs,
         total_projects: totalProjects,
         total_payout: totalPayout,
-        recent_applications: recentApplications
+        recent_applications: recentApplications,
+        total_applications: totalApplications,
+        total_project_applications: totalProjectApplications,
+        payments: {
+          pending: pendingPayments,
+          processing: processingPayments,
+          paid: paidPayments2,
+        },
       }
     });
   } catch (error) { next(error); }

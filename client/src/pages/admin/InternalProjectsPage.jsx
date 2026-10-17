@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { workspaceApi } from '@/api/workspaceApi';
 import { projectJobApi } from '@/api/projectJobApi';
 import { skillApi } from '@/api/skillApi';
+import { adminApi } from '@/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 
@@ -313,158 +314,6 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
   );
 }
 
-// ─── Assign Manager Modal ───────────────────────────────────────────────────
-function AssignManagerModal({ project, skills, onClose, onAssign }) {
-  const [query, setQuery] = useState('');
-  const [filterSkill, setFilterSkill] = useState('');
-  const [filterScore, setFilterScore] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  
-  const [candidates, setCandidates] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState(null);
-  
-  // Real-time search effect
-  useEffect(() => {
-    const fetchCandidates = async () => {
-      setSearching(true);
-      try {
-        const params = {
-          q: query,
-          skill_ids: filterSkill ? [filterSkill] : undefined,
-          min_score: filterScore || undefined,
-          manager_status: filterStatus || undefined
-        };
-        const res = await workspaceApi.searchCandidates(params);
-        setCandidates(res.data?.data || []);
-      } catch (err) {
-        // Silently fail or use toast, but don't spam on typing
-      } finally {
-        setSearching(false);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      fetchCandidates();
-    }, 400); // 400ms debounce
-
-    return () => clearTimeout(timer);
-  }, [query, filterSkill, filterScore, filterStatus]);
-
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl p-6 animate-fade-in">
-        <h3 className="text-lg font-bold mb-2">Cấp quyền Quản lý Dự án</h3>
-        <p className="text-sm text-gray-500 mb-4">Dự án: <span className="font-semibold text-gray-800">{project.name}</span></p>
-        
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-            <div className="md:col-span-1">
-              <input 
-                type="text" 
-                placeholder="Tìm tên, email..." 
-                className="input-field py-1.5 text-sm"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-              />
-            </div>
-            <div>
-              <select className="input-field py-1.5 text-sm" value={filterSkill} onChange={e => setFilterSkill(e.target.value)}>
-                <option value="">Tất cả Kỹ năng</option>
-                {skills.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <select className="input-field py-1.5 text-sm" value={filterScore} onChange={e => setFilterScore(e.target.value)}>
-                <option value="">Điểm năng lực (Mọi)</option>
-                <option value="5">Từ 5.0 trở lên</option>
-                <option value="7">Từ 7.0 trở lên</option>
-                <option value="8">Từ 8.0 trở lên</option>
-                <option value="9">Từ 9.0 trở lên</option>
-              </select>
-            </div>
-            <div>
-              <select className="input-field py-1.5 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="">Trạng thái (Mọi)</option>
-                <option value="AVAILABLE">Đang rảnh</option>
-                <option value="MANAGING_OTHER">Đang quản lý dự án khác</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="min-h-[250px] max-h-[350px] overflow-y-auto border rounded-lg p-2 bg-gray-50 relative">
-            {searching && (
-              <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
-                <span className="text-sm font-medium text-primary-600">Đang tìm...</span>
-              </div>
-            )}
-            
-            {candidates.length === 0 && !searching ? (
-              <p className="text-gray-500 text-center py-10 text-sm">Chưa có ứng viên nào phù hợp.</p>
-            ) : (
-              <div className="space-y-2">
-                {candidates.map(c => (
-                  <div 
-                    key={c.id} 
-                    onClick={() => setSelectedCandidate(c)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between ${selectedCandidate?.id === c.id ? 'bg-indigo-50 border-indigo-500 shadow-sm' : 'bg-white hover:bg-gray-50 border-gray-200'}`}
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">{c.User?.full_name}</p>
-                      <p className="text-xs text-gray-500 mb-1">{c.User?.email} · {c.professional_title}</p>
-                      
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded font-medium">
-                          Điểm: {c.competency_score}
-                        </span>
-                        {c.is_managing ? (
-                          <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded font-medium truncate max-w-[200px]" title={c.managed_project_names}>
-                            Đang QL: {c.managed_project_names}
-                          </span>
-                        ) : (
-                          <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-medium">
-                            Rảnh
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Add visual checkmark if selected */}
-                    {selectedCandidate?.id === c.id && (
-                      <div className="text-indigo-600 font-bold">✓</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          <div className="flex gap-2 justify-end mt-4 pt-2">
-            {project.Manager && (
-              <button 
-                type="button"
-                onClick={() => onAssign(null)} 
-                className="btn-secondary text-red-600 border-red-200 hover:bg-red-50 mr-auto"
-              >
-                Gỡ quyền quản lý hiện tại
-              </button>
-            )}
-            <button type="button" onClick={onClose} className="btn-secondary">Hủy</button>
-            <button 
-              type="button"
-              onClick={() => onAssign(selectedCandidate.id)} 
-              disabled={!selectedCandidate} 
-              className="btn-primary"
-            >
-              Lưu & Cấp quyền
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function InternalProjectsPage() {
   const qc = useQueryClient();
@@ -478,16 +327,18 @@ export default function InternalProjectsPage() {
   // View Applications Modal State
   const [viewJobsProject, setViewJobsProject] = useState(null);
 
-  // Assign Manager Modal State
-  const [assignManagerProject, setAssignManagerProject] = useState(null);
-
   // Candidate detail & interview
   const [detailApp, setDetailApp] = useState(null);
   const [interviewApp, setInterviewApp] = useState(null);
 
+  // Evaluation state: { app, workspaceId, memberId }
+  const [evaluateTarget, setEvaluateTarget] = useState(null);
+  const [evalForm, setEvalForm] = useState({ score: '', comment: '' });
+
   const { data: projectsRes, isLoading } = useQuery({
     queryKey: ['admin-projects'],
     queryFn: () => workspaceApi.getProjects(),
+    staleTime: 0, // tiến độ dự án thay đổi khi Task được cập nhật trong Workspace
   });
 
   const { data: skillsRes } = useQuery({
@@ -513,6 +364,16 @@ export default function InternalProjectsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi tạo dự án'),
   });
 
+  // Khởi tạo Workspace cho dự án chưa có (đã có thì server trả về Workspace hiện tại)
+  const createWorkspaceMutation = useMutation({
+    mutationFn: (projectId) => workspaceApi.createWorkspace(projectId),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
+      toast.success(res.data?.message || 'Đã khởi tạo Workspace');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi khởi tạo Workspace'),
+  });
+
   // Delete Project
   const deleteProjectMutation = useMutation({
     mutationFn: (id) => workspaceApi.deleteProject(id),
@@ -521,17 +382,6 @@ export default function InternalProjectsPage() {
       toast.success('Đã xóa dự án thành công!');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi xóa dự án'),
-  });
-
-  // Assign Manager
-  const assignManagerMutation = useMutation({
-    mutationFn: ({ projectId, manager_id }) => workspaceApi.updateProjectManager(projectId, { manager_id }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-projects'] });
-      setAssignManagerProject(null);
-      toast.success('Đã cập nhật quyền quản lý dự án!');
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Lỗi cập nhật quyền quản lý'),
   });
 
   // Create Project Job
@@ -559,6 +409,25 @@ export default function InternalProjectsPage() {
       toast.success(res.data?.message || 'Đã cập nhật hồ sơ');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi duyệt hồ sơ'),
+  });
+
+  // Evaluate Candidate
+  const evaluateMutation = useMutation({
+    mutationFn: async ({ workspaceId, candidateProfileId, data }) => {
+      // Tìm workspace member từ workspace + candidate profile
+      const wsRes = await workspaceApi.getWorkspaceDetail(workspaceId);
+      const members = wsRes?.data?.data?.WorkspaceMembers || [];
+      const member = members.find(m => m.candidate_profile_id === candidateProfileId);
+      if (!member) throw new Error('Không tìm thấy thành viên trong workspace. Ứng viên có thể chưa được thêm vào workspace.');
+      return adminApi.evaluateCandidate(workspaceId, member.id, data);
+    },
+    onSuccess: (res) => {
+      if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
+      toast.success(`Đã đánh giá thành công! Điểm TB mới: ${res.data?.new_avg_score?.toFixed(1) ?? ''}/10`);
+      setEvaluateTarget(null);
+      setEvalForm({ score: '', comment: '' });
+    },
+    onError: (err) => toast.error(err.message || err.response?.data?.message || 'Lỗi khi lưu đánh giá'),
   });
 
   const projects = projectsRes?.data?.data || [];
@@ -675,16 +544,15 @@ export default function InternalProjectsPage() {
               <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-1 text-gray-600 mb-4 border border-gray-100">
                 <p>💰 <strong>Ngân sách:</strong> {formatCurrency(project.budget)}</p>
                 <p>🎯 <strong>Vị trí tuyển dụng:</strong> {project.ProjectJobs?.length || 0} vị trí</p>
-                <p>📈 <strong>Tiến độ hoàn thành:</strong> {project.completion_rate}%</p>
-                <div className="flex items-center gap-1 pt-1 mt-1 border-t border-gray-200">
-                  <p>👤 <strong>Quản lý bởi:</strong> {project.Manager ? project.Manager.User?.full_name : 'Admin (Hệ thống)'}</p>
-                  <button 
-                    onClick={() => setAssignManagerProject(project)}
-                    className="ml-auto text-gray-400 hover:text-indigo-600 p-1"
-                    title="Cấp quyền quản lý"
-                  >
-                    ⚙️
-                  </button>
+                <div>
+                  <p className="flex justify-between">
+                    <span>📈 <strong>Tiến độ hoàn thành</strong></span>
+                    <span className="font-semibold text-gray-700">{Math.round(project.completion_rate || 0)}%</span>
+                  </p>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div className="bg-green-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, Math.round(project.completion_rate || 0))}%` }} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -705,13 +573,21 @@ export default function InternalProjectsPage() {
                 </button>
               </div>
 
-              {project.Workspace && (
+              {project.Workspace ? (
                 <Link
                   to={`/admin/workspaces/${project.Workspace.id}`}
                   className="btn-primary text-xs py-1.5 px-3"
                 >
                   Vào Workspace →
                 </Link>
+              ) : (
+                <button
+                  onClick={() => createWorkspaceMutation.mutate(project.id)}
+                  disabled={createWorkspaceMutation.isPending}
+                  className="btn-primary text-xs py-1.5 px-3 disabled:opacity-50"
+                >
+                  {createWorkspaceMutation.isPending ? 'Đang tạo...' : '+ Khởi tạo Workspace'}
+                </button>
               )}
             </div>
           </div>
@@ -967,14 +843,38 @@ export default function InternalProjectsPage() {
                                     </button>
                                   )}
 
+                                  {/* Evaluate — chỉ hiển thị cho ứng viên đã ACCEPTED */}
+                                  {app.status === 'ACCEPTED' && (
+                                    <button
+                                      onClick={() => {
+                                        setEvaluateTarget({
+                                          app,
+                                          workspaceId: viewJobsProject?.Workspace?.id,
+                                          candidateProfileId: app.candidate_profile_id,
+                                          candidateName: app.CandidateProfile?.User?.full_name,
+                                          currentScore: app.CandidateProfile?.competency_score,
+                                        });
+                                        setEvalForm({ score: '', comment: '' });
+                                      }}
+                                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-medium border border-amber-200"
+                                    >
+                                      ⭐ Đánh giá năng lực
+                                    </button>
+                                  )}
+
                                   {/* Status Dropdown */}
                                   <select
                                     value={app.status}
-                                    onChange={(e) => reviewAppMutation.mutate({ appId: app.id, status: e.target.value })}
-                                    disabled={reviewAppMutation.isPending}
-                                    className="ml-auto text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400 cursor-pointer"
+                                    onChange={(e) => {
+                                      const status = e.target.value;
+                                      if (status === 'ACCEPTED' && !confirm('Duyệt ứng viên vào Workspace? Sau khi duyệt sẽ không thể đổi trạng thái hồ sơ nữa.')) return;
+                                      reviewAppMutation.mutate({ appId: app.id, status });
+                                    }}
+                                    disabled={reviewAppMutation.isPending || app.status === 'ACCEPTED'}
+                                    title={app.status === 'ACCEPTED' ? 'Hồ sơ đã trúng tuyển — muốn cho ứng viên rời dự án, hãy xóa khỏi Workspace' : undefined}
+                                    className="ml-auto text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400 cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-50"
                                   >
-                                    <option value="PENDING">Chờ duyệt</option>
+                                    <option value="PENDING" disabled>Chờ duyệt</option>
                                     <option value="REVIEWING">Đang xét duyệt</option>
                                     <option value="INTERVIEW">Mời phỏng vấn</option>
                                     <option value="ACCEPTED">Duyệt vào WS ✅</option>
@@ -1025,14 +925,83 @@ export default function InternalProjectsPage() {
         />
       )}
 
-      {/* Assign Manager Modal */}
-      {assignManagerProject && (
-        <AssignManagerModal
-          project={assignManagerProject}
-          skills={skillsRes?.data?.data || []}
-          onClose={() => setAssignManagerProject(null)}
-          onAssign={(manager_id) => assignManagerMutation.mutate({ projectId: assignManagerProject.id, manager_id })}
-        />
+      {/* Evaluate Candidate Modal */}
+      {evaluateTarget && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl p-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">⭐ Đánh giá năng lực</h3>
+                <p className="text-sm text-primary-600 font-medium">{evaluateTarget.candidateName}</p>
+              </div>
+              <button onClick={() => setEvaluateTarget(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+            </div>
+
+            {evaluateTarget.currentScore > 0 && (
+              <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 text-sm text-indigo-700">
+                Điểm năng lực hiện tại: <strong>{parseFloat(evaluateTarget.currentScore).toFixed(1)}/10</strong>
+                <span className="text-xs text-indigo-400 ml-1">(TB tất cả dự án)</span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Điểm đánh giá <span className="text-red-500">*</span>
+                  <span className="text-xs font-normal text-gray-400 ml-1">(thang điểm 0 – 10)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range" min="0" max="10" step="0.5"
+                    className="flex-1 accent-amber-500"
+                    value={evalForm.score || 0}
+                    onChange={e => setEvalForm(p => ({ ...p, score: e.target.value }))}
+                  />
+                  <span className={`text-2xl font-bold w-12 text-center ${
+                    parseFloat(evalForm.score) >= 8 ? 'text-emerald-600' :
+                    parseFloat(evalForm.score) >= 5 ? 'text-amber-600' : 'text-gray-400'
+                  }`}>
+                    {evalForm.score || '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Kém (0)</span><span>Trung bình (5)</span><span>Xuất sắc (10)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Nhận xét</label>
+                <textarea
+                  className="input-field resize-none"
+                  rows={3}
+                  placeholder="Nhận xét về chất lượng công việc, thái độ, kỹ năng..."
+                  value={evalForm.comment}
+                  onChange={e => setEvalForm(p => ({ ...p, comment: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-5">
+              <button onClick={() => setEvaluateTarget(null)} className="btn-secondary">Hủy</button>
+              <button
+                onClick={() => {
+                  if (!evalForm.score) return toast.error('Vui lòng chọn điểm đánh giá');
+                  const score = parseFloat(evalForm.score);
+                  if (score < 0 || score > 10) return toast.error('Điểm phải từ 0 đến 10');
+                  evaluateMutation.mutate({
+                    workspaceId: evaluateTarget.workspaceId,
+                    candidateProfileId: evaluateTarget.candidateProfileId,
+                    data: { score, comment: evalForm.comment },
+                  });
+                }}
+                disabled={evaluateMutation.isPending || !evalForm.score}
+                className="btn-primary flex items-center gap-2"
+              >
+                {evaluateMutation.isPending ? 'Đang lưu...' : '✓ Lưu đánh giá'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

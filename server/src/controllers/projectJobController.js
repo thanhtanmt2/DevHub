@@ -242,15 +242,22 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
     });
     if (!application) throw new AppError('Application not found', 404);
 
+    // Hồ sơ đã trúng tuyển (đã vào Workspace) thì khóa trạng thái
+    if (application.status === 'ACCEPTED') {
+      throw new AppError('Hồ sơ đã trúng tuyển nên không thể thay đổi trạng thái. Nếu muốn cho ứng viên rời dự án, hãy xóa ứng viên khỏi Workspace.', 400);
+    }
+
     await application.update({ status });
 
     // If ACCEPTED -> Automatically add candidate into project's Workspace!
+    let workspaceLink = null; // link vào Workspace cho thông báo / email trúng tuyển
     if (status === 'ACCEPTED') {
       const workspace = await Workspace.findOne({
         where: { project_id: application.ProjectJob.project_id }
       });
 
       if (workspace) {
+        workspaceLink = `/candidate/workspaces/${workspace.id}`;
         const existingMember = await WorkspaceMember.findOne({
           where: {
             workspace_id: workspace.id,
@@ -264,6 +271,13 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
             candidate_profile_id: application.candidate_profile_id,
             project_job_id: application.project_job_id,
             status: 'ACTIVE',
+            joined_at: new Date()
+          });
+        } else if (existingMember.status !== 'ACTIVE') {
+          // Từng bị xóa khỏi workspace → kích hoạt lại
+          await existingMember.update({
+            status: 'ACTIVE',
+            project_job_id: application.project_job_id,
             joined_at: new Date()
           });
         }
@@ -283,6 +297,9 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
         description: `Đơn ứng tuyển của ${u.full_name} đã chuyển sang trạng thái: ${status}`,
         metadata: { project_job_id: application.project_job_id, user_id: u.id },
         notify_user_ids: [u.id],
+        notify_link: workspaceLink || '/candidate/applications',
+        // Trúng tuyển / Từ chối đã có email riêng (bên dưới) → không gửi thêm email chung
+        skip_email: ['ACCEPTED', 'REJECTED'].includes(status),
       });
 
       // --- SEND EMAIL NOTIFICATION ---
@@ -343,9 +360,9 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
                 ${bodyHtml}
 
                 <div style="text-align: center; margin: 32px 0 16px;">
-                  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/candidate/applications" target="_blank"
+                  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}${workspaceLink || '/candidate/applications'}" target="_blank"
                      style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%); color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-                    Xem chi tiết trên DevHub
+                    ${workspaceLink ? 'Vào Không gian làm việc' : 'Xem chi tiết trên DevHub'}
                   </a>
                 </div>
 
@@ -504,6 +521,7 @@ exports.adminScheduleInterview = async (req, res, next) => {
         description: `Đã xếp lịch phỏng vấn cho ${u.full_name} lúc ${formattedTime} ${formattedDate}`,
         metadata: { project_job_id: application.project_job_id, user_id: u.id },
         notify_user_ids: [u.id],
+        skip_email: true, // thư mời phỏng vấn đã được gửi riêng (bên trên)
       });
     }
 

@@ -13,6 +13,5 @@ module.exports = (sequelize, DataTypes) => {
     },
     completion_rate: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     created_by_user_id: { type: DataTypes.UUID },
-    manager_id: { type: DataTypes.UUID },
-  }, { tableName: 'projects', underscored: true });
+  },{ tableName: 'projects', underscored: true });
 };
