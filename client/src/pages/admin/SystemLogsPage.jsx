@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { logApi } from '../../api/logApi';
 import { adminApi } from '../../api/adminApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import Icon from '@/components/common/Icon';
+import { stripEmoji } from '@/utils/stripEmoji';
 
 const ACTION_LABELS = {
   // Auth
@@ -189,10 +191,12 @@ export default function SystemLogsPage() {
   };
 
   return (
-    <div className="p-6">
-
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-140px)]">
+    <div>
+      <div className="mb-5">
+        <h1 className="page-title">Nhật ký hệ thống</h1>
+        <p className="page-subtitle">Lịch sử thao tác của người dùng trên toàn hệ thống</p>
+      </div>
+      <div className="bg-white rounded-2xl shadow-soft border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-190px)] min-h-[420px]">
         {/* Toolbar */}
         <div className="p-4 border-b border-gray-100 flex flex-col gap-3 bg-gray-50/50">
           <div className="flex gap-3 flex-wrap">
@@ -231,7 +235,7 @@ export default function SystemLogsPage() {
             </div>
 
             <button onClick={exportCSV} className="btn-secondary flex items-center gap-2 px-6 whitespace-nowrap">
-              <span>📥 Xuất CSV</span>
+              <Icon name="download" className="w-4 h-4" /><span>Xuất CSV</span>
             </button>
           </div>
         </div>
@@ -244,9 +248,9 @@ export default function SystemLogsPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-500 font-semibold sticky top-0 shadow-sm">
                 <tr>
-                  <th className="px-5 py-3 border-b">Thời gian</th>
-                  <th className="px-5 py-3 border-b">Người thực hiện</th>
-                  <th className="px-5 py-3 border-b">Hành động</th>
+                  <th className="px-5 py-3 border-b whitespace-nowrap">Thời gian</th>
+                  <th className="px-5 py-3 border-b whitespace-nowrap">Người thực hiện</th>
+                  <th className="px-5 py-3 border-b whitespace-nowrap">Hành động</th>
                   <th className="px-5 py-3 border-b">Đối tượng</th>
                   <th className="px-5 py-3 border-b">Chi tiết</th>
                 </tr>
@@ -259,11 +263,11 @@ export default function SystemLogsPage() {
                       <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
                         {new Date(log.createdAt || log.created_at).toLocaleString('vi-VN')}
                       </td>
-                      <td className="px-5 py-3 font-medium text-gray-900">
+                      <td className="px-5 py-3 font-medium text-gray-900 min-w-[170px]">
                         {log.user_name || 'Hệ thống'}
                         <div className="text-xs text-gray-400 font-normal">{log.user_role} • {log.ip_address}</div>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3 whitespace-nowrap">
                         <span className={`px-2.5 py-1 text-xs font-semibold rounded-md ${meta.color}`}>
                           {meta.text}
                         </span>
@@ -271,8 +275,8 @@ export default function SystemLogsPage() {
                       <td className="px-5 py-3 text-gray-700">
                         {log.entity_name || '-'}
                       </td>
-                      <td className="px-5 py-3 text-gray-600 max-w-md truncate" title={log.description}>
-                        {log.description}
+                      <td className="px-5 py-3 text-gray-600 max-w-md truncate" title={stripEmoji(log.description)}>
+                        {stripEmoji(log.description)}
                       </td>
                     </tr>
                   );

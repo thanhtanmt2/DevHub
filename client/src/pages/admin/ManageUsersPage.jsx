@@ -4,6 +4,7 @@ import { adminApi } from '@/api/adminApi';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import Icon from '@/components/common/Icon';
 
 const ROLE_LABELS = { CANDIDATE: 'Ứng viên', EMPLOYER: 'Nhà tuyển dụng', ADMIN: 'Quản trị viên' };
 const ROLE_COLORS = { CANDIDATE: 'bg-blue-100 text-blue-700', EMPLOYER: 'bg-purple-100 text-purple-700', ADMIN: 'bg-red-100 text-red-700' };
@@ -57,9 +58,9 @@ export default function ManageUsersPage() {
           placeholder="Tìm theo tên hoặc email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="input flex-1 max-w-sm"
+          className="input-field flex-1 max-w-sm"
         />
-        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="input w-44">
+        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="input-field w-44">
           <option value="">Tất cả vai trò</option>
           <option value="CANDIDATE">Ứng viên</option>
           <option value="EMPLOYER">Nhà tuyển dụng</option>
@@ -97,14 +98,14 @@ export default function ManageUsersPage() {
                         <select
                           defaultValue={userRole}
                           onChange={e => assignRoleMutation.mutate({ id: u.id, role: e.target.value })}
-                          className="input py-1 text-xs"
+                          className="input-field w-auto !py-1 text-xs"
                           disabled={assignRoleMutation.isPending}
                         >
                           <option value="CANDIDATE">Ứng viên</option>
                           <option value="EMPLOYER">Nhà tuyển dụng</option>
                           <option value="ADMIN">Quản trị viên</option>
                         </select>
-                        <button onClick={() => setAssigningRole(null)} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                        <button onClick={() => setAssigningRole(null)} className="text-gray-400 hover:text-gray-600" aria-label="Hủy"><Icon name="x" className="w-4 h-4" /></button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -118,7 +119,7 @@ export default function ManageUsersPage() {
                             onClick={() => setAssigningRole({ userId: u.id })}
                             className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
                             title="Đổi vai trò"
-                          >✏️</button>
+                          ><Icon name="pencil" className="w-4 h-4" /></button>
                         )}
                       </div>
                     )}

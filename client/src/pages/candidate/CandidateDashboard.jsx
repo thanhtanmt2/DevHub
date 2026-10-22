@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { candidateApi } from '@/api/candidateApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Icon from '@/components/common/Icon';
 
 const STATUS_LABELS = { 
   PENDING: 'Chờ xem xét', 
@@ -96,7 +97,7 @@ export default function CandidateDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Xin chào, {user?.full_name}! 👋</h1>
+        <h1 className="text-2xl font-bold">Xin chào, {user?.full_name}!</h1>
         <p className="text-gray-500">{profile?.professional_title || 'Hoàn thiện hồ sơ để tăng cơ hội ứng tuyển'}</p>
       </div>
 
@@ -114,24 +115,24 @@ export default function CandidateDashboard() {
       {openTasks.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">📋 Công việc dự án của tôi</h2>
+            <h2 className="font-semibold">Công việc dự án của tôi</h2>
             <Link to="/candidate/workspaces" className="text-sm text-primary-600 hover:underline">Xem tất cả ({openTasks.length})</Link>
           </div>
           <div className="flex flex-wrap gap-2 mb-3 text-xs">
             <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
-              ⚡ {openTasks.filter(t => t.status === 'IN_PROGRESS').length} đang làm
+              <Icon name="bolt" className="w-3.5 h-3.5 mr-0.5" />{openTasks.filter(t => t.status === 'IN_PROGRESS').length} đang làm
             </span>
             <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
-              ⏳ {openTasks.filter(t => t.status === 'REVIEW').length} chờ duyệt
+              <Icon name="clock" className="w-3.5 h-3.5 mr-0.5" />{openTasks.filter(t => t.status === 'REVIEW').length} chờ duyệt
             </span>
             {openTasks.some(t => t.is_overdue) && (
               <span className="px-2 py-1 rounded-full bg-red-50 text-red-600 font-semibold">
-                ⚠️ {openTasks.filter(t => t.is_overdue).length} quá hạn
+                <Icon name="alert" className="w-3.5 h-3.5 mr-0.5" />{openTasks.filter(t => t.is_overdue).length} quá hạn
               </span>
             )}
             {openTasks.some(t => t.status === 'IN_PROGRESS' && t.review_status === 'REVISION_REQUIRED') && (
               <span className="px-2 py-1 rounded-full bg-orange-50 text-orange-700 font-semibold">
-                ↩️ {openTasks.filter(t => t.status === 'IN_PROGRESS' && t.review_status === 'REVISION_REQUIRED').length} cần chỉnh sửa
+                <Icon name="undo" className="w-3.5 h-3.5 mr-0.5" />{openTasks.filter(t => t.status === 'IN_PROGRESS' && t.review_status === 'REVISION_REQUIRED').length} cần chỉnh sửa
               </span>
             )}
           </div>

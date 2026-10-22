@@ -1,3 +1,5 @@
+import Icon, { IconBadge } from '@/components/common/Icon';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 ﻿import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
@@ -196,6 +198,7 @@ function ProfileInfoTab({ profile, qc }) {
 
 // ── CV Management Tab (Multiple CVs) ──────────────────
 function CvTab({ profile, qc }) {
+  const confirm = useConfirm();
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [cvTitle, setCvTitle] = useState('');
@@ -209,7 +212,7 @@ function CvTab({ profile, qc }) {
 
   const cvList = cvsRes?.data?.data || [];
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -225,7 +228,7 @@ function CvTab({ profile, qc }) {
     );
 
     if (isDuplicate) {
-      if (!window.confirm('Phát hiện CV có tên hoặc dung lượng giống với một CV đã có trong danh sách. Bạn có chắc chắn muốn tải lên bản sao này không?')) {
+      if (!(await confirm({ title: 'CV có thể bị trùng', message: 'Phát hiện CV có tên hoặc dung lượng giống với một CV đã có trong danh sách. Bạn có chắc chắn muốn tải lên bản sao này không?', confirmText: 'Vẫn tải lên' }))) {
         // Reset input file
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
@@ -281,7 +284,7 @@ function CvTab({ profile, qc }) {
   };
 
   const handleDeleteCV = async (cvId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa bản CV này khỏi hồ sơ không?')) return;
+    if (!(await confirm({ title: 'Xóa CV', message: 'Bạn có chắc chắn muốn xóa bản CV này khỏi hồ sơ không?', confirmText: 'Xóa', tone: 'danger' }))) return;
     try {
       await candidateApi.deleteCv(cvId);
       qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
@@ -309,7 +312,7 @@ function CvTab({ profile, qc }) {
           <div className="text-center py-8 text-gray-400">Đang tải danh sách CV...</div>
         ) : cvList.length === 0 ? (
           <div className="p-8 bg-gray-50 rounded-2xl border border-gray-200 text-center mb-6">
-            <div className="text-4xl mb-2">📂</div>
+            <IconBadge name="folder" size="lg" className="mx-auto mb-2" />
             <h3 className="font-semibold text-gray-800 text-base">Chưa có CV nào trong hồ sơ</h3>
             <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
               Hãy tải lên bản CV đầu tiên bên dưới để hệ thống lưu trữ và giúp bạn ứng tuyển nhanh chóng.
@@ -326,15 +329,15 @@ function CvTab({ profile, qc }) {
                   }`}
               >
                 <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-primary-100/70 border border-primary-200 flex items-center justify-center text-2xl shrink-0">
-                    📄
+                  <div className="w-11 h-11 rounded-xl bg-primary-100/70 border border-primary-200 flex items-center justify-center text-primary-600 shrink-0">
+                    <Icon name="document" className="w-6 h-6" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold text-gray-900 text-base truncate">{cv.name}</h4>
                       {cv.is_default && (
                         <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200">
-                          ⭐ CV Mặc định
+                          <Icon name="star" className="w-3 h-3 mr-1" />CV Mặc định
                         </span>
                       )}
                     </div>
@@ -355,7 +358,7 @@ function CvTab({ profile, qc }) {
                       onClick={() => handleSetDefault(cv.id)}
                       className="btn text-xs py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
                     >
-                      ⭐ Đặt làm mặc định
+                      <Icon name="star" className="w-3.5 h-3.5 mr-1" />Đặt làm mặc định
                     </button>
                   )}
                   <a
@@ -364,7 +367,7 @@ function CvTab({ profile, qc }) {
                     rel="noopener noreferrer"
                     className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1"
                   >
-                    <span>👁️</span> Xem CV ↗
+                    <Icon name="eye" className="w-4 h-4" /> Xem CV
                   </a>
                   <a
                     href={cv.file_url}
@@ -373,15 +376,16 @@ function CvTab({ profile, qc }) {
                     rel="noopener noreferrer"
                     className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1"
                   >
-                    <span>📥</span> Tải về
+                    <Icon name="download" className="w-4 h-4" /> Tải về
                   </a>
                   <button
                     type="button"
                     onClick={() => handleDeleteCV(cv.id)}
                     className="btn text-xs py-1.5 px-2.5 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg transition"
                     title="Xóa bản CV này"
+                    aria-label="Xóa bản CV này"
                   >
-                    🗑️
+                    <Icon name="trash" className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -392,7 +396,7 @@ function CvTab({ profile, qc }) {
         {/* Upload form for new CV */}
         <div className="border-t border-gray-100 pt-6">
           <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span>➕</span> Tải lên bản CV mới
+            <Icon name="plus" className="w-4 h-4" /> Tải lên bản CV mới
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -435,7 +439,7 @@ function CvTab({ profile, qc }) {
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 p-7 rounded-2xl text-center cursor-pointer transition duration-150 flex flex-col items-center justify-center gap-2"
             >
-              <span className="text-3xl">📤</span>
+              <IconBadge name="upload" size="lg" />
               <p className="text-sm font-semibold text-gray-800">
                 Nhấp để chọn hoặc kéo thả file CV vào đây
               </p>
@@ -446,8 +450,8 @@ function CvTab({ profile, qc }) {
           ) : (
             <div className="border border-primary-200 bg-primary-50/50 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white border border-primary-100 flex items-center justify-center text-xl shrink-0 shadow-sm">
-                  📄
+                <div className="w-10 h-10 rounded-lg bg-white border border-primary-100 flex items-center justify-center text-primary-600 shrink-0 shadow-sm">
+                  <Icon name="document" className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px] sm:max-w-xs">{selectedFile.name}</p>
@@ -476,7 +480,7 @@ function CvTab({ profile, qc }) {
                     </>
                   ) : (
                     <>
-                      <span>💾</span> Lưu CV này
+                      <Icon name="save" className="w-4 h-4" /> Lưu CV này
                     </>
                   )}
                 </button>
@@ -489,11 +493,11 @@ function CvTab({ profile, qc }) {
       {/* Guide Card */}
       <div className="card bg-blue-50/40 border border-blue-100 p-5 rounded-xl">
         <h4 className="text-sm font-bold text-blue-950 flex items-center gap-2 mb-2">
-          <span>💡</span> Mẹo sử dụng nhiều CV hiệu quả
+          <Icon name="lightbulb" className="w-4 h-4" /> Mẹo sử dụng nhiều CV hiệu quả
         </h4>
         <ul className="text-xs text-blue-900/80 space-y-1.5 list-disc list-inside">
           <li>Bạn có thể tạo các bản CV chuyên biệt: <strong>CV Frontend</strong> (tập trung React, UI/UX), <strong>CV Backend</strong> (tập trung Node.js, Database, Docker) hoặc <strong>CV Tiếng Anh</strong> cho các vị trí yêu cầu ngoại ngữ.</li>
-          <li>CV được đánh dấu ⭐ <strong>CV Mặc định</strong> sẽ được tự động chọn đầu tiên khi bạn bấm nút ứng tuyển.</li>
+          <li>CV được gắn nhãn <strong>CV Mặc định</strong> sẽ được tự động chọn đầu tiên khi bạn bấm nút ứng tuyển.</li>
           <li>Định dạng khuyên dùng tốt nhất là <strong>PDF</strong> để giữ nguyên định dạng thẩm mỹ.</li>
         </ul>
       </div>
@@ -566,7 +570,7 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
             <span className="text-xs opacity-70">
               · {LEVEL_LABELS[s.level]} {s.years_of_experience > 0 && `(${Number(s.years_of_experience)} năm)`}
             </span>
-            <button onClick={() => removeMutation.mutate(s.skill_id)} className="ml-1 text-xs opacity-60 hover:opacity-100">✕</button>
+            <button onClick={() => removeMutation.mutate(s.skill_id)} className="ml-1 opacity-60 hover:opacity-100" aria-label="Xóa kỹ năng"><Icon name="x" className="w-3.5 h-3.5" /></button>
           </div>
         ))}
       </div>
@@ -662,7 +666,7 @@ function ExperienceTab({ experiences, qc }) {
       <div className="mt-6">
         {experiences.length === 0 ? (
           <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            <span className="text-4xl">💼</span>
+            <IconBadge name="briefcase" size="lg" className="mx-auto" />
             <p className="text-gray-500 text-sm mt-3 font-medium">Chưa có kinh nghiệm nào.</p>
             <p className="text-gray-400 text-xs mt-1">Hãy thêm các công việc bạn từng làm để nhà tuyển dụng chú ý hơn.</p>
           </div>
@@ -688,7 +692,7 @@ function ExperienceTab({ experiences, qc }) {
                         <p className="text-sm font-semibold text-primary-600 mb-2">{exp.company_name}</p>
                         
                         <div className="inline-flex items-center gap-2 text-xs text-gray-600 mb-3 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full font-medium">
-                          <span>📅</span>
+                          <Icon name="calendar" className="w-3.5 h-3.5" />
                           <span>{formatDate(exp.start_date)} — {exp.end_date ? formatDate(exp.end_date) : 'Hiện tại'}</span>
                         </div>
                         

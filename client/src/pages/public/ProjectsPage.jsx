@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import CvSelector from '@/components/candidate/CvSelector';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const formatSalary = (amount) => {
   if (!amount) return 'Thỏa thuận';
@@ -22,6 +24,7 @@ export default function ProjectsPage() {
   const [filters, setFilters] = useState({ keyword: '', skill_id: '', page: 1 });
   const [activeDetailJob, setActiveDetailJob] = useState(null);
   const [selectedJobForApply, setSelectedJobForApply] = useState(null);
+  useEscapeKey(() => setSelectedJobForApply(null), !!selectedJobForApply);
   const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
 
   // Debounce keyword: chờ 400ms sau khi người dùng ngừng gõ mới gửi request
@@ -115,7 +118,12 @@ export default function ProjectsPage() {
   const skills = skillsRes?.data?.data || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-5">
+        <h1 className="page-title">Dự án thời vụ</h1>
+        <p className="page-subtitle">Nhận các dự án Freelance, Remote, Part-time và làm việc ngay trong Workspace của DevHub</p>
+      </div>
+
       {/* Search Bar & Skills */}
       <div className="card mb-6">
         <div className="flex flex-col md:flex-row gap-3">
@@ -149,7 +157,7 @@ export default function ProjectsPage() {
 
           {projectJobs.length === 0 ? (
             <div className="card text-center py-12 text-gray-400">
-              <p className="text-4xl mb-2">🔍</p>
+              <IconBadge name="search" size="lg" className="mx-auto mb-2" />
               <p>Không tìm thấy vị trí dự án phù hợp</p>
             </div>
           ) : (
@@ -182,7 +190,7 @@ export default function ProjectsPage() {
                           </div>
 
                           <p className="text-sm font-medium text-primary-700 mb-2">
-                            📁 {job.Project?.name}
+                            <Icon name="folder" className="w-4 h-4 mr-1" />{job.Project?.name}
                           </p>
 
                           <p className="text-sm text-gray-600 line-clamp-2 mb-3">
@@ -202,10 +210,10 @@ export default function ProjectsPage() {
 
                           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                             <span className="font-semibold text-green-700 text-sm">
-                              💰 {formatSalary(job.budget)}
+                              <Icon name="cash" className="w-4 h-4 mr-1" />{formatSalary(job.budget)}
                             </span>
                             {job.deadline && (
-                              <span>⏰ Hạn: {new Date(job.deadline).toLocaleDateString('vi-VN')}</span>
+                              <span><Icon name="clock" className="w-4 h-4 mr-1" />Hạn: {new Date(job.deadline).toLocaleDateString('vi-VN')}</span>
                             )}
                           </div>
                         </div>
@@ -216,7 +224,7 @@ export default function ProjectsPage() {
                               disabled
                               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300 cursor-not-allowed flex items-center gap-1"
                             >
-                              <span>✓</span> Đã ứng tuyển
+                              <Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} /> Đã ứng tuyển
                             </button>
                           ) : (
                             <button
@@ -269,13 +277,13 @@ export default function ProjectsPage() {
                         </div>
                         <h2 className="text-xl font-bold text-gray-900">{activeDetailJob.title}</h2>
                         <p className="text-sm font-semibold text-primary-600 mt-1">
-                          📁 {activeDetailJob.Project?.name}
+                          <Icon name="folder" className="w-4 h-4 mr-1" />{activeDetailJob.Project?.name}
                         </p>
                         <Link
                           to={`/projects/${activeDetailJob.id}`}
                           className="text-xs text-gray-400 hover:text-primary-600 mt-1 inline-flex items-center gap-1 transition-colors"
                         >
-                          ↗ Xem trang chi tiết riêng
+                          <Icon name="external" className="w-3.5 h-3.5" /> Xem trang chi tiết riêng
                         </Link>
                       </div>
 
@@ -283,8 +291,9 @@ export default function ProjectsPage() {
                         onClick={() => setActiveDetailJob(null)}
                         className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 text-lg transition-colors"
                         title="Đóng khung chi tiết"
+                        aria-label="Đóng"
                       >
-                        ✕
+                        <Icon name="x" className="w-5 h-5" />
                       </button>
                     </div>
 
@@ -299,7 +308,7 @@ export default function ProjectsPage() {
 
                       {appliedJobIds.has(activeDetailJob.id) ? (
                         <div className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-sm">
-                          <span className="font-bold">✓</span> Đã nộp hồ sơ
+                          <Icon name="check" className="w-4 h-4" strokeWidth={2.5} /> Đã nộp hồ sơ
                         </div>
                       ) : (
                         <button
@@ -397,7 +406,7 @@ export default function ProjectsPage() {
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
             <h2 className="text-xl font-bold mb-1">Ứng tuyển vị trí dự án</h2>
             <p className="text-sm font-medium text-primary-600 mb-1">{selectedJobForApply.title}</p>
-            <p className="text-xs text-gray-500 mb-4">📁 Dự án: {selectedJobForApply.Project?.name}</p>
+            <p className="text-xs text-gray-500 mb-4"><Icon name="folder" className="w-3.5 h-3.5 mr-1" />Dự án: {selectedJobForApply.Project?.name}</p>
 
             <form onSubmit={handleApplySubmit} className="space-y-4">
               <div>

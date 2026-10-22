@@ -7,6 +7,9 @@ import { skillApi } from '@/api/skillApi';
 import { adminApi } from '@/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import Icon from '@/components/common/Icon';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const formatCurrency = (amount) => {
   if (!amount) return '0đ';
@@ -17,12 +20,13 @@ const STATUS_LABELS = {
   PENDING: { label: 'Chờ duyệt', color: 'bg-yellow-100 text-yellow-700' },
   REVIEWING: { label: 'Đang xét duyệt', color: 'bg-blue-100 text-blue-700' },
   INTERVIEW: { label: 'Mời phỏng vấn', color: 'bg-purple-100 text-purple-700' },
-  ACCEPTED: { label: 'Trúng tuyển ✅', color: 'bg-green-100 text-green-700' },
+  ACCEPTED: { label: 'Trúng tuyển', color: 'bg-green-100 text-green-700' },
   REJECTED: { label: 'Từ chối', color: 'bg-red-100 text-red-700' },
 };
 
 // ─── Candidate Detail Panel ─────────────────────────────────────────────────
 function CandidateDetailPanel({ app, onClose }) {
+  useEscapeKey(onClose);
   const profile = app.CandidateProfile;
   const user = profile?.User;
   const skills = profile?.Skills || [];
@@ -41,7 +45,7 @@ function CandidateDetailPanel({ app, onClose }) {
             <h3 className="text-lg font-bold text-gray-900">{user?.full_name}</h3>
             <p className="text-sm text-gray-500">{user?.email} · {profile?.professional_title || 'Chưa cập nhật chức danh'}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">✕</button>
+          <button onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-600"><Icon name="x" className="w-6 h-6" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -50,19 +54,19 @@ function CandidateDetailPanel({ app, onClose }) {
             {app.cv_url && (
               <a href={app.cv_url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium border border-blue-200 transition-colors">
-                📄 Xem CV đính kèm
+                <Icon name="document" className="w-4 h-4" />Xem CV đính kèm
               </a>
             )}
             {profile?.github_url && (
               <a href={profile.github_url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                🐙 GitHub
+                <Icon name="code" className="w-4 h-4" />GitHub
               </a>
             )}
             {profile?.portfolio_url && (
               <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                🌐 Portfolio
+                <Icon name="globe" className="w-4 h-4" />Portfolio
               </a>
             )}
           </div>
@@ -86,7 +90,7 @@ function CandidateDetailPanel({ app, onClose }) {
           {/* Skills */}
           {skills.length > 0 && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">🛠️ Kỹ năng</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Kỹ năng</h4>
               <div className="flex flex-wrap gap-2">
                 {skills.map(skill => (
                   <span key={skill.id}
@@ -104,7 +108,7 @@ function CandidateDetailPanel({ app, onClose }) {
           {/* Cover Letter */}
           {app.cover_letter && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">📝 Thư xin việc</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Thư xin việc</h4>
               <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 italic leading-relaxed border border-gray-200">
                 "{app.cover_letter}"
               </div>
@@ -114,7 +118,7 @@ function CandidateDetailPanel({ app, onClose }) {
           {/* Project History */}
           {members.length > 0 && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">🏗️ Lịch sử dự án trên DevHub</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Lịch sử dự án trên DevHub</h4>
               <div className="space-y-2">
                 {members.map(member => (
                   <div key={member.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200 flex items-center justify-between gap-3">
@@ -146,14 +150,14 @@ function CandidateDetailPanel({ app, onClose }) {
           {/* Interview info (if scheduled) */}
           {app.interview_time && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-              <h4 className="text-sm font-semibold text-purple-800 mb-1">📅 Lịch phỏng vấn đã đặt</h4>
+              <h4 className="text-sm font-semibold text-purple-800 mb-1"><Icon name="calendar" className="w-4 h-4 mr-1" />Lịch phỏng vấn đã đặt</h4>
               <p className="text-sm text-purple-700">
                 {new Date(app.interview_time).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
               {app.meet_url && (
                 <a href={app.meet_url} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 mt-1 text-sm text-purple-600 hover:text-purple-800 underline">
-                  🎥 {app.meet_url}
+                  <Icon name="video" className="w-4 h-4" />{app.meet_url}
                 </a>
               )}
               {app.interview_note && (
@@ -169,6 +173,7 @@ function CandidateDetailPanel({ app, onClose }) {
 
 // ─── Schedule Interview Modal ────────────────────────────────────────────────
 function ScheduleInterviewModal({ app, onClose, onSuccess }) {
+  useEscapeKey(onClose);
   const [form, setForm] = useState({
     interview_date: '',
     interview_time: '',
@@ -210,10 +215,10 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-xl p-5 text-white">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-lg font-bold">📅 Đặt lịch phỏng vấn</h3>
+              <h3 className="text-lg font-bold"><Icon name="calendar" className="w-5 h-5 mr-1.5" />Đặt lịch phỏng vấn</h3>
               <p className="text-indigo-200 text-sm mt-0.5">Lịch sẽ được gửi qua email đến ứng viên</p>
             </div>
-            <button onClick={onClose} className="text-white/70 hover:text-white text-xl font-bold leading-none">✕</button>
+            <button onClick={onClose} aria-label="Đóng" className="text-white/70 hover:text-white"><Icon name="x" className="w-6 h-6" /></button>
           </div>
           <div className="mt-3 bg-white/10 rounded-lg p-2.5 text-sm">
             <p className="font-medium">{user?.full_name}</p>
@@ -279,7 +284,7 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
           {/* Preview */}
           {form.interview_date && form.interview_time && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-              <p className="font-medium text-blue-800 mb-1">📬 Preview email sẽ gửi:</p>
+              <p className="font-medium text-blue-800 mb-1"><Icon name="mail" className="w-4 h-4 mr-1" />Preview email sẽ gửi:</p>
               <p className="text-blue-700">
                 Kính gửi <strong>{user?.full_name}</strong>, bạn được mời phỏng vấn vào lúc{' '}
                 <strong>{form.interview_time}</strong> ngày{' '}
@@ -304,7 +309,7 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
                   Đang gửi...
                 </>
               ) : (
-                '📧 Gửi lịch phỏng vấn'
+                <><Icon name="mail" className="w-4 h-4 mr-1.5" />Gửi lịch phỏng vấn</>
               )}
             </button>
           </div>
@@ -316,6 +321,7 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function InternalProjectsPage() {
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const [showAddProject, setShowAddProject] = useState(false);
   const [projectForm, setProjectForm] = useState({ name: '', description: '', budget: '', expected_end_date: '' });
@@ -334,6 +340,9 @@ export default function InternalProjectsPage() {
   // Evaluation state: { app, workspaceId, memberId }
   const [evaluateTarget, setEvaluateTarget] = useState(null);
   const [evalForm, setEvalForm] = useState({ score: '', comment: '' });
+  useEscapeKey(() => setActiveProjectForJob(null), !!activeProjectForJob);
+  useEscapeKey(() => setViewJobsProject(null), !!viewJobsProject);
+  useEscapeKey(() => setEvaluateTarget(null), !!evaluateTarget);
 
   const { data: projectsRes, isLoading } = useQuery({
     queryKey: ['admin-projects'],
@@ -525,16 +534,17 @@ export default function InternalProjectsPage() {
                     {project.status}
                   </span>
                   <button 
-                    onClick={() => {
-                      if (window.confirm(`Bạn có chắc chắn muốn xóa dự án "${project.name}" không?`)) {
+                    onClick={async () => {
+                      if (await confirm({ title: 'Xóa dự án', message: `Bạn có chắc chắn muốn xóa dự án "${project.name}" không?`, confirmText: 'Xóa dự án', tone: 'danger' })) {
                         deleteProjectMutation.mutate(project.id);
                       }
                     }}
                     disabled={deleteProjectMutation.isPending}
                     className="text-gray-400 hover:text-red-500 transition-colors"
                     title="Xóa dự án"
+                    aria-label="Xóa dự án"
                   >
-                    🗑️
+                    <Icon name="trash" className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -542,11 +552,11 @@ export default function InternalProjectsPage() {
               <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
 
               <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-1 text-gray-600 mb-4 border border-gray-100">
-                <p>💰 <strong>Ngân sách:</strong> {formatCurrency(project.budget)}</p>
-                <p>🎯 <strong>Vị trí tuyển dụng:</strong> {project.ProjectJobs?.length || 0} vị trí</p>
+                <p><Icon name="cash" className="w-4 h-4 mr-1" /><strong>Ngân sách:</strong> {formatCurrency(project.budget)}</p>
+                <p><Icon name="users" className="w-4 h-4 mr-1" /><strong>Vị trí tuyển dụng:</strong> {project.ProjectJobs?.length || 0} vị trí</p>
                 <div>
                   <p className="flex justify-between">
-                    <span>📈 <strong>Tiến độ hoàn thành</strong></span>
+                    <span><Icon name="trending" className="w-4 h-4 mr-1" /><strong>Tiến độ hoàn thành</strong></span>
                     <span className="font-semibold text-gray-700">{Math.round(project.completion_rate || 0)}%</span>
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
@@ -698,9 +708,9 @@ export default function InternalProjectsPage() {
               </div>
               <button
                 onClick={() => setViewJobsProject(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                className="text-gray-400 hover:text-gray-600" aria-label="Đóng"
               >
-                ✕
+                <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
 
@@ -774,17 +784,17 @@ export default function InternalProjectsPage() {
                                 <div className="flex items-center gap-3 mb-2">
                                   {profile?.competency_score != null && (
                                     <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-                                      ⭐ Điểm NL: <strong>{profile.competency_score}</strong>
+                                      <Icon name="star" className="w-3.5 h-3.5 mr-0" />Điểm NL: <strong>{profile.competency_score}</strong>
                                     </span>
                                   )}
                                   {avgScore && (
                                     <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-                                      🏅 Đánh giá TB: <strong>{avgScore}/10</strong>
+                                      <Icon name="badge" className="w-3.5 h-3.5 mr-0" />Đánh giá TB: <strong>{avgScore}/10</strong>
                                     </span>
                                   )}
                                   {members.length > 0 && (
                                     <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                                      🏗️ {members.length} dự án
+                                      <Icon name="folder" className="w-3.5 h-3.5 mr-0" />{members.length} dự án
                                     </span>
                                   )}
                                 </div>
@@ -804,7 +814,7 @@ export default function InternalProjectsPage() {
                                 {/* Interview badge */}
                                 {app.interview_time && (
                                   <div className="mb-2 text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded px-2 py-1 flex items-center gap-1">
-                                    📅 Phỏng vấn: {new Date(app.interview_time).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    <Icon name="calendar" className="w-3.5 h-3.5" />Phỏng vấn: {new Date(app.interview_time).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     {app.meet_url && (
                                       <a href={app.meet_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline hover:text-purple-900">· Meet ↗</a>
                                     )}
@@ -818,7 +828,7 @@ export default function InternalProjectsPage() {
                                     onClick={() => setDetailApp(app)}
                                     className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-medium border border-indigo-100"
                                   >
-                                    👤 Xem hồ sơ đầy đủ
+                                    <Icon name="user" className="w-3.5 h-3.5 mr-1" />Xem hồ sơ đầy đủ
                                   </button>
 
                                   {/* CV Link */}
@@ -829,7 +839,7 @@ export default function InternalProjectsPage() {
                                       rel="noopener noreferrer"
                                       className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-medium border border-blue-100"
                                     >
-                                      📄 CV
+                                      <Icon name="document" className="w-3.5 h-3.5 mr-1" />CV
                                     </a>
                                   )}
 
@@ -839,7 +849,7 @@ export default function InternalProjectsPage() {
                                       onClick={() => setInterviewApp(app)}
                                       className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-xs font-medium border border-purple-100"
                                     >
-                                      📅 Đặt lịch phỏng vấn
+                                      <Icon name="calendar" className="w-3.5 h-3.5 mr-1" />Đặt lịch phỏng vấn
                                     </button>
                                   )}
 
@@ -858,16 +868,16 @@ export default function InternalProjectsPage() {
                                       }}
                                       className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-medium border border-amber-200"
                                     >
-                                      ⭐ Đánh giá năng lực
+                                      <Icon name="star" className="w-3.5 h-3.5 mr-1" />Đánh giá năng lực
                                     </button>
                                   )}
 
                                   {/* Status Dropdown */}
                                   <select
                                     value={app.status}
-                                    onChange={(e) => {
+                                    onChange={async (e) => {
                                       const status = e.target.value;
-                                      if (status === 'ACCEPTED' && !confirm('Duyệt ứng viên vào Workspace? Sau khi duyệt sẽ không thể đổi trạng thái hồ sơ nữa.')) return;
+                                      if (status === 'ACCEPTED' && !(await confirm({ title: 'Duyệt vào Workspace', message: 'Duyệt ứng viên vào Workspace? Sau khi duyệt sẽ không thể đổi trạng thái hồ sơ nữa.', confirmText: 'Duyệt vào Workspace' }))) return;
                                       reviewAppMutation.mutate({ appId: app.id, status });
                                     }}
                                     disabled={reviewAppMutation.isPending || app.status === 'ACCEPTED'}
@@ -877,7 +887,7 @@ export default function InternalProjectsPage() {
                                     <option value="PENDING" disabled>Chờ duyệt</option>
                                     <option value="REVIEWING">Đang xét duyệt</option>
                                     <option value="INTERVIEW">Mời phỏng vấn</option>
-                                    <option value="ACCEPTED">Duyệt vào WS ✅</option>
+                                    <option value="ACCEPTED">Duyệt vào Workspace</option>
                                     <option value="REJECTED">Từ chối</option>
                                   </select>
                                 </div>
@@ -931,10 +941,10 @@ export default function InternalProjectsPage() {
           <div className="bg-white rounded-xl max-w-md w-full shadow-2xl p-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">⭐ Đánh giá năng lực</h3>
+                <h3 className="text-lg font-bold text-gray-900"><Icon name="star" className="w-5 h-5 mr-1.5" />Đánh giá năng lực</h3>
                 <p className="text-sm text-primary-600 font-medium">{evaluateTarget.candidateName}</p>
               </div>
-              <button onClick={() => setEvaluateTarget(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+              <button onClick={() => setEvaluateTarget(null)} aria-label="Đóng" className="text-gray-400 hover:text-gray-600"><Icon name="x" className="w-5 h-5" /></button>
             </div>
 
             {evaluateTarget.currentScore > 0 && (
@@ -997,7 +1007,7 @@ export default function InternalProjectsPage() {
                 disabled={evaluateMutation.isPending || !evalForm.score}
                 className="btn-primary flex items-center gap-2"
               >
-                {evaluateMutation.isPending ? 'Đang lưu...' : '✓ Lưu đánh giá'}
+                {evaluateMutation.isPending ? 'Đang lưu...' : <><Icon name="check" className="w-4 h-4" strokeWidth={2.5} />Lưu đánh giá</>}
               </button>
             </div>
           </div>

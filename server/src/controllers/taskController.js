@@ -713,7 +713,7 @@ exports.reviewTask = async (req, res, next) => {
       entity_id: task.id,
       entity_name: task.title,
       description: approve
-        ? `Task "${task.title}" đã được duyệt ✅${review_note ? `: ${review_note}` : ''}`
+        ? `Task "${task.title}" đã được duyệt${review_note ? `: ${review_note}` : ''}`
         : `Yêu cầu chỉnh sửa task "${task.title}": ${review_note}`,
       metadata: { workspace_id: task.workspace_id },
       notify_user_ids: notifyIds,

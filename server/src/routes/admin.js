@@ -16,6 +16,7 @@ router.use(protect, authorize('ADMIN'));
 
 // Stats
 router.get('/stats', statsCtrl.getAdminStats);
+router.get('/dashboard', statsCtrl.getAdminDashboard);
 
 // Users
 router.get('/users', userCtrl.getUsers);

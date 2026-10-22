@@ -7,8 +7,12 @@
  *   await logActivity(req, { action, entity_type, entity_id, entity_name, description, ... });
  */
 
-const { ActivityLog, Notification, User } = require('../models');
+const { ActivityLog, Notification, User, Role } = require('../models');
 const { emailNotification } = require('./notificationMailer');
+
+// Một người có thể có nhiều vai trò: ghi vai trò cao nhất vào nhật ký
+const ROLE_PRIORITY = ['ADMIN', 'EMPLOYER', 'CANDIDATE'];
+const pickRole = (names) => ROLE_PRIORITY.find((r) => names?.includes(r)) || names?.[0] || null;
 
 // Notification settings per action — admin có thể extend
 const NOTIFICATION_MAP = {
@@ -48,9 +52,14 @@ async function logActivity(req, opts) {
     let userRole = 'SYSTEM';
 
     if (user?.id) {
-      const u = await User.findByPk(user.id, { attributes: ['full_name'] });
+      const u = await User.findByPk(user.id, {
+        attributes: ['full_name'],
+        include: [{ model: Role, attributes: ['name'], through: { attributes: [] } }],
+      });
       userName = u?.full_name || user.email || 'Unknown';
-      userRole = user.role || 'CANDIDATE';
+      // Ưu tiên: vai trò truyền vào rõ ràng → vai trò đã nạp trong request (req.userRoles) → tra từ database.
+      // (req.user là bản ghi User nên không có trường `role`; trước đây mọi hành động đều bị ghi mặc định là CANDIDATE)
+      userRole = user.role || pickRole(req?.userRoles) || pickRole(u?.Roles?.map((r) => r.name)) || 'CANDIDATE';
     }
 
     const log = await ActivityLog.create({

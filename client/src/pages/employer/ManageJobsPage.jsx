@@ -5,6 +5,8 @@ import { skillApi } from '@/api/skillApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const WORK_TYPES = ['FULL_TIME', 'PART_TIME', 'REMOTE', 'FREELANCE'];
 const WORK_TYPE_LABELS = { FULL_TIME: 'Full-time', PART_TIME: 'Part-time', REMOTE: 'Remote', FREELANCE: 'Freelance' };
@@ -38,9 +40,11 @@ const INITIAL_FORM = {
 
 export default function ManageJobsPage() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
+  useEscapeKey(() => { setShowModal(false); setEditingId(null); }, showModal);
 
   const { data: jobsData, isLoading } = useQuery({
     queryKey: ['employer-jobs'],
@@ -73,7 +77,7 @@ export default function ManageJobsPage() {
       closeModal();
     },
     onError: (err) => {
-      console.error('❌ Update job error:', err.response?.status, err.response?.data);
+      console.error('Update job error:', err.response?.status, err.response?.data);
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật');
     }
   });
@@ -163,8 +167,8 @@ export default function ManageJobsPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table className="w-full text-left text-sm">
+      <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-4 py-3 font-medium text-gray-700">Tiêu đề / Chức danh</th>
@@ -211,8 +215,8 @@ export default function ManageJobsPage() {
                       Sửa
                     </button>
                     {job.status !== 'CLOSED' && (
-                      <button onClick={() => {
-                        if(confirm("Bạn có chắc muốn đóng tin này? Ứng viên sẽ không thể nộp thêm hồ sơ.")) closeJobMut.mutate(job.id);
+                      <button onClick={async () => {
+                        if (await confirm({ title: 'Đóng tin tuyển dụng', message: 'Ứng viên sẽ không thể nộp thêm hồ sơ vào tin này.', confirmText: 'Đóng tin', tone: 'danger' })) closeJobMut.mutate(job.id);
                       }} className="text-red-500 hover:text-red-700 hover:underline font-medium">
                         Đóng
                       </button>

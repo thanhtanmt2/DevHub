@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/api/authApi';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
+import { IconBadge } from '@/components/common/Icon';
 
 // "Ghi nhớ email": chỉ lưu email, tuyệt đối không lưu mật khẩu
 const REMEMBER_EMAIL_KEY = 'devhub_remembered_email';
@@ -340,7 +341,7 @@ export default function AuthModal() {
         {authModal.view === 'register' && (
           registerSuccess ? (
             <div className="text-center py-4">
-              <div className="text-5xl mb-3">📧</div>
+              <IconBadge name="mail" size="lg" tone="blue" className="mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Kiểm tra email của bạn</h3>
               <p className="text-sm text-gray-500 mb-6">
                 Chúng tôi đã gửi link xác thực đến <strong>{registerForm.email}</strong>. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.
@@ -487,7 +488,7 @@ export default function AuthModal() {
           <div>
             {forgotSent ? (
               <div className="text-center py-4">
-                <div className="text-4xl mb-3">✉️</div>
+                <IconBadge name="mail" size="lg" tone="blue" className="mx-auto mb-3" />
                 <h3 className="font-semibold text-lg mb-2">Email đã được gửi</h3>
                 <p className="text-gray-500 text-sm mb-5">
                   Nếu email <strong>{forgotEmail}</strong> tồn tại trong hệ thống, bạn sẽ nhận được liên kết đặt lại mật khẩu.

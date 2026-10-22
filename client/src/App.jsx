@@ -53,6 +53,7 @@ import SystemLogsPage from '@/pages/admin/SystemLogsPage';
 // Components
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { ConfirmProvider } from '@/components/common/ConfirmDialog';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 function AppRoutes() {
@@ -123,8 +124,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
-      <AuthModal />
+      <ConfirmProvider>
+        <AppRoutes />
+        <AuthModal />
+      </ConfirmProvider>
     </AuthProvider>
   );
 }

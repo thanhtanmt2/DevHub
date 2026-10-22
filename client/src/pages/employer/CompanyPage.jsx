@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companyApi } from '@/api/companyApi';
 import { uploadApi } from '@/api/uploadApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import SafeImage from '@/components/common/SafeImage';
+import Icon from '@/components/common/Icon';
 import toast from 'react-hot-toast';
 
 export default function CompanyPage() {
@@ -63,7 +65,7 @@ export default function CompanyPage() {
     mutationFn: () => companyApi.sendVerifyEmail(verifyEmail),
     onSuccess: () => {
       setOtpSent(true);
-      toast.success(`📧 Đã gửi OTP đến ${verifyEmail}`);
+      toast.success(`Đã gửi OTP đến ${verifyEmail}`);
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Gửi OTP thất bại'),
   });
@@ -75,7 +77,7 @@ export default function CompanyPage() {
       qc.invalidateQueries({ queryKey: ['employer-company'] });
       setOtpSent(false);
       setOtp('');
-      toast.success('✅ Email doanh nghiệp đã được xác thực!');
+      toast.success('Email doanh nghiệp đã được xác thực!');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'OTP không đúng hoặc đã hết hạn'),
   });
@@ -122,11 +124,11 @@ export default function CompanyPage() {
   // Hàm render Badge trạng thái
   const renderStatusBadge = (status) => {
     switch (status) {
-      case 'VERIFIED': return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">✅ Đã xác thực</span>;
-      case 'REJECTED': return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">❌ Bị từ chối</span>;
+      case 'VERIFIED': return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Icon name="verified" className="w-3.5 h-3.5" />Đã xác thực</span>;
+      case 'REJECTED': return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Icon name="xCircle" className="w-3.5 h-3.5" />Bị từ chối</span>;
       case 'PENDING':
       default:
-        return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">⏳ Đang chờ duyệt</span>;
+        return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Icon name="clock" className="w-3.5 h-3.5" />Đang chờ duyệt</span>;
     }
   };
 
@@ -153,11 +155,12 @@ export default function CompanyPage() {
           <div className="-mt-16 mb-6 flex flex-col sm:flex-row sm:items-end gap-6 relative z-10">
             <div className="relative group">
               <div className="w-32 h-32 rounded-2xl bg-white p-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 overflow-hidden flex items-center justify-center transition-transform hover:scale-105">
-                {form.logo_url ? (
-                  <img src={form.logo_url} alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
-                ) : (
-                  <span className="text-gray-300 text-5xl">🏢</span>
-                )}
+                <SafeImage
+                  src={form.logo_url}
+                  alt="Logo"
+                  className="w-full h-full object-contain drop-shadow-sm"
+                  fallback={<Icon name="building" className="w-14 h-14 text-gray-300" strokeWidth={1.5} />}
+                />
               </div>
               <label className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center cursor-pointer text-white font-medium text-sm backdrop-blur-sm shadow-inner">
                 {isUploading ? 'Đang tải...' : 'Đổi Logo'}
@@ -241,7 +244,7 @@ export default function CompanyPage() {
 
               {company.company_email_verified ? (
                 <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
-                  <span className="text-2xl">✅</span>
+                  <Icon name="verified" className="w-7 h-7 text-green-600" />
                   <div>
                     <p className="font-semibold text-green-700">Email đã được xác thực</p>
                     <p className="text-sm text-green-600">{company.email}</p>
@@ -256,7 +259,7 @@ export default function CompanyPage() {
               ) : (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-3">
                   <div className="flex items-center gap-2 text-yellow-700">
-                    <span>⚠️</span>
+                    <Icon name="alert" className="w-5 h-5" />
                     <p className="text-sm font-medium">Tài khoản chưa được xác thực — bạn chưa thể đăng tin tuyển dụng</p>
                   </div>
 
@@ -274,7 +277,7 @@ export default function CompanyPage() {
                         onClick={() => sendOtpMutation.mutate()}
                         className="btn-primary px-5 whitespace-nowrap"
                       >
-                        {sendOtpMutation.isPending ? 'Đang gửi...' : '📧 Gửi OTP'}
+                        {sendOtpMutation.isPending ? 'Đang gửi...' : <><Icon name="mail" className="w-4 h-4" />Gửi OTP</>}
                       </button>
                     </div>
                   ) : (

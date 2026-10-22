@@ -46,7 +46,7 @@ export default function EmployerDashboard() {
                 company.verification_status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
                 company.verification_status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
               }`}>
-                {company.verification_status === 'VERIFIED' ? '✓ Đã xác thực' : company.verification_status === 'REJECTED' ? 'Từ chối' : 'Chờ xác thực'}
+                {company.verification_status === 'VERIFIED' ? 'Đã xác thực' : company.verification_status === 'REJECTED' ? 'Từ chối' : 'Chờ xác thực'}
               </span>
             </div>
           </div>

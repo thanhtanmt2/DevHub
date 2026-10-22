@@ -7,7 +7,10 @@ import { candidateApi } from '@/api/candidateApi';
 import { useAuth } from '@/contexts/AuthContext';
 import CvSelector from '@/components/candidate/CvSelector';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import CompanyLogo from '@/components/common/CompanyLogo';
 import toast from 'react-hot-toast';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const WORK_TYPES = ['', 'FULL_TIME', 'PART_TIME', 'REMOTE', 'FREELANCE'];
 const WORK_TYPE_LABELS = { '': 'Tất cả', FULL_TIME: 'Full-time', PART_TIME: 'Part-time', REMOTE: 'Remote', FREELANCE: 'Freelance' };
@@ -30,6 +33,7 @@ export default function JobsPage() {
   const [filters, setFilters] = useState({ keyword: '', work_type: '', skill_id: '', page: 1 });
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedJobForApply, setSelectedJobForApply] = useState(null);
+  useEscapeKey(() => setSelectedJobForApply(null), !!selectedJobForApply);
   const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
 
   // Debounce keyword: chờ 400ms sau khi người dùng ngừng gõ mới gửi request
@@ -120,7 +124,12 @@ export default function JobsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-5">
+        <h1 className="page-title">Việc làm tại doanh nghiệp</h1>
+        <p className="page-subtitle">Ứng tuyển trực tiếp vào các vị trí IT từ những doanh nghiệp đã được DevHub xác thực</p>
+      </div>
+
       {/* Filters */}
       <div className="card mb-6">
         <div className="flex flex-col md:flex-row gap-3">
@@ -165,7 +174,7 @@ export default function JobsPage() {
 
           {jobs.length === 0 ? (
             <div className="card text-center py-12 text-gray-400">
-              <p className="text-4xl mb-2">🔍</p>
+              <IconBadge name="search" size="lg" className="mx-auto mb-2" />
               <p>Không tìm thấy công việc phù hợp</p>
             </div>
           ) : (
@@ -185,8 +194,9 @@ export default function JobsPage() {
                           : 'border-transparent hover:border-gray-300 hover:shadow-md'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                      <div className="flex items-start gap-4">
+                        <CompanyLogo company={job.Company} />
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-lg text-gray-900 hover:text-primary-600">
                               {job.title}
@@ -200,8 +210,8 @@ export default function JobsPage() {
                           </div>
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                             <span className="font-semibold text-green-700">{formatSalary(job.salary_min, job.salary_max)}</span>
-                            {job.work_type && <span>🏠 {WORK_TYPE_LABELS[job.work_type]}</span>}
-                            {job.deadline && <span>⏰ HSD: {new Date(job.deadline).toLocaleDateString('vi-VN')}</span>}
+                            {job.work_type && <span><Icon name="briefcase" className="w-4 h-4 mr-1" />{WORK_TYPE_LABELS[job.work_type]}</span>}
+                            {job.deadline && <span><Icon name="clock" className="w-4 h-4 mr-1" />HSD: {new Date(job.deadline).toLocaleDateString('vi-VN')}</span>}
                           </div>
                         </div>
                       </div>
@@ -237,7 +247,7 @@ export default function JobsPage() {
                         <h2 className="text-xl font-bold text-gray-900">{selectedJob.title}</h2>
                         {selectedJob.Company && (
                           <p className="text-sm font-semibold text-primary-600 mt-0.5">
-                            🏢 {selectedJob.Company.name}
+                            <Icon name="building" className="w-4 h-4 mr-1" />{selectedJob.Company.name}
                           </p>
                         )}
                       </div>
@@ -246,8 +256,9 @@ export default function JobsPage() {
                         onClick={() => setSelectedJob(null)}
                         className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 text-lg transition-colors"
                         title="Đóng khung chi tiết"
+                        aria-label="Đóng"
                       >
-                        ✕
+                        <Icon name="x" className="w-5 h-5" />
                       </button>
                     </div>
 
@@ -262,7 +273,7 @@ export default function JobsPage() {
 
                       {appliedJobIds.has(selectedJob.id) ? (
                         <div className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-sm">
-                          <span className="font-bold">✓</span> Đã nộp hồ sơ
+                          <Icon name="check" className="w-4 h-4" strokeWidth={2.5} /> Đã nộp hồ sơ
                         </div>
                       ) : (
                         <button
@@ -344,7 +355,7 @@ export default function JobsPage() {
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
             <h2 className="text-xl font-bold mb-1">Ứng tuyển công việc</h2>
             <p className="text-sm font-medium text-primary-600 mb-1">{selectedJobForApply.title}</p>
-            <p className="text-xs text-gray-500 mb-4">🏢 Doanh nghiệp: {selectedJobForApply.Company?.name}</p>
+            <p className="text-xs text-gray-500 mb-4"><Icon name="building" className="w-3.5 h-3.5 mr-1" />Doanh nghiệp: {selectedJobForApply.Company?.name}</p>
 
             <form onSubmit={handleApplySubmit} className="space-y-4">
               {/* CV Selector */}

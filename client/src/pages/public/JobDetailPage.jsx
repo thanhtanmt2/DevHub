@@ -7,6 +7,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import CvSelector from '@/components/candidate/CvSelector';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import SafeImage from '@/components/common/SafeImage';
+import Icon from '@/components/common/Icon';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const formatSalary = (min, max) => {
   if (!min && !max) return 'Thỏa thuận';
@@ -21,6 +24,7 @@ export default function JobDetailPage() {
   const { user, isCandidate, openLoginModal } = useAuth();
   const navigate = useNavigate();
   const [showApply, setShowApply] = useState(false);
+  useEscapeKey(() => setShowApply(false), showApply);
   const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
 
   const { data, isLoading } = useQuery({
@@ -144,17 +148,15 @@ export default function JobDetailPage() {
           <div className="mb-5 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
             <h3 className="font-semibold text-sm text-gray-900 mb-3 uppercase tracking-wide">Thông tin công ty</h3>
             <div className="flex items-start gap-3">
-              {job.Company.logo_url && (
-                <img
-                  src={job.Company.logo_url}
-                  alt={job.Company.name}
-                  className="w-12 h-12 rounded-lg object-cover border border-gray-200 flex-shrink-0"
-                />
-              )}
+              <SafeImage
+                src={job.Company.logo_url}
+                alt={job.Company.name}
+                className="w-12 h-12 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+              />
               <div className="flex-1">
                 <p className="font-semibold text-gray-900">{job.Company.name}</p>
                 {job.Company.address && (
-                  <p className="text-xs text-gray-500 mt-1">📍 {job.Company.address}</p>
+                  <p className="text-xs text-gray-500 mt-1"><Icon name="mapPin" className="w-3.5 h-3.5 mr-1" />{job.Company.address}</p>
                 )}
                 {job.Company.website && (
                   <a
@@ -163,7 +165,7 @@ export default function JobDetailPage() {
                     rel="noopener noreferrer"
                     className="text-xs text-primary-600 hover:underline mt-1 inline-block"
                   >
-                    🌐 {job.Company.website}
+                    <Icon name="globe" className="w-3.5 h-3.5 mr-1" />{job.Company.website}
                   </a>
                 )}
               </div>
@@ -193,9 +195,9 @@ export default function JobDetailPage() {
                 </div>
                 <button
                   onClick={() => setShowApply(false)}
-                  className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
+                  className="text-gray-400 hover:text-gray-600 p-1" aria-label="Đóng"
                 >
-                  ✕
+                  <Icon name="x" className="w-5 h-5" />
                 </button>
               </div>
 

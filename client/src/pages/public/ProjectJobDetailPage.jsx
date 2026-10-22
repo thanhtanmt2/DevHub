@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import CvSelector from '@/components/candidate/CvSelector';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const formatSalary = (amount) => {
   if (!amount) return 'Thỏa thuận';
@@ -20,6 +22,7 @@ export default function ProjectJobDetailPage() {
   const qc = useQueryClient();
 
   const [showApply, setShowApply] = useState(false);
+  useEscapeKey(() => setShowApply(false), showApply);
   const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
 
   const { data, isLoading } = useQuery({
@@ -74,7 +77,7 @@ export default function ProjectJobDetailPage() {
   const job = data?.data?.data;
   if (!job) return (
     <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-      <p className="text-5xl mb-4">😕</p>
+      <IconBadge name="search" size="lg" className="mx-auto mb-4" />
       <p className="text-gray-500 font-medium">Không tìm thấy vị trí dự án này</p>
       <button onClick={() => navigate('/projects')} className="btn-primary mt-4">
         ← Quay lại danh sách dự án
@@ -100,17 +103,17 @@ export default function ProjectJobDetailPage() {
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="badge bg-purple-100 text-purple-700 text-xs font-semibold">Dự án thời vụ</span>
               <span className={`badge text-xs font-semibold ${job.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                {job.status === 'OPEN' ? '🟢 Đang tuyển' : '🔴 Đã đóng'}
+                {job.status === 'OPEN' ? 'Đang tuyển' : 'Đã đóng'}
               </span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">{job.title}</h1>
-            <p className="text-sm font-semibold text-primary-700">📁 Dự án: {job.Project?.name}</p>
+            <p className="text-sm font-semibold text-primary-700"><Icon name="folder" className="w-4 h-4 mr-1" />Dự án: {job.Project?.name}</p>
           </div>
 
           <div className="ml-4 flex-shrink-0">
             {isApplied ? (
               <div className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                ✓ Đã ứng tuyển
+                <Icon name="check" className="w-4 h-4 mr-1" strokeWidth={2.5} />Đã ứng tuyển
               </div>
             ) : job.status === 'OPEN' ? (
               <button onClick={handleOpenApply} className="btn-primary shadow-sm px-6 py-2.5">
@@ -202,13 +205,13 @@ export default function ProjectJobDetailPage() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Ứng tuyển vị trí dự án</h2>
                   <p className="text-sm font-semibold text-primary-600 mt-0.5">{job.title}</p>
-                  <p className="text-xs text-gray-500">📁 Dự án: {job.Project?.name}</p>
+                  <p className="text-xs text-gray-500"><Icon name="folder" className="w-3.5 h-3.5 mr-1" />Dự án: {job.Project?.name}</p>
                 </div>
                 <button
                   onClick={() => setShowApply(false)}
-                  className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
+                  className="text-gray-400 hover:text-gray-600 p-1" aria-label="Đóng"
                 >
-                  ✕
+                  <Icon name="x" className="w-5 h-5" />
                 </button>
               </div>
 

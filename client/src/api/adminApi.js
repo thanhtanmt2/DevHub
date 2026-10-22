@@ -3,7 +3,8 @@ import api from './axiosInstance';
 export const adminApi = {
   // Stats
   getStats: () => api.get('/admin/stats'),
-  
+  getDashboard: () => api.get('/admin/dashboard'),
+
   // Users
   getUsers: () => api.get('/admin/users'),
   toggleUserStatus: (id) => api.put(`/admin/users/${id}/toggle-status`),

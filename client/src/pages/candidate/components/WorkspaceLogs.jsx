@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { logApi } from '../../../api/logApi';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { stripEmoji } from '@/utils/stripEmoji';
 
 const ACTION_LABELS = {
   TASK_CREATED: { text: 'Tạo Task', color: 'bg-indigo-100 text-indigo-700' },
@@ -69,7 +70,7 @@ export default function WorkspaceLogs({ workspaceId }) {
                         {meta.text}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">{log.description}</p>
+                    <p className="text-sm text-gray-600">{stripEmoji(log.description)}</p>
                   </div>
                 </div>
               );

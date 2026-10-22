@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Icon, { IconBadge } from '@/components/common/Icon';
 
 const TASK_STATUS = {
   TODO:        { label: 'Cần làm',    color: 'bg-gray-100 text-gray-600' },
@@ -36,12 +37,12 @@ const daysLeft = (deadline) => {
 
 function DeadlineText({ task }) {
   if (!task.deadline) return <span className="text-gray-400">Không có deadline</span>;
-  if (task.status === 'DONE' || task.status === 'REVIEW') return <span className="text-gray-500">📅 {formatDate(task.deadline)}</span>;
-  if (task.is_overdue) return <span className="text-red-600 font-semibold">⚠️ Quá hạn ({formatDate(task.deadline)})</span>;
+  if (task.status === 'DONE' || task.status === 'REVIEW') return <span className="text-gray-500"><Icon name="calendar" className="w-3.5 h-3.5 mr-1" />{formatDate(task.deadline)}</span>;
+  if (task.is_overdue) return <span className="text-red-600 font-semibold"><Icon name="alert" className="w-3.5 h-3.5 mr-1" />Quá hạn ({formatDate(task.deadline)})</span>;
   const left = daysLeft(task.deadline);
-  if (left === 0) return <span className="text-amber-600 font-semibold">⏰ Hết hạn hôm nay</span>;
-  if (left <= 3) return <span className="text-amber-600 font-medium">⏰ Còn {left} ngày ({formatDate(task.deadline)})</span>;
-  return <span className="text-gray-500">📅 {formatDate(task.deadline)}</span>;
+  if (left === 0) return <span className="text-amber-600 font-semibold"><Icon name="clock" className="w-3.5 h-3.5 mr-1" />Hết hạn hôm nay</span>;
+  if (left <= 3) return <span className="text-amber-600 font-medium"><Icon name="clock" className="w-3.5 h-3.5 mr-1" />Còn {left} ngày ({formatDate(task.deadline)})</span>;
+  return <span className="text-gray-500"><Icon name="calendar" className="w-3.5 h-3.5 mr-1" />{formatDate(task.deadline)}</span>;
 }
 
 export default function MyWorkspacesPage() {
@@ -89,7 +90,7 @@ export default function MyWorkspacesPage() {
           <p className="text-gray-500 text-sm">Theo dõi các dự án bạn tham gia và công việc được giao</p>
         </div>
         <div className="card text-center py-14">
-          <p className="text-4xl mb-2">🗂️</p>
+          <IconBadge name="workspace" size="lg" className="mx-auto mb-2" />
           <p className="text-gray-600 font-medium">Bạn chưa tham gia dự án nào</p>
           <p className="text-xs text-gray-400 mt-1">Khi trúng tuyển vào một dự án nội bộ, bạn sẽ được thêm vào Workspace của dự án đó</p>
           <Link to="/projects" className="btn-primary mt-4 inline-block">Khám phá dự án</Link>
@@ -118,7 +119,7 @@ export default function MyWorkspacesPage() {
       {/* Công việc của tôi (ở mọi dự án) */}
       <div className="card">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="font-semibold">📋 Công việc của tôi</h2>
+          <h2 className="font-semibold">Công việc của tôi</h2>
           <div className="flex bg-gray-100 p-1 rounded-lg">
             <button onClick={() => setTaskTab('open')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${taskTab === 'open' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600'}`}>
@@ -133,7 +134,7 @@ export default function MyWorkspacesPage() {
 
         {shownTasks.length === 0 ? (
           <div className="text-center py-8 text-gray-400 text-sm">
-            {taskTab === 'open' ? 'Bạn không có task nào đang thực hiện 🎉' : 'Chưa có task nào được nghiệm thu'}
+            {taskTab === 'open' ? 'Bạn không có task nào đang thực hiện' : 'Chưa có task nào được nghiệm thu'}
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -150,15 +151,15 @@ export default function MyWorkspacesPage() {
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${st.color}`}>{st.label}</span>
                       {needsRevision && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">↩️ Cần chỉnh sửa</span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700"><Icon name="undo" className="w-3 h-3 mr-0.5" />Cần chỉnh sửa</span>
                       )}
                       <p className="text-sm font-semibold text-gray-900 truncate">{t.title}</p>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap text-xs">
-                      <span className="text-primary-700 font-medium">📁 {t.Workspace?.Project?.name || t.Workspace?.name}</span>
+                      <span className="text-primary-700 font-medium"><Icon name="folder" className="w-3.5 h-3.5 mr-1" />{t.Workspace?.Project?.name || t.Workspace?.name}</span>
                       <span className={pr.color}>● {pr.label}</span>
                       <DeadlineText task={t} />
-                      {totalSubs > 0 && <span className="text-gray-400">☑ {doneSubs}/{totalSubs} subtask</span>}
+                      {totalSubs > 0 && <span className="text-gray-400"><Icon name="clipboardCheck" className="w-3.5 h-3.5 mr-1" />{doneSubs}/{totalSubs} subtask</span>}
                     </div>
                   </div>
                   <div className="w-28 flex-shrink-0 hidden sm:block">
@@ -180,11 +181,11 @@ export default function MyWorkspacesPage() {
 
       {/* Workspace đang tham gia */}
       <div>
-        <h2 className="font-semibold mb-3">🗂️ Workspace đang tham gia ({activeMemberships.length})</h2>
+        <h2 className="font-semibold mb-3">Workspace đang tham gia ({activeMemberships.length})</h2>
         {activeMemberships.length === 0 ? (
           <div className="card text-center py-8 text-gray-400 text-sm">Bạn không còn tham gia Workspace nào</div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeMemberships.map(m => <WorkspaceCard key={m.id} membership={m} />)}
           </div>
         )}
@@ -194,7 +195,7 @@ export default function MyWorkspacesPage() {
       {pastMemberships.length > 0 && (
         <div>
           <h2 className="font-semibold mb-3 text-gray-500">Đã kết thúc ({pastMemberships.length})</h2>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pastMemberships.map(m => <WorkspaceCard key={m.id} membership={m} ended />)}
           </div>
         </div>
@@ -219,7 +220,7 @@ function WorkspaceCard({ membership: m, ended = false }) {
 
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="px-2 py-0.5 rounded bg-primary-50 text-primary-700 font-medium">
-          {m.role === 'LEAD' ? '⭐ Lead — phân chia công việc' : `Vai trò: ${MEMBER_ROLE_LABELS[m.role] || m.role}`}
+          {m.role === 'LEAD' ? <><Icon name="star" className="w-3.5 h-3.5 mr-1" />Lead — phân chia công việc</> : `Vai trò: ${MEMBER_ROLE_LABELS[m.role] || m.role}`}
         </span>
         {m.ProjectJob?.title && <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-600">Vị trí: {m.ProjectJob.title}</span>}
         {m.joined_at && <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-500">Tham gia {formatDate(m.joined_at)}</span>}
@@ -241,8 +242,8 @@ function WorkspaceCard({ membership: m, ended = false }) {
           : 'chưa được giao task nào'}
         {(mine.overdue > 0 || mine.needs_revision > 0) && (
           <div className="flex gap-3 mt-1 font-semibold">
-            {mine.overdue > 0 && <span className="text-red-600">⚠️ {mine.overdue} quá hạn</span>}
-            {mine.needs_revision > 0 && <span className="text-orange-600">↩️ {mine.needs_revision} cần chỉnh sửa</span>}
+            {mine.overdue > 0 && <span className="text-red-600"><Icon name="alert" className="w-3.5 h-3.5 mr-1" />{mine.overdue} quá hạn</span>}
+            {mine.needs_revision > 0 && <span className="text-orange-600"><Icon name="undo" className="w-3.5 h-3.5 mr-1" />{mine.needs_revision} cần chỉnh sửa</span>}
           </div>
         )}
       </div>

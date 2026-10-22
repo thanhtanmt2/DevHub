@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App';
 import './index.css';
+import { IconBadge } from '@/components/common/Icon';
 
 // Initialize dark mode from localStorage
 const initTheme = () => {
@@ -36,13 +37,13 @@ class ErrorBoundary extends React.Component {
     return { hasError: true, error };
   }
   componentDidCatch(error, info) {
-    console.error('💥 App crashed:', error, info.componentStack);
+    console.error('App crashed:', error, info.componentStack);
   }
   render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-8 bg-gray-50">
-          <div className="text-5xl">💥</div>
+          <IconBadge name="alert" size="lg" tone="red" />
           <h1 className="text-2xl font-bold text-gray-800">Đã xảy ra lỗi</h1>
           <p className="text-gray-500 text-center max-w-md">
             {this.state.error?.message || 'Lỗi không xác định'}

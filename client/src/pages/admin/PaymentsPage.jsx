@@ -4,6 +4,8 @@ import { adminApi } from '@/api/adminApi';
 import { workspaceApi } from '@/api/workspaceApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import Icon from '@/components/common/Icon';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const STATUS_LABELS = { PENDING: 'Chờ xử lý', PROCESSING: 'Đang xử lý', PAID: 'Đã thanh toán', FAILED: 'Thất bại' };
 const STATUS_COLORS = {
@@ -22,6 +24,8 @@ export default function PaymentsPage() {
   const [createForm, setCreateForm] = useState({ workspace_member_id: '', amount: '' });
   const [txModal, setTxModal] = useState(null); // { paymentId, type: 'PAID'|'FAILED' }
   const [txCode, setTxCode] = useState('');
+  useEscapeKey(() => setTxModal(null), !!txModal);
+  useEscapeKey(() => setShowCreate(false), showCreate);
   const [statusFilter, setStatusFilter] = useState('');
 
   const { data, isLoading } = useQuery({
@@ -116,14 +120,14 @@ export default function PaymentsPage() {
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="p-3 font-semibold text-gray-600">Ứng viên</th>
-              <th className="p-3 font-semibold text-gray-600">Thông tin ngân hàng</th>
-              <th className="p-3 font-semibold text-gray-600">Workspace/Dự án</th>
-              <th className="p-3 font-semibold text-gray-600">Số tiền (VNĐ)</th>
-              <th className="p-3 font-semibold text-gray-600">Mã GD</th>
-              <th className="p-3 font-semibold text-gray-600">Trạng thái</th>
-              <th className="p-3 font-semibold text-gray-600">Ngày TT</th>
-              <th className="p-3 font-semibold text-gray-600">Hành động</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ứng viên</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thông tin ngân hàng</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Workspace/Dự án</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Số tiền (VNĐ)</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Mã GD</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Trạng thái</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ngày TT</th>
+              <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -159,7 +163,7 @@ export default function PaymentsPage() {
                   <td className="p-3 font-bold text-gray-900 text-base">{formatCurrency(p.amount)}</td>
                   <td className="p-3 font-mono text-xs text-gray-500">{p.transaction_code || '—'}</td>
                   <td className="p-3">
-                    <span className={`badge text-xs font-semibold px-2 py-1 ${STATUS_COLORS[p.status] || 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`badge text-xs font-semibold px-2 py-1 whitespace-nowrap ${STATUS_COLORS[p.status] || 'bg-gray-100 text-gray-600'}`}>
                       {STATUS_LABELS[p.status] || p.status}
                     </span>
                   </td>
@@ -183,7 +187,7 @@ export default function PaymentsPage() {
                             onClick={() => { setTxModal({ paymentId: p.id, type: 'PAID' }); setTxCode(''); }}
                             className="text-xs px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded font-medium transition-colors"
                           >
-                            ✓ Đã chuyển khoản
+                            <Icon name="check" className="w-3.5 h-3.5 mr-1" strokeWidth={2.5} />Đã chuyển khoản
                           </button>
                           <button
                             onClick={() => processMutation.mutate({ id: p.id, status: 'FAILED' })}

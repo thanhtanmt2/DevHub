@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { companyApi } from '@/api/companyApi';
 import { skillApi } from '@/api/skillApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import SafeImage from '@/components/common/SafeImage';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 const LEVEL_LABELS = { BEGINNER: 'Mới', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Cao cấp', EXPERT: 'Chuyên gia' };
 const LEVEL_COLORS = {
@@ -13,8 +16,9 @@ const LEVEL_COLORS = {
 };
 
 function ScoreBadge({ score }) {
-  if (score == null || score === 0) return <span className="text-gray-400 text-xs">Chưa đánh giá</span>;
   const s = parseFloat(score);
+  // competency_score là DECIMAL (API trả chuỗi "0.00"): rỗng hoặc 0 nghĩa là chưa được đánh giá, không hiện "0.0/10" màu đỏ
+  if (!s) return <span className="text-gray-400 text-xs">Chưa đánh giá</span>;
   const color = s >= 8 ? 'text-emerald-600' : s >= 5 ? 'text-amber-600' : 'text-red-500';
   return (
     <span className={`font-bold text-lg ${color}`}>
@@ -25,6 +29,7 @@ function ScoreBadge({ score }) {
 }
 
 function CandidateDetailModal({ profile, onClose }) {
+  useEscapeKey(onClose);
   if (!profile) return null;
   const user = profile.User;
   const skills = profile.Skills || [];
@@ -37,17 +42,16 @@ function CandidateDetailModal({ profile, onClose }) {
         <div className="flex justify-between items-start p-5 border-b">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold shadow-md flex-shrink-0">
-              {profile.avatar_url
-                ? <img src={profile.avatar_url} alt="avatar" className="w-14 h-14 rounded-full object-cover" />
-                : (user?.full_name?.[0] || '?')}
+              <SafeImage src={profile.avatar_url} alt="avatar" className="w-14 h-14 rounded-full object-cover"
+                fallback={user?.full_name?.[0] || '?'} />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">{user?.full_name}</h2>
               <p className="text-sm text-primary-600 font-medium">{profile.professional_title || 'Chưa cập nhật'}</p>
-              {profile.address && <p className="text-xs text-gray-500 mt-0.5">📍 {profile.address}</p>}
+              {profile.address && <p className="text-xs text-gray-500 mt-0.5"><Icon name="mapPin" className="w-3.5 h-3.5 mr-1" />{profile.address}</p>}
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">✕</button>
+          <button onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-600"><Icon name="x" className="w-6 h-6" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -72,19 +76,19 @@ function CandidateDetailModal({ profile, onClose }) {
             {profile.cv_url && (
               <a href={profile.cv_url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium border border-blue-200 transition-colors">
-                📄 Xem CV
+                <Icon name="document" className="w-4 h-4" />Xem CV
               </a>
             )}
             {profile.github_url && (
               <a href={profile.github_url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                🐙 GitHub
+                <Icon name="code" className="w-4 h-4" />GitHub
               </a>
             )}
             {profile.portfolio_url && (
               <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                🌐 Portfolio
+                <Icon name="globe" className="w-4 h-4" />Portfolio
               </a>
             )}
           </div>
@@ -251,7 +255,7 @@ export default function SearchCandidatesPage() {
         <div className="card text-center py-10 text-red-500">Lỗi tải dữ liệu. Vui lòng thử lại.</div>
       ) : candidates.length === 0 ? (
         <div className="card text-center py-16">
-          <p className="text-5xl mb-3">🔍</p>
+          <IconBadge name="search" size="lg" className="mx-auto mb-3" />
           <p className="text-gray-500 font-medium">Không tìm thấy ứng viên phù hợp</p>
           <p className="text-xs text-gray-400 mt-1">Thử thay đổi bộ lọc để tìm thêm ứng viên</p>
         </div>
@@ -271,14 +275,13 @@ export default function SearchCandidatesPage() {
                 >
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow flex-shrink-0">
-                      {profile.avatar_url
-                        ? <img src={profile.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover" />
-                        : (user?.full_name?.[0] || '?')}
+                      <SafeImage src={profile.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover"
+                        fallback={user?.full_name?.[0] || '?'} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{user?.full_name}</h3>
+                      <h3 className="font-semibold text-gray-900 line-clamp-2 break-words">{user?.full_name}</h3>
                       <p className="text-xs text-primary-600 truncate">{profile.professional_title || 'Chưa cập nhật'}</p>
-                      {profile.address && <p className="text-xs text-gray-400 mt-0.5 truncate">📍 {profile.address}</p>}
+                      {profile.address && <p className="text-xs text-gray-400 mt-0.5 truncate"><Icon name="mapPin" className="w-3.5 h-3.5 mr-1" />{profile.address}</p>}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <ScoreBadge score={profile.competency_score} />

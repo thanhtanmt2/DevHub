@@ -10,6 +10,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { getUploadedFileName, formatFileSize } from '@/utils/fileHelper';
 import toast from 'react-hot-toast';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import useEscapeKey from '@/hooks/useEscapeKey';
+import { stripEmoji } from '@/utils/stripEmoji';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
@@ -20,10 +24,21 @@ const STATUS_META = {
   DONE:        { label: 'Hoàn thành',   color: 'bg-green-50',   dot: 'bg-green-500',  text: 'text-green-700' },
 };
 const PRIORITY_META = {
-  URGENT: { label: 'Khẩn cấp', color: 'text-red-600 bg-red-50',     icon: '🔴' },
-  HIGH:   { label: 'Cao',      color: 'text-orange-600 bg-orange-50', icon: '🟠' },
-  MEDIUM: { label: 'Bình thường', color: 'text-yellow-600 bg-yellow-50', icon: '🟡' },
-  LOW:    { label: 'Thấp',     color: 'text-gray-500 bg-gray-100',   icon: '⚪' },
+  URGENT: { label: 'Khẩn cấp', color: 'text-red-600 bg-red-50',     dot: 'bg-red-500' },
+  HIGH:   { label: 'Cao',      color: 'text-orange-600 bg-orange-50', dot: 'bg-orange-500' },
+  MEDIUM: { label: 'Bình thường', color: 'text-yellow-600 bg-yellow-50', dot: 'bg-yellow-400' },
+  LOW:    { label: 'Thấp',     color: 'text-gray-500 bg-gray-100',   dot: 'bg-gray-400' },
+};
+// Icon cho từng loại hoạt động trong tab Lịch sử của task
+const ACTIVITY_ICONS = {
+  STATUS_CHANGED: 'refresh',
+  TASK_CREATED: 'sparkles',
+  TASK_APPROVED: 'verified',
+  TASK_REVISION: 'undo',
+  ASSIGNED: 'user',
+  SUBMITTED: 'upload',
+  PROGRESS: 'trending',
+  UPDATED: 'pencil',
 };
 const LABEL_COLORS = {
   Frontend:  'bg-blue-100 text-blue-700',
@@ -121,12 +136,12 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
       {/* Bị yêu cầu chỉnh sửa sau nghiệm thu */}
       {needsRevision && (
         <span className="inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold bg-orange-100 text-orange-700 mb-1.5">
-          ↩️ Cần chỉnh sửa
+          <Icon name="undo" className="w-3 h-3 mr-0.5" />Cần chỉnh sửa
         </span>
       )}
 
       {/* Title */}
-      {/* Không gạch ngang task Hoàn thành: cột + dấu "✅ Xong" + thẻ hơi mờ đã đủ phân biệt */}
+      {/* Không gạch ngang task Hoàn thành: cột + dấu "Xong" + thẻ hơi mờ đã đủ phân biệt */}
       <p className="text-sm font-semibold text-gray-900 leading-snug mb-2">
         {task.title}
       </p>
@@ -134,11 +149,11 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
       {/* Priority + Deadline */}
       <div className="flex items-center gap-1.5 mb-2.5 text-xs">
         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-medium ${pm.color}`}>
-          {pm.icon} {pm.label}
+          <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${pm.dot}`} />{pm.label}
         </span>
         {task.deadline && (
           <span className={`ml-auto ${isOverdue ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
-            {isOverdue ? '⚠️ ' : '📅 '}
+            <Icon name={isOverdue ? 'alert' : 'calendar'} className="w-3 h-3 mr-0.5" />
             {new Date(task.deadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
           </span>
         )}
@@ -183,7 +198,7 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
         {task.completion_rate > 0 && task.status !== 'DONE' && (
           <span className="text-[10px] text-gray-400">{task.completion_rate}%</span>
         )}
-        {task.status === 'DONE' && <span className="text-[10px] text-green-500 font-semibold">✅ Xong</span>}
+        {task.status === 'DONE' && <span className="text-[10px] text-green-500 font-semibold"><Icon name="check" className="w-3 h-3 mr-0.5" strokeWidth={2.5} />Xong</span>}
       </div>
     </div>
   );
@@ -205,13 +220,13 @@ function SubmissionCard({ submission: s, highlight = false }) {
       {s.product_url && (
         <a href={s.product_url} target="_blank" rel="noopener noreferrer"
           className="flex items-start gap-1.5 text-sm text-primary-600 hover:underline break-all">
-          <span className="flex-shrink-0">🔗</span><span>{s.product_url}</span>
+          <Icon name="link" className="w-4 h-4 mt-0.5" /><span>{s.product_url}</span>
         </a>
       )}
       {s.attachment_url && (
         <a href={s.attachment_url} target="_blank" rel="noopener noreferrer" download={fileName}
           className="flex items-start gap-1.5 text-sm text-primary-600 hover:underline break-all">
-          <span className="flex-shrink-0">📎</span><span>{fileName}</span>
+          <Icon name="paperclip" className="w-4 h-4 mt-0.5" /><span>{fileName}</span>
         </a>
       )}
       {s.note && <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.note}</p>}
@@ -221,6 +236,7 @@ function SubmissionCard({ submission: s, highlight = false }) {
 
 // ─── Nộp sản phẩm & gửi duyệt (Đang làm → Chờ duyệt) ─────────────────────────
 function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted }) {
+  useEscapeKey(onClose);
   const qc = useQueryClient();
   const [productUrl, setProductUrl] = useState('');
   const [attachment, setAttachment] = useState(null); // { url, filename, size }
@@ -268,12 +284,12 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
       <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] flex flex-col animate-fade-in">
         <div className="flex items-start justify-between px-6 py-4 border-b">
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-gray-900">📦 Nộp sản phẩm & gửi duyệt</h2>
+            <h2 className="text-lg font-bold text-gray-900">Nộp sản phẩm & gửi duyệt</h2>
             <p className="text-xs text-gray-500 truncate mt-0.5">
               {task.title}{nextVersion > 1 ? ` · Lần nộp #${nextVersion}` : ''}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl ml-3">✕</button>
+          <button onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-600 ml-3"><Icon name="x" className="w-5 h-5" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
@@ -294,11 +310,11 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">File đính kèm</label>
             {attachment ? (
               <div className="flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2">
-                <span>📎</span>
+                <Icon name="paperclip" className="w-4 h-4 text-primary-600" />
                 <span className="text-sm text-gray-800 truncate flex-1">{attachment.filename}</span>
                 <span className="text-xs text-gray-400 flex-shrink-0">{formatFileSize(attachment.size)}</span>
                 <button onClick={() => setAttachment(null)} title="Bỏ file"
-                  className="text-xs text-gray-400 hover:text-red-500 px-1">✕</button>
+                  className="text-gray-400 hover:text-red-500 px-1" aria-label="Bỏ file"><Icon name="x" className="w-4 h-4" /></button>
               </div>
             ) : uploadPct !== null ? (
               <div className="border border-gray-200 rounded-lg px-3 py-3">
@@ -311,7 +327,7 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
               </div>
             ) : (
               <label className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-gray-200 rounded-lg px-3 py-4 cursor-pointer hover:border-primary-300 hover:bg-primary-50/40 transition-colors">
-                <span className="text-sm text-gray-600">📤 Chọn file để tải lên</span>
+                <span className="text-sm text-gray-600"><Icon name="upload" className="w-4 h-4 mr-1" />Chọn file để tải lên</span>
                 <span className="text-[11px] text-gray-400">Tối đa 20MB · zip, rar, pdf, docx, xlsx, pptx, ảnh...</span>
                 <input type="file" className="hidden" accept={TASK_FILE_ACCEPT} onChange={handleFile} />
               </label>
@@ -329,7 +345,7 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
         <div className="px-6 py-4 border-t flex gap-2">
           <button onClick={() => submitMut.mutate()} disabled={!canSubmit || submitMut.isPending}
             className="btn-primary flex-1 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed">
-            {submitMut.isPending ? 'Đang nộp...' : '✅ Nộp & gửi duyệt'}
+            {submitMut.isPending ? 'Đang nộp...' : 'Nộp & gửi duyệt'}
           </button>
           <button onClick={onClose} className="btn-secondary px-5 py-2.5">Hủy</button>
         </div>
@@ -340,11 +356,14 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
 
 // ─── Task Detail Drawer ──────────────────────────────────────────────────────
 function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, workload = {}, initialReview = null }) {
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const { user, isAdmin } = useAuth();
   const [commentText, setCommentText] = useState('');
   const [newSubTask, setNewSubTask] = useState('');
   const [editMode, setEditMode] = useState(false);
+  // Esc: đang sửa thì thoát chế độ sửa trước, bấm lần nữa mới đóng ngăn chi tiết
+  useEscapeKey(() => (editMode ? setEditMode(false) : onClose()));
   const [isAssigning, setIsAssigning] = useState(false);
   const [editData, setEditData] = useState(null);
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'activity'
@@ -515,19 +534,19 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
           </div>
           <div className="flex-1" />
           {/* Task đã nghiệm thu thì khóa, không sửa/xóa */}
-          {isDone && <span className="text-[11px] text-gray-400">🔒 Đã nghiệm thu</span>}
+          {isDone && <span className="text-[11px] text-gray-400"><Icon name="lock" className="w-3.5 h-3.5 mr-1" />Đã nghiệm thu</span>}
           {canManage && !isDone && (
             <button onClick={startEdit} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-200">
-              ✏️ Sửa
+              <Icon name="pencil" className="w-3.5 h-3.5 mr-1" />Sửa
             </button>
           )}
           {canManage && !isDone && (
-            <button onClick={() => { if(confirm('Xóa task này?')) deleteTaskMut.mutate(); }}
+            <button onClick={async () => { if (await confirm({ title: 'Xóa task', message: 'Xóa task này? Thao tác không thể hoàn tác.', confirmText: 'Xóa task', tone: 'danger' })) deleteTaskMut.mutate(); }}
               className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50">
-              🗑 Xóa
+              <Icon name="trash" className="w-3.5 h-3.5 mr-1" />Xóa
             </button>
           )}
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl font-bold ml-1">✕</button>
+          <button onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-700 ml-1"><Icon name="x" className="w-5 h-5" /></button>
         </div>
 
         {/* Body */}
@@ -548,7 +567,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Độ ưu tiên</label>
                   <select className="input-field text-sm" value={editData.priority} onChange={e => setEditData({...editData, priority: e.target.value})}>
-                    {Object.entries(PRIORITY_META).map(([k,v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
+                    {Object.entries(PRIORITY_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                 </div>
                 <div>
@@ -608,12 +627,12 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                 <div className="grid grid-cols-2 gap-y-2 text-sm">
                   <div className="text-gray-400 text-xs font-semibold uppercase">Ưu tiên</div>
                   <div className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${pm.color}`}>
-                    {pm.icon} {pm.label}
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${pm.dot}`} />{pm.label}
                   </div>
                   
                   <div className="text-gray-400 text-xs font-semibold uppercase">Deadline</div>
                   <div className={`text-sm font-medium ${isOverdue ? 'text-red-500' : 'text-gray-700'}`}>
-                    {task.deadline ? `${isOverdue ? '⚠️ ' : ''}${new Date(task.deadline).toLocaleDateString('vi-VN', { day:'numeric', month:'long', year:'numeric' })}` : '—'}
+                    {task.deadline ? `${isOverdue ? 'Quá hạn · ' : ''}${new Date(task.deadline).toLocaleDateString('vi-VN', { day:'numeric', month:'long', year:'numeric' })}` : '—'}
                   </div>
                   
                   {task.labels?.length > 0 && (<>
@@ -682,7 +701,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                     <span className="text-sm text-gray-500">Chưa có người thực hiện</span>
                     {myMemberId && task.status === 'TODO' && (
                       <button onClick={() => updateMut.mutate({ assignee_ids: [myMemberId] })} disabled={updateMut.isPending} className="text-xs bg-white border shadow-sm px-2.5 py-1 rounded hover:bg-gray-50 font-medium text-gray-700">
-                        {updateMut.isPending ? '...' : '✋ Nhận việc này'}
+                        {updateMut.isPending ? '...' : 'Nhận việc này'}
                       </button>
                     )}
                   </div>
@@ -700,7 +719,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
               {/* Yêu cầu chỉnh sửa sau nghiệm thu: đặt trên phần tiến độ để người làm thấy ngay */}
               {task.status === 'IN_PROGRESS' && task.review_status === 'REVISION_REQUIRED' && task.review_note && (
                 <div className="px-5 py-3 bg-orange-50 border-b border-orange-100">
-                  <p className="text-xs font-semibold text-orange-600 mb-1">📝 Yêu cầu chỉnh sửa từ Quản lý:</p>
+                  <p className="text-xs font-semibold text-orange-600 mb-1"><Icon name="pencil" className="w-3.5 h-3.5 mr-1" />Yêu cầu chỉnh sửa từ Quản lý:</p>
                   <p className="text-sm text-orange-700 italic whitespace-pre-wrap">"{task.review_note}"</p>
                   <p className="text-[10px] text-orange-400 mt-1">
                     {task.reviewed_at ? `${formatDateTime(task.reviewed_at)} · ` : ''}Tiến độ tạm hạ xuống tối đa {REVISION_RATE_CAP}% cho tới khi nộp lại
@@ -748,7 +767,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                     {task.status === 'TODO' && (task.Assignees?.length ? (
                       <button onClick={() => updateMut.mutate({ status: 'IN_PROGRESS' })} disabled={updateMut.isPending}
                         className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors">
-                        🚀 Bắt đầu làm
+                        <Icon name="play" className="w-4 h-4 mr-1" />Bắt đầu làm
                       </button>
                     ) : (
                       <span className="text-xs text-gray-500">Cần giao người thực hiện trước khi bắt đầu</span>
@@ -759,11 +778,11 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                           disabled={pendingSubs > 0 || updateMut.isPending}
                           title={pendingSubs > 0 ? `Còn ${pendingSubs} subtask chưa hoàn thành` : undefined}
                           className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-green-500 text-white hover:bg-green-600 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                          📦 Nộp sản phẩm & gửi duyệt
+                          <Icon name="upload" className="w-4 h-4 mr-1" />Nộp sản phẩm & gửi duyệt
                         </button>
                         <button onClick={() => updateMut.mutate({ status: 'TODO' })} disabled={updateMut.isPending}
                           className="text-xs px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:bg-gray-100 border border-gray-200 transition-colors">
-                          ↩ Về Cần làm
+                          <Icon name="undo" className="w-3.5 h-3.5 mr-1" />Về Cần làm
                         </button>
                         {pendingSubs > 0 && (
                           <span className="text-xs text-gray-500 w-full">Hoàn thành {pendingSubs} subtask còn lại để gửi duyệt</span>
@@ -774,7 +793,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                 )}
                 {task.status === 'REVIEW' && !canManage && (
                   <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
-                    ⏳ Đang chờ Quản lý duyệt...
+                    <Icon name="clock" className="w-3.5 h-3.5 mr-1" />Đang chờ Quản lý duyệt...
                   </span>
                 )}
               </div>
@@ -799,9 +818,9 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                       </span>
                       {canEditProgress && (
                         <button type="button"
-                          onClick={(e) => { e.preventDefault(); if (confirm(`Xóa subtask "${sub.title}"?`)) deleteSubTaskMut.mutate(sub.id); }}
-                          className="text-gray-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity px-1">
-                          ✕
+                          onClick={async (e) => { e.preventDefault(); if (await confirm({ title: 'Xóa subtask', message: `Xóa subtask "${sub.title}"?`, confirmText: 'Xóa', tone: 'danger' })) deleteSubTaskMut.mutate(sub.id); }}
+                          className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity px-1" aria-label="Xóa subtask">
+                          <Icon name="x" className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </label>
@@ -826,7 +845,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
               {/* Sản phẩm đã nộp (mới nhất trước) */}
               {submissions.length > 0 && (
                 <div className="px-5 py-4 border-b">
-                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">📦 Sản phẩm đã nộp ({submissions.length})</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Sản phẩm đã nộp ({submissions.length})</p>
                   <div className="space-y-2">
                     {submissions.map((s, i) => (
                       <SubmissionCard key={s.id} submission={s} highlight={i === 0 && task.status === 'REVIEW'} />
@@ -838,7 +857,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
               {/* Bảng nghiệm thu (Admin / Lead) */}
               {canReview && (
                 <div className="px-5 py-4 border-b bg-amber-50">
-                  <p className="text-sm font-semibold text-amber-700 mb-1">⏳ Task đang chờ duyệt</p>
+                  <p className="text-sm font-semibold text-amber-700 mb-1"><Icon name="clock" className="w-4 h-4 mr-1" />Task đang chờ duyệt</p>
                   <p className="text-xs text-amber-700 mb-2">
                     {submissions.length
                       ? `Kiểm tra sản phẩm nộp lần #${submissions[0].version} ở mục bên trên trước khi nghiệm thu.`
@@ -858,18 +877,18 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                         placeholder={initialReview === 'REVISION' ? 'Nhập nội dung cần chỉnh sửa...' : 'Nhận xét (bắt buộc khi yêu cầu sửa)...'}
                         value={reviewNote}
                         onChange={e => { setReviewNote(e.target.value); if (reviewError) setReviewError(''); }} />
-                      {reviewError && <p className="text-xs text-red-600 font-medium">⚠️ {reviewError}</p>}
+                      {reviewError && <p className="text-xs text-red-600 font-medium"><Icon name="alert" className="w-3.5 h-3.5 mr-1" />{reviewError}</p>}
                       <div className="flex gap-2">
                         <button onClick={() => reviewMut.mutate({ action: 'APPROVE', review_note: reviewNote.trim() })}
                           disabled={reviewMut.isPending}
                           className="btn-primary bg-green-600 hover:bg-green-700 flex-1 py-1.5 text-sm">
-                          ✅ Duyệt hoàn thành
+                          <Icon name="check" className="w-4 h-4" strokeWidth={2.5} />Duyệt hoàn thành
                         </button>
                         {/* Không khóa nút khi chưa nhập: bấm vào sẽ báo rõ cần nhập nội dung và đưa con trỏ vào ô nhập */}
                         <button onClick={requestRevision}
                           disabled={reviewMut.isPending}
                           className="btn-secondary text-amber-600 border-amber-300 flex-1 py-1.5 text-sm">
-                          ↩️ Yêu cầu sửa
+                          <Icon name="undo" className="w-4 h-4" />Yêu cầu sửa
                         </button>
                       </div>
                     </div>
@@ -882,11 +901,11 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
               <div className="flex border-b px-5 gap-4 mt-2">
                 <button onClick={() => setActiveTab('details')}
                   className={`text-sm py-2.5 font-medium border-b-2 -mb-px transition-colors ${activeTab === 'details' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  💬 Bình luận ({task.Comments?.length || 0})
+                  Bình luận ({task.Comments?.length || 0})
                 </button>
                 <button onClick={() => setActiveTab('activity')}
                   className={`text-sm py-2.5 font-medium border-b-2 -mb-px transition-colors ${activeTab === 'activity' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  📋 Lịch sử
+                  Lịch sử
                 </button>
               </div>
 
@@ -912,7 +931,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                                 {new Date(c.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
                               </span>
                               {canDeleteComment && (
-                                <button onClick={() => { if (confirm('Xóa bình luận này?')) deleteCommentMut.mutate(c.id); }}
+                                <button onClick={async () => { if (await confirm({ title: 'Xóa bình luận', message: 'Xóa bình luận này?', confirmText: 'Xóa', tone: 'danger' })) deleteCommentMut.mutate(c.id); }}
                                   className="ml-auto text-[10px] font-normal text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                                   Xóa
                                 </button>
@@ -956,17 +975,10 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                     {task.Activities?.map(a => (
                       <div key={a.id} className="flex gap-2.5">
                         <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 text-xs">
-                          {a.action === 'STATUS_CHANGED' ? '🔄' :
-                           a.action === 'TASK_CREATED' ? '✨' :
-                           a.action === 'TASK_APPROVED' ? '✅' :
-                           a.action === 'TASK_REVISION' ? '↩️' :
-                           a.action === 'ASSIGNED' ? '👤' :
-                           a.action === 'SUBMITTED' ? '📦' :
-                           a.action === 'PROGRESS' ? '📈' :
-                           a.action === 'UPDATED' ? '✏️' : '📝'}
+                          <Icon name={ACTIVITY_ICONS[a.action] || 'document'} className="w-3.5 h-3.5 text-gray-500" />
                         </div>
                         <div className="flex-1 pt-0.5">
-                          <p className="text-sm text-gray-700">{a.description}</p>
+                          <p className="text-sm text-gray-700">{stripEmoji(a.description)}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">
                             {/* Không gắn thành viên = thao tác của Admin */}
                             {a.Actor?.CandidateProfile?.User?.full_name || 'Quản trị viên'} · {new Date(a.created_at).toLocaleString('vi-VN')}
@@ -1001,6 +1013,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
 
 // ─── Create Task Modal ────────────────────────────────────────────────────────
 function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreated }) {
+  useEscapeKey(onClose);
   const [form, setForm] = useState({
     title: '', description: '', priority: 'MEDIUM', deadline: '',
     labels: [], assignee_ids: [], sub_tasks: []
@@ -1013,7 +1026,7 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
     mutationFn: (data) => taskApi.createTask(workspaceId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['workspace-tasks', workspaceId] });
-      toast.success('✅ Đã tạo task!');
+      toast.success('Đã tạo task!');
       onCreated?.();
     },
     onError: (e) => toast.error(e.response?.data?.message || 'Lỗi tạo task'),
@@ -1030,8 +1043,8 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl max-h-[90vh] flex flex-col animate-fade-in">
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-bold text-gray-900">✨ Tạo Task Mới</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <h2 className="text-lg font-bold text-gray-900">Tạo Task Mới</h2>
+          <button onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-600"><Icon name="x" className="w-5 h-5" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
@@ -1052,7 +1065,7 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Độ ưu tiên</label>
               <select className="input-field text-sm" value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}>
-                {Object.entries(PRIORITY_META).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
+                {Object.entries(PRIORITY_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
             <div>
@@ -1102,10 +1115,10 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
             <div className="space-y-1.5 mb-2">
               {form.sub_tasks.map((st, i) => (
                 <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-2.5 py-1.5">
-                  <span className="text-gray-400 text-xs">☐</span>
+                  <span className="w-3.5 h-3.5 rounded border border-gray-300 inline-block flex-shrink-0" />
                   <span className="text-sm text-gray-700 flex-1">{st}</span>
                   <button onClick={() => setForm(f => ({ ...f, sub_tasks: f.sub_tasks.filter((_, j) => j !== i) }))}
-                    className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                    className="text-gray-300 hover:text-red-400" aria-label="Xóa subtask"><Icon name="x" className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
             </div>
@@ -1121,7 +1134,7 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
         <div className="px-6 py-4 border-t flex gap-2">
           <button onClick={() => createMut.mutate({ ...form, title: form.title.trim() })} disabled={!form.title.trim() || createMut.isPending}
             className="btn-primary flex-1 py-2.5">
-            {createMut.isPending ? 'Đang tạo...' : '✨ Tạo Task'}
+            {createMut.isPending ? 'Đang tạo...' : 'Tạo Task'}
           </button>
           <button onClick={onClose} className="btn-secondary px-5 py-2.5">Hủy</button>
         </div>
@@ -1132,6 +1145,7 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
 
 // ─── Main WorkspacePage ───────────────────────────────────────────────────────
 export default function WorkspacePage() {
+  const confirm = useConfirm();
   const { id } = useParams();
   const { isAdmin, user } = useAuth();
   const qc = useQueryClient();
@@ -1350,7 +1364,7 @@ export default function WorkspacePage() {
     const notFound = wsError?.response?.status === 404;
     return (
       <div className="card text-center py-16 max-w-lg mx-auto mt-10">
-        <p className="text-4xl mb-3">{notFound ? '🔍' : '🔒'}</p>
+        <IconBadge name={notFound ? 'search' : 'lock'} size="lg" className="mx-auto mb-3" />
         <p className="font-semibold text-gray-800">
           {notFound ? 'Không tìm thấy Workspace' : 'Bạn không có quyền truy cập Workspace này'}
         </p>
@@ -1365,139 +1379,143 @@ export default function WorkspacePage() {
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col bg-gray-50/50 border border-gray-200 rounded-xl overflow-hidden min-w-0 w-full relative">
       {/* Header */}
-      <div className="bg-white border-b px-5 py-3 flex items-center gap-3 flex-wrap">
-        <div className="mr-2">
-          <Link to={backLink.to} className="text-[11px] text-gray-400 hover:text-primary-600">← {backLink.label}</Link>
-          <h1 className="text-lg font-bold text-gray-900 leading-tight">{workspace?.name}</h1>
-          <p className="text-xs text-gray-500">{workspace?.Project?.name}</p>
-        </div>
+      <div className="bg-white border-b px-5 pt-3 flex flex-col gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="mr-2">
+            <Link to={backLink.to} className="text-[11px] text-gray-400 hover:text-primary-600">← {backLink.label}</Link>
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">{workspace?.name}</h1>
+            <p className="text-xs text-gray-500">{workspace?.Project?.name}</p>
+          </div>
 
-        {/* Stats chips */}
-        <div className="flex gap-2 flex-wrap">
-          <div className="text-xs bg-gray-100 px-2.5 py-1 rounded-full text-gray-600">
-            📋 {stats.total} tasks
-          </div>
-          <div className="text-xs bg-blue-50 px-2.5 py-1 rounded-full text-blue-700">
-            ⚡ {stats.inProgress} đang làm
-          </div>
-          <div className="text-xs bg-green-50 px-2.5 py-1 rounded-full text-green-700">
-            ✅ {stats.done} hoàn thành
-          </div>
-          {stats.overdue > 0 && (
-            <div className="text-xs bg-red-50 px-2.5 py-1 rounded-full text-red-600 font-semibold">
-              ⚠️ {stats.overdue} quá hạn
+          {/* Stats chips */}
+          <div className="flex gap-2 flex-wrap">
+            <div className="text-xs bg-gray-100 px-2.5 py-1 rounded-full text-gray-600">
+              <Icon name="clipboard" className="w-3.5 h-3.5 mr-1" />{stats.total} tasks
             </div>
-          )}
-        </div>
-
-        {/* Progress bar */}
-        <div className="flex items-center gap-2 ml-2">
-          <div className="w-24 bg-gray-200 rounded-full h-1.5">
-            <div className="bg-green-500 h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
+            <div className="text-xs bg-blue-50 px-2.5 py-1 rounded-full text-blue-700">
+              <Icon name="bolt" className="w-3.5 h-3.5 mr-1" />{stats.inProgress} đang làm
+            </div>
+            <div className="text-xs bg-green-50 px-2.5 py-1 rounded-full text-green-700">
+              <Icon name="verified" className="w-3.5 h-3.5 mr-1" />{stats.done} hoàn thành
+            </div>
+            {stats.overdue > 0 && (
+              <div className="text-xs bg-red-50 px-2.5 py-1 rounded-full text-red-600 font-semibold">
+                <Icon name="alert" className="w-3.5 h-3.5 mr-1" />{stats.overdue} quá hạn
+              </div>
+            )}
           </div>
-          <span className="text-xs text-gray-500">{completionRate}%</span>
+
+          {/* Progress bar */}
+          <div className="flex items-center gap-2 ml-2">
+            <div className="w-24 bg-gray-200 rounded-full h-1.5">
+              <div className="bg-green-500 h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
+            </div>
+            <span className="text-xs text-gray-500">{completionRate}%</span>
+          </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap pb-3">
           {/* Section tabs */}
           <div className="flex bg-gray-100 rounded-lg p-0.5">
             <button onClick={() => setActiveSection('board')}
               className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${activeSection === 'board' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>
-              📋 Board
+              <Icon name="clipboard" className="w-3.5 h-3.5 mr-1" />Board
             </button>
             <button onClick={() => setActiveSection('stats')}
               className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${activeSection === 'stats' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>
-              📊 Thống kê
+              <Icon name="chart" className="w-3.5 h-3.5 mr-1" />Thống kê
             </button>
             {canManage && (
               <>
                 <button onClick={() => setActiveSection('members')}
                   className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${activeSection === 'members' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>
-                  👥 Thành viên
+                  <Icon name="users" className="w-3.5 h-3.5 mr-1" />Thành viên
                 </button>
                 <button onClick={() => setActiveSection('logs')}
                   className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${activeSection === 'logs' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>
-                  📜 Nhật ký
+                  <Icon name="history" className="w-3.5 h-3.5 mr-1" />Nhật ký
                 </button>
               </>
             )}
           </div>
 
-          {/* View toggle (only in board mode) */}
-          {activeSection === 'board' && (
-            <>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Cách hiển thị (chỉ ở tab Board) */}
+            {activeSection === 'board' && (
               <div className="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200">
                 <button onClick={() => setViewMode('kanban')}
                   className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${viewMode === 'kanban' ? 'bg-white shadow text-gray-800 font-medium' : 'text-gray-500'}`}>
-                  ⊞ Kanban
+                  <Icon name="board" className="w-3.5 h-3.5 mr-1" />Kanban
                 </button>
                 <button onClick={() => setViewMode('list')}
                   className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow text-gray-800 font-medium' : 'text-gray-500'}`}>
-                  ≡ Danh sách
+                  <Icon name="list" className="w-3.5 h-3.5 mr-1" />Danh sách
                 </button>
               </div>
-            </>
-          )}
+            )}
 
-          {canManage && activeSection === 'board' && (
-            <button onClick={() => setShowCreateModal(true)} className="btn-primary text-sm py-1.5 px-3">
-              + Tạo Task
+            {canManage && activeSection === 'board' && (
+              <button onClick={() => setShowCreateModal(true)} className="btn-primary text-sm py-1.5 px-3">
+                <Icon name="plus" className="w-4 h-4" />Tạo Task
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Thanh lọc: chỉ có tác dụng ở tab Board nên các tab khác không hiện */}
+      {activeSection === 'board' && (
+        <div className="bg-white border-b px-5 py-2 flex items-center gap-3 text-sm flex-wrap">
+          <span className="text-xs text-gray-400 font-semibold uppercase">Bộ lọc:</span>
+
+          {/* Lọc nhanh task của mình */}
+          {myMember && (
+            <button
+              onClick={() => setFilters(f => ({ ...f, assignee_id: f.assignee_id === myMember.id ? '' : myMember.id }))}
+              className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${
+                filters.assignee_id === myMember.id
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300'
+              }`}>
+              <Icon name="user" className="w-3.5 h-3.5 mr-1" />Task của tôi{myOpenTaskCount ? ` (${myOpenTaskCount})` : ''}
             </button>
           )}
-        </div>
-      </div>
-
-      {/* Filter bar */}
-      <div className="bg-white border-b px-5 py-2 flex items-center gap-3 text-sm flex-wrap">
-        <span className="text-xs text-gray-400 font-semibold uppercase">Bộ lọc:</span>
-
-        {/* Lọc nhanh task của mình */}
-        {myMember && (
-          <button
-            onClick={() => setFilters(f => ({ ...f, assignee_id: f.assignee_id === myMember.id ? '' : myMember.id }))}
-            className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${
-              filters.assignee_id === myMember.id
-                ? 'bg-primary-600 text-white border-primary-600'
-                : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300'
-            }`}>
-            👤 Task của tôi{myOpenTaskCount ? ` (${myOpenTaskCount})` : ''}
-          </button>
-        )}
         
-        <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
-          value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}>
-          <option value="">Tất cả ưu tiên</option>
-          {Object.entries(PRIORITY_META).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
-        </select>
+          <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
+            value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}>
+            <option value="">Tất cả ưu tiên</option>
+            {Object.entries(PRIORITY_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
 
-        <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
-          value={filters.label} onChange={e => setFilters(f => ({...f, label: e.target.value}))}>
-          <option value="">Tất cả label</option>
-          {ALL_LABELS.map(l => <option key={l} value={l}>{l}</option>)}
-        </select>
+          <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
+            value={filters.label} onChange={e => setFilters(f => ({...f, label: e.target.value}))}>
+            <option value="">Tất cả label</option>
+            {ALL_LABELS.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
 
-        <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
-          value={filters.assignee_id} onChange={e => setFilters(f => ({...f, assignee_id: e.target.value}))}>
-          <option value="">Tất cả thành viên</option>
-          <option value="__unassigned">Chưa giao</option>
-          {members.map(m => <option key={m.id} value={m.id}>{m.CandidateProfile?.User?.full_name}</option>)}
-        </select>
+          <select className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
+            value={filters.assignee_id} onChange={e => setFilters(f => ({...f, assignee_id: e.target.value}))}>
+            <option value="">Tất cả thành viên</option>
+            <option value="__unassigned">Chưa giao</option>
+            {members.map(m => <option key={m.id} value={m.id}>{m.CandidateProfile?.User?.full_name}</option>)}
+          </select>
 
-        {/* Members avatars */}
-        <div className="ml-auto flex -space-x-2">
-          {members.slice(0, 5).map(m => (
-            <div key={m.id} title={`${m.CandidateProfile?.User?.full_name} (${MEMBER_ROLE_LABELS[m.role]})`}>
-              <Avatar name={m.CandidateProfile?.User?.full_name} size="sm" className="ring-2 ring-white cursor-pointer"
-                onClick={() => setFilters(f => ({ ...f, assignee_id: f.assignee_id === m.id ? '' : m.id }))} />
-            </div>
-          ))}
-          {members.length > 5 && (
-            <div className="w-7 h-7 bg-gray-200 rounded-full ring-2 ring-white flex items-center justify-center text-[10px] text-gray-600">
-              +{members.length - 5}
-            </div>
-          )}
+          {/* Members avatars */}
+          <div className="ml-auto flex -space-x-2">
+            {members.slice(0, 5).map(m => (
+              <div key={m.id} title={`${m.CandidateProfile?.User?.full_name} (${MEMBER_ROLE_LABELS[m.role]})`}>
+                <Avatar name={m.CandidateProfile?.User?.full_name} size="sm" className="ring-2 ring-white cursor-pointer"
+                  onClick={() => setFilters(f => ({ ...f, assignee_id: f.assignee_id === m.id ? '' : m.id }))} />
+              </div>
+            ))}
+            {members.length > 5 && (
+              <div className="w-7 h-7 bg-gray-200 rounded-full ring-2 ring-white flex items-center justify-center text-[10px] text-gray-600">
+                +{members.length - 5}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       {/* ─── Stats Section ─── */}
@@ -1510,15 +1528,15 @@ export default function WorkspacePage() {
               {/* Overview cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
-                  { label: 'Tổng task', value: wsStats.total, color: 'bg-gray-50 text-gray-700', icon: '📋' },
-                  { label: 'Cần làm', value: wsStats.by_status?.TODO, color: 'bg-gray-50 text-gray-600', icon: '○' },
-                  { label: 'Đang làm', value: wsStats.by_status?.IN_PROGRESS, color: 'bg-blue-50 text-blue-700', icon: '⚡' },
-                  { label: 'Hoàn thành', value: wsStats.by_status?.DONE, color: 'bg-green-50 text-green-700', icon: '✅' },
-                  { label: 'Quá hạn', value: wsStats.overdue, color: 'bg-red-50 text-red-600', icon: '⚠️' },
+                  { label: 'Tổng task', value: wsStats.total, color: 'bg-gray-50 text-gray-700', icon: 'clipboard' },
+                  { label: 'Cần làm', value: wsStats.by_status?.TODO, color: 'bg-gray-50 text-gray-600', icon: 'clock' },
+                  { label: 'Đang làm', value: wsStats.by_status?.IN_PROGRESS, color: 'bg-blue-50 text-blue-700', icon: 'bolt' },
+                  { label: 'Hoàn thành', value: wsStats.by_status?.DONE, color: 'bg-green-50 text-green-700', icon: 'verified' },
+                  { label: 'Quá hạn', value: wsStats.overdue, color: 'bg-red-50 text-red-600', icon: 'alert' },
                 ].map((s, i) => (
                   <div key={i} className={`rounded-xl p-3 ${s.color} border border-white/50`}>
                     <p className="text-2xl font-black">{s.value ?? 0}</p>
-                    <p className="text-xs font-medium mt-0.5 opacity-75">{s.icon} {s.label}</p>
+                    <p className="text-xs font-medium mt-0.5 opacity-75"><Icon name={s.icon} className="w-3.5 h-3.5 mr-1" />{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -1534,7 +1552,7 @@ export default function WorkspacePage() {
                     style={{ width: `${wsStats.completion_rate}%` }} />
                 </div>
                 {wsStats.due_soon > 0 && (
-                  <p className="text-xs text-amber-600 mt-2 font-medium">⏰ {wsStats.due_soon} task sắp đến hạn trong 3 ngày tới</p>
+                  <p className="text-xs text-amber-600 mt-2 font-medium"><Icon name="clock" className="w-3.5 h-3.5 mr-1" />{wsStats.due_soon} task sắp đến hạn trong 3 ngày tới</p>
                 )}
               </div>
 
@@ -1578,7 +1596,7 @@ export default function WorkspacePage() {
           <div className="max-w-3xl mx-auto">
             <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b bg-gray-50">
-                <h3 className="font-bold text-gray-800">👥 Quản lý thành viên ({members.length})</h3>
+                <h3 className="font-bold text-gray-800">Quản lý thành viên ({members.length})</h3>
                 {isAdmin() && (
                   <button onClick={() => setShowAddMember(v => !v)} className="btn-primary text-xs py-1.5 px-3">
                     {showAddMember ? 'Đóng' : '+ Thêm thành viên'}
@@ -1639,18 +1657,18 @@ export default function WorkspacePage() {
                       </div>
                       {/* Khối lượng việc hiện tại → để Lead/Admin chia việc đều */}
                       <span className="text-[11px] text-gray-500 flex-shrink-0" title="Số task đang thực hiện (chưa nghiệm thu)">
-                        📋 {workload[m.id] || 0} task
+                        <Icon name="clipboard" className="w-3.5 h-3.5 mr-1" />{workload[m.id] || 0} task
                       </span>
                       {/* Cử / gỡ Lead nhanh */}
                       {canModify && m.role === 'MEMBER' && (
                         <button onClick={() => updateRoleMut.mutate({ memberId: m.id, role: 'LEAD' })} disabled={updateRoleMut.isPending}
                           title="Cử làm Lead: được tạo task, giao việc và nghiệm thu"
                           className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition-colors disabled:opacity-50">
-                          ⭐ Cử làm Lead
+                          <Icon name="star" className="w-3.5 h-3.5 mr-1" />Cử làm Lead
                         </button>
                       )}
                       {canModify && m.role === 'LEAD' && (
-                        <button onClick={() => { if (confirm(`Gỡ vai trò Lead của ${name}?`)) updateRoleMut.mutate({ memberId: m.id, role: 'MEMBER' }); }} disabled={updateRoleMut.isPending}
+                        <button onClick={async () => { if (await confirm({ title: 'Gỡ vai trò Lead', message: `Gỡ vai trò Lead của ${name}?`, confirmText: 'Gỡ Lead', tone: 'danger' })) updateRoleMut.mutate({ memberId: m.id, role: 'MEMBER' }); }} disabled={updateRoleMut.isPending}
                           className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50">
                           Gỡ Lead
                         </button>
@@ -1667,7 +1685,7 @@ export default function WorkspacePage() {
                       {/* Nút xóa thành viên (chỉ Admin) */}
                       {canModify && (
                         <button
-                          onClick={() => { if (confirm(`Xóa ${name} khỏi workspace?`)) removeMemberMut.mutate(m.id); }}
+                          onClick={async () => { if (await confirm({ title: 'Xóa thành viên', message: `Xóa ${name} khỏi workspace?`, confirmText: 'Xóa', tone: 'danger' })) removeMemberMut.mutate(m.id); }}
                           className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors"
                         >
                           Xóa
@@ -1678,7 +1696,7 @@ export default function WorkspacePage() {
                 })}
                 {!members.length && (
                   <div className="py-10 text-center text-gray-400">
-                    <p className="text-3xl mb-2">👤</p>
+                    <IconBadge name="user" size="lg" className="mx-auto mb-2" />
                     <p className="text-sm">Chưa có thành viên nào</p>
                   </div>
                 )}
@@ -1775,7 +1793,7 @@ export default function WorkspacePage() {
             <div className="divide-y divide-gray-50">
               {filteredTasks.length === 0 ? (
                 <div className="py-16 text-center text-gray-400">
-                  <p className="text-4xl mb-3">📭</p>
+                  <IconBadge name="inbox" size="lg" className="mx-auto mb-3" />
                   <p className="font-medium">Không có task nào</p>
                   {canManage && <button onClick={() => setShowCreateModal(true)} className="btn-primary mt-3 text-sm">Tạo task đầu tiên</button>}
                 </div>
@@ -1807,7 +1825,7 @@ export default function WorkspacePage() {
                     </div>
 
                     <span className={`text-xs font-medium px-2 py-1 rounded-full w-fit ${pm.color}`}>
-                      {pm.icon} {pm.label}
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${pm.dot}`} />{pm.label}
                     </span>
 
                     <div>
