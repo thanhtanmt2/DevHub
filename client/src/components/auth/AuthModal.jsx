@@ -5,13 +5,24 @@ import { authApi } from '@/api/authApi';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
 
+// "Ghi nhớ email": chỉ lưu email, tuyệt đối không lưu mật khẩu
+const REMEMBER_EMAIL_KEY = 'devhub_remembered_email';
+const readRememberedEmail = () => {
+  try { return localStorage.getItem(REMEMBER_EMAIL_KEY) || ''; } catch { return ''; }
+};
+const emptyLoginForm = () => {
+  const email = readRememberedEmail();
+  return { email, password: '', rememberMe: !!email };
+};
+const emptyRegisterForm = () => ({ full_name: '', email: '', password: '', confirmPassword: '', role: 'CANDIDATE' });
+
 export default function AuthModal() {
   const { authModal, closeAuthModal, setAuthModalView, login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Login form state
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginForm, setLoginForm] = useState(emptyLoginForm);
   const [loginLoading, setLoginLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
@@ -51,13 +62,7 @@ export default function AuthModal() {
 
   // Register form state
   // hook useState để tạo ra một cấu trúc lưu trữ toàn bộ dữ liệu
-  const [registerForm, setRegisterForm] = useState({
-    full_name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'CANDIDATE', // mặc định sẽ là ứng viên 
-  });
+  const [registerForm, setRegisterForm] = useState(emptyRegisterForm); // vai trò mặc định là ứng viên
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
 
@@ -80,13 +85,20 @@ export default function AuthModal() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [authModal.isOpen, closeAuthModal]);
 
-  // Reset register/forgot success states when modal closes or view changes
+  // Khi đóng modal (đăng nhập xong, bấm X, Esc...): xóa sạch dữ liệu đã nhập để lần mở sau (kể cả sau khi
+  // đăng xuất) form luôn trống — chỉ giữ lại email nếu người dùng đã chọn "Ghi nhớ email"
   useEffect(() => {
     if (!authModal.isOpen) {
       setRegisterSuccess(false);
       setForgotSent(false);
+      setLoginForm(emptyLoginForm());
+      setRegisterForm(emptyRegisterForm());
+      setForgotEmail('');
+      setShowLoginPassword(false);
+      setShowRegisterPassword(false);
+      setShowRegisterConfirmPassword(false);
     }
-  }, [authModal.isOpen, authModal.view]);
+  }, [authModal.isOpen]);
 
   if (!authModal.isOpen) return null;
 
@@ -95,8 +107,13 @@ export default function AuthModal() {
     e.preventDefault(); // chặn load lại trang web 
     setLoginLoading(true); // bật loading
     try {
-      const user = await login(loginForm);
-      // gán vai trò của user vào biến roles 
+      // Chỉ gửi email + mật khẩu lên server (rememberMe là thiết lập phía trình duyệt)
+      const user = await login({ email: loginForm.email, password: loginForm.password });
+      try {
+        if (loginForm.rememberMe) localStorage.setItem(REMEMBER_EMAIL_KEY, loginForm.email.trim());
+        else localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      } catch { /* trình duyệt chặn lưu trữ: bỏ qua */ }
+      // gán vai trò của user vào biến roles
       const roles = user.Roles?.map((r) => r.name) || [];
       toast.success(`Chào mừng trở lại, ${user.full_name}!`);
       closeAuthModal();
@@ -219,16 +236,13 @@ export default function AuthModal() {
 
         {/* --- VIEW: LOGIN --- */}
         {authModal.view === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
-            {/* Hidden dummy inputs để đánh lừa trình duyệt không autofill */}
-            <input type="text" style={{ display: 'none' }} />
-            <input type="password" style={{ display: 'none' }} />
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
                 name="email_devhub"
-                autoComplete="new-password"
+                autoComplete="off"
                 required
                 className="input-field"
                 placeholder="you@example.com"
@@ -280,7 +294,7 @@ export default function AuthModal() {
                   onChange={(e) => setLoginForm({ ...loginForm, rememberMe: e.target.checked })}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer">
-                  Lưu mật khẩu
+                  Ghi nhớ email
                 </label>
               </div>
               <button
