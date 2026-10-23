@@ -613,16 +613,6 @@ export default function InternalProjectsPage() {
               <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-1 text-gray-600 mb-4 border border-gray-100">
                 <p><Icon name="cash" className="w-4 h-4 mr-1" /><strong>Ngân sách:</strong> {formatCurrency(project.budget)}</p>
                 <p><Icon name="users" className="w-4 h-4 mr-1" /><strong>Vị trí tuyển dụng:</strong> {project.ProjectJobs?.length || 0} vị trí</p>
-                <div>
-                  <p className="flex justify-between">
-                    <span><Icon name="trending" className="w-4 h-4 mr-1" /><strong>Tiến độ hoàn thành</strong></span>
-                    <span className="font-semibold text-gray-700">{Math.round(project.completion_rate || 0)}%</span>
-                  </p>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                    <div className="bg-green-500 h-1.5 rounded-full transition-all"
-                      style={{ width: `${Math.min(100, Math.round(project.completion_rate || 0))}%` }} />
-                  </div>
-                </div>
               </div>
             </div>
 

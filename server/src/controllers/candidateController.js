@@ -220,7 +220,7 @@ exports.getMyWorkspaces = async (req, res, next) => {
 
     const tasks = await Task.findAll({
       where: { workspace_id: { [Op.in]: members.map(m => m.workspace_id) }, status: { [Op.ne]: 'CANCELLED' } },
-      attributes: ['id', 'workspace_id', 'status', 'deadline', 'review_status', 'completion_rate'],
+      attributes: ['id', 'workspace_id', 'status', 'deadline', 'review_status'],
       include: [{ model: WorkspaceMember, as: 'Assignees', attributes: ['id'], through: { attributes: [] } }],
     });
 
@@ -229,11 +229,8 @@ exports.getMyWorkspaces = async (req, res, next) => {
       const mine = wsTasks.filter(t => t.Assignees.some(a => a.id === m.id));
       return {
         ...m.toJSON(),
-        // Tiến độ chung = trung bình % hoàn thành các task của workspace (giống tab Thống kê)
-        progress: wsTasks.length
-          ? Math.round(wsTasks.reduce((sum, t) => sum + (t.completion_rate || 0), 0) / wsTasks.length)
-          : 0,
         total_tasks: wsTasks.length,
+        done_tasks: wsTasks.filter(t => t.status === 'DONE').length,
         my_tasks: summarizeTasks(mine),
       };
     });
@@ -254,7 +251,7 @@ exports.getMyTasks = async (req, res, next) => {
 
     const tasks = await Task.findAll({
       where: { status: { [Op.ne]: 'CANCELLED' } },
-      attributes: ['id', 'title', 'status', 'priority', 'deadline', 'review_status', 'completion_rate', 'workspace_id', 'updated_at'],
+      attributes: ['id', 'title', 'status', 'priority', 'deadline', 'review_status', 'workspace_id', 'updated_at'],
       include: [
         // Chỉ lấy task có mình trong danh sách người thực hiện
         { model: WorkspaceMember, as: 'Assignees', attributes: ['id'], through: { attributes: [] }, where: { id: { [Op.in]: members.map(m => m.id) } } },

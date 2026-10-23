@@ -419,7 +419,10 @@ exports.getWorkspaceStats = async (req, res, next) => {
 
     const tasks = await Task.findAll({
       where: { workspace_id: workspaceId },
-      include: [{ model: WM, as: 'Assignees', through: { attributes: [] }, attributes: ['id'] }]
+      include: [{
+        model: WM, as: 'Assignees', through: { attributes: [] }, attributes: ['id'],
+        include: [{ model: CP, attributes: ['id'], include: [{ model: U, attributes: ['full_name'] }] }],
+      }],
     });
 
     const now = new Date();
@@ -427,7 +430,8 @@ exports.getWorkspaceStats = async (req, res, next) => {
     const deadlineEnd = (d) => { const end = new Date(d); end.setHours(23, 59, 59, 999); return end; };
     const isOpen = (t) => ['TODO', 'IN_PROGRESS'].includes(t.status);
     const isOverdue = (t) => t.deadline && isOpen(t) && deadlineEnd(t.deadline) < now;
-    // Tiến độ tổng thể = trung bình % hoàn thành của các task (không tính task đã hủy)
+    const daysLeft = (t) => (deadlineEnd(t.deadline) - now) / (1000 * 60 * 60 * 24);
+    const isDueSoon = (t) => t.deadline && isOpen(t) && daysLeft(t) >= 0 && daysLeft(t) <= 3;
     const activeTasks = tasks.filter(t => t.status !== 'CANCELLED');
     const stats = {
       total: activeTasks.length,
@@ -438,34 +442,45 @@ exports.getWorkspaceStats = async (req, res, next) => {
         DONE: tasks.filter(t => t.status === 'DONE').length,
       },
       overdue: tasks.filter(isOverdue).length,
-      due_soon: tasks.filter(t => {
-        if (!t.deadline || !isOpen(t)) return false;
-        const diff = (deadlineEnd(t.deadline) - now) / (1000 * 60 * 60 * 24);
-        return diff >= 0 && diff <= 3;
-      }).length,
-      completion_rate: activeTasks.length
-        ? Math.round(activeTasks.reduce((acc, t) => acc + (t.completion_rate || 0), 0) / activeTasks.length)
-        : 0,
+      due_soon: tasks.filter(isDueSoon).length,
+      // Việc cần chú ý: quá hạn và sắp đến hạn (3 ngày tới), gần hạn nhất lên trước
+      attention: tasks
+        .filter(t => isOverdue(t) || isDueSoon(t))
+        .sort((x, y) => new Date(x.deadline) - new Date(y.deadline))
+        .slice(0, 10)
+        .map(t => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          priority: t.priority,
+          deadline: t.deadline,
+          overdue: !!isOverdue(t),
+          assignees: (t.Assignees || []).map(a => a.CandidateProfile?.User?.full_name).filter(Boolean),
+        })),
     };
 
-    // Per-member stats
+    // Khối lượng việc của từng thành viên (giống "Workload" trong Jira)
     const members = await WM.findAll({
       where: { workspace_id: workspaceId, status: 'ACTIVE' },
       include: [{ model: CP, attributes: ['id', 'avatar_url'], include: [{ model: U, attributes: ['full_name'] }] }]
     });
 
-    const memberStats = await Promise.all(members.map(async (m) => {
-      const assigned = tasks.filter(t => t.Assignees?.some(a => a.id === m.id));
+    const memberStats = members.map((m) => {
+      const assigned = tasks.filter(t => t.status !== 'CANCELLED' && t.Assignees?.some(a => a.id === m.id));
       return {
         id: m.id,
         role: m.role,
         name: m.CandidateProfile?.User?.full_name,
         total_assigned: assigned.length,
-        done: assigned.filter(t => t.status === 'DONE').length,
+        todo: assigned.filter(t => t.status === 'TODO').length,
         in_progress: assigned.filter(t => t.status === 'IN_PROGRESS').length,
+        review: assigned.filter(t => t.status === 'REVIEW').length,
+        done: assigned.filter(t => t.status === 'DONE').length,
         overdue: assigned.filter(isOverdue).length,
       };
-    }));
+    });
+    // Người đang có nhiều việc chưa xong nhất lên trước
+    memberStats.sort((x, y) => (y.todo + y.in_progress + y.review) - (x.todo + x.in_progress + x.review));
 
     res.json({ success: true, data: { ...stats, members: memberStats } });
   } catch (error) { next(error); }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -37,7 +38,7 @@ const ACTIVITY_ICONS = {
   TASK_REVISION: 'undo',
   ASSIGNED: 'user',
   SUBMITTED: 'upload',
-  PROGRESS: 'trending',
+  PROGRESS: 'trending', // nhật ký cũ (trước đây task có % tiến độ)
   UPDATED: 'pencil',
 };
 const LABEL_COLORS = {
@@ -57,10 +58,8 @@ const ROLE_OPTIONS = ['LEAD', 'MEMBER'];
 
 // Luồng trạng thái hợp lệ (khớp với backend). Ra khỏi "Chờ duyệt" chỉ qua nghiệm thu.
 const TRANSITIONS = { TODO: ['IN_PROGRESS'], IN_PROGRESS: ['TODO', 'REVIEW'], REVIEW: [], DONE: [] };
-// Trạng thái còn được cập nhật tiến độ / subtask
+// Trạng thái còn được chỉnh subtask / chuyển trạng thái
 const EDITABLE_STATUSES = ['TODO', 'IN_PROGRESS'];
-// Task bị yêu cầu chỉnh sửa: % tối đa 90 cho tới khi nộp lại (khớp với backend)
-const REVISION_RATE_CAP = 90;
 
 // Ngày hôm nay theo giờ máy (YYYY-MM-DD) cho ô chọn deadline
 const todayStr = () => {
@@ -163,7 +162,7 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
       {totalSubs > 0 && (
         <div className="mb-2.5">
           <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
-            <span>Subtasks</span>
+            <span>Công việc con</span>
             <span>{doneSubs}/{totalSubs}</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1">
@@ -195,9 +194,6 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
             <span className="text-[10px] text-gray-400">Chưa giao</span>
           )}
         </div>
-        {task.completion_rate > 0 && task.status !== 'DONE' && (
-          <span className="text-[10px] text-gray-400">{task.completion_rate}%</span>
-        )}
         {task.status === 'DONE' && <span className="text-[10px] text-green-500 font-semibold"><Icon name="check" className="w-3 h-3 mr-0.5" strokeWidth={2.5} />Xong</span>}
       </div>
     </div>
@@ -354,26 +350,59 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
   );
 }
 
-// ─── Task Detail Drawer ──────────────────────────────────────────────────────
-function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, workload = {}, initialReview = null }) {
+// Biến các đường dẫn http(s) trong văn bản thành liên kết bấm được
+function Linkified({ text, className = '' }) {
+  const parts = String(text || '').split(/(https?:\/\/[^\s<>"']+)/g);
+  return (
+    <p className={`whitespace-pre-wrap ${className}`}>
+      {parts.map((part, i) => (i % 2 === 1
+        ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline break-all">{part}</a>
+        : part))}
+    </p>
+  );
+}
+
+const isImageUrl = (url) => /\.(png|jpe?g|gif|webp)$/i.test(String(url || '').split('?')[0]);
+
+// ─── Task Detail (cửa sổ rộng kiểu Jira) ─────────────────────────────────────
+// Bên trái: tiêu đề, mô tả, công việc con, sản phẩm đã nộp, bình luận / lịch sử.
+// Bên phải: trạng thái + thao tác chuyển trạng thái, nghiệm thu, và bảng "Chi tiết" (người làm, ưu tiên, deadline, nhãn...).
+
+// Một dòng trong bảng "Chi tiết" (nhãn bên trái, giá trị bên phải)
+function DetailRow({ label, children }) {
+  return (
+    <div className="grid grid-cols-[104px_1fr] gap-3 items-start py-2.5">
+      <dt className="text-xs font-semibold text-gray-500 pt-1">{label}</dt>
+      <dd className="text-sm text-gray-800 min-w-0">{children}</dd>
+    </div>
+  );
+}
+
+function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, workspaceName, workload = {}, initialReview = null }) {
   const confirm = useConfirm();
   const qc = useQueryClient();
   const { user, isAdmin } = useAuth();
   const [commentText, setCommentText] = useState('');
   const [newSubTask, setNewSubTask] = useState('');
   const [editMode, setEditMode] = useState(false);
-  // Esc: đang sửa thì thoát chế độ sửa trước, bấm lần nữa mới đóng ngăn chi tiết
-  useEscapeKey(() => (editMode ? setEditMode(false) : onClose()));
   const [isAssigning, setIsAssigning] = useState(false);
   const [editData, setEditData] = useState(null);
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'activity'
+  const [activeTab, setActiveTab] = useState('comments'); // 'all' | 'comments' | 'history'
   const [reviewNote, setReviewNote] = useState('');
   const [reviewError, setReviewError] = useState('');
   const reviewNoteRef = useRef(null);
   // Mở sẵn bảng nghiệm thu khi Quản lý kéo task ra khỏi cột "Chờ duyệt"
   const [showReviewPanel, setShowReviewPanel] = useState(!!initialReview);
-  const [showSubmit, setShowSubmit] = useState(false);       // form nộp sản phẩm
-  const [progressDraft, setProgressDraft] = useState(0);     // % đang kéo trên thanh tiến độ
+  const [showSubmit, setShowSubmit] = useState(false); // form nộp sản phẩm
+  const [descEditing, setDescEditing] = useState(false); // đang sửa mô tả ngay trong cửa sổ
+  const [descDraft, setDescDraft] = useState('');
+  const [showLabelPicker, setShowLabelPicker] = useState(false);
+  const [linkForm, setLinkForm] = useState(null);   // { name, url } khi đang thêm liên kết
+  const [uploadPct, setUploadPct] = useState(null); // null = không tải; 0..100 = đang tải tệp
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+  // Esc: thoát lần lượt từng lớp (sửa mô tả → chế độ sửa task → đóng cửa sổ)
+  useEscapeKey(() => (descEditing ? setDescEditing(false) : editMode ? setEditMode(false) : onClose()));
 
   const { data, isLoading } = useQuery({
     queryKey: ['task', taskId],
@@ -382,9 +411,6 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
     staleTime: 0, // mỗi lần mở đều lấy dữ liệu mới (thành viên khác có thể vừa cập nhật)
   });
   const task = data?.data?.data;
-
-  // Đồng bộ thanh tiến độ với % đã lưu
-  useEffect(() => { setProgressDraft(task?.completion_rate ?? 0); }, [task?.completion_rate]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['task', taskId] });
@@ -472,21 +498,68 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
     onError: (e) => toast.error(e.response?.data?.message || 'Thao tác thất bại'),
   });
 
+  // Sửa mô tả / nhãn / tài liệu: Admin, Lead, hoặc người được giao khi task còn đang làm
+  const descMut = useMutation({
+    mutationFn: (description) => taskApi.updateTask(taskId, { description }),
+    onSuccess: () => { invalidate(); setDescEditing(false); toast.success('Đã cập nhật mô tả'); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Cập nhật thất bại'),
+  });
+  const labelMut = useMutation({
+    mutationFn: (labels) => taskApi.updateTask(taskId, { labels }),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.message || 'Cập nhật thất bại'),
+  });
+  const addAttachMut = useMutation({
+    mutationFn: (data) => taskApi.addAttachment(taskId, data),
+    onSuccess: () => { invalidate(); setLinkForm(null); toast.success('Đã thêm liên kết'); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Không thêm được tài liệu'),
+  });
+  const deleteAttachMut = useMutation({
+    mutationFn: (attId) => taskApi.deleteAttachment(taskId, attId),
+    onSuccess: () => { invalidate(); toast.success('Đã gỡ tài liệu'); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Không gỡ được tài liệu'),
+  });
+  // Tải lần lượt từng tệp lên rồi gắn vào task (chọn nhiều tệp hoặc kéo thả đều dùng hàm này)
+  const uploadFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    for (const file of files) {
+      if (file.size > MAX_TASK_FILE_SIZE) { toast.error(`"${file.name}" vượt quá 20MB`); continue; }
+      setUploadPct(0);
+      try {
+        const res = await uploadApi.uploadTaskFile(file, setUploadPct);
+        const up = res.data.data; // { url, filename, size }
+        await taskApi.addAttachment(taskId, { kind: 'FILE', url: up.url, name: up.filename, size: up.size });
+        invalidate();
+        toast.success(`Đã đính kèm "${up.filename}"`);
+      } catch (err) {
+        toast.error(err.response?.data?.message || `Không đính kèm được "${file.name}"`);
+      }
+    }
+    setUploadPct(null);
+  };
+
   if (!taskId) return null;
 
-  if (isLoading) return (
-    <div className="fixed inset-y-0 right-0 w-full md:w-[520px] bg-white shadow-2xl z-40 flex items-center justify-center border-l">
-      <LoadingSpinner />
-    </div>
+  const shell = (children) => createPortal(
+    <div className="fixed inset-0 z-40 bg-black/50 flex items-stretch sm:items-center justify-center sm:p-6" onClick={() => { if (!editMode) onClose(); }}>
+      <div className="bg-white w-full max-w-6xl h-full sm:h-[90vh] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+        onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>,
+    document.body
   );
 
+  if (isLoading) return shell(<div className="flex-1 flex items-center justify-center"><LoadingSpinner /></div>);
   if (!task) return null;
 
   const pm = PRIORITY_META[task.priority] || PRIORITY_META.MEDIUM;
+  const sm = STATUS_META[task.status] || STATUS_META.TODO;
   const subDone = (s) => subOverrides[s.id] ?? s.is_done; // gồm cả thao tác đang chờ máy chủ xác nhận
   const totalSubs = task.SubTasks?.length || 0;
   const doneSubs = task.SubTasks?.filter(subDone).length || 0;
   const pendingSubs = totalSubs - doneSubs;
+  const subPercent = totalSubs ? Math.round((doneSubs / totalSubs) * 100) : 0;
   const isOverdue = isTaskOverdue(task);
   const isDone = task.status === 'DONE';
   const inRevision = task.status === 'IN_PROGRESS' && task.review_status === 'REVISION_REQUIRED';
@@ -498,12 +571,23 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
   const canReview = canManage && task.status === 'REVIEW';
   // Người thực hiện không được tự nghiệm thu task của mình (trừ Admin)
   const isSelfReview = isAssignedToMe && !isAdmin();
-  // Cập nhật tiến độ / subtask khi task chưa gửi duyệt
+  // Cập nhật subtask / chuyển trạng thái khi task chưa gửi duyệt
   const canEditProgress = EDITABLE_STATUSES.includes(task.status) && (canManage || isAssignedToMe);
-  // Thành viên vai trò "Xem" không được giao task
+  // Sửa mô tả / nhãn / đính kèm tài liệu: Admin/Lead (khi chưa nghiệm thu) hoặc người được giao khi task còn đang làm
+  const canEditContent = !isDone && (canManage || (isAssignedToMe && EDITABLE_STATUSES.includes(task.status)));
+  const attachments = task.Attachments || [];
+  const startDescEdit = () => { setDescDraft(task.description || ''); setDescEditing(true); };
   const assignableMembers = members; // mọi thành viên Workspace đều có thể được giao việc
   // Các lần nộp sản phẩm (mới nhất trước)
   const submissions = task.TaskSubmissions || [];
+  const taskKey = `#${String(task.id).slice(0, 6).toUpperCase()}`;
+  const myName = user?.full_name || 'Bạn';
+
+  // Dòng thời gian: bình luận + lịch sử, mới nhất trước (giống phần Activity của Jira)
+  const commentItems = (task.Comments || []).map(c => ({ kind: 'comment', id: `c-${c.id}`, at: c.created_at, c }));
+  const historyItems = (task.Activities || []).map(a => ({ kind: 'activity', id: `a-${a.id}`, at: a.created_at, a }));
+  const feed = (activeTab === 'comments' ? commentItems : activeTab === 'history' ? historyItems : [...commentItems, ...historyItems])
+    .sort((x, y) => new Date(y.at) - new Date(x.at));
 
   const startEdit = () => {
     setEditData({
@@ -519,50 +603,55 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
   // Task đã bắt đầu làm thì phải còn ít nhất 1 người thực hiện
   const editMissingAssignee = editData && task.status !== 'TODO' && !editData.assignee_ids.length;
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/20 z-30" onClick={onClose} />
-      
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full md:w-[520px] bg-white shadow-2xl z-40 flex flex-col border-l border-gray-200">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b bg-gray-50">
-          <div className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_META[task.status]?.text} ${STATUS_META[task.status]?.color}`}>
-            <span className={`inline-block w-1.5 h-1.5 rounded-full ${STATUS_META[task.status]?.dot} mr-1`}></span>
-            {STATUS_META[task.status]?.label}
-          </div>
-          <div className="flex-1" />
-          {/* Task đã nghiệm thu thì khóa, không sửa/xóa */}
-          {isDone && <span className="text-[11px] text-gray-400"><Icon name="lock" className="w-3.5 h-3.5 mr-1" />Đã nghiệm thu</span>}
-          {canManage && !isDone && (
-            <button onClick={startEdit} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-200">
-              <Icon name="pencil" className="w-3.5 h-3.5 mr-1" />Sửa
-            </button>
-          )}
-          {canManage && !isDone && (
-            <button onClick={async () => { if (await confirm({ title: 'Xóa task', message: 'Xóa task này? Thao tác không thể hoàn tác.', confirmText: 'Xóa task', tone: 'danger' })) deleteTaskMut.mutate(); }}
-              className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50">
-              <Icon name="trash" className="w-3.5 h-3.5 mr-1" />Xóa
-            </button>
-          )}
-          <button onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-700 ml-1"><Icon name="x" className="w-5 h-5" /></button>
-        </div>
+  // ── Thanh trên cùng ──
+  const topBar = (
+    <div className="flex items-center gap-3 px-5 py-3 border-b bg-white flex-shrink-0">
+      <div className="min-w-0 flex items-center gap-2 text-sm text-gray-500">
+        <Icon name="clipboard" className="w-4 h-4 text-primary-600 flex-shrink-0" />
+        <span className="truncate">{workspaceName || 'Workspace'}</span>
+        <span className="text-gray-300">/</span>
+        <span className="font-semibold text-gray-700">{taskKey}</span>
+      </div>
+      <div className="flex-1" />
+      {/* Task đã nghiệm thu thì khóa, không sửa/xóa */}
+      {isDone && <span className="text-xs text-gray-400"><Icon name="lock" className="w-3.5 h-3.5 mr-1" />Đã nghiệm thu</span>}
+      {canManage && !isDone && !editMode && (
+        <button onClick={startEdit} className="inline-flex items-center whitespace-nowrap text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200">
+          <Icon name="pencil" className="w-4 h-4 mr-1" />Sửa
+        </button>
+      )}
+      {canManage && !isDone && !editMode && (
+        <button onClick={async () => { if (await confirm({ title: 'Xóa task', message: 'Xóa task này? Thao tác không thể hoàn tác.', confirmText: 'Xóa task', tone: 'danger' })) deleteTaskMut.mutate(); }}
+          className="inline-flex items-center whitespace-nowrap text-sm text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 border border-red-100">
+          <Icon name="trash" className="w-4 h-4 mr-1" />Xóa
+        </button>
+      )}
+      <button onClick={onClose} aria-label="Đóng" className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100">
+        <Icon name="x" className="w-5 h-5" />
+      </button>
+    </div>
+  );
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Edit mode */}
-          {editMode && editData ? (
-            <div className="p-5 space-y-4">
-              <h2 className="font-bold text-gray-700 mb-2">Chỉnh sửa Task</h2>
+  // ── Chế độ sửa ──
+  if (editMode && editData) {
+    return shell(
+      <>
+        {topBar}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="max-w-5xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-3 space-y-4">
+              <h2 className="font-bold text-gray-800 text-lg">Chỉnh sửa task</h2>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Tiêu đề</label>
-                <input className="input-field" maxLength={255} value={editData.title} onChange={e => setEditData({...editData, title: e.target.value})} />
+                <input className="input-field text-base" maxLength={255} value={editData.title} onChange={e => setEditData({...editData, title: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Mô tả</label>
-                <textarea className="input-field resize-none" rows={4} value={editData.description} onChange={e => setEditData({...editData, description: e.target.value})} />
+                <textarea className="input-field resize-y" rows={10} value={editData.description} onChange={e => setEditData({...editData, description: e.target.value})} />
               </div>
+            </div>
+
+            <div className="lg:col-span-2 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Độ ưu tiên</label>
@@ -577,7 +666,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Labels</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Nhãn</label>
                 <div className="flex flex-wrap gap-1.5">
                   {ALL_LABELS.map(l => (
                     <button key={l} type="button"
@@ -594,7 +683,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                 {editMissingAssignee && (
                   <p className="text-xs text-red-500 mb-1.5">Task đã bắt đầu làm nên phải có ít nhất một người thực hiện</p>
                 )}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 max-h-72 overflow-y-auto">
                   {assignableMembers.map(m => {
                     const name = m.CandidateProfile?.User?.full_name;
                     const checked = editData.assignee_ids.includes(m.id);
@@ -610,56 +699,448 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                   })}
                 </div>
               </div>
-              <div className="flex gap-2 pt-2 border-t">
-                <button onClick={() => updateMut.mutate(editData)} disabled={updateMut.isPending || !editData.title.trim() || editMissingAssignee}
-                  className="btn-primary flex-1 py-2">
-                  {updateMut.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
-                </button>
-                <button onClick={() => setEditMode(false)} className="btn-secondary px-4 py-2">Hủy</button>
-              </div>
             </div>
-          ) : (
-            <div>
-              {/* Task title + info */}
-              <div className="px-5 pt-5 pb-4 border-b">
-                <h2 className="text-xl font-bold text-gray-900 leading-tight mb-3">{task.title}</h2>
-                
-                <div className="grid grid-cols-2 gap-y-2 text-sm">
-                  <div className="text-gray-400 text-xs font-semibold uppercase">Ưu tiên</div>
-                  <div className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${pm.color}`}>
-                    <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${pm.dot}`} />{pm.label}
-                  </div>
-                  
-                  <div className="text-gray-400 text-xs font-semibold uppercase">Deadline</div>
-                  <div className={`text-sm font-medium ${isOverdue ? 'text-red-500' : 'text-gray-700'}`}>
-                    {task.deadline ? `${isOverdue ? 'Quá hạn · ' : ''}${new Date(task.deadline).toLocaleDateString('vi-VN', { day:'numeric', month:'long', year:'numeric' })}` : '—'}
-                  </div>
-                  
-                  {task.labels?.length > 0 && (<>
-                    <div className="text-gray-400 text-xs font-semibold uppercase">Labels</div>
-                    <div className="flex flex-wrap gap-1">
-                      {task.labels.map(l => (
-                        <span key={l} className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${LABEL_COLORS[l] || 'bg-gray-100 text-gray-600'}`}>{l}</span>
-                      ))}
-                    </div>
-                  </>)}
+          </div>
+        </div>
+        <div className="flex-shrink-0 border-t bg-gray-50 px-6 py-3 flex justify-end gap-2">
+          <button onClick={() => setEditMode(false)} className="btn-secondary px-5 py-2">Hủy</button>
+          <button onClick={() => updateMut.mutate(editData)} disabled={updateMut.isPending || !editData.title.trim() || editMissingAssignee}
+            className="btn-primary px-6 py-2">
+            {updateMut.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // ── Chế độ xem ──
+  return shell(
+    <>
+      {topBar}
+
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+        {/* ───────── Cột trái: nội dung ───────── */}
+        <div className="flex-1 min-w-0 lg:overflow-y-auto px-6 py-5 space-y-7">
+          <h1 className="text-2xl font-bold text-gray-900 leading-tight">{task.title}</h1>
+
+          {/* Yêu cầu chỉnh sửa sau nghiệm thu: đặt ngay đầu để người làm thấy trước tiên */}
+          {inRevision && task.review_note && (
+            <div className="rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
+              <p className="text-sm font-semibold text-orange-700 mb-1"><Icon name="pencil" className="w-4 h-4 mr-1" />Quản lý yêu cầu chỉnh sửa</p>
+              <p className="text-sm text-orange-800 whitespace-pre-wrap">"{task.review_note}"</p>
+              <p className="text-[11px] text-orange-500 mt-1.5">
+                {task.reviewed_at ? `${formatDateTime(task.reviewed_at)} · ` : ''}Hãy chỉnh sửa theo yêu cầu rồi nộp lại sản phẩm.
+              </p>
+            </div>
+          )}
+
+          {/* Mô tả: người được giao và Admin/Lead sửa trực tiếp ngay tại đây (như Jira) */}
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900">Mô tả</h3>
+              {canEditContent && !descEditing && (
+                <button onClick={startDescEdit} className="text-xs text-primary-600 font-medium hover:underline inline-flex items-center gap-1">
+                  <Icon name="pencil" className="w-3.5 h-3.5" />{task.description ? 'Chỉnh sửa' : 'Thêm mô tả'}
+                </button>
+              )}
+            </div>
+            {descEditing ? (
+              <div>
+                <textarea autoFocus className="input-field resize-y text-sm leading-relaxed" rows={9} maxLength={20000}
+                  placeholder={'Ghi rõ yêu cầu, cách làm, link tài liệu... (đường dẫn http/https sẽ tự thành liên kết)'}
+                  value={descDraft} onChange={e => setDescDraft(e.target.value)} />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button onClick={() => setDescEditing(false)} className="btn-secondary text-sm px-4 py-1.5">Hủy</button>
+                  <button onClick={() => descMut.mutate(descDraft)} disabled={descMut.isPending || descDraft === (task.description || '')}
+                    className="btn-primary text-sm px-5 py-1.5">
+                    {descMut.isPending ? 'Đang lưu...' : 'Lưu'}
+                  </button>
                 </div>
               </div>
+            ) : task.description ? (
+              <div onDoubleClick={canEditContent ? startDescEdit : undefined} title={canEditContent ? 'Nhấp đúp để chỉnh sửa' : undefined}>
+                <Linkified text={task.description} className="text-sm text-gray-700 leading-relaxed" />
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 italic">
+                Chưa có mô tả{canEditContent ? ' — bấm "Thêm mô tả" để ghi yêu cầu, hướng làm hoặc link tài liệu.' : '.'}
+              </p>
+            )}
+          </section>
 
-              {/* Assignees */}
-              <div className="px-5 py-4 border-b">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">Người thực hiện</p>
-                  {canManage && !isDone && !isAssigning && (
-                    <button onClick={() => setIsAssigning(true)} className="text-[10px] text-primary-600 font-medium hover:underline">+ Giao việc</button>
+          {/* Tệp đính kèm: tài liệu, bản nháp, ảnh chụp... bổ sung trong lúc làm (khác với "Sản phẩm đã nộp" để nghiệm thu) */}
+          <section
+            onDragOver={canEditContent ? (e) => { e.preventDefault(); setDragOver(true); } : undefined}
+            onDragLeave={canEditContent ? () => setDragOver(false) : undefined}
+            onDrop={canEditContent ? (e) => { e.preventDefault(); setDragOver(false); uploadFiles(e.dataTransfer.files); } : undefined}
+            className={`rounded-xl transition-colors ${dragOver ? 'bg-primary-50 ring-2 ring-primary-300 ring-offset-4' : ''}`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900">
+                Tệp đính kèm {attachments.length > 0 && <span className="font-medium text-gray-500">({attachments.length})</span>}
+              </h3>
+              {canEditContent && (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploadPct !== null}
+                    className="text-xs font-medium px-2.5 py-1 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1 disabled:opacity-50">
+                    <Icon name="upload" className="w-3.5 h-3.5" />Tải tệp lên
+                  </button>
+                  <button onClick={() => setLinkForm(linkForm ? null : { name: '', url: '' })}
+                    className="text-xs font-medium px-2.5 py-1 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
+                    <Icon name="link" className="w-3.5 h-3.5" />Thêm liên kết
+                  </button>
+                  <input ref={fileInputRef} type="file" multiple className="hidden" accept={TASK_FILE_ACCEPT}
+                    onChange={(e) => { uploadFiles(e.target.files); e.target.value = ''; }} />
+                </div>
+              )}
+            </div>
+
+            {linkForm && canEditContent && (
+              <div className="mb-3 p-3 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                <input className="input-field text-sm bg-white" placeholder="https://docs.google.com/... hoặc link Figma, GitHub..." maxLength={900}
+                  autoFocus value={linkForm.url} onChange={e => setLinkForm({ ...linkForm, url: e.target.value })} />
+                <input className="input-field text-sm bg-white" placeholder="Tên hiển thị (không bắt buộc)" maxLength={200}
+                  value={linkForm.name} onChange={e => setLinkForm({ ...linkForm, name: e.target.value })} />
+                {linkForm.url.trim() && !isHttpUrl(linkForm.url) && <p className="text-xs text-red-500">Link cần bắt đầu bằng http:// hoặc https://</p>}
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setLinkForm(null)} className="btn-secondary text-xs px-3 py-1.5">Hủy</button>
+                  <button
+                    onClick={() => addAttachMut.mutate({ kind: 'LINK', url: linkForm.url.trim(), name: linkForm.name.trim() || undefined })}
+                    disabled={!isHttpUrl(linkForm.url) || addAttachMut.isPending}
+                    className="btn-primary text-xs px-4 py-1.5">
+                    Thêm
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {uploadPct !== null && (
+              <div className="mb-3 border border-gray-200 rounded-lg px-3 py-2.5">
+                <div className="flex justify-between text-xs text-gray-500 mb-1.5"><span>Đang tải tệp lên...</span><span>{uploadPct}%</span></div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div className="bg-primary-500 h-1.5 rounded-full transition-all" style={{ width: `${uploadPct}%` }} />
+                </div>
+              </div>
+            )}
+
+            {attachments.length > 0 ? (
+              <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+                {attachments.map(a => {
+                  const canRemove = canEditContent && (canManage || a.uploaded_by_user_id === user?.id);
+                  return (
+                    <div key={a.id} className="flex items-center gap-3 px-3 py-2.5 bg-white group">
+                      {a.kind === 'FILE' && isImageUrl(a.url) ? (
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                          <img src={a.url} alt="" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                        </a>
+                      ) : (
+                        <span className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+                          <Icon name={a.kind === 'LINK' ? 'link' : 'paperclip'} className="w-5 h-5" />
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" download={a.kind === 'FILE' ? a.name : undefined}
+                          className="text-sm font-medium text-primary-700 hover:underline break-all">{a.name}</a>
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          {a.kind === 'LINK' ? 'Liên kết' : formatFileSize(a.size)}{a.size || a.kind === 'LINK' ? ' · ' : ''}
+                          {a.uploaded_by_name || 'Thành viên'} · {formatDateTime(a.created_at)}
+                        </p>
+                      </div>
+                      {canRemove && (
+                        <button
+                          onClick={async () => { if (await confirm({ title: 'Gỡ tài liệu', message: `Gỡ "${a.name}" khỏi task?`, confirmText: 'Gỡ', tone: 'danger' })) deleteAttachMut.mutate(a.id); }}
+                          className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity px-1" aria-label="Gỡ tài liệu">
+                          <Icon name="trash" className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 border border-dashed border-gray-200 rounded-xl px-4 py-4 text-center">
+                Chưa có tài liệu đính kèm{canEditContent ? '. Kéo thả tệp vào đây, hoặc bấm "Tải tệp lên" / "Thêm liên kết".' : '.'}
+              </p>
+            )}
+          </section>
+
+          {/* Công việc con */}
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900">
+                Công việc con {totalSubs > 0 && <span className="ml-1 font-medium text-gray-500">({doneSubs}/{totalSubs})</span>}
+              </h3>
+              {totalSubs > 0 && <span className="text-xs font-semibold text-gray-500">{subPercent}%</span>}
+            </div>
+            {totalSubs > 0 && (
+              <div className="w-full bg-gray-100 rounded-full h-1.5 mb-3">
+                <div className={`h-1.5 rounded-full transition-all ${subPercent === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${subPercent}%` }} />
+              </div>
+            )}
+            <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+              {task.SubTasks?.map(sub => (
+                <label key={sub.id} className={`flex items-center gap-3 px-3 py-2.5 group bg-white ${canEditProgress ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'}`}>
+                  <input type="checkbox" className="rounded accent-primary-600 w-4 h-4 flex-shrink-0"
+                    checked={subDone(sub)}
+                    disabled={!canEditProgress}
+                    onChange={() => toggleSubTask(sub)}
+                  />
+                  <span className={`text-sm flex-1 ${subDone(sub) ? 'line-through text-gray-400' : 'text-gray-800'}`}>{sub.title}</span>
+                  {canEditProgress && (
+                    <button type="button"
+                      onClick={async (e) => { e.preventDefault(); if (await confirm({ title: 'Xóa công việc con', message: `Xóa "${sub.title}"?`, confirmText: 'Xóa', tone: 'danger' })) deleteSubTaskMut.mutate(sub.id); }}
+                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity px-1" aria-label="Xóa công việc con">
+                      <Icon name="x" className="w-4 h-4" />
+                    </button>
                   )}
-                  {canManage && !isDone && isAssigning && (
-                    <button onClick={() => setIsAssigning(false)} className="text-[10px] text-gray-500 font-medium hover:underline">Đóng</button>
+                </label>
+              ))}
+              {!totalSubs && <p className="px-3 py-3 text-sm text-gray-400 bg-white">Chưa có công việc con.</p>}
+              {canEditProgress && (
+                <div className="flex gap-2 p-2 bg-gray-50">
+                  <input className="input-field py-1.5 text-sm flex-1 bg-white" placeholder="Thêm công việc con rồi nhấn Enter..." maxLength={255}
+                    value={newSubTask} onChange={e => setNewSubTask(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && newSubTask.trim() && !addSubTaskMut.isPending) { addSubTaskMut.mutate(newSubTask.trim()); } }}
+                  />
+                  <button onClick={() => newSubTask.trim() && addSubTaskMut.mutate(newSubTask.trim())}
+                    disabled={addSubTaskMut.isPending || !newSubTask.trim()}
+                    className="btn-secondary px-4 py-1.5 text-sm">
+                    Thêm
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Sản phẩm đã nộp (mới nhất trước) */}
+          {submissions.length > 0 && (
+            <section>
+              <h3 className="text-sm font-bold text-gray-900 mb-2">Sản phẩm đã nộp <span className="font-medium text-gray-500">({submissions.length})</span></h3>
+              <div className="space-y-2">
+                {submissions.map((s, i) => (
+                  <SubmissionCard key={s.id} submission={s} highlight={i === 0 && task.status === 'REVIEW'} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Hoạt động: bình luận + lịch sử */}
+          <section>
+            <h3 className="text-sm font-bold text-gray-900 mb-3">Hoạt động</h3>
+            <div className="flex gap-1 mb-4">
+              {[
+                ['all', 'Tất cả'],
+                ['comments', `Bình luận (${task.Comments?.length || 0})`],
+                ['history', 'Lịch sử'],
+              ].map(([key, label]) => (
+                <button key={key} onClick={() => setActiveTab(key)}
+                  className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${activeTab === key ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Ô viết bình luận ở trên cùng; Admin/Lead: mọi task. Thành viên: chỉ task được giao cho mình */}
+            {activeTab !== 'history' && (canComment ? (
+              <div className="flex gap-3 mb-5">
+                <Avatar name={myName} size="sm" className="mt-1" />
+                <div className="flex-1">
+                  <textarea className="input-field resize-none text-sm w-full" rows={2} maxLength={5000}
+                    placeholder="Viết bình luận... (Enter để gửi, Shift+Enter xuống dòng)"
+                    value={commentText} onChange={e => setCommentText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && commentText.trim() && !addCommentMut.isPending) { e.preventDefault(); addCommentMut.mutate(commentText.trim()); } }}
+                  />
+                  {commentText.trim() && (
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button onClick={() => setCommentText('')} className="btn-secondary text-xs px-3 py-1.5">Hủy</button>
+                      <button onClick={() => addCommentMut.mutate(commentText.trim())} disabled={addCommentMut.isPending} className="btn-primary text-xs px-4 py-1.5">Gửi</button>
+                    </div>
                   )}
                 </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 mb-5">
+                Bạn chỉ bình luận được trong task được giao cho mình. Bạn vẫn xem được các bình luận.
+              </p>
+            ))}
 
+            <div className="space-y-4">
+              {feed.map(item => {
+                if (item.kind === 'comment') {
+                  const c = item.c;
+                  // Bình luận của Admin không gắn với thành viên Workspace → lấy tên từ tài khoản
+                  const isAdminComment = !c.workspace_member_id;
+                  const authorName = c.Author?.CandidateProfile?.User?.full_name || c.AuthorUser?.full_name || 'Quản trị viên';
+                  const canDeleteComment = c.user_id === user?.id || c.workspace_member_id === myMemberId || canManage;
+                  return (
+                    <div key={item.id} className="flex gap-3 group">
+                      <Avatar name={authorName} size="sm" className="mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs flex items-center gap-2">
+                          <span className="font-semibold text-gray-800 text-sm">{authorName}</span>
+                          {isAdminComment && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">Quản trị viên</span>}
+                          <span className="text-gray-400">{formatDateTime(c.created_at)}</span>
+                          {canDeleteComment && (
+                            <button onClick={async () => { if (await confirm({ title: 'Xóa bình luận', message: 'Xóa bình luận này?', confirmText: 'Xóa', tone: 'danger' })) deleteCommentMut.mutate(c.id); }}
+                              className="ml-auto text-[11px] text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                              Xóa
+                            </button>
+                          )}
+                        </p>
+                        <Linkified text={c.content} className="text-sm text-gray-700 mt-0.5" />
+                      </div>
+                    </div>
+                  );
+                }
+                const a = item.a;
+                return (
+                  <div key={item.id} className="flex gap-3">
+                    <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Icon name={ACTIVITY_ICONS[a.action] || 'document'} className="w-3.5 h-3.5 text-gray-500" />
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <p className="text-sm text-gray-700">{stripEmoji(a.description)}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {/* Không gắn thành viên = thao tác của Admin */}
+                        {a.Actor?.CandidateProfile?.User?.full_name || 'Quản trị viên'} · {formatDateTime(a.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {!feed.length && (
+                <p className="text-center text-sm text-gray-400 py-4">
+                  {activeTab === 'history' ? 'Chưa có hoạt động nào' : activeTab === 'comments' ? 'Chưa có bình luận nào' : 'Chưa có bình luận hay hoạt động nào'}
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* ───────── Cột phải: trạng thái + chi tiết ───────── */}
+        <aside className="lg:w-[380px] lg:flex-shrink-0 lg:overflow-y-auto border-t lg:border-t-0 lg:border-l border-gray-200 bg-gray-50/70 p-5 space-y-5">
+          {/* Trạng thái & thao tác */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold ${sm.text} ${sm.color} border border-white/60 shadow-sm`}>
+                <span className={`w-2 h-2 rounded-full ${sm.dot}`} />{sm.label}
+              </span>
+              {inRevision && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-100 text-orange-700">
+                  <Icon name="undo" className="w-3.5 h-3.5" />Cần chỉnh sửa
+                </span>
+              )}
+            </div>
+
+            {/* Cần làm → Đang làm → Chờ duyệt (→ Quản lý nghiệm thu) */}
+            {canEditProgress && task.status === 'TODO' && (task.Assignees?.length ? (
+              <button onClick={() => updateMut.mutate({ status: 'IN_PROGRESS' })} disabled={updateMut.isPending}
+                className="w-full btn-primary py-2.5 justify-center">
+                <Icon name="play" className="w-4 h-4" />Bắt đầu làm
+              </button>
+            ) : (
+              <p className="text-xs text-gray-500 bg-white border border-dashed border-gray-300 rounded-lg px-3 py-2">Cần giao người thực hiện trước khi bắt đầu</p>
+            ))}
+            {canEditProgress && task.status === 'IN_PROGRESS' && (
+              <div className="space-y-2">
+                <button onClick={() => setShowSubmit(true)}
+                  disabled={pendingSubs > 0 || updateMut.isPending}
+                  title={pendingSubs > 0 ? `Còn ${pendingSubs} công việc con chưa hoàn thành` : undefined}
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm bg-green-500 text-white hover:bg-green-600 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  <Icon name="upload" className="w-4 h-4" />Nộp sản phẩm & gửi duyệt
+                </button>
+                {pendingSubs > 0 && (
+                  <p className="text-xs text-gray-500">Hoàn thành {pendingSubs} công việc con còn lại để gửi duyệt.</p>
+                )}
+                <button onClick={() => updateMut.mutate({ status: 'TODO' })} disabled={updateMut.isPending}
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium text-gray-600 bg-white hover:bg-gray-100 border border-gray-200 transition-colors">
+                  <Icon name="undo" className="w-4 h-4" />Trả về "Cần làm"
+                </button>
+              </div>
+            )}
+            {task.status === 'REVIEW' && !canManage && (
+              <p className="text-sm text-amber-700 font-medium bg-amber-50 px-3 py-2.5 rounded-lg border border-amber-200">
+                <Icon name="clock" className="w-4 h-4 mr-1" />Đang chờ Quản lý duyệt...
+              </p>
+            )}
+            {isDone && (
+              <p className="text-sm text-green-700 font-medium bg-green-50 px-3 py-2.5 rounded-lg border border-green-200">
+                <Icon name="verified" className="w-4 h-4 mr-1" />Task đã được nghiệm thu hoàn thành
+              </p>
+            )}
+          </div>
+
+          {/* Nghiệm thu (Admin / Lead) */}
+          {canReview && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+              <p className="text-sm font-semibold text-amber-800 mb-1"><Icon name="clock" className="w-4 h-4 mr-1" />Chờ nghiệm thu</p>
+              <p className="text-xs text-amber-700 mb-3">
+                {submissions.length
+                  ? `Kiểm tra sản phẩm nộp lần #${submissions[0].version} ở mục "Sản phẩm đã nộp" trước khi nghiệm thu.`
+                  : 'Task này chưa có sản phẩm đính kèm.'}
+              </p>
+              {isSelfReview ? (
+                <p className="text-xs text-amber-700">Bạn là người thực hiện task này nên không thể tự nghiệm thu. Admin hoặc Lead khác sẽ duyệt.</p>
+              ) : !showReviewPanel ? (
+                <button onClick={() => setShowReviewPanel(true)} className="btn-primary w-full text-sm py-2 justify-center">Nghiệm thu task này</button>
+              ) : (
+                <div className="space-y-2">
+                  <textarea ref={reviewNoteRef}
+                    className={`input-field resize-none text-sm bg-white ${reviewError ? 'border-red-400 focus:ring-red-300' : ''}`}
+                    rows={3} autoFocus={initialReview === 'REVISION'}
+                    placeholder={initialReview === 'REVISION' ? 'Nhập nội dung cần chỉnh sửa...' : 'Nhận xét (bắt buộc khi yêu cầu sửa)...'}
+                    value={reviewNote}
+                    onChange={e => { setReviewNote(e.target.value); if (reviewError) setReviewError(''); }} />
+                  {reviewError && <p className="text-xs text-red-600 font-medium"><Icon name="alert" className="w-3.5 h-3.5 mr-1" />{reviewError}</p>}
+                  <button onClick={() => reviewMut.mutate({ action: 'APPROVE', review_note: reviewNote.trim() })}
+                    disabled={reviewMut.isPending}
+                    className="btn-primary bg-green-600 hover:bg-green-700 w-full py-2 text-sm justify-center">
+                    <Icon name="check" className="w-4 h-4" strokeWidth={2.5} />Duyệt hoàn thành
+                  </button>
+                  {/* Không khóa nút khi chưa nhập: bấm vào sẽ báo rõ cần nhập nội dung và đưa con trỏ vào ô nhập */}
+                  <button onClick={requestRevision}
+                    disabled={reviewMut.isPending}
+                    className="btn-secondary text-amber-700 border-amber-300 w-full py-2 text-sm justify-center">
+                    <Icon name="undo" className="w-4 h-4" />Yêu cầu sửa
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bảng chi tiết */}
+          <div className="bg-white rounded-xl border border-gray-200 px-4 py-2">
+            <h3 className="text-sm font-bold text-gray-900 pt-2 pb-1">Chi tiết</h3>
+            <dl className="divide-y divide-gray-100">
+              <DetailRow label="Người thực hiện">
+                {task.Assignees?.length > 0 ? (
+                  <div className="space-y-2">
+                    {task.Assignees.map(a => (
+                      <div key={a.id} className="flex items-center gap-2">
+                        <Avatar name={a.CandidateProfile?.User?.full_name} size="sm" />
+                        <span className="flex-1 min-w-0 break-words">{a.CandidateProfile?.User?.full_name}</span>
+                        {a.role === 'LEAD' && <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">Lead</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-gray-400">Chưa giao</span>
+                    {myMemberId && task.status === 'TODO' && (
+                      <button onClick={() => updateMut.mutate({ assignee_ids: [myMemberId] })} disabled={updateMut.isPending}
+                        className="text-xs bg-white border shadow-sm px-2.5 py-1 rounded hover:bg-gray-50 font-medium text-gray-700">
+                        {updateMut.isPending ? '...' : 'Nhận việc này'}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {canManage && !isDone && (
+                  <button onClick={() => setIsAssigning(v => !v)} className="mt-2 text-xs text-primary-600 font-medium hover:underline">
+                    {isAssigning ? 'Đóng' : '+ Giao việc'}
+                  </button>
+                )}
                 {isAssigning && canManage && !isDone && (
-                  <div className="mb-3 space-y-1.5 p-2 bg-gray-50 rounded-lg border">
+                  <div className="mt-2 space-y-1 p-2 bg-gray-50 rounded-lg border max-h-56 overflow-y-auto">
                     {assignableMembers.map(m => {
                       const name = m.CandidateProfile?.User?.full_name;
                       const isAssigned = task.Assignees?.some(a => a.id === m.id);
@@ -671,330 +1152,85 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                           <input type="checkbox" className="rounded accent-primary-600" checked={isAssigned}
                             disabled={isLastAssignee || updateMut.isPending}
                             onChange={() => {
-                              const newIds = isAssigned 
+                              const newIds = isAssigned
                                 ? task.Assignees.filter(a => a.id !== m.id).map(a => a.id)
                                 : [...(task.Assignees?.map(a => a.id) || []), m.id];
                               updateMut.mutate({ assignee_ids: newIds });
-                            }} 
+                            }}
                           />
                           <Avatar name={name} size="sm" />
-                          <span className="text-sm text-gray-800 flex-1">{name}</span>
-                          <span className="text-[10px] text-gray-400">{MEMBER_ROLE_LABELS[m.role]} · {workload?.[m.id] || 0} task</span>
+                          <span className="text-sm text-gray-800 flex-1 truncate">{name}</span>
+                          <span className="text-[10px] text-gray-400">{workload?.[m.id] || 0} task</span>
                         </label>
                       );
                     })}
                   </div>
                 )}
+              </DetailRow>
 
-                {task.Assignees?.length > 0 ? (
-                  <div className="space-y-2">
-                    {task.Assignees.map(a => (
-                      <div key={a.id} className="flex items-center gap-2">
-                        <Avatar name={a.CandidateProfile?.User?.full_name} size="sm" />
-                        <span className="text-sm text-gray-800">{a.CandidateProfile?.User?.full_name}</span>
-                        <span className="ml-auto text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{MEMBER_ROLE_LABELS[a.role]}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2.5 border border-dashed border-gray-300">
-                    <span className="text-sm text-gray-500">Chưa có người thực hiện</span>
-                    {myMemberId && task.status === 'TODO' && (
-                      <button onClick={() => updateMut.mutate({ assignee_ids: [myMemberId] })} disabled={updateMut.isPending} className="text-xs bg-white border shadow-sm px-2.5 py-1 rounded hover:bg-gray-50 font-medium text-gray-700">
-                        {updateMut.isPending ? '...' : 'Nhận việc này'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+              <DetailRow label="Ưu tiên">
+                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${pm.color}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${pm.dot}`} />{pm.label}
+                </span>
+              </DetailRow>
 
-              {/* Description */}
-              {task.description && (
-                <div className="px-5 py-4 border-b">
-                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Mô tả</p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{task.description}</p>
-                </div>
-              )}
-
-              {/* Yêu cầu chỉnh sửa sau nghiệm thu: đặt trên phần tiến độ để người làm thấy ngay */}
-              {task.status === 'IN_PROGRESS' && task.review_status === 'REVISION_REQUIRED' && task.review_note && (
-                <div className="px-5 py-3 bg-orange-50 border-b border-orange-100">
-                  <p className="text-xs font-semibold text-orange-600 mb-1"><Icon name="pencil" className="w-3.5 h-3.5 mr-1" />Yêu cầu chỉnh sửa từ Quản lý:</p>
-                  <p className="text-sm text-orange-700 italic whitespace-pre-wrap">"{task.review_note}"</p>
-                  <p className="text-[10px] text-orange-400 mt-1">
-                    {task.reviewed_at ? `${formatDateTime(task.reviewed_at)} · ` : ''}Tiến độ tạm hạ xuống tối đa {REVISION_RATE_CAP}% cho tới khi nộp lại
-                  </p>
-                </div>
-              )}
-
-              {/* Progress & Workflow */}
-              <div className="px-5 py-4 border-b">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">Tiến độ</p>
-                  <span className="text-sm font-bold text-primary-700">{task.completion_rate}%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
-                  <div className="bg-primary-500 h-2 rounded-full transition-all" style={{ width: `${task.completion_rate}%` }} />
-                </div>
-
-                {/* Cập nhật % hoàn thành: task không có subtask thì kéo thanh, có subtask thì tự tính */}
-                {task.status === 'IN_PROGRESS' && canEditProgress && (totalSubs === 0 ? (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-3">
-                      <input type="range" min="0" max={inRevision ? REVISION_RATE_CAP : 100} step="5" value={Math.min(progressDraft, inRevision ? REVISION_RATE_CAP : 100)}
-                        onChange={e => setProgressDraft(Number(e.target.value))}
-                        className="flex-1 accent-primary-600 cursor-pointer" />
-                      <span className="text-xs font-semibold text-gray-700 w-10 text-right">{progressDraft}%</span>
-                      <button onClick={() => updateMut.mutate({ completion_rate: progressDraft })}
-                        disabled={progressDraft === task.completion_rate || updateMut.isPending}
-                        className="text-xs px-2.5 py-1 rounded-lg font-medium bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                        Lưu
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-gray-400 mt-1">
-                      {inRevision
-                        ? `Kéo thanh để cập nhật % rồi bấm Lưu. Tối đa ${REVISION_RATE_CAP}% cho tới khi bạn nộp lại.`
-                        : 'Kéo thanh để cập nhật % hoàn thành rồi bấm Lưu'}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-gray-400 -mt-2 mb-3">% hoàn thành được tính tự động theo subtask đã xong</p>
-                ))}
-
-                {/* Workflow Actions: Cần làm → Đang làm → Chờ duyệt (→ Quản lý nghiệm thu) */}
-                {canEditProgress && (
-                  <div className="flex gap-2 flex-wrap items-center">
-                    {task.status === 'TODO' && (task.Assignees?.length ? (
-                      <button onClick={() => updateMut.mutate({ status: 'IN_PROGRESS' })} disabled={updateMut.isPending}
-                        className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors">
-                        <Icon name="play" className="w-4 h-4 mr-1" />Bắt đầu làm
-                      </button>
-                    ) : (
-                      <span className="text-xs text-gray-500">Cần giao người thực hiện trước khi bắt đầu</span>
-                    ))}
-                    {task.status === 'IN_PROGRESS' && (
-                      <>
-                        <button onClick={() => setShowSubmit(true)}
-                          disabled={pendingSubs > 0 || updateMut.isPending}
-                          title={pendingSubs > 0 ? `Còn ${pendingSubs} subtask chưa hoàn thành` : undefined}
-                          className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-green-500 text-white hover:bg-green-600 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                          <Icon name="upload" className="w-4 h-4 mr-1" />Nộp sản phẩm & gửi duyệt
-                        </button>
-                        <button onClick={() => updateMut.mutate({ status: 'TODO' })} disabled={updateMut.isPending}
-                          className="text-xs px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:bg-gray-100 border border-gray-200 transition-colors">
-                          <Icon name="undo" className="w-3.5 h-3.5 mr-1" />Về Cần làm
-                        </button>
-                        {pendingSubs > 0 && (
-                          <span className="text-xs text-gray-500 w-full">Hoàn thành {pendingSubs} subtask còn lại để gửi duyệt</span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-                {task.status === 'REVIEW' && !canManage && (
-                  <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
-                    <Icon name="clock" className="w-3.5 h-3.5 mr-1" />Đang chờ Quản lý duyệt...
+              <DetailRow label="Deadline">
+                {task.deadline ? (
+                  <span className={`inline-flex items-center gap-1.5 font-medium ${isOverdue ? 'text-red-600' : ''}`}>
+                    <Icon name={isOverdue ? 'alert' : 'calendar'} className="w-4 h-4" />
+                    {new Date(task.deadline).toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {isOverdue && <span className="text-xs font-semibold bg-red-50 px-1.5 py-0.5 rounded">Quá hạn</span>}
                   </span>
-                )}
-              </div>
+                ) : <span className="text-gray-400">Không có</span>}
+              </DetailRow>
 
-              {/* Sub-tasks */}
-              <div className="px-5 py-4 border-b">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">
-                    Subtasks {totalSubs > 0 && <span className="ml-1 text-gray-600">({doneSubs}/{totalSubs})</span>}
-                  </p>
-                </div>
-                <div className="space-y-2 mb-3">
-                  {task.SubTasks?.map(sub => (
-                    <label key={sub.id} className={`flex items-center gap-2.5 group ${canEditProgress ? 'cursor-pointer' : 'cursor-default'}`}>
-                      <input type="checkbox" className="rounded accent-primary-600 w-4 h-4 flex-shrink-0"
-                        checked={subDone(sub)}
-                        disabled={!canEditProgress}
-                        onChange={() => toggleSubTask(sub)}
-                      />
-                      <span className={`text-sm flex-1 ${subDone(sub) ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                        {sub.title}
-                      </span>
-                      {canEditProgress && (
-                        <button type="button"
-                          onClick={async (e) => { e.preventDefault(); if (await confirm({ title: 'Xóa subtask', message: `Xóa subtask "${sub.title}"?`, confirmText: 'Xóa', tone: 'danger' })) deleteSubTaskMut.mutate(sub.id); }}
-                          className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity px-1" aria-label="Xóa subtask">
-                          <Icon name="x" className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </label>
-                  ))}
-                  {!totalSubs && <p className="text-xs text-gray-400">Chưa có subtask</p>}
-                </div>
-                {canEditProgress && (
-                  <div className="flex gap-2">
-                    <input className="input-field py-1.5 text-sm flex-1" placeholder="Thêm subtask..." maxLength={255}
-                      value={newSubTask} onChange={e => setNewSubTask(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && newSubTask.trim() && !addSubTaskMut.isPending) { addSubTaskMut.mutate(newSubTask.trim()); } }}
-                    />
-                    <button onClick={() => newSubTask.trim() && addSubTaskMut.mutate(newSubTask.trim())}
-                      disabled={addSubTaskMut.isPending}
-                      className="btn-secondary px-3 py-1.5 text-sm">
-                      +
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Sản phẩm đã nộp (mới nhất trước) */}
-              {submissions.length > 0 && (
-                <div className="px-5 py-4 border-b">
-                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Sản phẩm đã nộp ({submissions.length})</p>
-                  <div className="space-y-2">
-                    {submissions.map((s, i) => (
-                      <SubmissionCard key={s.id} submission={s} highlight={i === 0 && task.status === 'REVIEW'} />
+              <DetailRow label="Nhãn">
+                {task.labels?.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {task.labels.map(l => (
+                      <span key={l} className={`text-xs px-2 py-0.5 rounded font-medium ${LABEL_COLORS[l] || 'bg-gray-100 text-gray-600'}`}>{l}</span>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Bảng nghiệm thu (Admin / Lead) */}
-              {canReview && (
-                <div className="px-5 py-4 border-b bg-amber-50">
-                  <p className="text-sm font-semibold text-amber-700 mb-1"><Icon name="clock" className="w-4 h-4 mr-1" />Task đang chờ duyệt</p>
-                  <p className="text-xs text-amber-700 mb-2">
-                    {submissions.length
-                      ? `Kiểm tra sản phẩm nộp lần #${submissions[0].version} ở mục bên trên trước khi nghiệm thu.`
-                      : 'Task này chưa có sản phẩm đính kèm.'}
-                  </p>
-                  {isSelfReview ? (
-                    <p className="text-xs text-amber-700">Bạn là người thực hiện task này nên không thể tự nghiệm thu. Admin hoặc Lead khác sẽ duyệt.</p>
-                  ) : !showReviewPanel ? (
-                    <button onClick={() => setShowReviewPanel(true)} className="btn-primary text-sm py-1.5 px-3">
-                      Duyệt task này
-                    </button>
-                  ) : (
-                    <div className="space-y-2">
-                      <textarea ref={reviewNoteRef}
-                        className={`input-field resize-none text-sm ${reviewError ? 'border-red-400 focus:ring-red-300' : ''}`}
-                        rows={2} autoFocus={initialReview === 'REVISION'}
-                        placeholder={initialReview === 'REVISION' ? 'Nhập nội dung cần chỉnh sửa...' : 'Nhận xét (bắt buộc khi yêu cầu sửa)...'}
-                        value={reviewNote}
-                        onChange={e => { setReviewNote(e.target.value); if (reviewError) setReviewError(''); }} />
-                      {reviewError && <p className="text-xs text-red-600 font-medium"><Icon name="alert" className="w-3.5 h-3.5 mr-1" />{reviewError}</p>}
-                      <div className="flex gap-2">
-                        <button onClick={() => reviewMut.mutate({ action: 'APPROVE', review_note: reviewNote.trim() })}
-                          disabled={reviewMut.isPending}
-                          className="btn-primary bg-green-600 hover:bg-green-700 flex-1 py-1.5 text-sm">
-                          <Icon name="check" className="w-4 h-4" strokeWidth={2.5} />Duyệt hoàn thành
-                        </button>
-                        {/* Không khóa nút khi chưa nhập: bấm vào sẽ báo rõ cần nhập nội dung và đưa con trỏ vào ô nhập */}
-                        <button onClick={requestRevision}
-                          disabled={reviewMut.isPending}
-                          className="btn-secondary text-amber-600 border-amber-300 flex-1 py-1.5 text-sm">
-                          <Icon name="undo" className="w-4 h-4" />Yêu cầu sửa
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-
-              {/* Tab bar */}
-              <div className="flex border-b px-5 gap-4 mt-2">
-                <button onClick={() => setActiveTab('details')}
-                  className={`text-sm py-2.5 font-medium border-b-2 -mb-px transition-colors ${activeTab === 'details' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  Bình luận ({task.Comments?.length || 0})
-                </button>
-                <button onClick={() => setActiveTab('activity')}
-                  className={`text-sm py-2.5 font-medium border-b-2 -mb-px transition-colors ${activeTab === 'activity' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  Lịch sử
-                </button>
-              </div>
-
-              {/* Comments */}
-              {activeTab === 'details' && (
-                <div className="px-5 py-4">
-                  <div className="space-y-3 mb-4">
-                    {task.Comments?.map(c => {
-                      // Bình luận của Admin không gắn với thành viên Workspace → lấy tên từ tài khoản
-                      const isAdminComment = !c.workspace_member_id;
-                      const authorName = c.Author?.CandidateProfile?.User?.full_name || c.AuthorUser?.full_name || 'Quản trị viên';
-                      const canDeleteComment = c.user_id === user?.id || c.workspace_member_id === myMemberId || canManage;
+                ) : <span className="text-gray-400">Không có</span>}
+                {canEditContent && (
+                  <button onClick={() => setShowLabelPicker(v => !v)} className="mt-1.5 text-xs text-primary-600 font-medium hover:underline">
+                    {showLabelPicker ? 'Xong' : 'Sửa nhãn'}
+                  </button>
+                )}
+                {showLabelPicker && canEditContent && (
+                  <div className="mt-2 flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-lg border">
+                    {ALL_LABELS.map(l => {
+                      const on = task.labels?.includes(l);
                       return (
-                        <div key={c.id} className="flex gap-2.5 group">
-                          <Avatar name={authorName} size="sm" className="flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
-                            <p className="text-xs font-semibold text-gray-700 mb-0.5 flex items-center">
-                              {authorName}
-                              {isAdminComment && (
-                                <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">Quản trị viên</span>
-                              )}
-                              <span className="text-gray-400 font-normal ml-2">
-                                {new Date(c.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
-                              </span>
-                              {canDeleteComment && (
-                                <button onClick={async () => { if (await confirm({ title: 'Xóa bình luận', message: 'Xóa bình luận này?', confirmText: 'Xóa', tone: 'danger' })) deleteCommentMut.mutate(c.id); }}
-                                  className="ml-auto text-[10px] font-normal text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  Xóa
-                                </button>
-                              )}
-                            </p>
-                            <p className="text-sm text-gray-800 whitespace-pre-wrap">{c.content}</p>
-                          </div>
-                        </div>
+                        <button key={l} type="button" disabled={labelMut.isPending}
+                          onClick={() => labelMut.mutate(on ? task.labels.filter(x => x !== l) : [...(task.labels || []), l])}
+                          className={`text-xs px-2 py-1 rounded-full border transition-all ${on ? LABEL_COLORS[l] + ' border-transparent' : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-white'}`}>
+                          {l}
+                        </button>
                       );
                     })}
-                    {!task.Comments?.length && (
-                      <p className="text-center text-sm text-gray-400 py-4">Chưa có bình luận nào</p>
-                    )}
                   </div>
-                  {/* Admin/Lead: mọi task. Thành viên: chỉ task được giao cho mình */}
-                  {canComment ? (
-                    <div className="flex gap-2">
-                      <textarea className="input-field resize-none text-sm flex-1" rows={2} maxLength={5000}
-                        placeholder="Viết bình luận..."
-                        value={commentText} onChange={e => setCommentText(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && commentText.trim() && !addCommentMut.isPending) { e.preventDefault(); addCommentMut.mutate(commentText.trim()); } }}
-                      />
-                      <button onClick={() => commentText.trim() && addCommentMut.mutate(commentText.trim())}
-                        disabled={addCommentMut.isPending}
-                        className="btn-primary self-end px-3 py-2 text-sm">
-                        Gửi
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 text-center">
-                      Bạn chỉ bình luận được trong task được giao cho mình. Bạn vẫn xem được các bình luận.
-                    </p>
-                  )}
-                </div>
-              )}
+                )}
+              </DetailRow>
 
-              {/* Activity log */}
-              {activeTab === 'activity' && (
-                <div className="px-5 py-4">
-                  <div className="space-y-3">
-                    {task.Activities?.map(a => (
-                      <div key={a.id} className="flex gap-2.5">
-                        <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 text-xs">
-                          <Icon name={ACTIVITY_ICONS[a.action] || 'document'} className="w-3.5 h-3.5 text-gray-500" />
-                        </div>
-                        <div className="flex-1 pt-0.5">
-                          <p className="text-sm text-gray-700">{stripEmoji(a.description)}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">
-                            {/* Không gắn thành viên = thao tác của Admin */}
-                            {a.Actor?.CandidateProfile?.User?.full_name || 'Quản trị viên'} · {new Date(a.created_at).toLocaleString('vi-VN')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {!task.Activities?.length && (
-                      <p className="text-center text-sm text-gray-400 py-4">Chưa có hoạt động nào</p>
-                    )}
-                  </div>
-                </div>
+              {totalSubs > 0 && (
+                <DetailRow label="Công việc con">
+                  <span className="font-medium">{doneSubs}/{totalSubs} hoàn thành</span>
+                </DetailRow>
               )}
-            </div>
-          )}
-        </div>
+              {submissions.length > 0 && (
+                <DetailRow label="Số lần nộp">
+                  <span className="font-medium">{submissions.length} lần</span>
+                </DetailRow>
+              )}
+            </dl>
+          </div>
+
+          <div className="text-[11px] text-gray-400 space-y-0.5 px-1">
+            {(task.created_at || task.createdAt) && <p>Tạo lúc {formatDateTime(task.created_at || task.createdAt)}</p>}
+            {(task.updated_at || task.updatedAt) && <p>Cập nhật lúc {formatDateTime(task.updated_at || task.updatedAt)}</p>}
+          </div>
+        </aside>
       </div>
 
       {/* Form nộp sản phẩm & gửi duyệt */}
@@ -1262,10 +1498,6 @@ export default function WorkspacePage() {
     done: allTasks.filter(t => t.status === 'DONE').length,
     overdue: allTasks.filter(isTaskOverdue).length,
   };
-  // Cùng công thức với tab Thống kê: trung bình % của các task chưa hủy
-  const completionRate = activeTasks.length > 0
-    ? Math.round(activeTasks.reduce((acc, t) => acc + (t.completion_rate || 0), 0) / activeTasks.length)
-    : 0;
 
   // Group by status for kanban
   const columns = STATUS_COLUMNS.reduce((acc, status) => {
@@ -1406,13 +1638,6 @@ export default function WorkspacePage() {
             )}
           </div>
 
-          {/* Progress bar */}
-          <div className="flex items-center gap-2 ml-2">
-            <div className="w-24 bg-gray-200 rounded-full h-1.5">
-              <div className="bg-green-500 h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
-            </div>
-            <span className="text-xs text-gray-500">{completionRate}%</span>
-          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap pb-3">
@@ -1519,19 +1744,18 @@ export default function WorkspacePage() {
       )}
 
       {/* Content */}
-      {/* ─── Stats Section ─── */}
+      {/* ─── Stats Section: chỉ giữ những số liệu dùng được ngay (số task theo trạng thái, việc cần chú ý, khối lượng từng người) ─── */}
       {activeSection === 'stats' && (
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {!wsStats ? (
             <div className="flex items-center justify-center h-32"><LoadingSpinner /></div>
           ) : (
             <div className="space-y-5 max-w-4xl mx-auto">
-              {/* Overview cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
-                  { label: 'Tổng task', value: wsStats.total, color: 'bg-gray-50 text-gray-700', icon: 'clipboard' },
                   { label: 'Cần làm', value: wsStats.by_status?.TODO, color: 'bg-gray-50 text-gray-600', icon: 'clock' },
                   { label: 'Đang làm', value: wsStats.by_status?.IN_PROGRESS, color: 'bg-blue-50 text-blue-700', icon: 'bolt' },
+                  { label: 'Chờ duyệt', value: wsStats.by_status?.REVIEW, color: 'bg-amber-50 text-amber-700', icon: 'inbox' },
                   { label: 'Hoàn thành', value: wsStats.by_status?.DONE, color: 'bg-green-50 text-green-700', icon: 'verified' },
                   { label: 'Quá hạn', value: wsStats.overdue, color: 'bg-red-50 text-red-600', icon: 'alert' },
                 ].map((s, i) => (
@@ -1542,49 +1766,76 @@ export default function WorkspacePage() {
                 ))}
               </div>
 
-              {/* Completion rate */}
+              {/* Việc cần chú ý: quá hạn và sắp đến hạn */}
               <div className="bg-white rounded-2xl border p-4 shadow-sm">
-                <div className="flex justify-between mb-2">
-                  <h3 className="font-bold text-gray-800">Tiến độ tổng thể</h3>
-                  <span className="text-2xl font-black text-primary-600">{wsStats.completion_rate}%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-3">
-                  <div className="bg-gradient-to-r from-primary-500 to-green-500 h-3 rounded-full transition-all"
-                    style={{ width: `${wsStats.completion_rate}%` }} />
-                </div>
-                {wsStats.due_soon > 0 && (
-                  <p className="text-xs text-amber-600 mt-2 font-medium"><Icon name="clock" className="w-3.5 h-3.5 mr-1" />{wsStats.due_soon} task sắp đến hạn trong 3 ngày tới</p>
+                <h3 className="font-bold text-gray-800 mb-3">Cần chú ý</h3>
+                {wsStats.attention?.length ? (
+                  <div className="divide-y divide-gray-100">
+                    {wsStats.attention.map(t => {
+                      const days = Math.ceil((new Date(new Date(t.deadline).setHours(23, 59, 59, 999)) - new Date()) / 86400000);
+                      return (
+                        <button key={t.id} onClick={() => setSelectedTaskId(t.id)}
+                          className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-gray-50 rounded-lg px-2 transition-colors">
+                          <Icon name={t.overdue ? 'alert' : 'clock'} className={`w-4 h-4 flex-shrink-0 ${t.overdue ? 'text-red-500' : 'text-amber-500'}`} />
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-sm font-medium text-gray-900 truncate">{t.title}</span>
+                            <span className="block text-xs text-gray-400 truncate">{t.assignees?.length ? t.assignees.join(', ') : 'Chưa giao'}</span>
+                          </span>
+                          <span className={`text-xs font-semibold flex-shrink-0 ${t.overdue ? 'text-red-600' : 'text-amber-600'}`}>
+                            {t.overdue ? `Quá hạn ${Math.max(1, -days + 1)} ngày` : days <= 0 ? 'Hết hạn hôm nay' : `Còn ${days} ngày`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 py-2">Không có task nào quá hạn hoặc sắp đến hạn trong 3 ngày tới.</p>
                 )}
               </div>
 
-              {/* Member performance */}
-              <div className="bg-white rounded-2xl border p-4 shadow-sm">
-                <h3 className="font-bold text-gray-800 mb-3">Hiệu suất thành viên</h3>
-                <div className="space-y-3">
-                  {wsStats.members?.map(m => (
-                    <div key={m.id} className="flex items-center gap-3">
-                      <Avatar name={m.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium text-gray-800 truncate">{m.name}</span>
-                          <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
-                            {m.done}/{m.total_assigned} xong
-                            {m.overdue > 0 && <span className="text-red-500 ml-1">· {m.overdue} quá hạn</span>}
+              {/* Khối lượng việc của từng người (giúp Admin/Lead chia việc đều) */}
+              <div className="bg-white rounded-2xl border shadow-sm overflow-x-auto">
+                <h3 className="font-bold text-gray-800 px-4 pt-4 pb-2">Khối lượng công việc</h3>
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-500 border-b">
+                      <th className="text-left font-semibold px-4 py-2">Thành viên</th>
+                      <th className="font-semibold px-2 py-2">Cần làm</th>
+                      <th className="font-semibold px-2 py-2">Đang làm</th>
+                      <th className="font-semibold px-2 py-2">Chờ duyệt</th>
+                      <th className="font-semibold px-2 py-2">Hoàn thành</th>
+                      <th className="font-semibold px-2 py-2">Quá hạn</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {wsStats.members?.map(m => (
+                      <tr key={m.id}>
+                        <td className="px-4 py-2.5">
+                          <span className="flex items-center gap-2">
+                            <Avatar name={m.name} size="sm" />
+                            <span className="font-medium text-gray-800">{m.name}</span>
+                            {m.role === 'LEAD' && <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Lead</span>}
                           </span>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5">
-                          <div className="bg-primary-500 h-1.5 rounded-full transition-all"
-                            style={{ width: `${m.total_assigned ? Math.round((m.done / m.total_assigned) * 100) : 0}%` }} />
-                        </div>
-                      </div>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold flex-shrink-0
-                        ${m.role === 'LEAD' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {MEMBER_ROLE_LABELS[m.role] || 'Thành viên'}
-                      </span>
-                    </div>
-                  ))}
-                  {!wsStats.members?.length && <p className="text-sm text-gray-400 text-center py-4">Không có dữ liệu</p>}
-                </div>
+                        </td>
+                        <td className="text-center px-2 py-2.5 text-gray-600">{m.todo}</td>
+                        <td className="text-center px-2 py-2.5 text-blue-700 font-semibold">{m.in_progress}</td>
+                        <td className="text-center px-2 py-2.5 text-amber-700">{m.review}</td>
+                        <td className="text-center px-2 py-2.5 text-green-700">{m.done}</td>
+                        <td className={`text-center px-2 py-2.5 ${m.overdue ? 'text-red-600 font-bold' : 'text-gray-300'}`}>{m.overdue || '–'}</td>
+                      </tr>
+                    ))}
+                    {/* Task chưa giao cho ai */}
+                    <tr className="bg-gray-50/60">
+                      <td className="px-4 py-2.5 text-gray-500">Chưa giao</td>
+                      <td className="text-center px-2 py-2.5 text-gray-600" colSpan={5}>
+                        {allTasks.filter(t => !['DONE', 'CANCELLED'].includes(t.status) && !t.Assignees?.length).length} task chưa có người thực hiện
+                      </td>
+                    </tr>
+                    {!wsStats.members?.length && (
+                      <tr><td colSpan={6} className="text-center text-sm text-gray-400 py-6">Không có dữ liệu</td></tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -1863,6 +2114,7 @@ export default function WorkspacePage() {
           workload={workload}
           canManage={canManage}
           workspaceId={id}
+          workspaceName={workspace?.name}
           initialReview={reviewIntent}
           onClose={() => { setSelectedTaskId(null); setReviewIntent(null); }}
         />

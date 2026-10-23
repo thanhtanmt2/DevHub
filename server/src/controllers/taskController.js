@@ -1,5 +1,5 @@
 const {
-  Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission,
+  Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,
   WorkspaceMember, CandidateProfile, User
 } = require('../models');
 const AppError = require('../utils/AppError');
@@ -9,7 +9,6 @@ const path = require('path');
 const notifCtrl = require('./notificationController');
 const { logActivity } = require('../utils/activityLogger');
 const { getWorkspaceAccess } = require('../utils/workspaceAccess');
-const { syncProjectProgress } = require('../utils/projectProgress');
 
 // ─── Quy tắc nghiệp vụ của bảng Kanban ──────────────────────────────────────
 const STATUS_LABELS = { TODO: 'Cần làm', IN_PROGRESS: 'Đang làm', REVIEW: 'Chờ duyệt', DONE: 'Hoàn thành', CANCELLED: 'Đã hủy' };
@@ -17,11 +16,15 @@ const PRIORITIES = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 // Luồng trạng thái hợp lệ khi kéo thả / bấm nút.
 // Ra khỏi "Chờ duyệt" (sang Hoàn thành hoặc quay lại Đang làm) chỉ qua nghiệm thu (reviewTask).
 const TRANSITIONS = { TODO: ['IN_PROGRESS'], IN_PROGRESS: ['TODO', 'REVIEW'], REVIEW: [], DONE: [], CANCELLED: [] };
-// Trạng thái còn được cập nhật tiến độ / subtask
+// Trạng thái còn được chỉnh subtask / mô tả / tài liệu đính kèm
 const EDITABLE_STATUSES = ['TODO', 'IN_PROGRESS'];
-// Task bị yêu cầu chỉnh sửa: % tối đa 90 cho tới khi nộp lại (nộp lại / nghiệm thu mới lên 100%)
-const REVISION_RATE_CAP = 90;
-const isInRevision = (task) => task.status === 'IN_PROGRESS' && task.review_status === 'REVISION_REQUIRED';
+
+// Ai được sửa nội dung task (mô tả, nhãn, tài liệu đính kèm): Admin/Lead khi task chưa nghiệm thu;
+// người được giao khi task còn đang làm (Cần làm / Đang làm).
+function canEditTaskContent(task, access, assignedToMe) {
+  if (['DONE', 'CANCELLED'].includes(task.status)) return false;
+  return !!access.canManageTasks || (!!assignedToMe && EDITABLE_STATUSES.includes(task.status));
+}
 
 // Helper: quyền xem workspace (thành viên ACTIVE hoặc Admin)
 async function requireView(req, workspaceId) {
@@ -90,13 +93,6 @@ function validateLabels(labels) {
     throw new AppError('Danh sách label không hợp lệ', 400);
   }
   return [...new Set(labels.map(l => l.trim()))];
-}
-
-// Helper: % hoàn thành phải từ 0 đến 100
-function validateRate(rate) {
-  const n = Number(rate);
-  if (!Number.isInteger(n) || n < 0 || n > 100) throw new AppError('Phần trăm hoàn thành phải từ 0 đến 100', 400);
-  return n;
 }
 
 // Helper: kiểm tra chuyển trạng thái có đúng luồng Kanban không
@@ -303,6 +299,13 @@ const TASK_INCLUDE = [
     attributes: ['id', 'action', 'old_value', 'new_value', 'description', 'created_at']
   },
   {
+    model: TaskAttachment,
+    as: 'Attachments',
+    separate: true,
+    order: [['created_at', 'ASC']],
+    attributes: ['id', 'kind', 'name', 'url', 'size', 'uploaded_by_name', 'uploaded_by_user_id', 'created_at']
+  },
+  {
     model: TaskSubmission,
     separate: true,
     order: [['version', 'DESC']],
@@ -427,7 +430,6 @@ exports.createTask = async (req, res, next) => {
       metadata: { workspace_id: workspaceId },
     });
 
-    await syncProjectProgress(workspaceId);
     const fullTask = await Task.findByPk(task.id, { include: TASK_INCLUDE });
     res.status(201).json({ success: true, data: fullTask });
   } catch (error) { next(error); }
@@ -444,7 +446,7 @@ exports.updateTask = async (req, res, next) => {
 
     const access = await requireView(req, task.workspace_id);
     const { member, canManageTasks } = access;
-    const { title, description, priority, deadline, actual_hours, labels, status, completion_rate, assignee_ids, position } = req.body;
+    const { title, description, priority, deadline, labels, status, assignee_ids, position } = req.body;
 
     if (task.status === 'DONE') throw new AppError('Task đã được nghiệm thu, không thể chỉnh sửa', 400);
 
@@ -457,9 +459,15 @@ exports.updateTask = async (req, res, next) => {
     // ── 1. Kiểm tra toàn bộ dữ liệu trước khi ghi ─────────────────────────────
 
     // Thông tin task: chỉ người quản lý task
-    const editsInfo = [title, description, priority, deadline, labels].some(v => v !== undefined);
-    if (editsInfo) {
-      if (!canManageTasks) throw new AppError('Bạn chỉ được cập nhật tiến độ, không được sửa thông tin task', 403);
+    // Tiêu đề / độ ưu tiên / deadline do Admin hoặc Lead quyết định.
+    // Mô tả và nhãn: người được giao cũng sửa được khi task còn đang làm (để bổ sung thông tin trong lúc làm).
+    const editsManagerInfo = [title, priority, deadline].some(v => v !== undefined);
+    const editsContent = [description, labels].some(v => v !== undefined);
+    if (editsManagerInfo && !canManageTasks) throw new AppError('Chỉ Admin hoặc Lead mới được sửa tiêu đề, độ ưu tiên và deadline', 403);
+    if (editsContent && !canEditTaskContent(task, access, isAssignedNow)) {
+      throw new AppError('Bạn chỉ sửa được mô tả khi được giao task và task chưa gửi duyệt (hoặc là Admin/Lead)', 403);
+    }
+    if (editsManagerInfo || editsContent) {
       if (title !== undefined) {
         const t = cleanTitle(title);
         if (t !== task.title) {
@@ -467,7 +475,13 @@ exports.updateTask = async (req, res, next) => {
           changes.push({ action: 'TASK_UPDATED', activity: 'UPDATED', old: task.title, new: t, desc: `Đổi tiêu đề thành "${t}"` });
         }
       }
-      if (description !== undefined) updateData.description = description || null;
+      if (description !== undefined) {
+        const d = description ? String(description) : null;
+        if (d !== (task.description || null)) {
+          updateData.description = d;
+          changes.push({ action: 'TASK_UPDATED', activity: 'UPDATED', desc: d ? 'Cập nhật mô tả' : 'Xóa mô tả' });
+        }
+      }
       if (priority !== undefined && priority !== task.priority) {
         updateData.priority = validatePriority(priority);
         changes.push({ action: 'TASK_UPDATED', activity: 'UPDATED', old: task.priority, new: priority, desc: `Đổi độ ưu tiên: ${task.priority} → ${priority}` });
@@ -481,7 +495,13 @@ exports.updateTask = async (req, res, next) => {
           changes.push({ action: 'TASK_UPDATED', activity: 'UPDATED', old: oldDay, new: newDay, desc: newDay ? `Đổi deadline thành ${newDay}` : 'Bỏ deadline' });
         }
       }
-      if (labels !== undefined) updateData.labels = validateLabels(labels);
+      if (labels !== undefined) {
+        const newLabels = validateLabels(labels);
+        if (JSON.stringify(newLabels) !== JSON.stringify(task.labels || [])) {
+          updateData.labels = newLabels;
+          changes.push({ action: 'TASK_UPDATED', activity: 'UPDATED', desc: `Cập nhật nhãn: ${newLabels.join(', ') || 'không có'}` });
+        }
+      }
     }
 
     // Người thực hiện
@@ -518,32 +538,6 @@ exports.updateTask = async (req, res, next) => {
       });
     }
 
-    // Tiến độ thủ công (% / giờ thực tế): chỉ khi task đang làm
-    if (completion_rate !== undefined || actual_hours !== undefined) {
-      if (!canManageTasks && !isAssignedNow) throw new AppError('Bạn không được phân công task này', 403);
-      if (finalStatus !== 'IN_PROGRESS') {
-        throw new AppError(finalStatus === 'TODO'
-          ? 'Hãy bắt đầu làm task trước khi cập nhật tiến độ'
-          : 'Task đang chờ duyệt, không thể cập nhật tiến độ', 400);
-      }
-      if (completion_rate !== undefined) {
-        const subCount = await SubTask.count({ where: { task_id: task.id } });
-        if (subCount) throw new AppError('Task có subtask nên % hoàn thành được tính tự động theo subtask', 400);
-        const rate = validateRate(completion_rate);
-        if (isInRevision(task) && rate > REVISION_RATE_CAP) {
-          throw new AppError(`Task đang được yêu cầu chỉnh sửa nên tiến độ tối đa ${REVISION_RATE_CAP}% cho tới khi bạn nộp lại`, 400);
-        }
-        if (rate !== task.completion_rate) {
-          updateData.completion_rate = rate;
-          changes.push({
-            action: 'TASK_UPDATED', activity: 'PROGRESS', old: `${task.completion_rate}%`, new: `${rate}%`,
-            desc: `Cập nhật tiến độ: ${task.completion_rate}% → ${rate}%`
-          });
-        }
-      }
-      if (actual_hours !== undefined) updateData.actual_hours = actual_hours;
-    }
-
     // Vị trí trong cột (kéo thả). Sắp xếp trong cùng cột chỉ dành cho người quản lý task
     let targetIndex = null;
     if (position !== undefined) {
@@ -570,7 +564,6 @@ exports.updateTask = async (req, res, next) => {
 
     if (Object.keys(updateData).length) await task.update(updateData);
     if (statusChanged || targetIndex !== null) await placeInColumn(task, finalStatus, targetIndex);
-    if (updateData.completion_rate !== undefined) await syncProjectProgress(task.workspace_id);
 
     // ── 3. Nhật ký + thông báo ───────────────────────────────────────────────
     for (const change of changes) {
@@ -638,7 +631,6 @@ exports.deleteTask = async (req, res, next) => {
     // Lấy người đang làm task trước khi xóa để còn báo cho họ
     const assigneeUserIds = await getMemberUserIds(await getAssigneeIds(task.id));
     await task.destroy();
-    await syncProjectProgress(workspace_id);
     await logActivity(req, {
       action: 'TASK_DELETED',
       entity_type: 'task',
@@ -687,11 +679,8 @@ exports.reviewTask = async (req, res, next) => {
       review_note: review_note || null,
       reviewed_by: member?.id || null,
       reviewed_at: new Date(),
-      // Duyệt → 100%. Yêu cầu sửa → hạ tối đa 90% cho tới khi ứng viên nộp lại
-      completion_rate: approve ? 100 : Math.min(task.completion_rate ?? 0, REVISION_RATE_CAP),
     });
     await placeInColumn(task, newStatus);
-    await syncProjectProgress(task.workspace_id);
 
     // Ghi kết quả nghiệm thu vào lần nộp sản phẩm gần nhất
     const latestSubmission = await TaskSubmission.findOne({ where: { task_id: task.id }, order: [['version', 'DESC']] });
@@ -726,18 +715,6 @@ exports.reviewTask = async (req, res, next) => {
 };
 
 // ─── Sub-tasks ──────────────────────────────────────────────────────────────
-const updateTaskProgress = async (taskId) => {
-  const task = await Task.findByPk(taskId);
-  if (!task) return;
-  const subs = await SubTask.findAll({ where: { task_id: taskId } });
-  // Có subtask: % = số subtask đã xong / tổng. Hết subtask: về 0 để nhập tay lại từ đầu.
-  let rate = subs.length ? Math.round((subs.filter(s => s.is_done).length / subs.length) * 100) : 0;
-  // Đang làm lại sau khi bị yêu cầu sửa: tối đa 90% cho tới khi nộp lại
-  if (isInRevision(task)) rate = Math.min(rate, REVISION_RATE_CAP);
-  if (rate !== task.completion_rate) await task.update({ completion_rate: rate });
-  await syncProjectProgress(task.workspace_id);
-};
-
 // Helper: quyền sửa subtask (người quản lý task hoặc người được giao, khi task chưa gửi duyệt)
 async function requireEditSubTasks(req, task) {
   const access = await requireView(req, task.workspace_id);
@@ -769,7 +746,6 @@ exports.addSubTask = async (req, res, next) => {
     const title = cleanTitle(req.body.title, 'Tên subtask');
     const maxPos = await SubTask.max('position', { where: { task_id: task.id } });
     const sub = await SubTask.create({ task_id: task.id, title, position: (maxPos ?? -1) + 1 });
-    await updateTaskProgress(task.id);
     res.status(201).json({ success: true, data: sub });
   } catch (error) { next(error); }
 };
@@ -785,7 +761,6 @@ exports.updateSubTask = async (req, res, next) => {
       ...(is_done !== undefined && { is_done: !!is_done }),
       ...(position !== undefined && { position }),
     });
-    await updateTaskProgress(sub.task_id);
     res.json({ success: true, data: sub });
   } catch (error) { next(error); }
 };
@@ -796,7 +771,6 @@ exports.deleteSubTask = async (req, res, next) => {
     await requireEditSubTasks(req, task);
     const taskId = sub.task_id;
     await sub.destroy();
-    await updateTaskProgress(taskId);
     res.json({ success: true, message: 'Đã xóa' });
   } catch (error) { next(error); }
 };
@@ -914,10 +888,8 @@ exports.submitTask = async (req, res, next) => {
       submitted_at: new Date(),
     });
 
-    // Nộp sản phẩm nghĩa là đã làm xong phần mình → 100% (kể cả khi nộp lại sau yêu cầu sửa)
-    await task.update({ status: 'REVIEW', review_status: 'PENDING', completion_rate: 100 });
+    await task.update({ status: 'REVIEW', review_status: 'PENDING' });
     await placeInColumn(task, 'REVIEW');
-    await syncProjectProgress(task.workspace_id);
 
     await logInternalTaskActivity(task.id, access.member?.id, 'SUBMITTED', `Nộp sản phẩm lần ${version} và gửi duyệt`, null, version);
     await logActivity(req, {
@@ -960,3 +932,65 @@ exports.getTaskSubmissions = async (req, res, next) => {
 
 // ─── Legacy compat ─────────────────────────────────────────────────────────
 exports.reviewSubmission = exports.reviewTask;
+
+// ─── Tệp / liên kết tài liệu đính kèm ───────────────────────────────────────
+const ATTACH_FILE_PREFIX = '/uploads/tasks/';
+const MAX_ATTACHMENTS_PER_TASK = 30;
+
+async function loadTaskForAttachment(req) {
+  const task = await Task.findByPk(req.params.id);
+  if (!task) throw new AppError('Task not found', 404);
+  const access = await requireView(req, task.workspace_id);
+  const assigned = await isAssignee(task.id, access.member);
+  return { task, access, assigned };
+}
+
+// POST /api/tasks/:id/attachments — body: { kind: 'FILE'|'LINK', url, name?, size? }
+// (file được tải lên trước qua POST /api/upload/task-file rồi gửi `url` trả về vào đây)
+exports.addAttachment = async (req, res, next) => {
+  try {
+    const { task, access, assigned } = await loadTaskForAttachment(req);
+    if (!canEditTaskContent(task, access, assigned)) {
+      throw new AppError('Bạn không thể đính kèm tài liệu vào task này (chỉ người được giao khi task chưa gửi duyệt, hoặc Admin/Lead)', 403);
+    }
+    const { kind = 'FILE' } = req.body;
+    const url = typeof req.body.url === 'string' ? req.body.url.trim() : '';
+    if (!['FILE', 'LINK'].includes(kind)) throw new AppError('Loại tài liệu không hợp lệ', 400);
+    if (!url) throw new AppError('Thiếu đường dẫn tài liệu', 400);
+    if (kind === 'FILE' && !url.startsWith(ATTACH_FILE_PREFIX)) throw new AppError('Tệp đính kèm không hợp lệ', 400);
+    if (kind === 'LINK' && !/^https?:\/\/\S+$/i.test(url)) throw new AppError('Liên kết cần bắt đầu bằng http:// hoặc https://', 400);
+    if (await TaskAttachment.count({ where: { task_id: task.id } }) >= MAX_ATTACHMENTS_PER_TASK) {
+      throw new AppError(`Mỗi task chỉ đính kèm tối đa ${MAX_ATTACHMENTS_PER_TASK} tài liệu`, 400);
+    }
+
+    let name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    if (!name && kind === 'FILE') name = new URLSearchParams(url.split('?')[1] || '').get('name') || url.split('?')[0].split('/').pop();
+    if (!name) name = url;
+    name = name.slice(0, 255);
+    const size = Number.isInteger(req.body.size) && req.body.size >= 0 ? req.body.size : null;
+
+    const attachment = await TaskAttachment.create({
+      task_id: task.id, kind, name, url, size,
+      uploaded_by_user_id: req.user.id,
+      uploaded_by_name: req.user.full_name || null,
+    });
+    await logInternalTaskActivity(task.id, access.member?.id, 'UPDATED', `Đính kèm ${kind === 'LINK' ? 'liên kết' : 'tệp'} "${name}"`);
+    res.status(201).json({ success: true, data: attachment });
+  } catch (error) { next(error); }
+};
+
+// DELETE /api/tasks/:id/attachments/:attId — Admin/Lead gỡ bất kỳ tài liệu nào; thành viên chỉ gỡ tài liệu mình đã thêm
+exports.deleteAttachment = async (req, res, next) => {
+  try {
+    const { task, access, assigned } = await loadTaskForAttachment(req);
+    const attachment = await TaskAttachment.findOne({ where: { id: req.params.attId, task_id: task.id } });
+    if (!attachment) throw new AppError('Không tìm thấy tài liệu đính kèm', 404);
+    const own = attachment.uploaded_by_user_id === req.user.id;
+    if (!canEditTaskContent(task, access, assigned) || !(access.canManageTasks || own)) {
+      throw new AppError('Bạn không có quyền gỡ tài liệu này', 403);
+    }
+    await attachment.destroy(); // file trên đĩa sẽ được dọn tự động sau 1 giờ nếu không còn nơi nào dùng tới
+    await logInternalTaskActivity(task.id, access.member?.id, 'UPDATED', `Gỡ ${attachment.kind === 'LINK' ? 'liên kết' : 'tệp'} đính kèm "${attachment.name}"`);
+    res.json({ success: true, message: 'Đã gỡ tài liệu' });
+  } catch (error) { next(error); }
+};

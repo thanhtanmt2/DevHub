@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const {
-  Company, CandidateProfile, CandidateCv, Application, ProjectApplication, TaskSubmission, User
+  Company, CandidateProfile, CandidateCv, Application, ProjectApplication, TaskSubmission, TaskAttachment, User
 } = require('../models');
 
 // File mới upload được giữ 1 giờ (người dùng up file mà chưa kịp bấm Lưu form thì không bị xóa nhầm)
@@ -69,6 +69,7 @@ const cleanupOrphanFiles = async () => {
     // 3. File sản phẩm nộp cho task
     const usedTaskFiles = await collectUsedFiles('tasks', [
       { model: TaskSubmission, field: 'attachment_url' },
+      { model: TaskAttachment, field: 'url' },
     ]);
     cleanupFolder('tasks', usedTaskFiles);
   } catch (error) {

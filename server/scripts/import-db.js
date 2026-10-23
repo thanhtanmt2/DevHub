@@ -38,6 +38,8 @@ const migrations = [
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_verified BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_token VARCHAR(10)`,
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_token_expires TIMESTAMPTZ`,
+  // task_attachments: tệp / liên kết tài liệu đính kèm task
+  `CREATE TABLE IF NOT EXISTS task_attachments (id UUID PRIMARY KEY, task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, kind VARCHAR(10) NOT NULL DEFAULT 'FILE', name VARCHAR(255) NOT NULL, url VARCHAR(1000) NOT NULL, size INTEGER, uploaded_by_user_id UUID, uploaded_by_name VARCHAR(150), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
   // notifications: loại thông báo là chuỗi để thêm loại mới
   `ALTER TABLE notifications ALTER COLUMN type TYPE VARCHAR(40) USING type::text`,
   // users: ảnh đại diện (lấy từ hồ sơ ứng viên nếu có)

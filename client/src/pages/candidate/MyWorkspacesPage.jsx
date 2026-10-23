@@ -164,18 +164,20 @@ export default function MyWorkspacesPage() {
                       <span className="text-primary-700 font-medium"><Icon name="folder" className="w-3.5 h-3.5 mr-1" />{t.Workspace?.Project?.name || t.Workspace?.name}</span>
                       <span className={pr.color}>● {pr.label}</span>
                       <DeadlineText task={t} />
-                      {totalSubs > 0 && <span className="text-gray-400"><Icon name="clipboardCheck" className="w-3.5 h-3.5 mr-1" />{doneSubs}/{totalSubs} subtask</span>}
+                      {totalSubs > 0 && <span className="text-gray-400"><Icon name="clipboardCheck" className="w-3.5 h-3.5 mr-1" />{doneSubs}/{totalSubs} công việc con</span>}
                     </div>
                   </div>
-                  <div className="w-28 flex-shrink-0 hidden sm:block">
-                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                      <span>Tiến độ</span><span>{t.completion_rate || 0}%</span>
+                  {totalSubs > 0 && (
+                    <div className="w-28 flex-shrink-0 hidden sm:block">
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                        <span>Công việc con</span><span>{doneSubs}/{totalSubs}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div className={`h-1.5 rounded-full ${doneSubs === totalSubs ? 'bg-green-500' : 'bg-primary-500'}`}
+                          style={{ width: `${(doneSubs / totalSubs) * 100}%` }} />
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5">
-                      <div className={`h-1.5 rounded-full ${t.status === 'DONE' ? 'bg-green-500' : 'bg-primary-500'}`}
-                        style={{ width: `${t.completion_rate || 0}%` }} />
-                    </div>
-                  </div>
+                  )}
                   <span className="text-gray-300 text-lg flex-shrink-0">›</span>
                 </button>
               );
@@ -230,15 +232,6 @@ function WorkspaceCard({ membership: m, ended = false }) {
         </span>
         {m.ProjectJob?.title && <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-600">Vị trí: {m.ProjectJob.title}</span>}
         {m.joined_at && <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-500">Tham gia {formatDate(m.joined_at)}</span>}
-      </div>
-
-      <div>
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Tiến độ dự án ({m.total_tasks} task)</span><span className="font-semibold">{m.progress}%</span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2">
-          <div className="bg-gradient-to-r from-primary-500 to-green-500 h-2 rounded-full transition-all" style={{ width: `${m.progress}%` }} />
-        </div>
       </div>
 
       <div className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
