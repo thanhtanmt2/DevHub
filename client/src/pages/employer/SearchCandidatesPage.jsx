@@ -6,12 +6,15 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SafeImage from '@/components/common/SafeImage';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import useEscapeKey from '@/hooks/useEscapeKey';
+import PageBanner from '@/components/common/PageBanner';
+import Avatar from '@/components/common/Avatar';
+import { SkillTag } from '@/components/common/Badges';
 
 const LEVEL_LABELS = { BEGINNER: 'Mới', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Cao cấp', EXPERT: 'Chuyên gia' };
 const LEVEL_COLORS = {
   BEGINNER: 'bg-gray-100 text-gray-600',
   INTERMEDIATE: 'bg-blue-100 text-blue-700',
-  ADVANCED: 'bg-purple-100 text-purple-700',
+  ADVANCED: 'bg-sky-100 text-sky-700',
   EXPERT: 'bg-amber-100 text-amber-700',
 };
 
@@ -41,10 +44,7 @@ function CandidateDetailModal({ profile, onClose }) {
         {/* Header */}
         <div className="flex justify-between items-start p-5 border-b">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold shadow-md flex-shrink-0">
-              <SafeImage src={profile.avatar_url} alt="avatar" className="w-14 h-14 rounded-full object-cover"
-                fallback={user?.full_name?.[0] || '?'} />
-            </div>
+            <Avatar name={user?.full_name} src={profile.avatar_url} size="xl" />
             <div>
               <h2 className="text-xl font-bold text-gray-900">{user?.full_name}</h2>
               <p className="text-sm text-primary-600 font-medium">{profile.professional_title || 'Chưa cập nhật'}</p>
@@ -57,9 +57,9 @@ function CandidateDetailModal({ profile, onClose }) {
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-center">
+            <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-center">
               <ScoreBadge score={profile.competency_score} />
-              <p className="text-xs text-indigo-500 mt-1">Điểm năng lực</p>
+              <p className="text-xs text-primary-500 mt-1">Điểm năng lực</p>
             </div>
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-emerald-700">{skills.length}</p>
@@ -182,17 +182,13 @@ export default function SearchCandidatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tìm kiếm ứng viên</h1>
-          <p className="text-sm text-gray-500 mt-1">Tìm ứng viên phù hợp dựa trên kỹ năng, điểm năng lực và kinh nghiệm</p>
-        </div>
+      <PageBanner compact icon="search" title="Tìm kiếm ứng viên" subtitle="Tìm ứng viên phù hợp dựa trên kỹ năng, điểm năng lực và kinh nghiệm">
         {pagination && (
-          <span className="text-sm text-gray-500">
-            Tìm thấy <strong className="text-gray-800">{pagination.total}</strong> ứng viên
+          <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/20 border border-white/30 text-sm font-medium">
+            Tìm thấy <strong className="mx-1">{pagination.total}</strong> ứng viên
           </span>
         )}
-      </div>
+      </PageBanner>
 
       {/* Filters */}
       <div className="card space-y-3">
@@ -274,10 +270,7 @@ export default function SearchCandidatesPage() {
                   onClick={() => setSelectedProfile(profile)}
                 >
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow flex-shrink-0">
-                      <SafeImage src={profile.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover"
-                        fallback={user?.full_name?.[0] || '?'} />
-                    </div>
+                    <Avatar name={user?.full_name} src={profile.avatar_url} size="lg" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 line-clamp-2 break-words">{user?.full_name}</h3>
                       <p className="text-xs text-primary-600 truncate">{profile.professional_title || 'Chưa cập nhật'}</p>
@@ -294,12 +287,8 @@ export default function SearchCandidatesPage() {
 
                   {/* Skills */}
                   {skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {skills.slice(0, 4).map(s => (
-                        <span key={s.id} className="badge bg-white text-gray-600 border border-gray-200 text-xs px-2 py-0.5">
-                          {s.name}
-                        </span>
-                      ))}
+                    <div className="flex flex-wrap gap-1.5">
+                      {skills.slice(0, 4).map(s => <SkillTag key={s.id} name={s.name} />)}
                       {skills.length > 4 && (
                         <span className="badge bg-gray-50 text-gray-400 border border-gray-100 text-xs px-2 py-0.5">
                           +{skills.length - 4}

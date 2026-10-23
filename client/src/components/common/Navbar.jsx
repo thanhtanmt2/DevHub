@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { notificationApi } from '@/api/notificationApi';
 import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
+import Avatar from '@/components/common/Avatar';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { stripEmoji } from '@/utils/stripEmoji';
 
@@ -47,13 +48,13 @@ function NotificationBell() {
     TASK_STATUS_CHANGED: { name: 'refresh', tone: 'gray' },
     TASK_APPROVED: { name: 'verified', tone: 'green' },
     TASK_REVISION: { name: 'undo', tone: 'amber' },
-    TASK_COMMENT: { name: 'chat', tone: 'purple' },
+    TASK_COMMENT: { name: 'chat', tone: 'blue' },
     TASK_DEADLINE_SOON: { name: 'alert', tone: 'amber' },
     MEMBER_ADDED: { name: 'user', tone: 'blue' },
     MEMBER_ROLE_CHANGED: { name: 'lock', tone: 'gray' },
     PROJECT_UPDATE: { name: 'pencil', tone: 'gray' }, // task được cập nhật / bị xóa
-    INTERVIEW_SCHEDULED: { name: 'calendar', tone: 'purple' },
-    APPLICATION_STATUS: { name: 'clipboard', tone: 'indigo' },
+    INTERVIEW_SCHEDULED: { name: 'calendar', tone: 'blue' },
+    APPLICATION_STATUS: { name: 'clipboard', tone: 'blue' },
   };
   const notifIcon = (type, size) => {
     const i = NOTIF_ICONS[type] || { name: 'bell', tone: 'gray' };
@@ -70,10 +71,10 @@ function NotificationBell() {
     <div className="sm:relative" ref={ref}>
       <button
         onClick={() => { setOpen(o => !o); if (!open) refetch(); }}
-        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
+        className="relative p-2 rounded-full text-white hover:bg-white/15 transition-colors"
         aria-label="Thông báo"
       >
-        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
@@ -177,13 +178,13 @@ function NotificationBell() {
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 const navLinkClass = ({ isActive }) =>
-  `px-2 sm:px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-    isActive ? 'text-primary-700 bg-primary-50' : 'text-slate-600 hover:text-primary-600 hover:bg-slate-100'
+  `px-2 sm:px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
+    isActive ? 'bg-white/20 text-white' : 'text-white hover:text-white hover:bg-white/10'
   }`;
 
 const mobileLinkClass = ({ isActive }) =>
   `block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-    isActive ? 'text-primary-700 bg-primary-50' : 'text-slate-700 hover:bg-slate-100'
+    isActive ? 'bg-white/20 text-white' : 'text-white hover:bg-white/10'
   }`;
 
 export default function Navbar() {
@@ -213,18 +214,17 @@ export default function Navbar() {
   };
 
   const displayName = user?.full_name || user?.email || '';
-  const initial = displayName.trim().charAt(0).toUpperCase() || '?';
 
   return (
-    <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-200">
+    <nav className="sticky top-0 z-30 bg-primary-600 text-white shadow-md shadow-primary-600/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-extrabold text-lg shadow-sm group-hover:shadow-md transition-shadow">
+            <span className="w-9 h-9 rounded-xl bg-white text-primary-700 flex items-center justify-center font-extrabold text-lg shadow-md group-hover:scale-105 transition-transform">
               D
             </span>
-            <span className="text-xl font-bold text-slate-900 tracking-tight">
-              Dev<span className="text-primary-600">Hub</span>
+            <span className="text-xl font-bold text-white tracking-tight">
+              DevHub
             </span>
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
@@ -243,26 +243,21 @@ export default function Navbar() {
               <>
                 <Link
                   to={getDashboardLink()}
-                  className="hidden sm:inline px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-primary-600 hover:bg-slate-100 transition-colors"
+                  className="hidden sm:inline px-3 py-2 rounded-lg text-sm font-semibold text-white hover:text-white hover:bg-white/10 transition-colors"
                 >
                   Dashboard
                 </Link>
                 {/* Notification Bell */}
                 <NotificationBell />
-                <div className="flex items-center gap-2 pl-2 ml-1 border-l border-gray-200">
-                  <span
-                    className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold"
-                    title={displayName}
-                  >
-                    {initial}
-                  </span>
-                  <button onClick={handleLogout} className="hidden sm:inline-flex btn-secondary text-sm !py-1.5">
+                <div className="flex items-center gap-2 pl-2 ml-1 border-l border-white/25">
+                  <span title={displayName}><Avatar name={displayName} size="sm" className="ring-2 ring-white/70" /></span>
+                  <button onClick={handleLogout} className="hidden sm:inline-flex btn-glass text-sm !py-1.5">
                     Đăng xuất
                   </button>
                   <button
                     type="button"
                     onClick={() => setMenuOpen((o) => !o)}
-                    className="sm:hidden p-2 -mr-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+                    className="sm:hidden p-2 -mr-2 rounded-lg text-white hover:bg-white/15 transition-colors"
                     aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
                     aria-expanded={menuOpen}
                   >
@@ -274,7 +269,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={openLoginModal}
-                className="btn-primary text-sm ml-1 sm:ml-2 whitespace-nowrap"
+                className="btn-light text-sm ml-1 sm:ml-2 whitespace-nowrap"
               >
                 Đăng nhập
               </button>
@@ -285,15 +280,15 @@ export default function Navbar() {
 
       {/* Menu thu gọn (chỉ điện thoại, khi đã đăng nhập) */}
       {user && menuOpen && (
-        <div className="sm:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-1 animate-fade-in">
-          <p className="px-3 pb-2 text-xs text-slate-400 truncate">{displayName}</p>
+        <div className="sm:hidden border-t border-white/15 bg-primary-600 px-4 py-3 space-y-1 animate-fade-in">
+          <p className="px-3 pb-2 text-xs text-white truncate">{displayName}</p>
           <NavLink to="/projects" className={mobileLinkClass}>Dự án thời vụ</NavLink>
           <NavLink to="/jobs" className={mobileLinkClass}>Tuyển dụng công ty</NavLink>
           <NavLink to={getDashboardLink()} end className={mobileLinkClass}>Dashboard</NavLink>
           <button
             type="button"
             onClick={handleLogout}
-            className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-red-200 hover:bg-white/10 transition-colors"
           >
             Đăng xuất
           </button>

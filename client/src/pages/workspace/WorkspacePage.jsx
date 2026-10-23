@@ -24,10 +24,10 @@ const STATUS_META = {
   DONE:        { label: 'Hoàn thành',   color: 'bg-green-50',   dot: 'bg-green-500',  text: 'text-green-700' },
 };
 const PRIORITY_META = {
-  URGENT: { label: 'Khẩn cấp', color: 'text-red-600 bg-red-50',     dot: 'bg-red-500' },
-  HIGH:   { label: 'Cao',      color: 'text-orange-600 bg-orange-50', dot: 'bg-orange-500' },
-  MEDIUM: { label: 'Bình thường', color: 'text-yellow-600 bg-yellow-50', dot: 'bg-yellow-400' },
-  LOW:    { label: 'Thấp',     color: 'text-gray-500 bg-gray-100',   dot: 'bg-gray-400' },
+  URGENT: { label: 'Khẩn cấp', color: 'text-red-600 bg-red-50',     dot: 'bg-red-500', bar: 'border-l-red-500' },
+  HIGH:   { label: 'Cao',      color: 'text-orange-600 bg-orange-50', dot: 'bg-orange-500', bar: 'border-l-orange-400' },
+  MEDIUM: { label: 'Bình thường', color: 'text-yellow-600 bg-yellow-50', dot: 'bg-yellow-400', bar: 'border-l-amber-300' },
+  LOW:    { label: 'Thấp',     color: 'text-gray-500 bg-gray-100',   dot: 'bg-gray-400', bar: 'border-l-slate-300' },
 };
 // Icon cho từng loại hoạt động trong tab Lịch sử của task
 const ACTIVITY_ICONS = {
@@ -42,13 +42,13 @@ const ACTIVITY_ICONS = {
 };
 const LABEL_COLORS = {
   Frontend:  'bg-blue-100 text-blue-700',
-  Backend:   'bg-purple-100 text-purple-700',
+  Backend:   'bg-sky-100 text-sky-700',
   Bug:       'bg-red-100 text-red-700',
   Feature:   'bg-green-100 text-green-700',
-  Design:    'bg-pink-100 text-pink-700',
+  Design:    'bg-slate-100 text-slate-700',
   Testing:   'bg-yellow-100 text-yellow-700',
-  DevOps:    'bg-indigo-100 text-indigo-700',
-  Research:  'bg-teal-100 text-teal-700',
+  DevOps:    'bg-primary-100 text-primary-700',
+  Research:  'bg-sky-50 text-sky-600',
 };
 const ALL_LABELS = Object.keys(LABEL_COLORS);
 // Admin là chủ; Admin cử Lead để phân chia công việc, còn lại là Thành viên
@@ -92,7 +92,7 @@ const formatDateTime = (d) => new Date(d).toLocaleString('vi-VN', { day: '2-digi
 function Avatar({ name, size = 'sm', className = '', onClick }) {
   const initials = name?.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase() || '?';
   const sz = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-sm';
-  const colors = ['bg-indigo-500','bg-purple-500','bg-pink-500','bg-blue-500','bg-teal-500','bg-green-500'];
+  const colors = ['bg-primary-500','bg-primary-600','bg-sky-500','bg-primary-700','bg-sky-600','bg-primary-400'];
   const color = colors[(name?.charCodeAt(0) || 0) % colors.length];
   return (
     <div onClick={onClick} className={`${sz} ${color} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${className}`}>
@@ -116,9 +116,9 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
       {...provided.dragHandleProps}
       onClick={onClick}
       title={isMine ? 'Task của bạn' : undefined}
-      className={`bg-white rounded-xl border border-gray-100 shadow-sm p-3 cursor-pointer
-        hover:shadow-md hover:border-primary-200 transition-all select-none
-        ${isMine ? 'border-l-4 border-l-primary-400' : ''}
+      className={`bg-white rounded-xl border border-gray-100 border-l-4 ${pm.bar} shadow-sm p-3 cursor-pointer
+        hover:shadow-md transition-all select-none
+        ${isMine ? 'ring-1 ring-primary-300' : ''}
         ${snapshot.isDragging ? 'shadow-xl ring-2 ring-primary-400 rotate-1' : ''}
         ${task.status === 'DONE' ? 'opacity-75' : ''}`}
     >
@@ -925,7 +925,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                             <p className="text-xs font-semibold text-gray-700 mb-0.5 flex items-center">
                               {authorName}
                               {isAdminComment && (
-                                <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Quản trị viên</span>
+                                <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">Quản trị viên</span>
                               )}
                               <span className="text-gray-400 font-normal ml-2">
                                 {new Date(c.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
@@ -1378,6 +1378,7 @@ export default function WorkspacePage() {
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col bg-gray-50/50 border border-gray-200 rounded-xl overflow-hidden min-w-0 w-full relative">
+      <div className="h-1 flex-shrink-0 bg-gradient-to-r from-primary-500 to-primary-700" />
       {/* Header */}
       <div className="bg-white border-b px-5 pt-3 flex flex-col gap-3">
         <div className="flex items-center gap-3 flex-wrap">
@@ -1637,7 +1638,7 @@ export default function WorkspacePage() {
 
               {/* Giải thích vai trò trong Workspace */}
               <div className="px-5 py-3 border-b bg-white text-xs text-gray-600 space-y-1">
-                <p><span className="font-semibold text-purple-700">Admin (chủ dự án)</span>: toàn quyền — thêm/xóa thành viên, cử Lead, tạo và giao việc, nghiệm thu, bình luận.</p>
+                <p><span className="font-semibold text-primary-700">Admin (chủ dự án)</span>: toàn quyền — thêm/xóa thành viên, cử Lead, tạo và giao việc, nghiệm thu, bình luận.</p>
                 <p><span className="font-semibold text-blue-700">Lead</span>: do Admin cử — phân chia công việc như Jira: tạo task, giao việc cho thành viên, sửa task, nghiệm thu và bình luận.</p>
                 <p><span className="font-semibold text-gray-700">Thành viên</span>: làm các task được giao, nộp sản phẩm và phản hồi bình luận trong task của mình (task người khác chỉ đọc).</p>
               </div>

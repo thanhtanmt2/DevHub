@@ -1,3 +1,4 @@
+import PageBanner from '@/components/common/PageBanner';
 ﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { skillApi } from '@/api/skillApi';
@@ -41,9 +42,10 @@ export default function ManageSkillsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Danh mục kỹ năng ({skills.length})</h1>
-        <button onClick={() => setShowAdd(!showAdd)} className="btn-primary">+ Thêm kỹ năng</button>
+      <div className="mb-6">
+        <PageBanner compact icon="skills" title={`Danh mục kỹ năng (${skills.length})`} subtitle="Các kỹ năng ứng viên và tin tuyển dụng có thể gắn">
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-light">+ Thêm kỹ năng</button>
+        </PageBanner>
       </div>
 
       {showAdd && (

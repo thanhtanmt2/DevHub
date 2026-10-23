@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { candidateApi } from '@/api/candidateApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import PageBanner from '@/components/common/PageBanner';
+import StatTile from '@/components/common/StatTile';
 import Icon from '@/components/common/Icon';
 
 const STATUS_LABELS = { 
@@ -18,10 +20,10 @@ const STATUS_LABELS = {
 const STATUS_COLORS = { 
   PENDING: 'bg-yellow-100 text-yellow-700', 
   VIEWED: 'bg-blue-100 text-blue-700', 
-  INTERVIEW: 'bg-purple-100 text-purple-700', 
+  INTERVIEW: 'bg-sky-100 text-sky-700', 
   HIRED: 'bg-green-100 text-green-700', 
   REJECTED: 'bg-red-100 text-red-700',
-  REVIEWING: 'bg-indigo-100 text-indigo-700',
+  REVIEWING: 'bg-primary-100 text-primary-700',
   ACCEPTED: 'bg-green-100 text-green-700'
 };
 
@@ -66,10 +68,10 @@ export default function CandidateDashboard() {
   const hiredCount = companyApps.filter(a => a.status === 'HIRED').length + projectApps.filter(a => a.status === 'ACCEPTED').length;
 
   const stats = [
-    { label: 'Tổng hồ sơ ứng tuyển', value: totalAppsCount, color: 'text-blue-600' },
-    { label: 'Dự án thời vụ đã nộp', value: projectApps.length, color: 'text-purple-600' },
-    { label: 'Đã trúng tuyển', value: hiredCount, color: 'text-green-600' },
-    { label: 'Điểm năng lực', value: parseFloat(profile?.competency_score || 0).toFixed(1), color: 'text-primary-600' },
+    { label: 'Tổng hồ sơ ứng tuyển', value: totalAppsCount, icon: 'clipboard', tone: 'blue' },
+    { label: 'Dự án thời vụ đã nộp', value: projectApps.length, icon: 'folder', tone: 'violet' },
+    { label: 'Đã trúng tuyển', value: hiredCount, icon: 'verified', tone: 'emerald' },
+    { label: 'Điểm năng lực', value: parseFloat(profile?.competency_score || 0).toFixed(1), icon: 'star', tone: 'amber', sub: 'trên thang 10' },
   ];
 
   // Combine recent applications for preview
@@ -96,19 +98,18 @@ export default function CandidateDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Xin chào, {user?.full_name}!</h1>
-        <p className="text-gray-500">{profile?.professional_title || 'Hoàn thiện hồ sơ để tăng cơ hội ứng tuyển'}</p>
-      </div>
+      <PageBanner
+        icon="user"
+        title={`Xin chào, ${user?.full_name || ''}!`}
+        subtitle={profile?.professional_title || 'Hoàn thiện hồ sơ để tăng cơ hội ứng tuyển'}
+      >
+        <Link to="/projects" className="btn-light">Tìm dự án</Link>
+        <Link to="/jobs" className="btn-glass">Tìm việc làm</Link>
+      </PageBanner>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <div key={i} className="card">
-            <p className="text-sm text-gray-500">{s.label}</p>
-            <p className={`text-3xl font-bold mt-1 ${s.color}`}>{s.value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => <StatTile key={s.label} {...s} />)}
       </div>
 
       {/* Công việc dự án đang thực hiện */}
@@ -182,7 +183,7 @@ export default function CandidateDashboard() {
                     <p className="text-xs text-gray-500">{app.sub}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`badge text-xs ${app.type === 'PROJECT' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`badge text-xs ${app.type === 'PROJECT' ? 'bg-primary-50 text-primary-700 border border-primary-200' : 'bg-gray-100 text-gray-600'}`}>
                       {app.type === 'PROJECT' ? 'Dự án' : 'Công ty'}
                     </span>
                     <span className={`badge text-xs ${STATUS_COLORS[app.status] || 'bg-gray-100 text-gray-700'}`}>

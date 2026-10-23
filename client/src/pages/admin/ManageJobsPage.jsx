@@ -1,4 +1,5 @@
 import useEscapeKey from '@/hooks/useEscapeKey';
+import PageBanner from '@/components/common/PageBanner';
 ﻿import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/api/adminApi';
@@ -71,10 +72,9 @@ export default function ManageJobsPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="page-title">Duyệt tin tuyển dụng</h1>
-        <p className="page-subtitle">Kiểm tra nội dung tin trước khi hiển thị công khai cho ứng viên</p>
+        <PageBanner compact icon="clipboard" title="Duyệt tin tuyển dụng" subtitle="Kiểm tra nội dung tin trước khi hiển thị công khai cho ứng viên" />
       </div>
-      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-190px)]">
+      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-215px)]">
         {/* Left: Job List */}
         <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col gap-3 min-h-0">
           {/* Filter tabs */}

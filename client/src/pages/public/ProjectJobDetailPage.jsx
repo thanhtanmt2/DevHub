@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectJobApi } from '@/api/projectJobApi';
 import { candidateApi } from '@/api/candidateApi';
@@ -9,11 +9,8 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import useEscapeKey from '@/hooks/useEscapeKey';
-
-const formatSalary = (amount) => {
-  if (!amount) return 'Thỏa thuận';
-  return `${new Intl.NumberFormat('vi-VN').format(amount)}đ`;
-};
+import ProjectJobDetailView from '@/components/job/ProjectJobDetailView';
+import { deadlineInfo } from '@/utils/jobMeta';
 
 export default function ProjectJobDetailPage() {
   const { id } = useParams();
@@ -60,6 +57,7 @@ export default function ProjectJobDetailPage() {
   const handleOpenApply = () => {
     if (!user) { openLoginModal(); return; }
     if (!isCandidate()) { toast.error('Chỉ tài khoản Ứng viên mới có thể ứng tuyển'); return; }
+    if (deadlineInfo(job.deadline).expired) { toast.error('Vị trí dự án này đã hết hạn nộp hồ sơ'); return; }
     setApplyForm({ cover_letter: '', cv_url: profile?.cv_url || '' });
     setShowApply(true);
   };
@@ -85,116 +83,28 @@ export default function ProjectJobDetailPage() {
     </div>
   );
 
+  const expired = deadlineInfo(job.deadline).expired;
+  let action = null;
+  if (isApplied) {
+    action = (
+      <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+        <Icon name="check" className="w-4 h-4" strokeWidth={2.5} /> Đã ứng tuyển
+      </span>
+    );
+  } else if (job.status === 'OPEN') {
+    action = (
+      <button onClick={handleOpenApply} disabled={expired} className="btn-primary px-7 py-2.5">
+        {expired ? 'Đã hết hạn nộp hồ sơ' : 'Ứng tuyển vị trí này'}
+      </button>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-gray-400 mb-6 flex items-center gap-2">
-        <button onClick={() => navigate('/projects')} className="hover:text-primary-600 transition-colors">
-          Dự án thời vụ
-        </button>
-        <span>/</span>
-        <span className="text-gray-700 font-medium truncate">{job.title}</span>
-      </nav>
-
-      <div className="card mb-6">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-5 pb-5 border-b border-gray-100">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="badge bg-purple-100 text-purple-700 text-xs font-semibold">Dự án thời vụ</span>
-              <span className={`badge text-xs font-semibold ${job.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                {job.status === 'OPEN' ? 'Đang tuyển' : 'Đã đóng'}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{job.title}</h1>
-            <p className="text-sm font-semibold text-primary-700"><Icon name="folder" className="w-4 h-4 mr-1" />Dự án: {job.Project?.name}</p>
-          </div>
-
-          <div className="ml-4 flex-shrink-0">
-            {isApplied ? (
-              <div className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                <Icon name="check" className="w-4 h-4 mr-1" strokeWidth={2.5} />Đã ứng tuyển
-              </div>
-            ) : job.status === 'OPEN' ? (
-              <button onClick={handleOpenApply} className="btn-primary shadow-sm px-6 py-2.5">
-                Ứng tuyển vị trí này
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400">Thù lao</p>
-            <p className="font-semibold text-sm text-green-700 mt-0.5">{formatSalary(job.budget)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Số lượng</p>
-            <p className="font-medium text-sm mt-0.5">{job.quantity || 1} người</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Hạn nộp hồ sơ</p>
-            <p className="font-medium text-sm mt-0.5">
-              {job.deadline ? new Date(job.deadline).toLocaleDateString('vi-VN') : 'Không giới hạn'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Trạng thái</p>
-            <p className="font-medium text-sm mt-0.5">{job.status === 'OPEN' ? 'Đang tuyển' : 'Đã đóng'}</p>
-          </div>
-        </div>
-
-        {/* Skills */}
-        {job.Skills?.length > 0 && (
-          <div className="mb-6">
-            <h3 className="font-semibold text-sm text-gray-900 mb-2 uppercase tracking-wide">Kỹ năng yêu cầu</h3>
-            <div className="flex flex-wrap gap-2">
-              {job.Skills.map((s) => (
-                <span key={s.id} className="badge bg-primary-50 text-primary-700 border border-primary-200">
-                  {s.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        <div className="mb-6">
-          <h3 className="font-semibold text-sm text-gray-900 mb-2 uppercase tracking-wide">Mô tả công việc</h3>
-          <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-            {job.description || 'Chưa có mô tả chi tiết.'}
-          </div>
-        </div>
-
-        {/* Project Info */}
-        {job.Project && (
-          <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-xl">
-            <h3 className="font-semibold text-sm text-gray-900 mb-3 uppercase tracking-wide">Về dự án {job.Project.name}</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs mb-3 bg-white p-3 rounded-lg border border-purple-100">
-              <div>
-                <p className="text-gray-400">Ngân sách dự án</p>
-                <p className="font-semibold text-gray-800 mt-0.5">{formatSalary(job.Project.budget)}</p>
-              </div>
-              <div>
-                <p className="text-gray-400">Trạng thái</p>
-                <p className="font-semibold text-gray-800 mt-0.5">{job.Project.status || 'Đang thực hiện'}</p>
-              </div>
-              {job.Project.expected_end_date && (
-                <div>
-                  <p className="text-gray-400">Dự kiến hoàn thành</p>
-                  <p className="font-medium text-gray-800 mt-0.5">
-                    {new Date(job.Project.expected_end_date).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
-              )}
-            </div>
-            {job.Project.description && (
-              <p className="text-sm text-gray-600 leading-relaxed">{job.Project.description}</p>
-            )}
-          </div>
-        )}
-      </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <Link to="/projects" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-4">
+        <Icon name="chevronRight" className="w-4 h-4 rotate-180" />Quay lại danh sách dự án
+      </Link>
+      <ProjectJobDetailView job={job} action={action} />
 
       {/* Apply Modal */}
       {showApply && (

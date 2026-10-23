@@ -5,15 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import { timeAgo } from '@/utils/timeAgo';
+import PageBanner from '@/components/common/PageBanner';
+import StatTile from '@/components/common/StatTile';
 import { stripEmoji } from '@/utils/stripEmoji';
 
 // Các việc đang chờ Admin: key trong data.todo → nhãn, icon, màu nhấn khi có việc, trang xử lý
 const TODO_CARDS = [
-  { key: 'pending_companies', label: 'Doanh nghiệp chờ xác thực', icon: 'building', tone: 'amber', to: '/admin/companies' },
+  { key: 'pending_companies', label: 'Doanh nghiệp chờ xác thực', icon: 'building', tone: 'blue', to: '/admin/companies' },
   { key: 'pending_jobs', label: 'Tin tuyển dụng chờ duyệt', icon: 'clipboard', tone: 'blue', to: '/admin/jobs' },
-  { key: 'pending_project_applications', label: 'Ứng viên dự án chờ duyệt', icon: 'users', tone: 'purple', to: '/admin/projects' },
-  { key: 'tasks_in_review', label: 'Task chờ nghiệm thu', icon: 'clipboardCheck', tone: 'indigo', to: '/admin/projects' },
-  { key: 'pending_payments', label: 'Thanh toán chờ xử lý', icon: 'card', tone: 'emerald', to: '/admin/payments' },
+  { key: 'pending_project_applications', label: 'Ứng viên dự án chờ duyệt', icon: 'users', tone: 'blue', to: '/admin/projects' },
+  { key: 'tasks_in_review', label: 'Task chờ nghiệm thu', icon: 'clipboardCheck', tone: 'blue', to: '/admin/projects' },
+  { key: 'pending_payments', label: 'Thanh toán chờ xử lý', icon: 'card', tone: 'blue', to: '/admin/payments' },
   { key: 'overdue_tasks', label: 'Task quá hạn', icon: 'alert', tone: 'red', to: '/admin/projects' },
 ];
 
@@ -21,8 +23,8 @@ const TODO_CARDS = [
 const ACTIVE_STYLE = {
   amber: { num: 'text-amber-600', border: 'border-amber-200' },
   blue: { num: 'text-blue-600', border: 'border-blue-200' },
-  purple: { num: 'text-purple-600', border: 'border-purple-200' },
-  indigo: { num: 'text-indigo-600', border: 'border-indigo-200' },
+  purple: { num: 'text-primary-600', border: 'border-primary-200' },
+  indigo: { num: 'text-primary-600', border: 'border-primary-200' },
   emerald: { num: 'text-emerald-600', border: 'border-emerald-200' },
   red: { num: 'text-red-600', border: 'border-red-200' },
 };
@@ -97,21 +99,22 @@ export default function AdminDashboard() {
 
   const kpis = [
     { label: 'Tổng người dùng', value: stats?.total_users ?? '—', icon: 'users', tone: 'blue' },
-    { label: 'Tin tuyển dụng', value: stats?.total_jobs ?? '—', icon: 'briefcase', tone: 'purple' },
-    { label: 'Dự án nội bộ', value: stats?.total_projects ?? '—', icon: 'folder', tone: 'green' },
+    { label: 'Tin tuyển dụng', value: stats?.total_jobs ?? '—', icon: 'briefcase', tone: 'violet' },
+    { label: 'Dự án nội bộ', value: stats?.total_projects ?? '—', icon: 'folder', tone: 'emerald' },
     { label: 'Đã thanh toán', value: `${new Intl.NumberFormat('vi-VN').format(stats?.total_payout || 0)}đ`, icon: 'cash', tone: 'amber' },
   ];
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="page-title">Xin chào, {user?.full_name || 'Admin'}</h1>
-        <p className="page-subtitle">
-          {totalTodo > 0
-            ? `Có ${totalTodo} việc đang chờ bạn xử lý.`
-            : 'Hiện không có việc nào đang chờ — hệ thống đang vận hành ổn định.'}
-        </p>
-      </div>
+      <PageBanner
+        icon="home"
+        title={`Xin chào, ${user?.full_name || 'Admin'}`}
+        subtitle={totalTodo > 0
+          ? `Có ${totalTodo} việc đang chờ bạn xử lý.`
+          : 'Hiện không có việc nào đang chờ — hệ thống đang vận hành ổn định.'}
+      >
+        <Link to="/admin/stats" className="btn-glass">Thống kê & báo cáo</Link>
+      </PageBanner>
 
       {/* Việc cần xử lý */}
       <section>
@@ -142,7 +145,7 @@ export default function AdminDashboard() {
                     to={`/admin/workspaces/${t.workspace_id}?task=${t.id}`}
                     className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors"
                   >
-                    <IconBadge name="clipboardCheck" tone="indigo" size="sm" />
+                    <IconBadge name="clipboardCheck" tone="blue" size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-900 truncate">{t.title}</p>
                       <p className="text-xs text-slate-500 truncate">{t.Workspace?.name || 'Workspace'}</p>
@@ -189,15 +192,7 @@ export default function AdminDashboard() {
           <Link to="/admin/stats" className="text-sm text-primary-600 hover:underline">Thống kê chi tiết →</Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {kpis.map((k) => (
-            <div key={k.label} className="card !p-4 flex items-center gap-3">
-              <IconBadge name={k.icon} tone={k.tone} size="md" shape="square" />
-              <div className="min-w-0">
-                <p className="text-xl font-bold text-slate-900 truncate">{k.value}</p>
-                <p className="text-xs text-slate-500 truncate">{k.label}</p>
-              </div>
-            </div>
-          ))}
+          {kpis.map((k) => <StatTile key={k.label} {...k} />)}
         </div>
       </section>
     </div>

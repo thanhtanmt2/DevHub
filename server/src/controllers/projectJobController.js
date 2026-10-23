@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const { sequelize } = require('../models');
 const { 
   Project, ProjectJob, ProjectJobSkill, Skill, 
   ProjectApplication, CandidateProfile, User, CandidateSkill,
@@ -8,18 +9,35 @@ const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
 const { logActivity } = require('../utils/activityLogger');
 
+// Các trường vị trí dự án mà Admin được nhập
+const PROJECT_JOB_FIELDS = [
+  'title', 'description', 'requirements', 'benefits', 'budget', 'quantity', 'deadline',
+  'experience',
+];
+const pickProjectJobFields = (body) => {
+  const out = {};
+  for (const f of PROJECT_JOB_FIELDS) {
+    if (body[f] === undefined) continue;
+    const blank = typeof body[f] === 'string' && body[f].trim() === '';
+    out[f] = blank && f !== 'title' ? null : body[f];
+  }
+  return out;
+};
+
 // GET /api/project-jobs — Public listing of project jobs
 exports.getProjectJobs = async (req, res, next) => {
   try {
-    const { keyword, skill_id, page = 1, limit = 10 } = req.query;
+    const { keyword, skill_id, experience, sort = 'newest', page = 1, limit = 10 } = req.query;
     const where = { status: 'OPEN' };
 
     if (keyword) {
       where[Op.or] = [
         { title: { [Op.iLike]: `%${keyword}%` } },
         { description: { [Op.iLike]: `%${keyword}%` } },
+        { requirements: { [Op.iLike]: `%${keyword}%` } },
       ];
     }
+    if (experience) where.experience = experience;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const include = [
@@ -44,7 +62,13 @@ exports.getProjectJobs = async (req, res, next) => {
       include,
       limit: parseInt(limit),
       offset,
-      order: [['created_at', 'DESC']],
+      // Vị trí còn hạn lên trước, đã hết hạn nộp xuống cuối
+      order: [
+        [sequelize.literal('CASE WHEN "ProjectJob"."deadline" IS NOT NULL AND "ProjectJob"."deadline" < NOW() THEN 1 ELSE 0 END'), 'ASC'],
+        ...(sort === 'deadline' ? [[sequelize.literal('"ProjectJob"."deadline" ASC NULLS LAST')]]
+          : sort === 'budget' ? [[sequelize.literal('"ProjectJob"."budget" DESC NULLS LAST')]] : []),
+        ['created_at', 'DESC'],
+      ],
       distinct: true,
     });
 
@@ -89,6 +113,9 @@ exports.applyProjectJob = async (req, res, next) => {
     const projectJob = await ProjectJob.findByPk(req.params.id);
     if (!projectJob || projectJob.status !== 'OPEN') {
       throw new AppError('Vị trí dự án này không khả dụng hoặc đã đóng', 400);
+    }
+    if (projectJob.deadline && new Date(projectJob.deadline) < new Date()) {
+      throw new AppError('Vị trí dự án này đã hết hạn nộp hồ sơ', 400);
     }
 
     const candidateProfile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
@@ -147,17 +174,16 @@ exports.getMyProjectApplications = async (req, res, next) => {
 // POST /api/admin/projects/:projectId/jobs — Admin adds a job position to project
 exports.adminCreateProjectJob = async (req, res, next) => {
   try {
-    const { title, description, budget, quantity, deadline, skill_ids } = req.body;
+    const { skill_ids } = req.body;
+    const fields = pickProjectJobFields(req.body);
+    if (fields.deadline && new Date(fields.deadline) < new Date()) throw new AppError('Hạn nộp hồ sơ phải sau thời điểm hiện tại', 400);
     const project = await Project.findByPk(req.params.projectId);
     if (!project) throw new AppError('Project not found', 404);
 
     const projectJob = await ProjectJob.create({
+      ...fields,
       project_id: project.id,
-      title,
-      description,
-      budget,
-      quantity: quantity || 1,
-      deadline,
+      quantity: fields.quantity || 1,
       status: 'OPEN'
     });
 
@@ -167,6 +193,30 @@ exports.adminCreateProjectJob = async (req, res, next) => {
     }
 
     res.status(201).json({ success: true, data: projectJob });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/admin/project-jobs/:id — Admin sửa vị trí (kể cả gia hạn / đóng vị trí)
+exports.adminUpdateProjectJob = async (req, res, next) => {
+  try {
+    const job = await ProjectJob.findByPk(req.params.id);
+    if (!job) throw new AppError('Không tìm thấy vị trí dự án', 404);
+    const { skill_ids, status } = req.body;
+    const fields = pickProjectJobFields(req.body);
+    const oldDeadline = job.deadline ? job.deadline.toISOString() : '';
+    if (fields.deadline !== undefined && String(fields.deadline ? new Date(fields.deadline).toISOString() : '') !== oldDeadline
+        && fields.deadline && new Date(fields.deadline) < new Date()) {
+      throw new AppError('Hạn nộp hồ sơ phải sau thời điểm hiện tại', 400);
+    }
+    if (status && ['OPEN', 'CLOSED'].includes(status)) fields.status = status;
+    await job.update(fields);
+    if (Array.isArray(skill_ids)) {
+      await ProjectJobSkill.destroy({ where: { project_job_id: job.id } });
+      if (skill_ids.length > 0) {
+        await ProjectJobSkill.bulkCreate(skill_ids.map((skill_id) => ({ project_job_id: job.id, skill_id })), { ignoreDuplicates: true });
+      }
+    }
+    res.json({ success: true, data: job, message: 'Đã cập nhật vị trí dự án' });
   } catch (error) { next(error); }
 };
 

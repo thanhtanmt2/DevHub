@@ -7,6 +7,10 @@ import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import useEscapeKey from '@/hooks/useEscapeKey';
+import PageBanner from '@/components/common/PageBanner';
+import {
+  PROVINCES, EXPERIENCE_LABELS, LEVEL_LABELS, shortLocation,
+} from '@/utils/jobMeta';
 
 const WORK_TYPES = ['FULL_TIME', 'PART_TIME', 'REMOTE', 'FREELANCE'];
 const WORK_TYPE_LABELS = { FULL_TIME: 'Full-time', PART_TIME: 'Part-time', REMOTE: 'Remote', FREELANCE: 'Freelance' };
@@ -29,8 +33,14 @@ const STATUS_COLORS = {
 const INITIAL_FORM = {
   title: '',
   description: '',
+  requirements: '',
+  benefits: '',
   work_type: 'FULL_TIME',
+  experience: '',
+  position_level: '',
   location: '',
+  work_address: '',
+  working_time: '',
   salary_min: '',
   salary_max: '',
   quantity: 1,
@@ -100,8 +110,14 @@ export default function ManageJobsPage() {
     setFormData({
       title: job.title,
       description: job.description,
+      requirements: job.requirements || '',
+      benefits: job.benefits || '',
       work_type: job.work_type,
+      experience: job.experience || '',
+      position_level: job.position_level || '',
       location: job.location || '',
+      work_address: job.work_address || '',
+      working_time: job.working_time || '',
       salary_min: job.salary_min || '',
       salary_max: job.salary_max || '',
       quantity: job.quantity,
@@ -124,6 +140,11 @@ export default function ManageJobsPage() {
     if (!formData.title.trim()) return toast.error('Vui lòng nhập tiêu đề công việc');
     if (!formData.description.trim()) return toast.error('Vui lòng nhập mô tả công việc');
     if (!formData.work_type) return toast.error('Vui lòng chọn hình thức làm việc');
+    if (!formData.location) return toast.error('Vui lòng chọn tỉnh/thành phố làm việc');
+    const oldDeadline = editingId ? jobs.find((j) => j.id === editingId)?.deadline?.slice(0, 16) : '';
+    if (formData.deadline && formData.deadline !== oldDeadline && new Date(formData.deadline) < new Date()) {
+      return toast.error('Hạn nộp hồ sơ phải sau thời điểm hiện tại');
+    }
     if (formData.salary_min && formData.salary_max &&
         parseFloat(formData.salary_min) > parseFloat(formData.salary_max)) {
       return toast.error('Lương tối thiểu không được lớn hơn lương tối đa');
@@ -157,19 +178,15 @@ export default function ManageJobsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl border shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý tin tuyển dụng</h1>
-          <p className="text-gray-500 mt-1">Đăng tin và quản lý các cơ hội việc làm của doanh nghiệp</p>
-        </div>
-        <button onClick={openCreateModal} className="btn-primary">
+      <PageBanner compact icon="briefcase" title="Quản lý tin tuyển dụng" subtitle="Đăng tin và quản lý các cơ hội việc làm của doanh nghiệp">
+        <button onClick={openCreateModal} className="btn-light">
           + Đăng tin mới
         </button>
-      </div>
+      </PageBanner>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-gradient-to-r from-slate-50 to-primary-50/60 border-b">
             <tr>
               <th className="px-4 py-3 font-medium text-gray-700">Tiêu đề / Chức danh</th>
               <th className="px-4 py-3 font-medium text-gray-700">Hình thức</th>
@@ -191,6 +208,7 @@ export default function ManageJobsPage() {
                 <tr key={job.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-bold text-gray-900">{job.title}</div>
+                    {job.location && <div className="text-xs text-gray-500 mt-0.5">{shortLocation(job.location)}</div>}
                     <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-1">
                       {job.Skills?.map(s => (
                         <span key={s.id} className="bg-gray-100 border px-1.5 py-0.5 rounded">{s.name}</span>
@@ -261,11 +279,44 @@ export default function ManageJobsPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Địa điểm làm việc</label>
-                <input type="text" className="input-field" placeholder="Ví dụ: Quận 1, TP. HCM (Để trống nếu Remote)"
-                  value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Cấp bậc</label>
+                  <select className="input-field" value={formData.position_level}
+                    onChange={e => setFormData({ ...formData, position_level: e.target.value })}>
+                    <option value="">-- Chọn cấp bậc --</option>
+                    {Object.entries(LEVEL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Kinh nghiệm</label>
+                  <select className="input-field" value={formData.experience}
+                    onChange={e => setFormData({ ...formData, experience: e.target.value })}>
+                    <option value="">-- Chọn yêu cầu kinh nghiệm --</option>
+                    {Object.entries(EXPERIENCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Tỉnh / Thành phố <span className="text-red-500">*</span></label>
+                  <select className="input-field" value={formData.location}
+                    onChange={e => setFormData({ ...formData, location: e.target.value })}>
+                    <option value="">-- Chọn tỉnh/thành phố --</option>
+                    <option value="Toàn quốc">Toàn quốc / Remote</option>
+                    {formData.location && formData.location !== 'Toàn quốc' && !PROVINCES.includes(formData.location) && (
+                      <option value={formData.location}>{formData.location}</option>
+                    )}
+                    {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Địa chỉ làm việc cụ thể</label>
+                  <input type="text" className="input-field" placeholder="Ví dụ: Tòa nhà FPT, Quận 9"
+                    value={formData.work_address} onChange={e => setFormData({ ...formData, work_address: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -283,11 +334,19 @@ export default function ManageJobsPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Hạn chót nộp hồ sơ</label>
-                <input type="datetime-local" className="input-field"
-                  value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Hạn chót nộp hồ sơ</label>
+                  <input type="datetime-local" className="input-field"
+                    value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Thời gian làm việc</label>
+                  <input type="text" className="input-field" placeholder="Ví dụ: Thứ 2 – Thứ 6 (8h30 – 17h30)"
+                    value={formData.working_time} onChange={e => setFormData({ ...formData, working_time: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div>
@@ -309,9 +368,23 @@ export default function ManageJobsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Mô tả công việc & Yêu cầu <span className="text-red-500">*</span></label>
-                <textarea required rows="8" className="input-field font-mono text-sm" placeholder="Nhập mô tả chi tiết công việc..."
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Mô tả công việc <span className="text-red-500">*</span></label>
+                <textarea required rows="6" className="input-field text-sm" placeholder={'Các đầu việc chính, ví dụ:\n- Phát triển giao diện web với ReactJS\n- Phối hợp với backend để tích hợp API'}
                   value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Yêu cầu ứng viên</label>
+                <textarea rows="5" className="input-field text-sm" placeholder={'Ví dụ:\n- Có ít nhất 1 năm kinh nghiệm ReactJS\n- Biết Git, làm việc nhóm tốt'}
+                  value={formData.requirements} onChange={e => setFormData({ ...formData, requirements: e.target.value })}
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Quyền lợi được hưởng</label>
+                <textarea rows="5" className="input-field text-sm" placeholder={'Ví dụ:\n- Thưởng tháng 13, thưởng dự án\n- Bảo hiểm đầy đủ, du lịch hằng năm'}
+                  value={formData.benefits} onChange={e => setFormData({ ...formData, benefits: e.target.value })}
                 ></textarea>
               </div>
 

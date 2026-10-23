@@ -6,6 +6,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SafeImage from '@/components/common/SafeImage';
 import Icon from '@/components/common/Icon';
 import useEscapeKey from '@/hooks/useEscapeKey';
+import PageBanner from '@/components/common/PageBanner';
 
 const VERIFY_STATUS = {
   PENDING:  { text: 'Chờ xác thực', cls: 'bg-yellow-100 text-yellow-700' },
@@ -49,10 +50,9 @@ export default function ManageCompaniesPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="page-title">Xác thực doanh nghiệp</h1>
-        <p className="page-subtitle">Duyệt hồ sơ và xác thực các doanh nghiệp đăng ký tuyển dụng trên DevHub</p>
+        <PageBanner compact icon="verified" title="Xác thực doanh nghiệp" subtitle="Duyệt hồ sơ và xác thực các doanh nghiệp đăng ký tuyển dụng trên DevHub" />
       </div>
-      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-190px)]">
+      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-215px)]">
         {/* Left: Company list */}
         <div className="w-full lg:w-[360px] flex-shrink-0 flex flex-col gap-3 min-h-0">
           {/* Tabs */}

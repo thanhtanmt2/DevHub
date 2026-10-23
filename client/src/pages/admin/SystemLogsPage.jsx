@@ -5,6 +5,7 @@ import { adminApi } from '../../api/adminApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Icon from '@/components/common/Icon';
 import { stripEmoji } from '@/utils/stripEmoji';
+import PageBanner from '@/components/common/PageBanner';
 
 const ACTION_LABELS = {
   // Auth
@@ -13,9 +14,9 @@ const ACTION_LABELS = {
   USER_LOGOUT: { text: 'Đăng xuất', color: 'bg-gray-100 text-gray-700' },
   
   // Task
-  TASK_CREATED: { text: 'Tạo Task', color: 'bg-indigo-100 text-indigo-700' },
-  TASK_UPDATED: { text: 'Cập nhật Task', color: 'bg-indigo-50 text-indigo-600' },
-  TASK_STATUS_CHANGED: { text: 'Đổi TT Task', color: 'bg-purple-100 text-purple-700' },
+  TASK_CREATED: { text: 'Tạo Task', color: 'bg-primary-100 text-primary-700' },
+  TASK_UPDATED: { text: 'Cập nhật Task', color: 'bg-primary-50 text-primary-600' },
+  TASK_STATUS_CHANGED: { text: 'Đổi TT Task', color: 'bg-sky-100 text-sky-700' },
   TASK_DELETED: { text: 'Xóa Task', color: 'bg-red-100 text-red-700' },
   TASK_APPROVED: { text: 'Duyệt Task', color: 'bg-emerald-100 text-emerald-700' },
   TASK_REVISION_REQUESTED: { text: 'Yêu cầu sửa', color: 'bg-orange-100 text-orange-700' },
@@ -29,16 +30,16 @@ const ACTION_LABELS = {
   // Project
   PROJECT_CREATED: { text: 'Tạo Dự án', color: 'bg-blue-100 text-blue-700' },
   PROJECT_UPDATED: { text: 'Cập nhật Dự án', color: 'bg-blue-50 text-blue-600' },
-  PROJECT_MANAGER_ASSIGNED: { text: 'Phân công PM', color: 'bg-fuchsia-100 text-fuchsia-700' },
+  PROJECT_MANAGER_ASSIGNED: { text: 'Phân công PM', color: 'bg-sky-100 text-sky-700' },
   
   // Application
-  APPLICATION_SUBMITTED: { text: 'Nộp đơn', color: 'bg-cyan-100 text-cyan-700' },
-  APPLICATION_STATUS_CHANGED: { text: 'Cập nhật đơn', color: 'bg-cyan-50 text-cyan-600' },
-  INTERVIEW_SCHEDULED: { text: 'Xếp lịch PV', color: 'bg-violet-100 text-violet-700' },
+  APPLICATION_SUBMITTED: { text: 'Nộp đơn', color: 'bg-sky-100 text-sky-700' },
+  APPLICATION_STATUS_CHANGED: { text: 'Cập nhật đơn', color: 'bg-sky-50 text-sky-600' },
+  INTERVIEW_SCHEDULED: { text: 'Xếp lịch PV', color: 'bg-sky-100 text-sky-700' },
   
   // Payment
-  PAYMENT_CREATED: { text: 'Tạo Payment', color: 'bg-teal-100 text-teal-700' },
-  PAYMENT_PROCESSED: { text: 'Xử lý Payment', color: 'bg-teal-200 text-teal-800' },
+  PAYMENT_CREATED: { text: 'Tạo Payment', color: 'bg-primary-100 text-primary-700' },
+  PAYMENT_PROCESSED: { text: 'Xử lý Payment', color: 'bg-primary-200 text-primary-800' },
   
   // Eval
   MEMBER_EVALUATED: { text: 'Đánh giá', color: 'bg-yellow-100 text-yellow-700' }
@@ -193,10 +194,9 @@ export default function SystemLogsPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="page-title">Nhật ký hệ thống</h1>
-        <p className="page-subtitle">Lịch sử thao tác của người dùng trên toàn hệ thống</p>
+        <PageBanner compact icon="history" title="Nhật ký hệ thống" subtitle="Lịch sử thao tác của người dùng trên toàn hệ thống" />
       </div>
-      <div className="bg-white rounded-2xl shadow-soft border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-190px)] min-h-[420px]">
+      <div className="bg-white rounded-2xl shadow-soft border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-215px)] min-h-[420px]">
         {/* Toolbar */}
         <div className="p-4 border-b border-gray-100 flex flex-col gap-3 bg-gray-50/50">
           <div className="flex gap-3 flex-wrap">

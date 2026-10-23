@@ -148,7 +148,7 @@ export default function CompanyPage() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Header - Cover & Logo */}
-        <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-700 relative"></div>
+        <div className="h-32 bg-gradient-to-r from-primary-500 to-primary-400 relative"></div>
         <div className="px-6 sm:px-10 pb-8 relative">
           
           {/* Logo Upload */}

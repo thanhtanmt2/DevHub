@@ -1,5 +1,6 @@
 import Icon, { IconBadge } from '@/components/common/Icon';
 import { useConfirm } from '@/components/common/ConfirmDialog';
+import Avatar from '@/components/common/Avatar';
 ﻿import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
@@ -11,7 +12,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const SKILL_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'];
 const LEVEL_LABELS = { BEGINNER: 'Mới bắt đầu', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên gia' };
-const LEVEL_COLORS = { BEGINNER: 'bg-gray-100 text-gray-700', INTERMEDIATE: 'bg-blue-100 text-blue-700', ADVANCED: 'bg-purple-100 text-purple-700', EXPERT: 'bg-green-100 text-green-700' };
+const LEVEL_COLORS = { BEGINNER: 'bg-gray-100 text-gray-700', INTERMEDIATE: 'bg-blue-100 text-blue-700', ADVANCED: 'bg-sky-100 text-sky-700', EXPERT: 'bg-green-100 text-green-700' };
 
 // trang hiển thị thông tin cá nhân của ứng viên 
 export default function ProfilePage() {
@@ -63,30 +64,32 @@ export default function ProfilePage() {
   return (
     <div>
       {/* Header */}
-      <div className="card mb-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center text-2xl font-bold text-primary-700">
-              {user?.full_name?.[0]?.toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{user?.full_name}</h1>
-              <p className="text-gray-500 text-sm">{profile?.professional_title || 'Chưa cập nhật chức danh'}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="badge bg-primary-100 text-primary-700">Điểm năng lực: {parseFloat(profile?.competency_score || 0).toFixed(1)}/10</span>
-              </div>
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white p-6 mb-6 shadow-lift">
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-5">
+          <Avatar name={user?.full_name} src={profile?.avatar_url} size="xl" className="ring-4 ring-white/40" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight">{user?.full_name}</h1>
+            <p className="text-white">{profile?.professional_title || 'Chưa cập nhật chức danh'}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-primary-700 text-sm font-bold shadow">
+                <Icon name="star" className="w-4 h-4" />Điểm năng lực: {parseFloat(profile?.competency_score || 0).toFixed(1)}/10
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-sm font-medium">
+                <Icon name="skills" className="w-4 h-4" />{mySkills.length} kỹ năng
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-6">
+      <div className="mb-6 overflow-x-auto">
+        <nav className="flex gap-2 min-w-max">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}>
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab.id
+                ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-600/25'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900'}`}>
               {tab.label}
             </button>
           ))}

@@ -44,15 +44,25 @@ export default function DashboardShell({ title, items }) {
                   to={item.to}
                   end={item.end}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                    `group flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                       isActive
-                        ? 'bg-primary-50 text-primary-700 shadow-[inset_3px_0_0_0_theme(colors.primary.600)]'
+                        ? 'bg-gradient-to-r from-primary-50 to-sky-50 text-primary-700 font-semibold'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`
                   }
                 >
-                  <Icon name={item.icon} />
-                  {item.label}
+                  {({ isActive }) => (
+                    <>
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-md shadow-primary-500/30'
+                          : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-primary-600'
+                      }`}>
+                        <Icon name={item.icon} className="w-4 h-4" />
+                      </span>
+                      {item.label}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </nav>

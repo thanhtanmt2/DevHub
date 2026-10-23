@@ -4,6 +4,7 @@ import { adminApi } from '@/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
+import PageBanner from '@/components/common/PageBanner';
 
 const formatCurrency = (n) =>
   n ? `${new Intl.NumberFormat('vi-VN').format(n)}đ` : '0đ';
@@ -25,7 +26,7 @@ function StatCard({ label, value, icon, color = 'primary', sub }) {
     primary: 'bg-primary-50 border-primary-100 text-primary-700',
     emerald: 'bg-emerald-50 border-emerald-100 text-emerald-700',
     amber: 'bg-amber-50 border-amber-100 text-amber-700',
-    purple: 'bg-purple-50 border-purple-100 text-purple-700',
+    purple: 'bg-primary-50 border-primary-100 text-primary-700',
     blue: 'bg-blue-50 border-blue-100 text-blue-700',
     red: 'bg-red-50 border-red-100 text-red-700',
   };
@@ -81,12 +82,7 @@ export default function StatsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Thống kê & Báo cáo</h1>
-          <p className="text-sm text-gray-500 mt-1">Tổng quan hệ thống và xuất báo cáo Excel</p>
-        </div>
-      </div>
+      <PageBanner compact icon="chart" title="Thống kê & Báo cáo" subtitle="Tổng quan hệ thống và xuất báo cáo Excel" />
 
       {/* Stats grid */}
       <div>
@@ -155,7 +151,7 @@ export default function StatsPage() {
           </div>
 
           {/* Evaluations report */}
-          <div className="card border-2 border-purple-100 hover:border-purple-300 transition-colors">
+          <div className="card border-2 border-primary-100 hover:border-primary-300 transition-colors">
             <div className="flex items-center gap-3 mb-3">
               <IconBadge name="star" tone="purple" shape="square" />
               <div>
@@ -171,7 +167,7 @@ export default function StatsPage() {
             <button
               onClick={() => handleExport('evaluations')}
               disabled={!!exporting}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-2 bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
+              className="btn-primary w-full flex items-center justify-center gap-2 py-2"
             >
               {exporting === 'evaluations' ? (
                 <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Đang xuất...</>

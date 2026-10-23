@@ -5,9 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Icon from '@/components/common/Icon';
+import PageBanner from '@/components/common/PageBanner';
+import Avatar from '@/components/common/Avatar';
 
 const ROLE_LABELS = { CANDIDATE: 'Ứng viên', EMPLOYER: 'Nhà tuyển dụng', ADMIN: 'Quản trị viên' };
-const ROLE_COLORS = { CANDIDATE: 'bg-blue-100 text-blue-700', EMPLOYER: 'bg-purple-100 text-purple-700', ADMIN: 'bg-red-100 text-red-700' };
+const ROLE_COLORS = { CANDIDATE: 'bg-blue-100 text-blue-700', EMPLOYER: 'bg-sky-100 text-sky-700', ADMIN: 'bg-red-100 text-red-700' };
 
 export default function ManageUsersPage() {
   const qc = useQueryClient();
@@ -47,8 +49,8 @@ export default function ManageUsersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Quản lý Người dùng <span className="text-gray-400 text-lg font-normal">({allUsers.length})</span></h1>
+      <div className="mb-5">
+        <PageBanner compact icon="users" title={`Quản lý người dùng (${allUsers.length})`} subtitle="Phân quyền, khóa/mở khóa và kích hoạt tài khoản" />
       </div>
 
       {/* Bộ lọc */}
@@ -70,7 +72,7 @@ export default function ManageUsersPage() {
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 border-b text-gray-500 uppercase text-xs">
+          <thead className="bg-gradient-to-r from-slate-50 to-primary-50/60 border-b text-slate-500 uppercase text-xs">
             <tr>
               <th className="p-3">Họ tên</th>
               <th className="p-3">Email</th>
@@ -88,7 +90,9 @@ export default function ManageUsersPage() {
               const userRole = u.Roles?.[0]?.name || '';
               return (
                 <tr key={u.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="p-3 font-medium">{u.full_name}</td>
+                  <td className="p-3 font-medium">
+                    <span className="inline-flex items-center gap-2.5"><Avatar name={u.full_name} size="sm" />{u.full_name}</span>
+                  </td>
                   <td className="p-3 text-gray-500">{u.email}</td>
 
                   {/* Vai trò + Phân quyền */}
@@ -117,7 +121,7 @@ export default function ManageUsersPage() {
                         {!isSelf && (
                           <button
                             onClick={() => setAssigningRole({ userId: u.id })}
-                            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                            className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
                             title="Đổi vai trò"
                           ><Icon name="pencil" className="w-4 h-4" /></button>
                         )}
@@ -140,7 +144,7 @@ export default function ManageUsersPage() {
                       <button
                         disabled={activateMutation.isPending}
                         onClick={() => activateMutation.mutate(u.id)}
-                        className="text-xs text-indigo-600 hover:underline font-medium"
+                        className="text-xs text-primary-600 hover:underline font-medium"
                       >
                         Kích hoạt
                       </button>

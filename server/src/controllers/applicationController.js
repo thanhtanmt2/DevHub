@@ -12,6 +12,7 @@ exports.apply = async (req, res, next) => {
     const job = await JobPost.findByPk(job_post_id);
     if (!job) throw new AppError('Job post not found', 404);
     if (job.status !== 'OPEN') throw new AppError('This job post is no longer accepting applications', 400);
+    if (job.deadline && new Date(job.deadline) < new Date()) throw new AppError('Tin tuyển dụng này đã hết hạn nộp hồ sơ', 400);
 
     // Check duplicate
     const existing = await Application.findOne({ where: { candidate_profile_id: profile.id, job_post_id } });

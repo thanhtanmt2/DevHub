@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { jobApi } from '@/api/jobApi';
 import { companyApi } from '@/api/companyApi';
+import PageBanner from '@/components/common/PageBanner';
+import StatTile from '@/components/common/StatTile';
+import CompanyLogo from '@/components/common/CompanyLogo';
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -23,10 +26,14 @@ export default function EmployerDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Employer Dashboard</h1>
-        <p className="text-gray-500">Chào mừng, {user?.full_name}</p>
-      </div>
+      <PageBanner
+        icon="building"
+        title={company?.name || 'Bảng điều khiển nhà tuyển dụng'}
+        subtitle={`Chào mừng, ${user?.full_name || ''}`}
+      >
+        <Link to="/employer/jobs" className="btn-light">Đăng tin tuyển dụng</Link>
+        <Link to="/employer/candidates" className="btn-glass">Tìm ứng viên</Link>
+      </PageBanner>
 
       {!company ? (
         <div className="card border-l-4 border-primary-500 bg-primary-50">
@@ -37,9 +44,7 @@ export default function EmployerDashboard() {
       ) : (
         <div className="card">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-lg font-bold text-gray-600">
-              {company.name?.[0]}
-            </div>
+            <CompanyLogo company={company} className="w-12 h-12 text-lg" />
             <div>
               <p className="font-semibold">{company.name}</p>
               <span className={`badge text-xs ${
@@ -53,10 +58,10 @@ export default function EmployerDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card"><p className="text-gray-500 text-sm">Tổng tin đăng</p><p className="text-3xl font-bold text-primary-600 mt-1">{jobs.length}</p></div>
-        <div className="card"><p className="text-gray-500 text-sm">Đang tuyển</p><p className="text-3xl font-bold text-green-600 mt-1">{openJobs}</p></div>
-        <div className="card"><p className="text-gray-500 text-sm">Đã đóng</p><p className="text-3xl font-bold text-gray-500 mt-1">{jobs.length - openJobs}</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatTile label="Tổng tin đăng" value={jobs.length} icon="clipboard" tone="blue" />
+        <StatTile label="Đang tuyển" value={openJobs} icon="briefcase" tone="emerald" />
+        <StatTile label="Đã đóng" value={jobs.length - openJobs} icon="lock" tone="rose" />
       </div>
 
       <div className="card">

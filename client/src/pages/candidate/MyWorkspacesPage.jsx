@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon, { IconBadge } from '@/components/common/Icon';
+import PageBanner from '@/components/common/PageBanner';
 
 const TASK_STATUS = {
   TODO:        { label: 'Cần làm',    color: 'bg-gray-100 text-gray-600' },
@@ -19,7 +20,7 @@ const PRIORITY = {
 };
 const PROJECT_STATUS = {
   PLANNING:    { label: 'Lên kế hoạch',   color: 'bg-gray-100 text-gray-600' },
-  RECRUITING:  { label: 'Đang tuyển',     color: 'bg-purple-100 text-purple-700' },
+  RECRUITING:  { label: 'Đang tuyển',     color: 'bg-sky-100 text-sky-700' },
   IN_PROGRESS: { label: 'Đang thực hiện', color: 'bg-blue-100 text-blue-700' },
   COMPLETED:   { label: 'Hoàn thành',     color: 'bg-green-100 text-green-700' },
   CANCELLED:   { label: 'Đã hủy',         color: 'bg-red-100 text-red-600' },
@@ -33,6 +34,16 @@ const daysLeft = (deadline) => {
   const end = new Date(deadline);
   end.setHours(23, 59, 59, 999);
   return Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24)) - 1;
+};
+
+// Viền trên của ô tổng quan theo màu số liệu
+const SUMMARY_BORDER = {
+  'text-gray-700': 'border-t-slate-400',
+  'text-blue-600': 'border-t-blue-500',
+  'text-amber-600': 'border-t-amber-400',
+  'text-orange-600': 'border-t-orange-400',
+  'text-red-600': 'border-t-red-500',
+  'text-green-600': 'border-t-emerald-500',
 };
 
 function DeadlineText({ task }) {
@@ -85,10 +96,7 @@ export default function MyWorkspacesPage() {
   if (!memberships.length) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Dự án của tôi</h1>
-          <p className="text-gray-500 text-sm">Theo dõi các dự án bạn tham gia và công việc được giao</p>
-        </div>
+        <PageBanner compact icon="workspace" title="Dự án của tôi" subtitle="Theo dõi các dự án bạn tham gia và công việc được giao" />
         <div className="card text-center py-14">
           <IconBadge name="workspace" size="lg" className="mx-auto mb-2" />
           <p className="text-gray-600 font-medium">Bạn chưa tham gia dự án nào</p>
@@ -101,15 +109,12 @@ export default function MyWorkspacesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dự án của tôi</h1>
-        <p className="text-gray-500 text-sm">Theo dõi các dự án bạn tham gia và công việc được giao</p>
-      </div>
+      <PageBanner compact icon="workspace" title="Dự án của tôi" subtitle="Theo dõi các dự án bạn tham gia và công việc được giao" />
 
       {/* Tổng quan công việc của tôi */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
         {summary.map(s => (
-          <div key={s.label} className="card py-3">
+          <div key={s.label} className={`card py-3 border-t-4 ${SUMMARY_BORDER[s.color] || 'border-t-gray-300'}`}>
             <p className="text-xs text-gray-500">{s.label}</p>
             <p className={`text-2xl font-bold mt-0.5 ${s.color}`}>{s.value}</p>
           </div>
@@ -209,7 +214,8 @@ function WorkspaceCard({ membership: m, ended = false }) {
   const ps = PROJECT_STATUS[project?.status];
   const mine = m.my_tasks || {};
   return (
-    <div className={`card flex flex-col gap-3 ${ended ? 'opacity-70' : ''}`}>
+    <div className={`card relative overflow-hidden flex flex-col gap-3 hover:shadow-lift transition-shadow ${ended ? 'opacity-70' : ''}`}>
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500 to-primary-700" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-semibold text-gray-900 truncate">{project?.name || m.Workspace?.name}</h3>

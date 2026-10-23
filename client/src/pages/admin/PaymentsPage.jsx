@@ -6,6 +6,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Icon from '@/components/common/Icon';
 import useEscapeKey from '@/hooks/useEscapeKey';
+import PageBanner from '@/components/common/PageBanner';
 
 const STATUS_LABELS = { PENDING: 'Chờ xử lý', PROCESSING: 'Đang xử lý', PAID: 'Đã thanh toán', FAILED: 'Thất bại' };
 const STATUS_COLORS = {
@@ -74,15 +75,11 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý Thanh toán thù lao</h1>
-          <p className="text-sm text-gray-500 mt-1">Quản lý và xử lý thanh toán cho ứng viên trong dự án</p>
-        </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
-          <span>+</span> Tạo thanh toán
+      <PageBanner compact icon="card" title="Quản lý thanh toán thù lao" subtitle="Quản lý và xử lý thanh toán cho ứng viên trong dự án">
+        <button onClick={() => setShowCreate(true)} className="btn-light">
+          <Icon name="plus" className="w-4 h-4" /> Tạo thanh toán
         </button>
-      </div>
+      </PageBanner>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4">

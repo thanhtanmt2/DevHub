@@ -38,6 +38,16 @@ const migrations = [
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_verified BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_token VARCHAR(10)`,
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_token_expires TIMESTAMPTZ`,
+  // job_posts / project_jobs: thông tin chi tiết tin tuyển dụng
+  `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS requirements TEXT`,
+  `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS benefits TEXT`,
+  `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS experience VARCHAR(20)`,
+  `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS position_level VARCHAR(20)`,
+  `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS work_address VARCHAR(500)`,
+  `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS working_time VARCHAR(255)`,
+  `ALTER TABLE project_jobs ADD COLUMN IF NOT EXISTS requirements TEXT`,
+  `ALTER TABLE project_jobs ADD COLUMN IF NOT EXISTS benefits TEXT`,
+  `ALTER TABLE project_jobs ADD COLUMN IF NOT EXISTS experience VARCHAR(20)`,
 ];
 
 console.log('Đang chạy migration patch...');

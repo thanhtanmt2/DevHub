@@ -10,6 +10,21 @@ import toast from 'react-hot-toast';
 import Icon from '@/components/common/Icon';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import useEscapeKey from '@/hooks/useEscapeKey';
+import PageBanner from '@/components/common/PageBanner';
+import { EXPERIENCE_LABELS, deadlineInfo, formatDate } from '@/utils/jobMeta';
+
+const EMPTY_JOB_FORM = {
+  title: '', description: '', requirements: '', benefits: '', budget: '', quantity: 1,
+  deadline: '', experience: '', skill_ids: [],
+};
+
+// Chuẩn hóa dữ liệu form gửi lên server (hạn nộp tính đến hết ngày được chọn)
+const buildJobPayload = (form) => ({
+  ...form,
+  budget: parseFloat(form.budget) || 0,
+  quantity: parseInt(form.quantity) || 1,
+  deadline: form.deadline ? new Date(`${form.deadline}T23:59:59`).toISOString() : null,
+});
 
 const formatCurrency = (amount) => {
   if (!amount) return '0đ';
@@ -19,7 +34,7 @@ const formatCurrency = (amount) => {
 const STATUS_LABELS = {
   PENDING: { label: 'Chờ duyệt', color: 'bg-yellow-100 text-yellow-700' },
   REVIEWING: { label: 'Đang xét duyệt', color: 'bg-blue-100 text-blue-700' },
-  INTERVIEW: { label: 'Mời phỏng vấn', color: 'bg-purple-100 text-purple-700' },
+  INTERVIEW: { label: 'Mời phỏng vấn', color: 'bg-sky-100 text-sky-700' },
   ACCEPTED: { label: 'Trúng tuyển', color: 'bg-green-100 text-green-700' },
   REJECTED: { label: 'Từ chối', color: 'bg-red-100 text-red-700' },
 };
@@ -73,9 +88,9 @@ function CandidateDetailPanel({ app, onClose }) {
 
           {/* Score & Stats */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-indigo-700">{profile?.competency_score ?? '—'}</p>
-              <p className="text-xs text-indigo-500 mt-0.5">Điểm năng lực</p>
+            <div className="bg-primary-50 border border-primary-100 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-primary-700">{profile?.competency_score ?? '—'}</p>
+              <p className="text-xs text-primary-500 mt-0.5">Điểm năng lực</p>
             </div>
             <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-amber-600">{avgScore ?? '—'}</p>
@@ -132,7 +147,7 @@ function CandidateDetailPanel({ app, onClose }) {
                     </div>
                     {member.CandidateEvaluation ? (
                       <div className="text-right flex-shrink-0">
-                        <span className="text-lg font-bold text-indigo-700">{parseFloat(member.CandidateEvaluation.score).toFixed(1)}</span>
+                        <span className="text-lg font-bold text-primary-700">{parseFloat(member.CandidateEvaluation.score).toFixed(1)}</span>
                         <span className="text-xs text-gray-400">/10</span>
                         {member.CandidateEvaluation.comment && (
                           <p className="text-xs text-gray-500 max-w-[160px] text-right line-clamp-1">{member.CandidateEvaluation.comment}</p>
@@ -149,19 +164,19 @@ function CandidateDetailPanel({ app, onClose }) {
 
           {/* Interview info (if scheduled) */}
           {app.interview_time && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-              <h4 className="text-sm font-semibold text-purple-800 mb-1"><Icon name="calendar" className="w-4 h-4 mr-1" />Lịch phỏng vấn đã đặt</h4>
-              <p className="text-sm text-purple-700">
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
+              <h4 className="text-sm font-semibold text-primary-800 mb-1"><Icon name="calendar" className="w-4 h-4 mr-1" />Lịch phỏng vấn đã đặt</h4>
+              <p className="text-sm text-primary-700">
                 {new Date(app.interview_time).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
               {app.meet_url && (
                 <a href={app.meet_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-1 text-sm text-purple-600 hover:text-purple-800 underline">
+                  className="inline-flex items-center gap-1 mt-1 text-sm text-primary-600 hover:text-primary-800 underline">
                   <Icon name="video" className="w-4 h-4" />{app.meet_url}
                 </a>
               )}
               {app.interview_note && (
-                <p className="text-xs text-purple-600 mt-1 italic">{app.interview_note}</p>
+                <p className="text-xs text-primary-600 mt-1 italic">{app.interview_note}</p>
               )}
             </div>
           )}
@@ -212,17 +227,17 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl animate-fade-in">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-xl p-5 text-white">
+        <div className="bg-brand-gradient rounded-t-xl p-5 text-white">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-lg font-bold"><Icon name="calendar" className="w-5 h-5 mr-1.5" />Đặt lịch phỏng vấn</h3>
-              <p className="text-indigo-200 text-sm mt-0.5">Lịch sẽ được gửi qua email đến ứng viên</p>
+              <p className="text-white text-sm mt-0.5">Lịch sẽ được gửi qua email đến ứng viên</p>
             </div>
-            <button onClick={onClose} aria-label="Đóng" className="text-white/70 hover:text-white"><Icon name="x" className="w-6 h-6" /></button>
+            <button onClick={onClose} aria-label="Đóng" className="text-white hover:text-white"><Icon name="x" className="w-6 h-6" /></button>
           </div>
           <div className="mt-3 bg-white/10 rounded-lg p-2.5 text-sm">
             <p className="font-medium">{user?.full_name}</p>
-            <p className="text-indigo-200 text-xs">{user?.email}</p>
+            <p className="text-white text-xs">{user?.email}</p>
           </div>
         </div>
 
@@ -256,7 +271,7 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Link Google Meet *
               <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
-                className="ml-2 text-indigo-600 hover:text-indigo-800 text-xs underline">
+                className="ml-2 text-primary-600 hover:text-primary-800 text-xs underline">
                 Tạo phòng Meet mới ↗
               </a>
             </label>
@@ -328,7 +343,8 @@ export default function InternalProjectsPage() {
 
   // Add Job Modal State
   const [activeProjectForJob, setActiveProjectForJob] = useState(null);
-  const [jobForm, setJobForm] = useState({ title: '', description: '', budget: '', deadline: '', skill_ids: [] });
+  const [jobForm, setJobForm] = useState(EMPTY_JOB_FORM);
+  const [editingJob, setEditingJob] = useState(null); // vị trí đang sửa (null = đang thêm mới)
 
   // View Applications Modal State
   const [viewJobsProject, setViewJobsProject] = useState(null);
@@ -340,7 +356,8 @@ export default function InternalProjectsPage() {
   // Evaluation state: { app, workspaceId, memberId }
   const [evaluateTarget, setEvaluateTarget] = useState(null);
   const [evalForm, setEvalForm] = useState({ score: '', comment: '' });
-  useEscapeKey(() => setActiveProjectForJob(null), !!activeProjectForJob);
+  const closeJobModal = () => { setActiveProjectForJob(null); setEditingJob(null); setJobForm(EMPTY_JOB_FORM); };
+  useEscapeKey(closeJobModal, !!activeProjectForJob);
   useEscapeKey(() => setViewJobsProject(null), !!viewJobsProject);
   useEscapeKey(() => setEvaluateTarget(null), !!evaluateTarget);
 
@@ -395,19 +412,65 @@ export default function InternalProjectsPage() {
 
   // Create Project Job
   const createJobMutation = useMutation({
-    mutationFn: ({ projectId, data }) => projectJobApi.createAdminProjectJob(projectId, {
-      ...data,
-      budget: parseFloat(data.budget) || 0
-    }),
+    mutationFn: ({ projectId, data }) => projectJobApi.createAdminProjectJob(projectId, buildJobPayload(data)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-projects'] });
       if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
-      setActiveProjectForJob(null);
-      setJobForm({ title: '', description: '', budget: '', deadline: '', skill_ids: [] });
+      closeJobModal();
       toast.success('Đã thêm vị trí công việc vào dự án!');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi thêm vị trí'),
   });
+
+  // Sửa vị trí (gia hạn, đóng/mở lại, cập nhật nội dung)
+  const updateJobMutation = useMutation({
+    mutationFn: ({ id, data }) => projectJobApi.updateAdminProjectJob(id, data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
+      qc.invalidateQueries({ queryKey: ['project-jobs'] });
+      if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
+      closeJobModal();
+      toast.success(res.data?.message || 'Đã cập nhật vị trí');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi cập nhật vị trí'),
+  });
+
+  const openEditJob = (project, job) => {
+    setEditingJob(job);
+    setActiveProjectForJob(project);
+    setJobForm({
+      title: job.title || '',
+      description: job.description || '',
+      requirements: job.requirements || '',
+      benefits: job.benefits || '',
+      budget: job.budget ? String(parseFloat(job.budget)) : '',
+      quantity: job.quantity || 1,
+      deadline: job.deadline ? job.deadline.slice(0, 10) : '',
+      experience: job.experience || '',
+      skill_ids: job.Skills?.map((sk) => sk.id) || [],
+    });
+  };
+
+  const submitJob = () => {
+    if (editingJob) {
+      const payload = buildJobPayload(jobForm);
+      // Không đổi ngày hạn thì giữ nguyên giá trị cũ (để vẫn lưu được các thay đổi khác trên vị trí đã hết hạn)
+      if (editingJob.deadline && editingJob.deadline.slice(0, 10) === jobForm.deadline) payload.deadline = editingJob.deadline;
+      updateJobMutation.mutate({ id: editingJob.id, data: payload });
+    }
+    else createJobMutation.mutate({ projectId: activeProjectForJob.id, data: jobForm });
+  };
+
+  const toggleJobStatus = async (job) => {
+    const closing = job.status === 'OPEN';
+    const ok = await confirm({
+      title: closing ? 'Đóng vị trí tuyển dụng' : 'Mở lại vị trí tuyển dụng',
+      message: closing ? 'Ứng viên sẽ không thể nộp thêm hồ sơ vào vị trí này.' : 'Vị trí sẽ hiển thị lại cho ứng viên (nhớ gia hạn nếu đã quá hạn nộp).',
+      confirmText: closing ? 'Đóng vị trí' : 'Mở lại',
+      tone: closing ? 'danger' : 'primary',
+    });
+    if (ok) updateJobMutation.mutate({ id: job.id, data: { status: closing ? 'CLOSED' : 'OPEN' } });
+  };
 
   // Review Application (status update)
   const reviewAppMutation = useMutation({
@@ -447,15 +510,11 @@ export default function InternalProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Quản lý Dự án Thời vụ & Vị trí tuyển dụng</h1>
-          <p className="text-sm text-gray-500">Quản lý các dự án nội bộ và vị trí tuyển dụng thời vụ</p>
-        </div>
-        <button onClick={() => setShowAddProject(!showAddProject)} className="btn-primary">
-          + Tạo Dự án Mới
+      <PageBanner compact icon="folder" title="Quản lý dự án thời vụ & vị trí tuyển dụng" subtitle="Quản lý các dự án nội bộ và vị trí tuyển dụng thời vụ">
+        <button onClick={() => setShowAddProject(!showAddProject)} className="btn-light">
+          + Tạo dự án mới
         </button>
-      </div>
+      </PageBanner>
 
       {/* Form tạo dự án */}
       {showAddProject && (
@@ -577,7 +636,7 @@ export default function InternalProjectsPage() {
                 </button>
                 <button
                   onClick={() => setActiveProjectForJob(project)}
-                  className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-xs font-medium"
+                  className="px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium"
                 >
                   + Thêm Vị Trí
                 </button>
@@ -604,16 +663,16 @@ export default function InternalProjectsPage() {
         ))}
       </div>
 
-      {/* Modal Thêm Vị Trí (ProjectJob) */}
+      {/* Modal Thêm / Sửa Vị Trí (ProjectJob) */}
       {activeProjectForJob && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl animate-fade-in">
-            <h2 className="text-xl font-bold mb-1">Thêm Vị Trí Tuyển Dụng</h2>
-            <p className="text-xs text-primary-600 font-medium mb-4">Dự án: {activeProjectForJob.name}</p>
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[60] p-4 py-8 overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl animate-fade-in">
+            <h2 className="text-xl font-bold mb-1">{editingJob ? 'Sửa vị trí tuyển dụng' : 'Thêm vị trí tuyển dụng'}</h2>
+            <p className="text-xs text-primary-600 font-medium mb-4">Dự án: {activeProjectForJob.name} · Làm việc từ xa</p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên vị trí công việc</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên vị trí công việc <span className="text-red-500">*</span></label>
                 <input
                   className="input-field"
                   placeholder="VD: Frontend React Developer"
@@ -622,35 +681,83 @@ export default function InternalProjectsPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Thù lao vị trí (VNĐ)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="input-field"
+                    placeholder="10000000"
+                    value={jobForm.budget}
+                    onChange={(e) => setJobForm({ ...jobForm, budget: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng tuyển</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="input-field"
+                    value={jobForm.quantity}
+                    onChange={(e) => setJobForm({ ...jobForm, quantity: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hạn nộp hồ sơ</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={jobForm.deadline}
+                    onChange={(e) => setJobForm({ ...jobForm, deadline: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kinh nghiệm</label>
+                  <select
+                    className="input-field"
+                    value={jobForm.experience}
+                    onChange={(e) => setJobForm({ ...jobForm, experience: e.target.value })}
+                  >
+                    <option value="">-- Chọn yêu cầu kinh nghiệm --</option>
+                    {Object.entries(EXPERIENCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Thù lao vị trí (VNĐ)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  placeholder="10000000"
-                  value={jobForm.budget}
-                  onChange={(e) => setJobForm({ ...jobForm, budget: e.target.value })}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả công việc</label>
+                <textarea
+                  className="input-field resize-none"
+                  rows={4}
+                  placeholder={'Các đầu việc chính của vị trí...'}
+                  value={jobForm.description}
+                  onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hạn nộp hồ sơ</label>
-                <input
-                  type="date"
-                  className="input-field"
-                  value={jobForm.deadline}
-                  onChange={(e) => setJobForm({ ...jobForm, deadline: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả yêu cầu</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Yêu cầu ứng viên</label>
                 <textarea
                   className="input-field resize-none"
                   rows={3}
-                  placeholder="Mô tả công việc và yêu cầu kỹ năng..."
-                  value={jobForm.description}
-                  onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                  placeholder={'Ví dụ:\n- Thành thạo React, Tailwind CSS\n- Biết dùng Git'}
+                  value={jobForm.requirements}
+                  onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quyền lợi được hưởng</label>
+                <textarea
+                  className="input-field resize-none"
+                  rows={3}
+                  placeholder={'Ví dụ:\n- Thanh toán thù lao ngay khi nghiệm thu\n- Được đánh giá năng lực, cộng điểm hồ sơ'}
+                  value={jobForm.benefits}
+                  onChange={(e) => setJobForm({ ...jobForm, benefits: e.target.value })}
                 />
               </div>
 
@@ -681,16 +788,16 @@ export default function InternalProjectsPage() {
             </div>
 
             <div className="flex gap-2 mt-6">
-              <button onClick={() => setActiveProjectForJob(null)} className="btn-secondary">
+              <button onClick={closeJobModal} className="btn-secondary">
                 Hủy
               </button>
               <button
                 type="button"
-                onClick={() => createJobMutation.mutate({ projectId: activeProjectForJob.id, data: jobForm })}
-                disabled={!jobForm.title || createJobMutation.isPending}
+                onClick={submitJob}
+                disabled={!jobForm.title || createJobMutation.isPending || updateJobMutation.isPending}
                 className="btn-primary"
               >
-                {createJobMutation.isPending ? 'Đang tạo...' : 'Tạo Vị Trí Tuyển Dụng'}
+                {(createJobMutation.isPending || updateJobMutation.isPending) ? 'Đang lưu...' : editingJob ? 'Lưu thay đổi' : 'Tạo vị trí tuyển dụng'}
               </button>
             </div>
           </div>
@@ -728,7 +835,10 @@ export default function InternalProjectsPage() {
                       <div>
                         <h3 className="font-semibold text-base text-gray-900">{job.title}</h3>
                         <p className="text-xs text-green-700 font-semibold">
-                          Thù lao: {formatCurrency(job.budget)} · Trạng thái: {job.status}
+                          Thù lao: {formatCurrency(job.budget)} · Hạn nộp: {job.deadline ? formatDate(job.deadline) : 'Không giới hạn'}
+                          {job.status !== 'OPEN'
+                            ? <span className="ml-2 text-slate-500">· Đã đóng</span>
+                            : deadlineInfo(job.deadline).expired && <span className="ml-2 text-red-600">· Đã hết hạn nộp</span>}
                         </p>
                         {job.Skills?.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
@@ -738,9 +848,17 @@ export default function InternalProjectsPage() {
                           </div>
                         )}
                       </div>
-                      <span className="badge bg-purple-100 text-purple-700 text-xs">
-                        {job.ProjectApplications?.length || 0} ứng viên nộp
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="badge bg-primary-100 text-primary-700 text-xs">
+                          {job.ProjectApplications?.length || 0} ứng viên nộp
+                        </span>
+                        <div className="flex items-center gap-3 text-xs font-medium">
+                          <button onClick={() => openEditJob(viewJobsProject, job)} className="text-primary-600 hover:underline">Sửa / Gia hạn</button>
+                          <button onClick={() => toggleJobStatus(job)} className={job.status === 'OPEN' ? 'text-red-500 hover:underline' : 'text-emerald-600 hover:underline'}>
+                            {job.status === 'OPEN' ? 'Đóng vị trí' : 'Mở lại'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Danh sách ứng viên */}
@@ -772,7 +890,7 @@ export default function InternalProjectsPage() {
                                     <p className="font-semibold text-sm text-gray-900">{user?.full_name}</p>
                                     <p className="text-xs text-gray-500">{user?.email}</p>
                                     {profile?.professional_title && (
-                                      <p className="text-xs text-indigo-600">{profile.professional_title}</p>
+                                      <p className="text-xs text-primary-600">{profile.professional_title}</p>
                                     )}
                                   </div>
                                   <span className={`badge text-xs flex-shrink-0 ${statusInfo.color}`}>
@@ -783,7 +901,7 @@ export default function InternalProjectsPage() {
                                 {/* Row 2: Stats */}
                                 <div className="flex items-center gap-3 mb-2">
                                   {profile?.competency_score != null && (
-                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-100">
                                       <Icon name="star" className="w-3.5 h-3.5 mr-0" />Điểm NL: <strong>{profile.competency_score}</strong>
                                     </span>
                                   )}
@@ -813,10 +931,10 @@ export default function InternalProjectsPage() {
 
                                 {/* Interview badge */}
                                 {app.interview_time && (
-                                  <div className="mb-2 text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded px-2 py-1 flex items-center gap-1">
+                                  <div className="mb-2 text-xs text-primary-700 bg-primary-50 border border-primary-200 rounded px-2 py-1 flex items-center gap-1">
                                     <Icon name="calendar" className="w-3.5 h-3.5" />Phỏng vấn: {new Date(app.interview_time).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     {app.meet_url && (
-                                      <a href={app.meet_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline hover:text-purple-900">· Meet ↗</a>
+                                      <a href={app.meet_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline hover:text-primary-900">· Meet ↗</a>
                                     )}
                                   </div>
                                 )}
@@ -826,7 +944,7 @@ export default function InternalProjectsPage() {
                                   {/* View Profile */}
                                   <button
                                     onClick={() => setDetailApp(app)}
-                                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-medium border border-indigo-100"
+                                    className="px-2.5 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium border border-primary-100"
                                   >
                                     <Icon name="user" className="w-3.5 h-3.5 mr-1" />Xem hồ sơ đầy đủ
                                   </button>
@@ -847,7 +965,7 @@ export default function InternalProjectsPage() {
                                   {app.status !== 'ACCEPTED' && app.status !== 'REJECTED' && (
                                     <button
                                       onClick={() => setInterviewApp(app)}
-                                      className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-xs font-medium border border-purple-100"
+                                      className="px-2.5 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium border border-primary-100"
                                     >
                                       <Icon name="calendar" className="w-3.5 h-3.5 mr-1" />Đặt lịch phỏng vấn
                                     </button>
@@ -948,9 +1066,9 @@ export default function InternalProjectsPage() {
             </div>
 
             {evaluateTarget.currentScore > 0 && (
-              <div className="mb-4 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 text-sm text-indigo-700">
+              <div className="mb-4 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2 text-sm text-primary-700">
                 Điểm năng lực hiện tại: <strong>{parseFloat(evaluateTarget.currentScore).toFixed(1)}/10</strong>
-                <span className="text-xs text-indigo-400 ml-1">(TB tất cả dự án)</span>
+                <span className="text-xs text-primary-400 ml-1">(TB tất cả dự án)</span>
               </div>
             )}
 

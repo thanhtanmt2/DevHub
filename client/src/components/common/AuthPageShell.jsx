@@ -6,7 +6,7 @@ export default function AuthPageShell({ children }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-primary-50 via-white to-white px-4 py-10">
       <Link to="/" className="flex items-center gap-2.5 mb-6">
-        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-extrabold text-xl shadow-sm">
+        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center font-extrabold text-xl shadow-sm">
           D
         </span>
         <span className="text-2xl font-bold text-slate-900 tracking-tight">

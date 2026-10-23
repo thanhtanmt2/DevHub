@@ -1,27 +1,84 @@
 const { Op } = require('sequelize');
-const { JobPost, JobPostSkill, Skill, Company, User, Application, CandidateProfile } = require('../models');
+const { sequelize, JobPost, JobPostSkill, Skill, Company, User, Application, CandidateProfile } = require('../models');
 const AppError = require('../utils/AppError');
+
+// Các trường tin tuyển dụng mà Nhà tuyển dụng / Admin được phép nhập (không cho sửa status, post_type...)
+const JOB_FIELDS = [
+  'title', 'description', 'requirements', 'benefits', 'work_type', 'location', 'work_address', 'working_time',
+  'experience', 'position_level', 'salary_min', 'salary_max', 'quantity', 'deadline',
+];
+const pickJobFields = (body) => {
+  const out = {};
+  for (const f of JOB_FIELDS) {
+    if (body[f] === undefined) continue;
+    const blank = typeof body[f] === 'string' && body[f].trim() === '';
+    out[f] = blank && f !== 'title' && f !== 'description' ? null : body[f];
+  }
+  return out;
+};
+const assertValidDeadline = (deadline) => {
+  if (deadline && new Date(deadline) < new Date()) throw new AppError('Hạn nộp hồ sơ phải sau thời điểm hiện tại', 400);
+};
+const assertValidSalary = ({ salary_min, salary_max }) => {
+  if (salary_min && salary_max && parseFloat(salary_min) > parseFloat(salary_max)) {
+    throw new AppError('Lương tối thiểu không được lớn hơn lương tối đa', 400);
+  }
+};
+
+// Một số tỉnh/thành hay được nhập theo nhiều cách khác nhau → lọc theo mọi cách viết
+const LOCATION_ALIASES = {
+  'TP. Hồ Chí Minh': ['Hồ Chí Minh', 'HCM', 'Sài Gòn', 'Ho Chi Minh'],
+  'Hà Nội': ['Hà Nội', 'Hanoi', 'Ha Noi'],
+  'Đà Nẵng': ['Đà Nẵng', 'Da Nang'],
+};
+const ANYWHERE = 'REMOTE_ANY'; // lựa chọn "Toàn quốc / Remote"
 
 // GET /api/jobs — public job listing with filters
 exports.getJobs = async (req, res, next) => {
   try {
-    const { keyword, skill_id, work_type, post_type, salary_min, salary_max, page = 1, limit = 10 } = req.query;
+    const {
+      keyword, skill_id, work_type, post_type, salary_min, salary_max,
+      location, experience, position_level, salary_from, salary_to, sort = 'newest',
+      page = 1, limit = 10,
+    } = req.query;
     const where = { status: 'OPEN' };
+    const and = [];
     if (keyword) {
-      where[Op.or] = [
-        { title: { [Op.iLike]: `%${keyword}%` } },
-        { description: { [Op.iLike]: `%${keyword}%` } },
-      ];
+      and.push({
+        [Op.or]: [
+          { title: { [Op.iLike]: `%${keyword}%` } },
+          { description: { [Op.iLike]: `%${keyword}%` } },
+          { requirements: { [Op.iLike]: `%${keyword}%` } },
+          { company_id: { [Op.in]: sequelize.literal(`(SELECT id FROM companies WHERE name ILIKE ${sequelize.escape(`%${keyword}%`)})`) } },
+        ],
+      });
     }
     if (work_type) where.work_type = work_type;
     if (post_type) where.post_type = post_type;
+    if (experience) where.experience = experience;
+    if (position_level) where.position_level = position_level;
     if (salary_min) where.salary_min = { [Op.gte]: parseFloat(salary_min) };
     if (salary_max) where.salary_max = { [Op.lte]: parseFloat(salary_max) };
+    if (location === ANYWHERE) {
+      and.push({ [Op.or]: [{ location: { [Op.iLike]: '%Toàn quốc%' } }, { location: null }, { work_type: 'REMOTE' }] });
+    } else if (location) {
+      const names = LOCATION_ALIASES[location] || [location.replace(/^(TP\.?|Thành phố)\s*/i, '')];
+      and.push({
+        [Op.or]: names.flatMap((n) => [
+          { location: { [Op.iLike]: `%${n}%` } },
+          { work_address: { [Op.iLike]: `%${n}%` } },
+        ]),
+      });
+    }
+    // Khoảng lương mong muốn: tin có khoảng lương giao với khoảng này (tin "thỏa thuận" vẫn được hiển thị)
+    if (salary_from) and.push({ [Op.or]: [{ salary_max: null }, { salary_max: { [Op.gte]: parseFloat(salary_from) } }] });
+    if (salary_to) and.push({ [Op.or]: [{ salary_min: null }, { salary_min: { [Op.lte]: parseFloat(salary_to) } }] });
+    if (and.length) where[Op.and] = and;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const include = [
       { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
-      { model: Company, attributes: ['id', 'name', 'logo_url'] },
+      { model: Company, attributes: ['id', 'name', 'logo_url', 'address'] },
     ];
     // Filter by skill if provided
     if (skill_id) {
@@ -34,8 +91,15 @@ exports.getJobs = async (req, res, next) => {
       include,
       limit: parseInt(limit),
       offset,
-      order: [['posted_at', 'DESC']],
+      // Tin còn hạn lên trước, tin đã hết hạn nộp xuống cuối
+      order: [
+        [sequelize.literal('CASE WHEN "JobPost"."deadline" IS NOT NULL AND "JobPost"."deadline" < NOW() THEN 1 ELSE 0 END'), 'ASC'],
+        ...(sort === 'deadline' ? [[sequelize.literal('"JobPost"."deadline" ASC NULLS LAST')]]
+          : sort === 'salary' ? [[sequelize.literal('"JobPost"."salary_max" DESC NULLS LAST')]] : []),
+        ['posted_at', 'DESC'],
+      ],
       distinct: true,
+      subQuery: false,
     });
 
     res.json({
@@ -57,7 +121,7 @@ exports.getJobById = async (req, res, next) => {
     const job = await JobPost.findByPk(req.params.id, {
       include: [
         { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
-        { model: Company, attributes: ['id', 'name', 'logo_url', 'address', 'website'] },
+        { model: Company, attributes: ['id', 'name', 'logo_url', 'address', 'website', 'description'] },
         { model: User, as: 'creator', attributes: ['id', 'full_name'] },
       ],
     });
@@ -71,14 +135,17 @@ exports.getJobById = async (req, res, next) => {
 // POST /api/employer/jobs — employer creates job post
 exports.createEmployerJob = async (req, res, next) => {
   try {
-    const { title, description, work_type, location, salary_min, salary_max, quantity, deadline, skill_ids } = req.body;
+    const { skill_ids } = req.body;
+    const fields = pickJobFields(req.body);
+    assertValidDeadline(fields.deadline);
+    assertValidSalary(fields);
     // Find company of this employer
     const company = await Company.findOne({ where: { user_id: req.user.id } });
     if (!company) throw new AppError('Please complete your company profile first', 400);
     if (company.verification_status !== 'VERIFIED') throw new AppError('Company not yet verified by admin', 403);
 
     const job = await JobPost.create({
-      title, description, work_type, location, salary_min, salary_max, quantity, deadline,
+      ...fields,
       post_type: 'PARTNER',
       created_by_user_id: req.user.id,
       company_id: company.id,
@@ -101,7 +168,13 @@ exports.updateEmployerJob = async (req, res, next) => {
     if (!company) throw new AppError('Company not found', 404);
     const job = await JobPost.findOne({ where: { id: req.params.id, company_id: company.id } });
     if (!job) throw new AppError('Job not found or not yours', 404);
-    const { skill_ids, ...updateData } = req.body;
+    const { skill_ids } = req.body;
+    const updateData = pickJobFields(req.body);
+    const oldDeadline = job.deadline ? job.deadline.toISOString() : '';
+    if (updateData.deadline !== undefined && String(updateData.deadline ? new Date(updateData.deadline).toISOString() : '') !== oldDeadline) {
+      assertValidDeadline(updateData.deadline);
+    }
+    assertValidSalary({ salary_min: updateData.salary_min ?? job.salary_min, salary_max: updateData.salary_max ?? job.salary_max });
     await job.update(updateData);
     if (skill_ids) {
       await JobPostSkill.destroy({ where: { job_post_id: job.id } });
@@ -141,9 +214,12 @@ exports.getEmployerJobs = async (req, res, next) => {
 // POST /api/admin/jobs — admin creates internal job post
 exports.createAdminJob = async (req, res, next) => {
   try {
-    const { title, description, work_type, salary_min, salary_max, quantity, deadline, skill_ids } = req.body;
+    const { skill_ids } = req.body;
+    const fields = pickJobFields(req.body);
+    assertValidDeadline(fields.deadline);
+    assertValidSalary(fields);
     const job = await JobPost.create({
-      title, description, work_type, salary_min, salary_max, quantity, deadline,
+      ...fields,
       post_type: 'INTERNAL',
       created_by_user_id: req.user.id,
       status: 'OPEN',

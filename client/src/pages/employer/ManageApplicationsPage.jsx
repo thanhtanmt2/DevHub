@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { jobApi } from '@/api/jobApi';
 import { toast } from 'react-hot-toast';
 import Icon from '@/components/common/Icon';
+import PageBanner from '@/components/common/PageBanner';
 
 const STATUS_LABELS = {
   PENDING: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700 border-amber-200' },
   VIEWED: { label: 'Đã xem', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  INTERVIEW: { label: 'Phỏng vấn', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+  INTERVIEW: { label: 'Phỏng vấn', color: 'bg-sky-50 text-sky-700 border-sky-200' },
   HIRED: { label: 'Đã tuyển', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   REJECTED: { label: 'Từ chối', color: 'bg-rose-50 text-rose-700 border-rose-200' },
 };
@@ -70,12 +71,7 @@ export default function ManageApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Quản lý hồ sơ ứng tuyển</h1>
-        <p className="page-subtitle">
-          Xem và xử lý hồ sơ, CV của các ứng viên nộp vào tin tuyển dụng công ty
-        </p>
-      </div>
+      <PageBanner compact icon="clipboard" title="Quản lý hồ sơ ứng tuyển" subtitle="Xem và xử lý hồ sơ, CV của các ứng viên nộp vào tin tuyển dụng công ty" />
 
       {/* Filters */}
       <div className="card flex flex-wrap gap-x-6 gap-y-3 items-center !p-4">
