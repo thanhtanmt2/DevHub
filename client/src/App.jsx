@@ -21,6 +21,7 @@ import JobsPage from '@/pages/public/JobsPage';
 import ProjectsPage from '@/pages/public/ProjectsPage';
 import JobDetailPage from '@/pages/public/JobDetailPage';
 import ProjectJobDetailPage from '@/pages/public/ProjectJobDetailPage';
+import AccountPage from '@/pages/public/AccountPage';
 
 // Candidate pages
 import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
@@ -72,6 +73,13 @@ function AppRoutes() {
       </Route>
 
       {/* Auth */}
+      {/* Hồ sơ cá nhân dùng chung (Nhà tuyển dụng / Admin; mọi tài khoản đã đăng nhập đều vào được) */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<PublicLayout />}>
+          <Route path="/account" element={<AccountPage />} />
+        </Route>
+      </Route>
+
       <Route path="/login" element={<Navigate to="/?auth=login" replace />} />
       <Route path="/register" element={<Navigate to="/?auth=register" replace />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />

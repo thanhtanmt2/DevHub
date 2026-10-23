@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { jobApi } from '@/api/jobApi';
 import { toast } from 'react-hot-toast';
 import Icon from '@/components/common/Icon';
@@ -13,10 +14,11 @@ const STATUS_LABELS = {
 };
 
 export default function ManageApplicationsPage() {
+  const [searchParams] = useSearchParams(); // ?job_id=... từ thông báo / trang Tin tuyển dụng
   const [applications, setApplications] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedJobId, setSelectedJobId] = useState('');
+  const [selectedJobId, setSelectedJobId] = useState(searchParams.get('job_id') || '');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
 

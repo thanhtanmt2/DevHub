@@ -44,7 +44,7 @@ function CandidateDetailModal({ profile, onClose }) {
         {/* Header */}
         <div className="flex justify-between items-start p-5 border-b">
           <div className="flex items-center gap-4">
-            <Avatar name={user?.full_name} src={profile.avatar_url} size="xl" />
+            <Avatar name={user?.full_name} src={profile.avatar_url} size="xl" zoomable />
             <div>
               <h2 className="text-xl font-bold text-gray-900">{user?.full_name}</h2>
               <p className="text-sm text-primary-600 font-medium">{profile.professional_title || 'Chưa cập nhật'}</p>

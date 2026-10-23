@@ -8,6 +8,7 @@ import CvSelector from '@/components/candidate/CvSelector';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import JobDetailView from '@/components/job/JobDetailView';
+import { AppliedBadge } from '@/components/job/JobParts';
 import { deadlineInfo } from '@/utils/jobMeta';
 import Icon from '@/components/common/Icon';
 import useEscapeKey from '@/hooks/useEscapeKey';
@@ -39,13 +40,14 @@ export default function JobDetailPage() {
   });
 
   const profile = profileRes?.data?.data;
-  const applied = !!myAppsRes?.data?.data?.some((a) => a.job_post_id === id);
+  const applied = myAppsRes?.data?.data?.find((a) => a.job_post_id === id);
 
   const applyMutation = useMutation({
     mutationFn: (data) => jobApi.apply({ job_post_id: id, ...data }),
     onSuccess: () => {
       toast.success('Nộp hồ sơ ứng tuyển thành công!');
       qc.invalidateQueries({ queryKey: ['my-applications'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
       setShowApply(false);
       navigate('/candidate/applications');
     },
@@ -90,11 +92,7 @@ export default function JobDetailPage() {
     action = <button onClick={openLoginModal} className="btn-primary px-7 py-2.5">Đăng nhập để ứng tuyển</button>;
   } else if (isCandidate()) {
     if (applied) {
-      action = (
-        <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-          <Icon name="check" className="w-4 h-4" strokeWidth={2.5} /> Đã nộp hồ sơ
-        </span>
-      );
+      action = <AppliedBadge application={applied} className="!px-4 !py-2 !text-sm" />;
     } else {
       action = (
         <button onClick={handleOpenApply} disabled={closed} className="btn-primary px-7 py-2.5">

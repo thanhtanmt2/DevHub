@@ -7,26 +7,10 @@ import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import PageBanner from '@/components/common/PageBanner';
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '@/utils/applicationStatus';
 
-const STATUS_LABELS = {
-  PENDING: 'Chờ xem xét',
-  VIEWED: 'Đã xem',
-  INTERVIEW: 'Phỏng vấn',
-  HIRED: 'Trúng tuyển',
-  REJECTED: 'Không phù hợp',
-  REVIEWING: 'Đang xét duyệt',
-  ACCEPTED: 'Trúng tuyển dự án'
-};
-
-const STATUS_COLORS = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  VIEWED: 'bg-blue-100 text-blue-700',
-  INTERVIEW: 'bg-sky-100 text-sky-700',
-  HIRED: 'bg-emerald-100 text-emerald-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  REVIEWING: 'bg-primary-100 text-primary-700',
-  ACCEPTED: 'bg-emerald-100 text-emerald-700'
-};
+const STATUS_LABELS = APPLICATION_STATUS_LABELS;
+const STATUS_COLORS = APPLICATION_STATUS_COLORS;
 
 // Viền trái của thẻ theo trạng thái hồ sơ
 const STATUS_BORDER = {

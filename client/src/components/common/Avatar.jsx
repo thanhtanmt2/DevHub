@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import SafeImage from '@/components/common/SafeImage';
+import ImageLightbox from '@/components/common/ImageLightbox';
 import { colorFor } from '@/utils/colors';
 
 const SIZES = {
@@ -9,14 +11,32 @@ const SIZES = {
   xl: 'w-16 h-16 text-xl',
 };
 
-// Ảnh đại diện: có ảnh thì hiện ảnh, không thì chữ cái đầu trên nền gradient riêng của từng người
-export default function Avatar({ name, src, size = 'md', className = '' }) {
-  const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
+// Ảnh đại diện: có ảnh thì hiện ảnh, không thì chữ cái đầu trên nền gradient riêng của từng người.
+// zoomable: bấm vào ảnh để xem phóng to.
+export default function Avatar({ name, src, size = 'md', className = '', zoomable = false }) {
+  const [open, setOpen] = useState(false);
+  // Chữ cái mặc định là chữ đầu của tên gọi (từ cuối): "Nguyễn Văn Anh" → A
+  const initial = (name || '?').trim().split(/\s+/).pop().charAt(0).toUpperCase() || '?';
   const box = `${SIZES[size] || SIZES.md} rounded-full flex-shrink-0`;
   const fallback = (
     <span className={`${box} bg-gradient-to-br ${colorFor(name).grad} text-white font-bold flex items-center justify-center shadow-sm ${className}`}>
       {initial}
     </span>
   );
-  return <SafeImage src={src} alt={name || ''} className={`${box} object-cover ${className}`} fallback={fallback} />;
+  const image = <SafeImage src={src} alt={name || ''} className={`${box} object-cover ${className}`} fallback={fallback} />;
+  if (!zoomable || !src) return image;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+        title="Bấm để xem ảnh"
+        aria-label="Xem ảnh đại diện"
+        className="rounded-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+      >
+        {image}
+      </button>
+      {open && <ImageLightbox src={src} alt={name} onClose={() => setOpen(false)} />}
+    </>
+  );
 }

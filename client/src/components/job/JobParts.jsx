@@ -2,6 +2,8 @@ import Icon from '@/components/common/Icon';
 import CompanyLogo from '@/components/common/CompanyLogo';
 import { SkillTag } from '@/components/common/Badges';
 import { deadlineInfo, formatDate } from '@/utils/jobMeta';
+import { APPLICATION_STATUS_LABELS } from '@/utils/applicationStatus';
+import { timeAgo } from '@/utils/timeAgo';
 
 // Chip hạn nộp hồ sơ: còn bao nhiêu ngày / đã hết hạn
 const DEADLINE_STYLE = {
@@ -92,5 +94,22 @@ export function SkillList({ skills = [] }) {
     <div className="flex flex-wrap gap-2">
       {skills.map((s) => <SkillTag key={s.id} name={s.name} className="!px-3 !py-1 !text-sm" />)}
     </div>
+  );
+}
+
+// Huy hiệu "Đã ứng tuyển" kèm trạng thái hồ sơ, để ứng viên nhìn là biết ngay (không cần mở chi tiết)
+export function AppliedBadge({ application, className = '' }) {
+  if (!application) return null;
+  const rejected = application.status === 'REJECTED';
+  const status = APPLICATION_STATUS_LABELS[application.status];
+  return (
+    <span
+      title={application.applied_at ? `Bạn đã nộp hồ sơ ${timeAgo(application.applied_at)} (${formatDate(application.applied_at)})` : 'Bạn đã nộp hồ sơ'}
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset whitespace-nowrap ${
+        rejected ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+      } ${className}`}
+    >
+      <Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} />Đã ứng tuyển{status ? ` · ${status}` : ''}
+    </span>
   );
 }

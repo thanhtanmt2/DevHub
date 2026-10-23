@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/api/authApi';
 import toast from 'react-hot-toast';
@@ -20,7 +20,11 @@ const emptyRegisterForm = () => ({ full_name: '', email: '', password: '', confi
 export default function AuthModal() {
   const { authModal, closeAuthModal, setAuthModalView, login, googleLogin } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+
+  // Đăng nhập xong luôn vào Dashboard của đúng vai trò
+  const goToDashboard = (roles) => {
+    navigate(roles.includes('ADMIN') ? '/admin' : roles.includes('EMPLOYER') ? '/employer' : '/candidate', { replace: true });
+  };
 
   // Login form state
   const [loginForm, setLoginForm] = useState(emptyLoginForm);
@@ -42,18 +46,7 @@ export default function AuthModal() {
       toast.success(`Chào mừng trở lại, ${user.full_name}!`);
       closeAuthModal();
 
-      // kiểm tra xem trước khi đăng nhập user đã cố gắng truy cập vào trang nào khác 
-      const from = location.state?.from?.pathname;
-      if (from) {
-        // replace true để tránh back về trang login sau khi đăng nhập
-        navigate(from, { replace: true });
-      } else if (roles.includes('ADMIN')) {
-        navigate('/admin');
-      } else if (roles.includes('EMPLOYER')) {
-        navigate('/employer');
-      } else if (location.pathname === '/') {
-        navigate('/candidate');
-      }
+      goToDashboard(roles);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Đăng nhập Google thất bại');
     } finally {
@@ -119,16 +112,7 @@ export default function AuthModal() {
       toast.success(`Chào mừng trở lại, ${user.full_name}!`);
       closeAuthModal();
 
-      const from = location.state?.from?.pathname;
-      if (from) {
-        navigate(from, { replace: true });
-      } else if (roles.includes('ADMIN')) {
-        navigate('/admin');
-      } else if (roles.includes('EMPLOYER')) {
-        navigate('/employer');
-      } else if (location.pathname === '/') {
-        navigate('/candidate');
-      }
+      goToDashboard(roles);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {

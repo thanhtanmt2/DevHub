@@ -1,6 +1,6 @@
 import Icon, { IconBadge } from '@/components/common/Icon';
 import { useConfirm } from '@/components/common/ConfirmDialog';
-import Avatar from '@/components/common/Avatar';
+import AvatarUploader from '@/components/common/AvatarUploader';
 ﻿import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
@@ -66,7 +66,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white p-6 mb-6 shadow-lift">
         <div className="relative flex flex-col sm:flex-row sm:items-center gap-5">
-          <Avatar name={user?.full_name} src={profile?.avatar_url} size="xl" className="ring-4 ring-white/40" />
+          <AvatarUploader size="xl" light className="ring-4 ring-white/40" />
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">{user?.full_name}</h1>
             <p className="text-white">{profile?.professional_title || 'Chưa cập nhật chức danh'}</p>

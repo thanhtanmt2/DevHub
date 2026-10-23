@@ -1,6 +1,7 @@
 const { Application, ApplicationStatusHistory, CandidateProfile, JobPost, Company, User, Skill } = require('../models');
 const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
+const { createNotification, notifyAdmins } = require('./notificationController');
 
 // POST /api/applications — candidate submits application
 exports.apply = async (req, res, next) => {
@@ -30,6 +31,37 @@ exports.apply = async (req, res, next) => {
       application_id: application.id,
       status: 'PENDING',
       note: 'Hồ sơ vừa được nộp',
+    });
+
+    // Thông báo: nhà tuyển dụng (hoặc Admin với tin nội bộ) có hồ sơ mới; ứng viên nhận xác nhận đã nộp
+    const candidateName = req.user.full_name || 'Một ứng viên';
+    const company = job.company_id ? await Company.findByPk(job.company_id, { attributes: ['id', 'name', 'user_id'] }) : null;
+    if (company?.user_id) {
+      await createNotification({
+        user_id: company.user_id,
+        type: 'APPLICATION_SUBMITTED',
+        title: 'Có hồ sơ ứng tuyển mới',
+        message: `${candidateName} vừa nộp hồ sơ vào vị trí "${job.title}".`,
+        link: `/employer/applications?job_id=${job.id}`,
+        metadata: { job_post_id: job.id, application_id: application.id },
+      });
+    } else {
+      await notifyAdmins({
+        type: 'APPLICATION_SUBMITTED',
+        title: 'Có hồ sơ ứng tuyển mới',
+        message: `${candidateName} vừa nộp hồ sơ vào vị trí "${job.title}".`,
+        link: '/admin/jobs',
+        metadata: { job_post_id: job.id, application_id: application.id },
+      });
+    }
+    await createNotification({
+      user_id: req.user.id,
+      type: 'APPLICATION_SUBMITTED',
+      title: 'Đã nộp hồ sơ ứng tuyển',
+      message: `Hồ sơ của bạn cho vị trí "${job.title}"${company ? ` tại ${company.name}` : ''} đã được gửi. Bạn sẽ nhận thông báo khi nhà tuyển dụng cập nhật.`,
+      link: '/candidate/applications',
+      email: false,
+      metadata: { job_post_id: job.id, application_id: application.id },
     });
 
     res.status(201).json({ success: true, data: application });
@@ -146,8 +178,32 @@ exports.updateApplicationStatus = async (req, res, next) => {
     });
     if (!application) throw new AppError('Application not found or access denied', 404);
 
+    const previousStatus = application.status;
     await application.update({ status });
     await ApplicationStatusHistory.create({ application_id: application.id, status, note });
+
+    // Thông báo cho ứng viên mỗi khi trạng thái hồ sơ thay đổi (email chi tiết của 3 trạng thái cuối được gửi riêng bên dưới)
+    const candidateUserId = application.CandidateProfile?.User?.id;
+    if (candidateUserId && previousStatus !== status) {
+      const pos = application.JobPost?.title || 'vị trí ứng tuyển';
+      const co = company?.name || 'Nhà tuyển dụng';
+      const NOTICE = {
+        VIEWED: ['Hồ sơ của bạn đã được xem', `${co} đã xem hồ sơ ứng tuyển vị trí "${pos}" của bạn.`],
+        INTERVIEW: ['Bạn được mời phỏng vấn', `${co} mời bạn vào vòng phỏng vấn cho vị trí "${pos}". Hãy chú ý email và điện thoại để nhận lịch.`],
+        HIRED: ['Chúc mừng, bạn đã trúng tuyển!', `${co} đã nhận bạn vào vị trí "${pos}". Bộ phận nhân sự sẽ sớm liên hệ để trao đổi chi tiết.`],
+        REJECTED: ['Kết quả ứng tuyển', `${co} chưa thể tiếp nhận hồ sơ vị trí "${pos}" của bạn lần này. Cảm ơn bạn đã quan tâm, hãy tiếp tục ứng tuyển các vị trí khác.`],
+      };
+      const [title, message] = NOTICE[status];
+      await createNotification({
+        user_id: candidateUserId,
+        type: 'APPLICATION_STATUS',
+        title,
+        message: note ? `${message}\nGhi chú từ nhà tuyển dụng: ${note}` : message,
+        link: '/candidate/applications',
+        email: false, // INTERVIEW / HIRED / REJECTED đã có email riêng; VIEWED chỉ cần thông báo trong ứng dụng
+        metadata: { application_id: application.id, status },
+      });
+    }
 
     // --- SEND PROFESSIONAL EMAIL ---
     const candidateEmail = application.CandidateProfile?.User?.email;
@@ -286,6 +342,19 @@ exports.withdrawApplication = async (req, res, next) => {
     if (!['PENDING'].includes(application.status)) {
       throw new AppError('Chỉ có thể rút đơn khi hồ sơ đang ở trạng thái Chờ xem xét', 400);
     }
+
+    // Báo cho nhà tuyển dụng (hoặc Admin với tin nội bộ) biết ứng viên đã rút hồ sơ
+    const job = await JobPost.findByPk(application.job_post_id, { attributes: ['id', 'title', 'company_id'] });
+    const company = job?.company_id ? await Company.findByPk(job.company_id, { attributes: ['user_id'] }) : null;
+    const notice = {
+      type: 'APPLICATION_WITHDRAWN',
+      title: 'Ứng viên đã rút hồ sơ',
+      message: `${req.user.full_name || 'Một ứng viên'} đã rút hồ sơ ứng tuyển vị trí "${job?.title || ''}".`,
+      link: company ? `/employer/applications?job_id=${job.id}` : '/admin/jobs',
+      email: false,
+    };
+    if (company?.user_id) await createNotification({ ...notice, user_id: company.user_id });
+    else if (job) await notifyAdmins(notice);
 
     await application.destroy();
     res.json({ success: true, message: 'Đã rút đơn ứng tuyển thành công' });

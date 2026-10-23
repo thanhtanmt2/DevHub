@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { sequelize, JobPost, JobPostSkill, Skill, Company, User, Application, CandidateProfile } = require('../models');
 const AppError = require('../utils/AppError');
+const { createNotification, notifyAdmins } = require('./notificationController');
 
 // Các trường tin tuyển dụng mà Nhà tuyển dụng / Admin được phép nhập (không cho sửa status, post_type...)
 const JOB_FIELDS = [
@@ -157,6 +158,24 @@ exports.createEmployerJob = async (req, res, next) => {
       const jobSkills = skill_ids.map(skill_id => ({ job_post_id: job.id, skill_id }));
       await JobPostSkill.bulkCreate(jobSkills, { ignoreDuplicates: true });
     }
+
+    // Admin cần duyệt tin; nhà tuyển dụng nhận xác nhận đã gửi duyệt
+    await notifyAdmins({
+      type: 'JOB_PENDING',
+      title: 'Tin tuyển dụng mới chờ duyệt',
+      message: `${company.name} vừa đăng tin "${job.title}" và đang chờ bạn duyệt.`,
+      link: '/admin/jobs',
+      metadata: { job_post_id: job.id },
+    });
+    await createNotification({
+      user_id: req.user.id,
+      type: 'JOB_PENDING',
+      title: 'Tin đã được gửi duyệt',
+      message: `Tin "${job.title}" đang chờ Admin duyệt. Bạn sẽ nhận thông báo ngay khi có kết quả.`,
+      link: '/employer/jobs',
+      email: false,
+      metadata: { job_post_id: job.id },
+    });
     res.status(201).json({ success: true, data: job });
   } catch (error) { next(error); }
 };
@@ -259,6 +278,14 @@ exports.approveJob = async (req, res, next) => {
     if (!job) throw new AppError('Job not found', 404);
     if (job.post_type !== 'PARTNER') throw new AppError('Only PARTNER jobs need approval', 400);
     await job.update({ status: 'OPEN' });
+    await createNotification({
+      user_id: job.created_by_user_id,
+      type: 'JOB_APPROVED',
+      title: 'Tin tuyển dụng đã được duyệt',
+      message: `Tin "${job.title}" đã được duyệt và đang hiển thị cho ứng viên.`,
+      link: '/employer/jobs',
+      metadata: { job_post_id: job.id },
+    });
     res.json({ success: true, message: 'Tin tuyển dụng đã được duyệt', data: job });
   } catch (error) { next(error); }
 };
@@ -271,6 +298,14 @@ exports.rejectJob = async (req, res, next) => {
     if (!job) throw new AppError('Job not found', 404);
     if (job.post_type !== 'PARTNER') throw new AppError('Only PARTNER jobs can be rejected', 400);
     await job.update({ status: 'HIDDEN' });
+    await createNotification({
+      user_id: job.created_by_user_id,
+      type: 'JOB_REJECTED',
+      title: 'Tin tuyển dụng bị từ chối',
+      message: `Tin "${job.title}" chưa được duyệt${reason ? `. Lý do: ${reason}` : ''}. Bạn có thể chỉnh sửa nội dung rồi gửi lại.`,
+      link: '/employer/jobs',
+      metadata: { job_post_id: job.id },
+    });
     res.json({ success: true, message: 'Tin tuyển dụng đã bị từ chối', data: job });
   } catch (error) { next(error); }
 };

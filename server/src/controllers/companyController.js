@@ -1,6 +1,7 @@
 const { Company, User } = require('../models');
 const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
+const { createNotification, notifyAdmins } = require('./notificationController');
 
 // Danh sách free email provider bị chặn
 const FREE_EMAIL_DOMAINS = [
@@ -26,8 +27,17 @@ exports.createCompany = async (req, res, next) => {
   try {
     const existing = await Company.findOne({ where: { user_id: req.user.id } });
     if (existing) throw new AppError('Company profile already exists', 409);
-    const { name, tax_code, address, email, website, description } = req.body;
-    const company = await Company.create({ user_id: req.user.id, name, tax_code, address, email, website, description });
+    const { name, tax_code, address, email, website, description, logo_url } = req.body;
+    const company = await Company.create({ user_id: req.user.id, name, tax_code, address, email, website, description, logo_url: logo_url || null });
+    // Logo công ty cũng là ảnh đại diện của tài khoản
+    if (logo_url) await User.update({ avatar_url: logo_url }, { where: { id: req.user.id } });
+    await notifyAdmins({
+      type: 'COMPANY_PENDING',
+      title: 'Doanh nghiệp mới chờ xác thực',
+      message: `${company.name} vừa tạo hồ sơ doanh nghiệp.`,
+      link: '/admin/companies',
+      metadata: { company_id: company.id },
+    });
     res.status(201).json({ success: true, data: company });
   } catch (error) { next(error); }
 };
@@ -43,6 +53,10 @@ exports.updateCompany = async (req, res, next) => {
       await company.update({ ...rest, email, company_email_verified: false, company_email_token: null, verification_status: 'PENDING' });
     } else {
       await company.update(rest);
+    }
+    // Logo công ty cũng là ảnh đại diện của tài khoản (hiện ở header)
+    if (rest.logo_url !== undefined) {
+      await User.update({ avatar_url: rest.logo_url || null }, { where: { id: req.user.id } });
     }
     res.json({ success: true, data: company });
   } catch (error) { next(error); }
@@ -119,11 +133,27 @@ exports.verifyCompanyEmail = async (req, res, next) => {
       company_email_verified: true,
       company_email_token: null,
       company_email_token_expires: null,
-      // Giữ PENDING — Admin sẽ xem xét và duyệt thủ công
-      verification_status: 'PENDING',
+      // Đã được Admin duyệt thì giữ nguyên; bị từ chối thì gửi lại để Admin xem xét; còn lại vẫn chờ duyệt
+      verification_status: company.verification_status === 'REJECTED' ? 'PENDING' : company.verification_status,
     });
 
-    res.json({ success: true, message: 'Xác thực email doanh nghiệp thành công! Hồ sơ của bạn đang chờ Admin xem xét và phê duyệt.' });
+    // Xác thực email xong mà chưa được duyệt → Admin cần xem xét hồ sơ
+    if (company.verification_status !== 'VERIFIED') {
+      await notifyAdmins({
+        type: 'COMPANY_PENDING',
+        title: 'Doanh nghiệp chờ phê duyệt',
+        message: `${company.name} đã xác thực email công ty và đang chờ bạn phê duyệt.`,
+        link: '/admin/companies',
+        metadata: { company_id: company.id },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: company.verification_status === 'VERIFIED'
+        ? 'Xác thực email doanh nghiệp thành công!'
+        : 'Xác thực email doanh nghiệp thành công! Hồ sơ của bạn đang chờ Admin xem xét và phê duyệt.',
+    });
   } catch (error) { next(error); }
 };
 
@@ -149,6 +179,16 @@ exports.verifyCompany = async (req, res, next) => {
     const company = await Company.findByPk(req.params.id);
     if (!company) throw new AppError('Company not found', 404);
     await company.update({ verification_status });
+    await createNotification({
+      user_id: company.user_id,
+      type: verification_status === 'VERIFIED' ? 'COMPANY_VERIFIED' : 'COMPANY_REJECTED',
+      title: verification_status === 'VERIFIED' ? 'Doanh nghiệp đã được xác thực' : 'Hồ sơ doanh nghiệp bị từ chối',
+      message: verification_status === 'VERIFIED'
+        ? `${company.name} đã được Admin xác thực. Bạn có thể đăng tin tuyển dụng ngay bây giờ.`
+        : `Hồ sơ của ${company.name} chưa được duyệt. Hãy kiểm tra lại thông tin và xác thực email công ty để gửi Admin xem xét lại.`,
+      link: verification_status === 'VERIFIED' ? '/employer/jobs' : '/employer/company',
+      metadata: { company_id: company.id },
+    });
     res.json({ success: true, data: company });
   } catch (error) { next(error); }
 };

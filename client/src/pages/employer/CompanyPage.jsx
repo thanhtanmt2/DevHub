@@ -6,9 +6,11 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SafeImage from '@/components/common/SafeImage';
 import Icon from '@/components/common/Icon';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CompanyPage() {
   const qc = useQueryClient();
+  const { updateUser } = useAuth();
   const [form, setForm] = useState({
     name: '',
     tax_code: '',
@@ -53,6 +55,7 @@ export default function CompanyPage() {
     mutationFn: (payload) => isUpdating ? companyApi.updateCompany(payload) : companyApi.createCompany(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employer-company'] });
+      updateUser({ avatar_url: form.logo_url || null }); // logo công ty cũng là ảnh đại diện trên header
       toast.success(isUpdating ? 'Cập nhật thành công!' : 'Tạo hồ sơ thành công!');
     },
     onError: (err) => {
@@ -248,6 +251,9 @@ export default function CompanyPage() {
                   <div>
                     <p className="font-semibold text-green-700">Email đã được xác thực</p>
                     <p className="text-sm text-green-600">{company.email}</p>
+                    {company.verification_status !== 'VERIFIED' && (
+                      <p className="text-sm text-green-700 mt-1">Hồ sơ đang chờ Admin phê duyệt để được đăng tin tuyển dụng.</p>
+                    )}
                   </div>
                   <button
                     onClick={() => { setOtpSent(false); setOtp(''); setVerifyEmail(''); }}
@@ -257,11 +263,25 @@ export default function CompanyPage() {
                   </button>
                 </div>
               ) : (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-3">
-                  <div className="flex items-center gap-2 text-yellow-700">
-                    <Icon name="alert" className="w-5 h-5" />
-                    <p className="text-sm font-medium">Tài khoản chưa được xác thực — bạn chưa thể đăng tin tuyển dụng</p>
-                  </div>
+                <div className={`p-4 border rounded-xl space-y-3 ${company.verification_status === 'VERIFIED' ? 'bg-primary-50 border-primary-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                  {company.verification_status === 'VERIFIED' ? (
+                    <div className="flex items-start gap-2 text-primary-800">
+                      <Icon name="info" className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm font-medium">
+                        Doanh nghiệp đã được Admin xác thực nên bạn đăng tin tuyển dụng bình thường.
+                        Xác thực thêm email công ty là tùy chọn, giúp ứng viên tin tưởng hơn.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 text-yellow-700">
+                      <Icon name="alert" className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm font-medium">
+                        {company.verification_status === 'REJECTED'
+                          ? 'Hồ sơ doanh nghiệp bị từ chối — bạn chưa thể đăng tin. Hãy xác thực email công ty để gửi Admin xem xét lại.'
+                          : 'Doanh nghiệp chưa được xác thực — bạn chưa thể đăng tin. Hãy xác thực email công ty, sau đó chờ Admin phê duyệt.'}
+                      </p>
+                    </div>
+                  )}
 
                   {!otpSent ? (
                     <div className="flex gap-2">

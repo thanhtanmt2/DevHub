@@ -73,6 +73,7 @@ export default function ManageJobsPage() {
     mutationFn: (data) => jobApi.createJob(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employer-jobs'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Đã tạo tin tuyển dụng');
       closeModal();
     },

@@ -38,6 +38,10 @@ const migrations = [
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_verified BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_token VARCHAR(10)`,
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS company_email_token_expires TIMESTAMPTZ`,
+  // notifications: loại thông báo là chuỗi để thêm loại mới
+  `ALTER TABLE notifications ALTER COLUMN type TYPE VARCHAR(40) USING type::text`,
+  // users: ảnh đại diện (lấy từ hồ sơ ứng viên nếu có)
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)`,
   // job_posts / project_jobs: thông tin chi tiết tin tuyển dụng
   `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS requirements TEXT`,
   `ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS benefits TEXT`,

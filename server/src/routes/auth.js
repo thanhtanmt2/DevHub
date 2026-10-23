@@ -4,7 +4,7 @@ const validate = require('../middleware/validate');
 const { protect } = require('../middleware/auth');
 const {
   register, verifyEmail, login, refresh,
-  logout, forgotPassword, resetPassword, getMe
+  logout, forgotPassword, resetPassword, getMe, updateAvatar
 } = require('../controllers/authController');
 
 router.post('/register', [
@@ -28,5 +28,6 @@ router.post('/reset-password/:token', [
   body('password').isLength({ min: 8 }),
 ], validate, resetPassword);
 router.get('/me', protect, getMe);
+router.put('/me/avatar', protect, updateAvatar);
 
 module.exports = router;

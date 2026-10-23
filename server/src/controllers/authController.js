@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { User, Role } = require('../models');
+const { User, Role, CandidateProfile, Company } = require('../models');
 const { generateAccessToken, generateRefreshToken, generateRandomToken } = require('../utils/generateToken');
 const sendEmail = require('../utils/sendEmail');
 const AppError = require('../utils/AppError');
@@ -308,6 +308,24 @@ exports.resetPassword = async (req, res, next) => {
     // cập nhật password mới và xóa reset token
     await user.update({ password_hash, reset_password_token: null, reset_password_expires: null, refresh_token: null });
     res.json({ success: true, message: 'Password reset successfully. Please log in.' });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/auth/me/avatar — đổi / gỡ ảnh đại diện của chính mình (ảnh đã tải lên qua /api/upload/image)
+exports.updateAvatar = async (req, res, next) => {
+  try {
+    const { avatar_url } = req.body;
+    // Chỉ nhận ảnh nằm trong thư mục ảnh của hệ thống (hoặc null để gỡ ảnh)
+    if (avatar_url && !/^\/uploads\/images\/[\w.-]+$/.test(avatar_url)) {
+      throw new AppError('Ảnh đại diện không hợp lệ', 400);
+    }
+    const user = await User.findByPk(req.user.id);
+    await user.update({ avatar_url: avatar_url || null });
+    // Ứng viên: đồng bộ sang hồ sơ để các màn hình khác (workspace, tìm ứng viên) hiển thị cùng ảnh
+    await CandidateProfile.update({ avatar_url: avatar_url || null }, { where: { user_id: user.id } });
+    // Nhà tuyển dụng: ảnh đại diện chính là logo công ty
+    await Company.update({ logo_url: avatar_url || null }, { where: { user_id: user.id } });
+    res.json({ success: true, data: { avatar_url: user.avatar_url }, message: avatar_url ? 'Đã cập nhật ảnh đại diện' : 'Đã gỡ ảnh đại diện' });
   } catch (error) { next(error); }
 };
 

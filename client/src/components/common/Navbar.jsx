@@ -21,7 +21,8 @@ function NotificationBell() {
   const { data, refetch } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationApi.getAll(),
-    refetchInterval: 30000, // poll every 30s
+    refetchInterval: 15000, // hỏi lại mỗi 15 giây
+    refetchOnWindowFocus: true, // và ngay khi quay lại tab
   });
   const notifications = data?.data?.data || [];
   const unread = data?.data?.unreadCount || 0;
@@ -55,6 +56,16 @@ function NotificationBell() {
     PROJECT_UPDATE: { name: 'pencil', tone: 'gray' }, // task được cập nhật / bị xóa
     INTERVIEW_SCHEDULED: { name: 'calendar', tone: 'blue' },
     APPLICATION_STATUS: { name: 'clipboard', tone: 'blue' },
+    APPLICATION_SUBMITTED: { name: 'inbox', tone: 'blue' },
+    APPLICATION_WITHDRAWN: { name: 'undo', tone: 'amber' },
+    PROJECT_APPLICATION: { name: 'inbox', tone: 'blue' },
+    JOB_PENDING: { name: 'clock', tone: 'amber' },
+    JOB_APPROVED: { name: 'verified', tone: 'green' },
+    JOB_REJECTED: { name: 'xCircle', tone: 'red' },
+    COMPANY_PENDING: { name: 'building', tone: 'amber' },
+    COMPANY_VERIFIED: { name: 'verified', tone: 'green' },
+    COMPANY_REJECTED: { name: 'xCircle', tone: 'red' },
+    PAYMENT_UPDATE: { name: 'cash', tone: 'green' },
   };
   const notifIcon = (type, size) => {
     const i = NOTIF_ICONS[type] || { name: 'bell', tone: 'gray' };
@@ -214,6 +225,8 @@ export default function Navbar() {
   };
 
   const displayName = user?.full_name || user?.email || '';
+  // Ứng viên có trang hồ sơ năng lực riêng; Nhà tuyển dụng / Admin dùng trang tài khoản chung
+  const profileLink = isCandidate() ? '/candidate/profile' : '/account';
 
   return (
     <nav className="sticky top-0 z-30 bg-primary-600 text-white shadow-md shadow-primary-600/20">
@@ -250,7 +263,9 @@ export default function Navbar() {
                 {/* Notification Bell */}
                 <NotificationBell />
                 <div className="flex items-center gap-2 pl-2 ml-1 border-l border-white/25">
-                  <span title={displayName}><Avatar name={displayName} size="sm" className="ring-2 ring-white/70" /></span>
+                  <Link to={profileLink} title={`${displayName} — Hồ sơ cá nhân`} aria-label="Hồ sơ cá nhân" className="rounded-full hover:opacity-90 transition-opacity">
+                    <Avatar name={displayName} src={user?.avatar_url} size="sm" className="ring-2 ring-white/70" />
+                  </Link>
                   <button onClick={handleLogout} className="hidden sm:inline-flex btn-glass text-sm !py-1.5">
                     Đăng xuất
                   </button>
@@ -282,6 +297,7 @@ export default function Navbar() {
       {user && menuOpen && (
         <div className="sm:hidden border-t border-white/15 bg-primary-600 px-4 py-3 space-y-1 animate-fade-in">
           <p className="px-3 pb-2 text-xs text-white truncate">{displayName}</p>
+          <NavLink to={profileLink} className={mobileLinkClass}>Hồ sơ cá nhân</NavLink>
           <NavLink to="/projects" className={mobileLinkClass}>Dự án thời vụ</NavLink>
           <NavLink to="/jobs" className={mobileLinkClass}>Tuyển dụng công ty</NavLink>
           <NavLink to={getDashboardLink()} end className={mobileLinkClass}>Dashboard</NavLink>

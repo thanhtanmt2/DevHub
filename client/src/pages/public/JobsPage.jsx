@@ -13,7 +13,7 @@ import Icon, { IconBadge } from '@/components/common/Icon';
 import useEscapeKey from '@/hooks/useEscapeKey';
 import { SkillTag, WorkTypeBadge } from '@/components/common/Badges';
 import JobDetailView from '@/components/job/JobDetailView';
-import { DeadlineChip, MetaItem } from '@/components/job/JobParts';
+import { DeadlineChip, MetaItem, AppliedBadge } from '@/components/job/JobParts';
 import { timeAgo } from '@/utils/timeAgo';
 import {
   PROVINCES, LOCATION_ANYWHERE, EXPERIENCE_LABELS, LEVEL_LABELS, SALARY_RANGES, WORK_TYPE_LABELS,
@@ -89,7 +89,8 @@ export default function JobsPage() {
   });
 
   const profile = profileRes?.data?.data;
-  const appliedJobIds = new Set(myAppsRes?.data?.data?.map((a) => a.job_post_id) || []);
+  const myApps = myAppsRes?.data?.data || [];
+  const appliedByJob = new Map(myApps.map((a) => [a.job_post_id, a])); // tin → hồ sơ đã nộp
 
   const { data: skillsRes } = useQuery({
     queryKey: ['public-skills'],
@@ -103,6 +104,7 @@ export default function JobsPage() {
       setSelectedJobForApply(null);
       setApplyForm({ cover_letter: '', cv_url: '' });
       qc.invalidateQueries({ queryKey: ['my-applications'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi nộp đơn');
@@ -166,12 +168,8 @@ export default function JobsPage() {
 
   const applyButton = (job) => {
     const expired = deadlineInfo(job.deadline).expired;
-    if (appliedJobIds.has(job.id)) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-          <Icon name="check" className="w-4 h-4" strokeWidth={2.5} /> Đã nộp hồ sơ
-        </span>
-      );
+    if (appliedByJob.has(job.id)) {
+      return <AppliedBadge application={appliedByJob.get(job.id)} className="!px-4 !py-2 !text-sm" />;
     }
     return (
       <button onClick={() => handleApplyClick(job)} disabled={expired} className="btn-primary px-6 py-2.5 whitespace-nowrap">
@@ -287,6 +285,10 @@ export default function JobsPage() {
             {jobs.map((job) => {
               const isSelected = selectedJob?.id === job.id;
               const expired = deadlineInfo(job.deadline).expired;
+              const applied = appliedByJob.get(job.id);
+              // Chưa nộp tin này nhưng đã nộp tin khác của cùng công ty
+              const otherAtCompany = applied || !job.Company ? 0
+                : myApps.filter((a) => a.JobPost?.Company?.id === job.Company.id).length;
               return (
                 <div
                   key={job.id}
@@ -304,7 +306,15 @@ export default function JobsPage() {
                         <h3 className="font-semibold text-lg text-gray-900 hover:text-primary-600 leading-snug">{job.title}</h3>
                         <span className="text-primary-700 font-bold whitespace-nowrap">{formatSalaryShort(job.salary_min, job.salary_max)}</span>
                       </div>
-                      {job.Company && <p className="text-sm text-gray-500 mt-0.5 uppercase tracking-wide truncate">{job.Company.name}</p>}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                        {job.Company && <p className="text-sm text-gray-500 uppercase tracking-wide truncate">{job.Company.name}</p>}
+                        {applied && <AppliedBadge application={applied} />}
+                        {otherAtCompany > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
+                            <Icon name="info" className="w-3.5 h-3.5" />Bạn đã ứng tuyển {otherAtCompany} vị trí khác tại công ty này
+                          </span>
+                        )}
+                      </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5">
                         <MetaItem icon="mapPin">{shortLocation(job.location) || 'Toàn quốc'}</MetaItem>

@@ -49,6 +49,7 @@ export default function ProjectJobDetailPage() {
       toast.success('Nộp đơn ứng tuyển dự án thành công!');
       setShowApply(false);
       qc.invalidateQueries({ queryKey: ['my-project-applications'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
       navigate('/candidate/applications');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi nộp đơn'),

@@ -8,6 +8,7 @@ const {
 const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
 const { logActivity } = require('../utils/activityLogger');
+const { createNotification, notifyAdmins } = require('./notificationController');
 
 // Các trường vị trí dự án mà Admin được nhập
 const PROJECT_JOB_FIELDS = [
@@ -144,6 +145,24 @@ exports.applyProjectJob = async (req, res, next) => {
       entity_name: `Ứng tuyển vị trí ${projectJob.title}`,
       description: `Đã nộp đơn ứng tuyển cho vị trí "${projectJob.title}"`,
       metadata: { project_job_id: projectJob.id, project_id: projectJob.project_id },
+    });
+
+    // Admin có hồ sơ mới cần duyệt; ứng viên nhận xác nhận đã nộp
+    await notifyAdmins({
+      type: 'PROJECT_APPLICATION',
+      title: 'Có ứng viên mới ứng tuyển dự án',
+      message: `${req.user.full_name || 'Một ứng viên'} vừa ứng tuyển vị trí "${projectJob.title}".`,
+      link: '/admin/projects',
+      metadata: { project_job_id: projectJob.id, application_id: application.id },
+    });
+    await createNotification({
+      user_id: req.user.id,
+      type: 'APPLICATION_SUBMITTED',
+      title: 'Đã nộp hồ sơ ứng tuyển dự án',
+      message: `Hồ sơ của bạn cho vị trí "${projectJob.title}" đã được gửi. Bạn sẽ nhận thông báo khi Admin xem xét.`,
+      link: '/candidate/applications',
+      email: false,
+      metadata: { project_job_id: projectJob.id, application_id: application.id },
     });
 
     res.status(201).json({ success: true, data: application, message: 'Ứng tuyển thành công' });

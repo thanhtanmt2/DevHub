@@ -94,6 +94,7 @@ export default function ProjectsPage() {
       qc.invalidateQueries({ queryKey: ['project-jobs'] });
       qc.invalidateQueries({ queryKey: ['my-project-applications'] });
       qc.invalidateQueries({ queryKey: ['my-applications'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi nộp đơn');
