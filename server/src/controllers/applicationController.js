@@ -42,7 +42,7 @@ exports.apply = async (req, res, next) => {
         type: 'APPLICATION_SUBMITTED',
         title: 'Có hồ sơ ứng tuyển mới',
         message: `${candidateName} vừa nộp hồ sơ vào vị trí "${job.title}".`,
-        link: `/employer/applications?job_id=${job.id}`,
+        link: `/employer/jobs/${job.id}?tab=applications`,
         metadata: { job_post_id: job.id, application_id: application.id },
       });
     } else {
@@ -125,7 +125,7 @@ exports.getAllEmployerApplications = async (req, res, next) => {
         },
         {
           model: CandidateProfile,
-          attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name'],
+          attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name', 'avatar_url', 'phone'],
           include: [
             { model: User, attributes: ['full_name', 'email'] },
             { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
@@ -150,7 +150,7 @@ exports.getJobApplications = async (req, res, next) => {
       where: { job_post_id: req.params.jobId },
       include: [{
         model: CandidateProfile,
-        attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name'],
+        attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name', 'avatar_url', 'phone'],
         include: [
           { model: User, attributes: ['full_name', 'email'] },
           { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
@@ -350,7 +350,7 @@ exports.withdrawApplication = async (req, res, next) => {
       type: 'APPLICATION_WITHDRAWN',
       title: 'Ứng viên đã rút hồ sơ',
       message: `${req.user.full_name || 'Một ứng viên'} đã rút hồ sơ ứng tuyển vị trí "${job?.title || ''}".`,
-      link: company ? `/employer/applications?job_id=${job.id}` : '/admin/jobs',
+      link: company ? `/employer/jobs/${job.id}?tab=applications` : '/admin/jobs',
       email: false,
     };
     if (company?.user_id) await createNotification({ ...notice, user_id: company.user_id });

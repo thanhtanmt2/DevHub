@@ -1,5 +1,5 @@
 // nạp các bảng liên quan đến ứng viên trong model 
-const { CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject, Task, SubTask, ProjectJob } = require('../models');
+const { sequelize, CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject, Task, SubTask, ProjectJob, Company, Application, JobPost } = require('../models');
 const { Op } = require('sequelize');
 // nạp class AppError để hiển thị lỗi 
 const AppError = require('../utils/AppError');
@@ -450,6 +450,16 @@ exports.searchCandidates = async (req, res, next) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const { count, rows } = await CandidateProfile.findAndCountAll({
       where,
+      // Kèm số dự án đã tham gia + số task đã được nghiệm thu để nhà tuyển dụng nhìn thẻ là biết kinh nghiệm thực chiến
+      attributes: {
+        include: [
+          [sequelize.literal('(SELECT COUNT(*) FROM workspace_members AS wm WHERE wm.candidate_profile_id = "CandidateProfile"."id")'), 'project_count'],
+          [sequelize.literal(`(SELECT COUNT(*) FROM task_assignees AS ta
+              JOIN tasks AS t ON t.id = ta.task_id
+              JOIN workspace_members AS wm ON wm.id = ta.workspace_member_id
+             WHERE wm.candidate_profile_id = "CandidateProfile"."id" AND t.status = 'DONE')`), 'done_task_count'],
+        ],
+      },
       include,
       limit: parseInt(limit),
       offset,
@@ -466,6 +476,144 @@ exports.searchCandidates = async (req, res, next) => {
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / parseInt(limit)),
+      },
+    });
+  } catch (error) { next(error); }
+};
+
+
+// Tổng số tháng kinh nghiệm từ các mốc làm việc (gộp phần thời gian chồng nhau để không tính trùng)
+function totalExperienceMonths(experiences) {
+  const now = Date.now();
+  const spans = experiences
+    .filter((e) => e.start_date)
+    .map((e) => [new Date(e.start_date).getTime(), e.end_date ? new Date(e.end_date).getTime() : now])
+    .filter(([s, e]) => e > s)
+    .sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let cur = null;
+  for (const [s, e] of spans) {
+    if (!cur) cur = [s, e];
+    else if (s <= cur[1]) cur[1] = Math.max(cur[1], e);
+    else { total += cur[1] - cur[0]; cur = [s, e]; }
+  }
+  if (cur) total += cur[1] - cur[0];
+  return Math.round(total / (1000 * 60 * 60 * 24 * 30.4375));
+}
+
+// GET /api/employer/candidates/:id — hồ sơ đầy đủ của một ứng viên (dành cho Nhà tuyển dụng)
+// Gồm: thông tin, kỹ năng, kinh nghiệm, CV, và đặc biệt là các dự án thật đã làm trên DevHub kèm đóng góp + đánh giá.
+// Email / số điện thoại chỉ hiện với doanh nghiệp đã được Admin xác thực.
+exports.getCandidateForEmployer = async (req, res, next) => {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new AppError('Không tìm thấy ứng viên', 404);
+    const company = await Company.findOne({ where: { user_id: req.user.id }, attributes: ['id', 'verification_status'] });
+    const contactAllowed = company?.verification_status === 'VERIFIED';
+
+    const profile = await CandidateProfile.findByPk(req.params.id, {
+      attributes: ['id', 'professional_title', 'introduction', 'phone', 'address', 'github_url', 'portfolio_url', 'avatar_url', 'cv_url', 'cv_name', 'competency_score'],
+      include: [
+        { model: User, attributes: ['full_name', 'email'] },
+        { model: Skill, through: { attributes: ['level', 'years_of_experience'] }, attributes: ['id', 'name'] },
+        { model: Experience, separate: true, order: [['start_date', 'DESC']] },
+        { model: CandidateCv, as: 'cvs', separate: true, order: [['is_default', 'DESC'], ['created_at', 'DESC']], attributes: ['id', 'name', 'file_url', 'file_name', 'file_size', 'is_default'] },
+      ],
+    });
+    if (!profile) throw new AppError('Không tìm thấy ứng viên', 404);
+
+    // Các dự án đã tham gia trong Workspace của DevHub
+    const members = await WorkspaceMember.findAll({
+      where: { candidate_profile_id: profile.id },
+      include: [
+        {
+          model: Workspace,
+          attributes: ['id', 'name'],
+          include: [{ model: InternalProject, attributes: ['id', 'name', 'description', 'status', 'start_date', 'expected_end_date', 'actual_end_date'] }],
+        },
+        { model: ProjectJob, attributes: ['id', 'title'], include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }] },
+        { model: CandidateEvaluation, attributes: ['score', 'comment', 'evaluated_at'] },
+      ],
+      order: [['joined_at', 'DESC']],
+    });
+
+    // Đóng góp của ứng viên trong từng dự án: số task được giao / đã nghiệm thu / nộp đúng hạn
+    const memberIds = members.map((m) => m.id);
+    const statRows = memberIds.length ? (await sequelize.query(
+      `SELECT ta.workspace_member_id AS member_id,
+              COUNT(*) AS total,
+              COUNT(*) FILTER (WHERE t.status = 'DONE') AS done,
+              COUNT(*) FILTER (WHERE t.status = 'DONE' AND (
+                t.deadline IS NULL
+                OR COALESCE((SELECT MAX(s.submitted_at) FROM task_submissions s WHERE s.task_id = t.id), t.reviewed_at, t.updated_at) < (t.deadline::date + 1)
+              )) AS on_time
+         FROM task_assignees ta JOIN tasks t ON t.id = ta.task_id
+        WHERE ta.workspace_member_id IN (:ids) AND t.status <> 'CANCELLED'
+        GROUP BY ta.workspace_member_id`,
+      { replacements: { ids: memberIds }, type: sequelize.QueryTypes.SELECT }
+    )) : [];
+    const statsByMember = new Map(statRows.map((r) => [r.member_id, { total: Number(r.total), done: Number(r.done), on_time: Number(r.on_time) }]));
+
+    const projects = members.map((m) => {
+      const j = m.toJSON();
+      const stats = statsByMember.get(m.id) || { total: 0, done: 0, on_time: 0 };
+      return {
+        member_id: j.id,
+        role: j.role,
+        member_status: j.status,
+        joined_at: j.joined_at,
+        position: j.ProjectJob?.title || null,
+        skills: j.ProjectJob?.Skills || [],
+        workspace_id: j.Workspace?.id || null,
+        project: j.Workspace?.Project || j.Workspace?.InternalProject || null,
+        tasks: stats,
+        evaluation: j.CandidateEvaluation || null,
+      };
+    });
+
+    const totals = projects.reduce((acc, p) => ({
+      total: acc.total + p.tasks.total, done: acc.done + p.tasks.done, on_time: acc.on_time + p.tasks.on_time,
+    }), { total: 0, done: 0, on_time: 0 });
+
+    // Hồ sơ của ứng viên này đã nộp vào các tin của chính doanh nghiệp (để nhà tuyển dụng quay lại xử lý)
+    const applications = company ? (await Application.findAll({
+      where: { candidate_profile_id: profile.id },
+      attributes: ['id', 'status', 'applied_at'],
+      include: [{ model: JobPost, where: { company_id: company.id }, attributes: ['id', 'title'] }],
+      order: [['applied_at', 'DESC']],
+    })).map((a) => ({ id: a.id, status: a.status, applied_at: a.applied_at, job_id: a.JobPost.id, job_title: a.JobPost.title })) : [];
+
+    const p = profile.toJSON();
+    res.json({
+      success: true,
+      data: {
+        id: p.id,
+        full_name: p.User?.full_name,
+        avatar_url: p.avatar_url,
+        professional_title: p.professional_title,
+        introduction: p.introduction,
+        address: p.address,
+        github_url: p.github_url,
+        portfolio_url: p.portfolio_url,
+        cv_url: p.cv_url,
+        cv_name: p.cv_name,
+        competency_score: p.competency_score,
+        contact_locked: !contactAllowed,
+        email: contactAllowed ? p.User?.email : null,
+        phone: contactAllowed ? p.phone : null,
+        skills: (p.Skills || []).map((s) => ({ id: s.id, name: s.name, level: s.CandidateSkill?.level, years: Number(s.CandidateSkill?.years_of_experience) || 0 })),
+        experiences: p.Experiences || [],
+        cvs: p.cvs || [],
+        projects,
+        applications,
+        summary: {
+          project_count: projects.length,
+          completed_projects: projects.filter((x) => x.project?.status === 'COMPLETED' || x.member_status === 'COMPLETED').length,
+          evaluation_count: projects.filter((x) => x.evaluation).length,
+          tasks_total: totals.total,
+          tasks_done: totals.done,
+          tasks_on_time: totals.on_time,
+          experience_months: totalExperienceMonths(p.Experiences || []),
+        },
       },
     });
   } catch (error) { next(error); }

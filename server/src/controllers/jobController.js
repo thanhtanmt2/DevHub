@@ -44,6 +44,8 @@ exports.getJobs = async (req, res, next) => {
     } = req.query;
     const where = { status: 'OPEN' };
     const and = [];
+    // Tin đã hết hạn nộp hồ sơ thì không hiển thị nữa (vẫn mở được bằng đường link trực tiếp)
+    and.push({ [Op.or]: [{ deadline: null }, { deadline: { [Op.gte]: new Date() } }] });
     if (keyword) {
       and.push({
         [Op.or]: [
@@ -92,15 +94,12 @@ exports.getJobs = async (req, res, next) => {
       include,
       limit: parseInt(limit),
       offset,
-      // Tin còn hạn lên trước, tin đã hết hạn nộp xuống cuối
       order: [
-        [sequelize.literal('CASE WHEN "JobPost"."deadline" IS NOT NULL AND "JobPost"."deadline" < NOW() THEN 1 ELSE 0 END'), 'ASC'],
         ...(sort === 'deadline' ? [[sequelize.literal('"JobPost"."deadline" ASC NULLS LAST')]]
           : sort === 'salary' ? [[sequelize.literal('"JobPost"."salary_max" DESC NULLS LAST')]] : []),
         ['posted_at', 'DESC'],
       ],
       distinct: true,
-      subQuery: false,
     });
 
     res.json({
@@ -201,7 +200,21 @@ exports.updateEmployerJob = async (req, res, next) => {
         await JobPostSkill.bulkCreate(skill_ids.map(s => ({ job_post_id: job.id, skill_id: s })), { ignoreDuplicates: true });
       }
     }
-    res.json({ success: true, data: job });
+
+    // Tin đã bị Admin từ chối (HIDDEN) mà được chỉnh sửa → tự gửi duyệt lại
+    let resubmitted = false;
+    if (job.status === 'HIDDEN') {
+      await job.update({ status: 'PENDING_APPROVAL' });
+      resubmitted = true;
+      await notifyAdmins({
+        type: 'JOB_PENDING',
+        title: 'Tin tuyển dụng được gửi duyệt lại',
+        message: `${company.name} đã chỉnh sửa tin "${job.title}" và gửi lại để bạn duyệt.`,
+        link: '/admin/jobs',
+        metadata: { job_post_id: job.id },
+      });
+    }
+    res.json({ success: true, data: job, ...(resubmitted && { message: 'Đã gửi lại tin để Admin duyệt' }) });
   } catch (error) { next(error); }
 };
 
@@ -216,6 +229,15 @@ exports.closeEmployerJob = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// Số hồ sơ đã nhận / số hồ sơ chưa xem của một tin (tính ngay trong truy vấn)
+const applicationCount = (extraCondition = '') => sequelize.literal(
+  `(SELECT COUNT(*) FROM applications AS a WHERE a.job_post_id = "JobPost"."id"${extraCondition})`
+);
+const COUNT_ATTRIBUTES = [
+  [applicationCount(), 'application_count'],
+  [applicationCount(` AND a.status = 'PENDING'`), 'pending_count'],
+];
+
 // GET /api/employer/jobs — employer's own jobs
 exports.getEmployerJobs = async (req, res, next) => {
   try {
@@ -223,10 +245,30 @@ exports.getEmployerJobs = async (req, res, next) => {
     if (!company) return res.json({ success: true, data: [] });
     const jobs = await JobPost.findAll({
       where: { company_id: company.id },
+      attributes: { include: COUNT_ATTRIBUTES },
       include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }],
       order: [['created_at', 'DESC']],
     });
     res.json({ success: true, data: jobs });
+  } catch (error) { next(error); }
+};
+
+// GET /api/employer/jobs/:id — xem một tin của chính mình (mọi trạng thái, không tăng lượt xem)
+exports.getEmployerJobById = async (req, res, next) => {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    const company = await Company.findOne({ where: { user_id: req.user.id } });
+    if (!company) throw new AppError('Company not found', 404);
+    const job = await JobPost.findOne({
+      where: { id: req.params.id, company_id: company.id },
+      attributes: { include: COUNT_ATTRIBUTES },
+      include: [
+        { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
+        { model: Company, attributes: ['id', 'name', 'logo_url', 'address', 'website', 'description'] },
+      ],
+    });
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    res.json({ success: true, data: job });
   } catch (error) { next(error); }
 };
 

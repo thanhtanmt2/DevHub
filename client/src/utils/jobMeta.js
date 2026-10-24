@@ -101,3 +101,12 @@ export function postedText(value) {
 
 // Địa điểm hiển thị gọn: "TP. Hồ Chí Minh" thay vì cả địa chỉ dài
 export const shortLocation = (loc) => (loc ? String(loc).split(',').pop().trim() : '');
+
+// Trạng thái tin tuyển dụng (dùng ở trang quản lý của nhà tuyển dụng)
+export const JOB_STATUS_META = {
+  DRAFT: { label: 'Bản nháp', cls: 'bg-gray-100 text-gray-700' },
+  PENDING_APPROVAL: { label: 'Chờ Admin duyệt', cls: 'bg-amber-100 text-amber-800' },
+  OPEN: { label: 'Đang tuyển', cls: 'bg-emerald-100 text-emerald-800' },
+  HIDDEN: { label: 'Bị từ chối', cls: 'bg-rose-100 text-rose-700' },
+  CLOSED: { label: 'Đã đóng', cls: 'bg-slate-200 text-slate-600' },
+};

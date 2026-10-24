@@ -251,7 +251,7 @@ export default function ProjectsPage() {
                 <div
                   key={job.id}
                   onClick={() => openJob(job)}
-                  className={`card cursor-pointer transition-all duration-200 border-2 border-l-4 ${expired ? 'opacity-75' : ''} ${
+                  className={`card cursor-pointer transition-all duration-200 border-2 border-l-4 ${
                     isSelected
                       ? 'border-primary-500 ring-2 ring-primary-100 bg-primary-50/30 shadow-md'
                       : 'border-transparent border-l-primary-400 hover:border-primary-200 hover:border-l-primary-500 hover:shadow-lift hover:-translate-y-0.5'

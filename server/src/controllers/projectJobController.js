@@ -29,7 +29,11 @@ const pickProjectJobFields = (body) => {
 exports.getProjectJobs = async (req, res, next) => {
   try {
     const { keyword, skill_id, experience, sort = 'newest', page = 1, limit = 10 } = req.query;
-    const where = { status: 'OPEN' };
+    // Vị trí đã hết hạn nộp hồ sơ thì không hiển thị nữa (vẫn mở được bằng đường link trực tiếp)
+    const where = {
+      status: 'OPEN',
+      [Op.and]: [{ [Op.or]: [{ deadline: null }, { deadline: { [Op.gte]: new Date() } }] }],
+    };
 
     if (keyword) {
       where[Op.or] = [
@@ -63,9 +67,7 @@ exports.getProjectJobs = async (req, res, next) => {
       include,
       limit: parseInt(limit),
       offset,
-      // Vị trí còn hạn lên trước, đã hết hạn nộp xuống cuối
       order: [
-        [sequelize.literal('CASE WHEN "ProjectJob"."deadline" IS NOT NULL AND "ProjectJob"."deadline" < NOW() THEN 1 ELSE 0 END'), 'ASC'],
         ...(sort === 'deadline' ? [[sequelize.literal('"ProjectJob"."deadline" ASC NULLS LAST')]]
           : sort === 'budget' ? [[sequelize.literal('"ProjectJob"."budget" DESC NULLS LAST')]] : []),
         ['created_at', 'DESC'],

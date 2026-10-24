@@ -72,7 +72,7 @@ export default function PublicLayout() {
               <ul className="space-y-3 flex flex-col items-start">
                 <li><FooterLink to="/employer/jobs" user={user} onGuest={openRegisterModal}>Đăng tin tuyển dụng</FooterLink></li>
                 <li><FooterLink to="/employer/candidates" user={user} onGuest={openLoginModal}>Tìm kiếm ứng viên IT</FooterLink></li>
-                <li><FooterLink to="/employer/applications" user={user} onGuest={openLoginModal}>Quản lý hồ sơ ứng tuyển</FooterLink></li>
+                <li><FooterLink to="/employer/jobs" user={user} onGuest={openLoginModal}>Quản lý tin & hồ sơ ứng tuyển</FooterLink></li>
               </ul>
             </div>
           </div>

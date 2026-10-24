@@ -7,7 +7,7 @@ import { DeadlineChip, JobSection, InfoList, CompanyCard, SkillList } from '@/co
 
 // Chi tiết một tin tuyển dụng (dùng cho trang chi tiết và khung xem nhanh ở danh sách).
 // `action` là nút Ứng tuyển do trang cha truyền vào; `compact` = bố cục một cột cho khung xem nhanh.
-export default function JobDetailView({ job, action, compact = false }) {
+export default function JobDetailView({ job, action, compact = false, showTitle = true }) {
   const expired = deadlineInfo(job.deadline).expired;
   const address = job.work_address || job.location;
 
@@ -31,11 +31,15 @@ export default function JobDetailView({ job, action, compact = false }) {
           <WorkTypeBadge type={job.work_type} />
           <DeadlineChip deadline={job.deadline} />
         </div>
-        <h1 className={`${compact ? 'text-xl' : 'text-2xl sm:text-3xl'} font-extrabold text-slate-900 tracking-tight`}>{job.title}</h1>
-        {job.Company && (
-          <p className="mt-1 text-primary-700 font-semibold flex items-center gap-1.5">
-            <Icon name="building" className="w-4 h-4" />{job.Company.name}
-          </p>
+        {showTitle && (
+          <>
+            <h1 className={`${compact ? 'text-xl' : 'text-2xl sm:text-3xl'} font-extrabold text-slate-900 tracking-tight`}>{job.title}</h1>
+            {job.Company && (
+              <p className="mt-1 text-primary-700 font-semibold flex items-center gap-1.5">
+                <Icon name="building" className="w-4 h-4" />{job.Company.name}
+              </p>
+            )}
+          </>
         )}
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">

@@ -9,6 +9,15 @@ export const APPLICATION_STATUS_LABELS = {
   ACCEPTED: 'Trúng tuyển dự án',
 };
 
+// Trạng thái hồ sơ nhìn từ phía nhà tuyển dụng
+export const EMPLOYER_APPLICATION_STATUS = {
+  PENDING: { label: 'Chờ xem', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  VIEWED: { label: 'Đã xem', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  INTERVIEW: { label: 'Phỏng vấn', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+  HIRED: { label: 'Đã tuyển', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  REJECTED: { label: 'Từ chối', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
+};
+
 export const APPLICATION_STATUS_COLORS = {
   PENDING: 'bg-yellow-100 text-yellow-700',
   VIEWED: 'bg-blue-100 text-blue-700',
