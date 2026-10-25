@@ -111,9 +111,6 @@ function CandidateDetailPanel({ app, onClose }) {
                   <span key={skill.id}
                     className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
                     {skill.name}
-                    {skill.CandidateSkill?.level && (
-                      <span className="text-gray-400">· {skill.CandidateSkill.level}</span>
-                    )}
                   </span>
                 ))}
               </div>

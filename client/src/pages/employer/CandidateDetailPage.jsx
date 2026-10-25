@@ -6,18 +6,13 @@ import { companyApi } from '@/api/companyApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
-import { SkillTag } from '@/components/common/Badges';
+import { SkillTag, VerifiedSkillTag } from '@/components/common/Badges';
+import ExperienceTimeline from '@/components/candidate/ExperienceTimeline';
 import { EMPLOYER_APPLICATION_STATUS } from '@/utils/applicationStatus';
 import { formatDate } from '@/utils/jobMeta';
 import { formatFileSize } from '@/utils/fileHelper';
 import { timeAgo } from '@/utils/timeAgo';
 
-const SKILL_LEVEL = {
-  BEGINNER: { label: 'Mới bắt đầu', n: 1 },
-  INTERMEDIATE: { label: 'Trung cấp', n: 2 },
-  ADVANCED: { label: 'Cao cấp', n: 3 },
-  EXPERT: { label: 'Chuyên gia', n: 4 },
-};
 // Với nhà tuyển dụng chỉ cần biết dự án đã xong, đang làm hay đã hủy (giai đoạn "lên kế hoạch / tuyển người" vẫn là đang triển khai)
 const ONGOING = { label: 'Đang thực hiện', cls: 'bg-blue-50 text-blue-700' };
 const PROJECT_STATUS = {
@@ -218,7 +213,7 @@ export default function CandidateDetailPage() {
 
   const score = parseFloat(c.competency_score) || 0;
   const s = c.summary;
-  const skills = [...c.skills].sort((a, b) => (SKILL_LEVEL[b.level]?.n || 0) - (SKILL_LEVEL[a.level]?.n || 0) || b.years - a.years);
+  const skills = [...c.skills].sort((a, b) => (b.evidence?.length > 0) - (a.evidence?.length > 0));
   const mainCv = c.cvs?.[0]?.file_url || c.cv_url;
 
   return (
@@ -289,25 +284,12 @@ export default function CandidateDetailPage() {
             )}
           </Section>
 
-          <Section icon="briefcase" title="Kinh nghiệm làm việc" count={c.experiences.length}>
-            {c.experiences.length ? (
-              <div className="space-y-5">
-                {c.experiences.map((e) => (
-                  <div key={e.id} className="relative pl-5 border-l-2 border-primary-100">
-                    <span className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-primary-500 ring-4 ring-white" />
-                    <p className="font-semibold text-slate-900">{e.job_title}</p>
-                    <p className="text-sm text-primary-700 font-medium">{e.company_name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {e.start_date ? monthYear(e.start_date) : '?'} – {e.end_date ? monthYear(e.end_date) : 'Hiện tại'}
-                      {e.start_date && <span> · {durationText(monthsBetween(e.start_date, e.end_date))}</span>}
-                    </p>
-                    {e.description && <p className="text-sm text-slate-600 mt-2 whitespace-pre-line leading-relaxed">{e.description}</p>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400">Ứng viên chưa khai báo kinh nghiệm làm việc.</p>
-            )}
+          <Section icon="briefcase" title="Sơ đồ kinh nghiệm" hint="Công ty, dự án, freelance và dự án cá nhân theo thời gian. Dự án có huy hiệu xanh được DevHub xác thực.">
+            <ExperienceTimeline
+              experiences={c.experiences}
+              devhubProjects={c.projects}
+              emptyHint="Ứng viên chưa khai báo kinh nghiệm làm việc."
+            />
           </Section>
         </div>
 
@@ -335,21 +317,8 @@ export default function CandidateDetailPage() {
           <div className="card !p-5">
             <h3 className="font-bold text-slate-900 mb-4">Kỹ năng {skills.length > 0 && <span className="text-slate-400 font-semibold">({skills.length})</span>}</h3>
             {skills.length ? (
-              <div className="space-y-3.5">
-                {skills.map((sk) => {
-                  const lv = SKILL_LEVEL[sk.level] || SKILL_LEVEL.BEGINNER;
-                  return (
-                    <div key={sk.id}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-slate-800">{sk.name}</span>
-                        <span className="text-xs text-slate-500">{lv.label}{sk.years ? ` · ${num(sk.years)} năm` : ''}</span>
-                      </div>
-                      <div className="flex gap-1 mt-1.5" aria-hidden="true">
-                        {[1, 2, 3, 4].map((i) => <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= lv.n ? 'bg-primary-500' : 'bg-slate-100'}`} />)}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-wrap gap-2">
+                {skills.map((sk) => <VerifiedSkillTag key={sk.id} name={sk.name} evidence={sk.evidence} className="!text-sm" />)}
               </div>
             ) : <p className="text-sm text-slate-400">Chưa khai báo kỹ năng.</p>}
           </div>

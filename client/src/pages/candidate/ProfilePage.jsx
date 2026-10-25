@@ -1,4 +1,7 @@
 import Icon, { IconBadge } from '@/components/common/Icon';
+import ExperienceTab from '@/components/candidate/ExperienceTab';
+import CvImportModal from '@/components/candidate/CvImportModal';
+import { SkillEvidenceModal } from '@/components/common/Badges';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import AvatarUploader from '@/components/common/AvatarUploader';
 ﻿import { useState, useRef } from 'react';
@@ -10,9 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
-const SKILL_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'];
-const LEVEL_LABELS = { BEGINNER: 'Mới bắt đầu', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên gia' };
-const LEVEL_COLORS = { BEGINNER: 'bg-gray-100 text-gray-700', INTERMEDIATE: 'bg-blue-100 text-blue-700', ADVANCED: 'bg-sky-100 text-sky-700', EXPERT: 'bg-green-100 text-green-700' };
 
 // trang hiển thị thông tin cá nhân của ứng viên 
 export default function ProfilePage() {
@@ -263,6 +263,7 @@ function CvTab({ profile, qc }) {
 
       qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
       qc.invalidateQueries({ queryKey: ['candidate-profile'] });
+      qc.invalidateQueries({ queryKey: ['candidate-skills'] });
       toast.success('Đã tải lên và lưu CV thành công!');
       setCvTitle('');
       setMakeDefault(false);
@@ -280,6 +281,7 @@ function CvTab({ profile, qc }) {
       await candidateApi.setDefaultCv(cvId);
       qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
       qc.invalidateQueries({ queryKey: ['candidate-profile'] });
+      qc.invalidateQueries({ queryKey: ['candidate-skills'] });
       toast.success('Đã đặt làm CV mặc định');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Không thể đặt làm mặc định');
@@ -511,7 +513,9 @@ function CvTab({ profile, qc }) {
 // ── Skills Tab ────────────────────────────────────────
 function SkillsTab({ mySkills, publicSkills, qc }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [newSkill, setNewSkill] = useState({ skill_id: '', level: 'BEGINNER', years_of_experience: 0 });
+  const [evidenceOf, setEvidenceOf] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+  const [newSkill, setNewSkill] = useState({ skill_id: '' });
 
   const addMutation = useMutation({
     mutationFn: (data) => candidateApi.addSkill(data),
@@ -531,29 +535,21 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
     <div className="card">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Kỹ năng ({mySkills.length})</h2>
-        <button onClick={() => setShowAdd(!showAdd)} className="btn-primary text-sm">+ Thêm kỹ năng</button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowImport(true)} className="btn-secondary text-sm">Nhập từ CV</button>
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary text-sm">+ Thêm kỹ năng</button>
+        </div>
       </div>
 
       {showAdd && (
         <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Kỹ năng</label>
               <select className="input-field" value={newSkill.skill_id} onChange={e => setNewSkill({ ...newSkill, skill_id: e.target.value })}>
                 <option value="">Chọn kỹ năng...</option>
                 {availableSkills.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Mức độ</label>
-              <select className="input-field" value={newSkill.level} onChange={e => setNewSkill({ ...newSkill, level: e.target.value })}>
-                {SKILL_LEVELS.map(l => <option key={l} value={l}>{LEVEL_LABELS[l]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Số năm kinh nghiệm</label>
-              <input type="number" min="0" step="0.5" className="input-field"
-                value={newSkill.years_of_experience} onChange={e => setNewSkill({ ...newSkill, years_of_experience: parseFloat(e.target.value) })} />
             </div>
           </div>
           <div className="flex gap-2 mt-3">
@@ -566,169 +562,27 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
       )}
 
       <div className="flex flex-wrap gap-2">
-        {mySkills.length === 0 && <p className="text-gray-400 text-sm">Chưa có kỹ năng nào. Hãy thêm kỹ năng của bạn!</p>}
-        {mySkills.map(s => (
-          <div key={s.skill_id} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${LEVEL_COLORS[s.level]}`}>
-            <span>{s.Skill?.name || s.skill_id}</span>
-            <span className="text-xs opacity-70">
-              · {LEVEL_LABELS[s.level]} {s.years_of_experience > 0 && `(${Number(s.years_of_experience)} năm)`}
-            </span>
+        {mySkills.length === 0 && <p className="text-gray-400 text-sm">Chưa có kỹ năng nào. Hãy thêm kỹ năng hoặc tải CV (PDF) để hệ thống tự lọc kỹ năng!</p>}
+        {mySkills.some(s => s.evidence?.length > 0) && <p className="w-full text-xs text-emerald-700">Kỹ năng viền xanh có minh chứng từ dự án đã hoàn thành trên nền tảng. Bấm vào tên kỹ năng để xem dự án.</p>}
+        {mySkills.map(s => {
+          const projects = [...new Set((s.evidence || []).map(e => e.project_name))];
+          const verified = projects.length > 0;
+          return (
+          <div key={s.skill_id}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${verified ? 'bg-emerald-50 text-emerald-800 ring-2 ring-emerald-400 shadow-sm' : 'bg-gray-100 text-gray-700'}`}>
+            {verified && <Icon name="verified" className="w-4 h-4 text-emerald-600" />}
+            {verified
+              ? <button type="button" onClick={() => setEvidenceOf(s)} className="underline decoration-dotted underline-offset-2 hover:text-emerald-900" title="Bấm để xem các dự án minh chứng">{s.Skill?.name || s.skill_id}</button>
+              : <span>{s.Skill?.name || s.skill_id}</span>}
+            {verified && <span className="text-xs opacity-70">· {projects.length} dự án</span>}
+            {!verified && s.source === 'CV' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 border border-gray-300">Từ CV</span>}
             <button onClick={() => removeMutation.mutate(s.skill_id)} className="ml-1 opacity-60 hover:opacity-100" aria-label="Xóa kỹ năng"><Icon name="x" className="w-3.5 h-3.5" /></button>
           </div>
-        ))}
+          );
+        })}
       </div>
-    </div>
-  );
-}
-
-// ── Experience Tab ────────────────────────────────────
-function ExperienceTab({ experiences, qc }) {
-  const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ job_title: '', company_name: '', start_date: '', end_date: '', description: '' });
-
-  const addMutation = useMutation({
-    mutationFn: (data) => editId ? candidateApi.updateExperience(editId, data) : candidateApi.addExperience(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-experiences'] }); setShowForm(false); setEditId(null); toast.success(editId ? 'Đã cập nhật!' : 'Đã thêm kinh nghiệm!'); },
-    onError: (err) => toast.error(err.response?.data?.message || 'Thất bại'),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => candidateApi.deleteExperience(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-experiences'] }); toast.success('Đã xóa'); },
-  });
-
-  const startEdit = (exp) => {
-    setEditId(exp.id);
-    setForm({ job_title: exp.job_title, company_name: exp.company_name, start_date: exp.start_date || '', end_date: exp.end_date || '', description: exp.description || '' });
-    setShowForm(true);
-  };
-
-  // Sắp xếp: Công việc hiện tại (end_date = null) lên đầu, sau đó xếp theo end_date giảm dần, cuối cùng là start_date giảm dần
-  const sortedExperiences = [...experiences].sort((a, b) => {
-    if (!a.end_date && b.end_date) return -1;
-    if (a.end_date && !b.end_date) return 1;
-    
-    if (a.end_date && b.end_date) {
-      const timeA = new Date(a.end_date).getTime();
-      const timeB = new Date(b.end_date).getTime();
-      if (timeA !== timeB) return timeB - timeA;
-    }
-    
-    return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
-  });
-
-  return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Kinh nghiệm làm việc</h2>
-        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ job_title: '', company_name: '', start_date: '', end_date: '', description: '' }); }} className="btn-primary text-sm">+ Thêm</button>
-      </div>
-
-      {showForm && (
-        <div className="mb-5 p-4 bg-gray-50 rounded-lg border">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Chức vụ</label>
-              <input className="input-field" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} placeholder="Senior Developer" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Công ty</label>
-              <input className="input-field" value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} placeholder="FPT Software" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Ngày bắt đầu</label>
-              <input type="date" className="input-field" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Ngày kết thúc (để trống nếu hiện tại)</label>
-              <input type="date" className="input-field" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Mô tả</label>
-              <textarea className="input-field resize-none" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-            </div>
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button 
-              onClick={() => {
-                const payload = { ...form };
-                if (!payload.end_date) payload.end_date = null;
-                addMutation.mutate(payload);
-              }} 
-              disabled={!form.job_title || !form.company_name || !form.start_date || addMutation.isPending} 
-              className="btn-primary text-sm"
-            >
-              {addMutation.isPending ? 'Đang lưu...' : (editId ? 'Cập nhật' : 'Thêm')}
-            </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary text-sm">Hủy</button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-6">
-        {experiences.length === 0 ? (
-          <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            <IconBadge name="briefcase" size="lg" className="mx-auto" />
-            <p className="text-gray-500 text-sm mt-3 font-medium">Chưa có kinh nghiệm nào.</p>
-            <p className="text-gray-400 text-xs mt-1">Hãy thêm các công việc bạn từng làm để nhà tuyển dụng chú ý hơn.</p>
-          </div>
-        ) : (
-          <div className="relative border-l-2 border-primary-100 ml-4 space-y-6 py-2">
-            {sortedExperiences.map(exp => {
-              const formatDate = (dateString) => {
-                if (!dateString) return '';
-                const d = new Date(dateString);
-                return `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
-              };
-              
-              return (
-                <div key={exp.id} className="relative pl-6">
-                  {/* Timeline dot */}
-                  <div className="absolute w-3.5 h-3.5 bg-primary-500 rounded-full border-[3px] border-white -left-[9px] top-1.5 shadow-sm"></div>
-                  
-                  {/* Content Card */}
-                  <div className="bg-white border border-gray-100 hover:border-primary-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-lg">{exp.job_title}</h4>
-                        <p className="text-sm font-semibold text-primary-600 mb-2">{exp.company_name}</p>
-                        
-                        <div className="inline-flex items-center gap-2 text-xs text-gray-600 mb-3 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full font-medium">
-                          <Icon name="calendar" className="w-3.5 h-3.5" />
-                          <span>{formatDate(exp.start_date)} — {exp.end_date ? formatDate(exp.end_date) : 'Hiện tại'}</span>
-                        </div>
-                        
-                        {exp.description && (
-                          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line mt-1">
-                            {exp.description}
-                          </p>
-                        )}
-                      </div>
-                      
-                      {/* Action buttons (hidden by default, shown on hover) */}
-                      <div className="flex gap-2 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => startEdit(exp)} 
-                          className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
-                        >
-                          Sửa
-                        </button>
-                        <button 
-                          onClick={() => deleteMutation.mutate(exp.id)} 
-                          className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {showImport && <CvImportModal mode="skills" onClose={() => setShowImport(false)} onDone={() => qc.invalidateQueries({ queryKey: ['candidate-skills'] })} />}
+      {evidenceOf && <SkillEvidenceModal skill={evidenceOf.Skill?.name || ''} evidence={evidenceOf.evidence} onClose={() => setEvidenceOf(null)} />}
     </div>
   );
 }

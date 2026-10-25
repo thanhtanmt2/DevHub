@@ -258,7 +258,7 @@ exports.adminGetProjectJobs = async (req, res, next) => {
               { model: User, attributes: ['full_name', 'email'] },
               { 
                 model: Skill, 
-                through: { model: CandidateSkill, attributes: ['level', 'years_of_experience'] }, 
+                through: { model: CandidateSkill, attributes: ['source'] }, 
                 attributes: ['id', 'name'] 
               },
               { 

@@ -3,6 +3,8 @@ const { sequelize, CandidateProfile, CandidateCv, Experience, Skill, CandidateSk
 const { Op } = require('sequelize');
 // nạp class AppError để hiển thị lỗi 
 const AppError = require('../utils/AppError');
+const { getEvidenceForProfiles, syncProjectSkills } = require('../utils/skillEvidence');
+const { extractSkillsFromCv } = require('../utils/cvSkillExtractor');
 
 // GET /api/candidates/profile
 // Lấy thông tin hồ sơ của ứng viên
@@ -11,7 +13,7 @@ exports.getMyProfile = async (req, res, next) => {
     let profile = await CandidateProfile.findOne({
       where: { user_id: req.user.id },
       include: [
-        { model: Skill, through: { attributes: ['level', 'years_of_experience'] } },
+        { model: Skill, through: { attributes: ['source'] } },
         { model: Experience },
         { model: PaymentInformation },
       ],
@@ -53,11 +55,18 @@ exports.getMySkills = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) return res.json({ success: true, data: [] });
+    // Kỹ năng từ dự án đã hoàn thành tự được thêm vào hồ sơ
+    await syncProjectSkills(profile.id);
     const skills = await CandidateSkill.findAll({
       where: { candidate_profile_id: profile.id },
       include: [{ model: Skill, attributes: ['id', 'name'] }],
     });
-    res.json({ success: true, data: skills });
+    // Kỹ năng có minh chứng = đã dùng trong dự án hoàn thành trên nền tảng (đưa lên đầu danh sách)
+    const evidence = (await getEvidenceForProfiles([profile.id])).get(profile.id) || new Map();
+    const data = skills
+      .map((x) => ({ ...x.toJSON(), evidence: evidence.get(x.skill_id) || [] }))
+      .sort((a, b) => (b.evidence.length > 0) - (a.evidence.length > 0));
+    res.json({ success: true, data });
   } catch (error) { next(error); }
 };
 
@@ -65,28 +74,13 @@ exports.getMySkills = async (req, res, next) => {
 // Thêm kỹ năng cho ứng viên
 exports.addSkill = async (req, res, next) => {
   try {
-    const { skill_id, level, years_of_experience } = req.body;
+    const { skill_id } = req.body;
     let profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) profile = await CandidateProfile.create({ user_id: req.user.id });
     const existing = await CandidateSkill.findOne({ where: { candidate_profile_id: profile.id, skill_id } });
     if (existing) throw new AppError('Skill already added', 409);
-    const cs = await CandidateSkill.create({ candidate_profile_id: profile.id, skill_id, level, years_of_experience });
+    const cs = await CandidateSkill.create({ candidate_profile_id: profile.id, skill_id, source: 'MANUAL' });
     res.status(201).json({ success: true, data: cs });
-  } catch (error) { next(error); }
-};
-
-// PUT /api/candidates/skills/:skill_id
-// Cập nhật kỹ năng của ứng viên
-exports.updateSkill = async (req, res, next) => {
-  try {
-    const { skill_id } = req.params;
-    const { level, years_of_experience } = req.body;
-    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Profile not found', 404);
-    const cs = await CandidateSkill.findOne({ where: { candidate_profile_id: profile.id, skill_id } });
-    if (!cs) throw new AppError('Skill not found', 404);
-    await cs.update({ level, years_of_experience });
-    res.json({ success: true, data: cs });
   } catch (error) { next(error); }
 };
 
@@ -114,40 +108,125 @@ exports.getExperiences = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// Chuẩn hóa danh sách chuỗi (việc đã làm, công nghệ): bỏ rỗng, cắt độ dài, giới hạn số lượng
+const EXP_TYPES = ['COMPANY', 'FREELANCE', 'PERSONAL', 'PROJECT'];
+function cleanList(v, maxItems, maxLen) {
+  const arr = Array.isArray(v) ? v : [];
+  return arr.map((x) => String(x ?? '').trim().slice(0, maxLen)).filter(Boolean).slice(0, maxItems);
+}
+
+// Kiểm tra + chuẩn hóa dữ liệu một mục kinh nghiệm (dùng chung cho thêm và sửa)
+async function buildExperienceData(input, profile, selfId) {
+  const type = input.type || 'COMPANY';
+  if (!EXP_TYPES.includes(type)) throw new AppError('Loại kinh nghiệm không hợp lệ', 400);
+  const job_title = String(input.job_title || '').trim();
+  const company_name = String(input.company_name || '').trim();
+  if (!job_title || !company_name) throw new AppError('Vui lòng nhập đủ tên và vai trò', 400);
+  if (!input.start_date) throw new AppError('Vui lòng chọn ngày bắt đầu', 400);
+  const start_date = input.start_date;
+  const end_date = input.end_date || null;
+  if (end_date && new Date(end_date) < new Date(start_date)) throw new AppError('Ngày kết thúc phải sau ngày bắt đầu', 400);
+
+  let parent_id = null;
+  if (type === 'PROJECT') {
+    if (!input.parent_id) throw new AppError('Dự án phải thuộc một công ty', 400);
+    if (input.parent_id === selfId) throw new AppError('Dự án không thể thuộc chính nó', 400);
+    const parent = await Experience.findOne({ where: { id: input.parent_id, candidate_profile_id: profile.id, type: 'COMPANY' } });
+    if (!parent) throw new AppError('Công ty không tồn tại', 400);
+    parent_id = parent.id;
+  }
+  return {
+    type, parent_id, job_title, company_name, start_date, end_date,
+    description: input.description ? String(input.description).trim() : null,
+    tasks: cleanList(input.tasks, 20, 300),
+    technologies: cleanList(input.technologies, 20, 50),
+    link_url: input.link_url ? String(input.link_url).trim().slice(0, 500) : null,
+  };
+}
+
+// Cho cvImportController dùng lại để kiểm tra dữ liệu kinh nghiệm
+exports.buildExperienceData = buildExperienceData;
+
 // POST /api/candidates/experiences
-// Thêm kinh nghiệm cho ứng viên
+// Thêm một mục kinh nghiệm (công ty / freelance / dự án cá nhân / dự án con trong công ty)
 exports.addExperience = async (req, res, next) => {
   try {
-    const { job_title, company_name, start_date, end_date, description } = req.body;
     let profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) profile = await CandidateProfile.create({ user_id: req.user.id });
-    const exp = await Experience.create({ candidate_profile_id: profile.id, job_title, company_name, start_date, end_date, description });
+    const data = await buildExperienceData(req.body, profile);
+    const exp = await Experience.create({ candidate_profile_id: profile.id, ...data });
     res.status(201).json({ success: true, data: exp });
   } catch (error) { next(error); }
 };
 
 // PUT /api/candidates/experiences/:id
-// Cập nhật kinh nghiệm của ứng viên
+// Cập nhật kinh nghiệm (trường không gửi lên thì giữ nguyên)
 exports.updateExperience = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) throw new AppError('Profile not found', 404);
     const exp = await Experience.findOne({ where: { id: req.params.id, candidate_profile_id: profile.id } });
     if (!exp) throw new AppError('Experience not found', 404);
-    await exp.update(req.body);
+    const merged = { ...exp.toJSON(), ...req.body };
+    const data = await buildExperienceData(merged, profile, exp.id);
+    if (exp.type === 'COMPANY' && data.type !== 'COMPANY') {
+      const children = await Experience.count({ where: { parent_id: exp.id } });
+      if (children > 0) throw new AppError('Hãy xóa hoặc chuyển các dự án con trước khi đổi loại công ty', 400);
+    }
+    await exp.update(data);
     res.json({ success: true, data: exp });
   } catch (error) { next(error); }
 };
 
 // DELETE /api/candidates/experiences/:id
-// Xóa kinh nghiệm của ứng viên
+// Xóa kinh nghiệm (xóa công ty thì xóa luôn các dự án con)
 exports.deleteExperience = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) throw new AppError('Profile not found', 404);
-    const deleted = await Experience.destroy({ where: { id: req.params.id, candidate_profile_id: profile.id } });
-    if (!deleted) throw new AppError('Experience not found', 404);
+    const exp = await Experience.findOne({ where: { id: req.params.id, candidate_profile_id: profile.id } });
+    if (!exp) throw new AppError('Experience not found', 404);
+    await Experience.destroy({ where: { parent_id: exp.id, candidate_profile_id: profile.id } });
+    await exp.destroy();
     res.json({ success: true, message: 'Experience deleted' });
+  } catch (error) { next(error); }
+};
+
+// Các dự án thật ứng viên đã tham gia trên DevHub (đưa vào sơ đồ kinh nghiệm, tự động, có xác thực)
+async function loadDevhubProjects(profileId) {
+  const members = await WorkspaceMember.findAll({
+    where: { candidate_profile_id: profileId, status: { [Op.ne]: 'REMOVED' } },
+    include: [
+      {
+        model: Workspace,
+        attributes: ['id', 'name'],
+        include: [{ model: InternalProject, attributes: ['id', 'name', 'description', 'status', 'start_date', 'expected_end_date', 'actual_end_date'] }],
+      },
+      { model: ProjectJob, attributes: ['id', 'title'], include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }] },
+      { model: CandidateEvaluation, attributes: ['score', 'comment', 'evaluated_at'] },
+    ],
+    order: [['joined_at', 'DESC']],
+  });
+  return members.map((m) => {
+    const j = m.toJSON();
+    return {
+      member_id: j.id,
+      member_status: j.status,
+      joined_at: j.joined_at,
+      position: j.ProjectJob?.title || null,
+      skills: j.ProjectJob?.Skills || [],
+      project: j.Workspace?.Project || j.Workspace?.InternalProject || null,
+      evaluation: j.CandidateEvaluation || null,
+    };
+  });
+}
+
+// GET /api/candidates/devhub-projects
+exports.getMyDevhubProjects = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) return res.json({ success: true, data: [] });
+    res.json({ success: true, data: await loadDevhubProjects(profile.id) });
   } catch (error) { next(error); }
 };
 
@@ -295,7 +374,7 @@ exports.getPublicProfile = async (req, res, next) => {
     const profile = await CandidateProfile.findByPk(req.params.id, {
       attributes: { exclude: ['user_id'] },
       include: [
-        { model: Skill, through: { attributes: ['level', 'years_of_experience'] } },
+        { model: Skill, through: { attributes: ['source'] } },
         { model: Experience },
         { model: User, attributes: ['full_name'] },
       ],
@@ -362,7 +441,10 @@ exports.addCv = async (req, res, next) => {
       is_default: shouldBeDefault,
     });
 
-    res.status(201).json({ success: true, data: newCv });
+    // CV mặc định mới: lọc kỹ năng từ CV và tự thêm vào hồ sơ
+    const addedSkills = shouldBeDefault ? await extractSkillsFromCv(profile.id, file_url) : [];
+
+    res.status(201).json({ success: true, data: newCv, added_skills: addedSkills });
   } catch (error) { next(error); }
 };
 
@@ -381,7 +463,9 @@ exports.setDefaultCv = async (req, res, next) => {
     await cv.update({ is_default: true });
     await profile.update({ cv_url: cv.file_url, cv_name: cv.name || cv.file_name });
 
-    res.json({ success: true, data: cv });
+    const addedSkills = await extractSkillsFromCv(profile.id, cv.file_url);
+
+    res.json({ success: true, data: cv, added_skills: addedSkills });
   } catch (error) { next(error); }
 };
 
@@ -433,7 +517,7 @@ exports.searchCandidates = async (req, res, next) => {
       { model: User, attributes: ['full_name'] },
       {
         model: Skill,
-        through: { attributes: ['level', 'years_of_experience'] },
+        through: { attributes: ['source'] },
         attributes: ['id', 'name'],
         ...(skill_id ? { where: { id: skill_id }, required: true } : {}),
       },
@@ -468,9 +552,19 @@ exports.searchCandidates = async (req, res, next) => {
       subQuery: false,
     });
 
+    // Gắn minh chứng dự án cho từng kỹ năng để thẻ ứng viên highlight được
+    const evidenceByProfile = await getEvidenceForProfiles(rows.map((r) => r.id));
+    const data = rows.map((r) => {
+      const j = r.toJSON();
+      const ev = evidenceByProfile.get(r.id) || new Map();
+      j.Skills = (j.Skills || [])
+        .map((sk) => ({ ...sk, evidence: ev.get(sk.id) || [] }))
+        .sort((a, b) => (b.evidence.length > 0) - (a.evidence.length > 0));
+      return j;
+    });
     res.json({
       success: true,
-      data: rows,
+      data,
       pagination: {
         total: count,
         page: parseInt(page),
@@ -514,7 +608,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
       attributes: ['id', 'professional_title', 'introduction', 'phone', 'address', 'github_url', 'portfolio_url', 'avatar_url', 'cv_url', 'cv_name', 'competency_score'],
       include: [
         { model: User, attributes: ['full_name', 'email'] },
-        { model: Skill, through: { attributes: ['level', 'years_of_experience'] }, attributes: ['id', 'name'] },
+        { model: Skill, through: { attributes: ['source'] }, attributes: ['id', 'name'] },
         { model: Experience, separate: true, order: [['start_date', 'DESC']] },
         { model: CandidateCv, as: 'cvs', separate: true, order: [['is_default', 'DESC'], ['created_at', 'DESC']], attributes: ['id', 'name', 'file_url', 'file_name', 'file_size', 'is_default'] },
       ],
@@ -583,6 +677,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
     })).map((a) => ({ id: a.id, status: a.status, applied_at: a.applied_at, job_id: a.JobPost.id, job_title: a.JobPost.title })) : [];
 
     const p = profile.toJSON();
+    const evidenceMap = (await getEvidenceForProfiles([profile.id])).get(profile.id) || new Map();
     res.json({
       success: true,
       data: {
@@ -600,7 +695,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
         contact_locked: !contactAllowed,
         email: contactAllowed ? p.User?.email : null,
         phone: contactAllowed ? p.phone : null,
-        skills: (p.Skills || []).map((s) => ({ id: s.id, name: s.name, level: s.CandidateSkill?.level, years: Number(s.CandidateSkill?.years_of_experience) || 0 })),
+        skills: (p.Skills || []).map((s) => ({ id: s.id, name: s.name, source: s.CandidateSkill?.source, evidence: evidenceMap.get(s.id) || [] })),
         experiences: p.Experiences || [],
         cvs: p.cvs || [],
         projects,
@@ -612,7 +707,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
           tasks_total: totals.total,
           tasks_done: totals.done,
           tasks_on_time: totals.on_time,
-          experience_months: totalExperienceMonths(p.Experiences || []),
+          experience_months: totalExperienceMonths((p.Experiences || []).filter((e) => e.type === 'COMPANY' || e.type === 'FREELANCE')),
         },
       },
     });

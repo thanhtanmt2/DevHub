@@ -128,7 +128,7 @@ exports.getAllEmployerApplications = async (req, res, next) => {
           attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name', 'avatar_url', 'phone'],
           include: [
             { model: User, attributes: ['full_name', 'email'] },
-            { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
+            { model: Skill, through: { attributes: [] }, attributes: ['name'] },
           ],
         },
       ],
@@ -153,7 +153,7 @@ exports.getJobApplications = async (req, res, next) => {
         attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name', 'avatar_url', 'phone'],
         include: [
           { model: User, attributes: ['full_name', 'email'] },
-          { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
+          { model: Skill, through: { attributes: [] }, attributes: ['name'] },
         ],
       }],
       order: [['applied_at', 'DESC']],
@@ -306,7 +306,7 @@ exports.getAdminJobApplications = async (req, res, next) => {
         model: CandidateProfile,
         include: [
           { model: User, attributes: ['full_name', 'email'] },
-          { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
+          { model: Skill, through: { attributes: [] }, attributes: ['name'] },
         ],
       }],
       order: [['applied_at', 'DESC']],

@@ -7,7 +7,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import PageBanner from '@/components/common/PageBanner';
 import Avatar from '@/components/common/Avatar';
-import { SkillTag } from '@/components/common/Badges';
+import { SkillTag, VerifiedSkillTag } from '@/components/common/Badges';
 
 function ScoreBadge({ score }) {
   const s = parseFloat(score);
@@ -183,7 +183,7 @@ export default function SearchCandidatesPage() {
                   {/* Skills */}
                   {cardSkills.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {cardSkills.slice(0, 4).map(s => <SkillTag key={s.id} name={s.name} />)}
+                      {cardSkills.slice(0, 4).map(s => <VerifiedSkillTag key={s.id} name={s.name} evidence={s.evidence} />)}
                       {cardSkills.length > 4 && (
                         <span className="badge bg-gray-50 text-gray-400 border border-gray-100 text-xs px-2 py-0.5">
                           +{cardSkills.length - 4}
