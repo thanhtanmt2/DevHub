@@ -459,7 +459,7 @@ export default function PaymentsPage() {
                       Đã điền sẵn số tài khoản, số tiền & nội dung chuyển khoản
                     </p>
                   </>
-                ) : modalBankInfo ? (
+                ) : modalBankInfo?.account_number ? (
                   <div className="text-center space-y-3 py-4 px-2">
                     <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
                       <Icon name="alert" className="w-6 h-6" />

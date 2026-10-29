@@ -159,6 +159,7 @@ exports.getAllPayments = async (req, res, next) => {
         include: [
           {
             model: CandidateProfile,
+            attributes: ['id', 'user_id', 'professional_title'],
             include: [
               { model: User, attributes: ['full_name', 'email'] },
               { model: PaymentInformation, attributes: ['bank_name', 'account_number', 'account_holder_name'] },
@@ -177,6 +178,33 @@ exports.getAllPayments = async (req, res, next) => {
       }],
       order: [['created_at', 'DESC']],
     });
-    res.json({ success: true, data: payments });
+
+    // Đảm bảo luôn có đầy đủ account_number và account_holder_name (kể cả khi PostgreSQL cắt alias > 63 ký tự)
+    const profileIds = [
+      ...new Set(
+        payments
+          .map((p) => p.WorkspaceMember?.candidate_profile_id || p.WorkspaceMember?.CandidateProfile?.id)
+          .filter(Boolean)
+      ),
+    ];
+    const bankInfos = profileIds.length
+      ? await PaymentInformation.findAll({
+          where: { candidate_profile_id: { [Op.in]: profileIds } },
+          attributes: ['candidate_profile_id', 'bank_name', 'account_number', 'account_holder_name'],
+        })
+      : [];
+    const bankByProfile = new Map(bankInfos.map((b) => [b.candidate_profile_id, b.toJSON()]));
+
+    const data = payments.map((p) => {
+      const json = p.toJSON();
+      const pid = json.WorkspaceMember?.candidate_profile_id || json.WorkspaceMember?.CandidateProfile?.id;
+      if (pid && json.WorkspaceMember?.CandidateProfile) {
+        json.WorkspaceMember.CandidateProfile.PaymentInformation =
+          bankByProfile.get(pid) || json.WorkspaceMember.CandidateProfile.PaymentInformation || null;
+      }
+      return json;
+    });
+
+    res.json({ success: true, data });
   } catch (error) { next(error); }
 };
