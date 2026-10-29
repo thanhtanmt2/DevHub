@@ -4,7 +4,8 @@ import CvImportModal from '@/components/candidate/CvImportModal';
 import { SkillEvidenceModal } from '@/components/common/Badges';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import AvatarUploader from '@/components/common/AvatarUploader';
-﻿import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
 import { skillApi } from '@/api/skillApi';
@@ -12,13 +13,23 @@ import { uploadApi } from '@/api/uploadApi';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { VIETQR_BANKS, resolveVietQrBank } from '@/utils/vietqr';
 
 
 // trang hiển thị thông tin cá nhân của ứng viên 
 export default function ProfilePage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState('info');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'info';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && ['info', 'cv', 'skills', 'experience', 'payment'].includes(t)) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
 
   const { data: profileRes, isLoading } = useQuery({
     queryKey: ['candidate-profile'],
@@ -588,6 +599,15 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
 }
 
 // ── Payment Tab ───────────────────────────────────────
+const PAYMENT_STATUS_META = {
+  PENDING:    { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
+  PROCESSING: { label: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' },
+  PAID:       { label: 'Đã nhận tiền', color: 'bg-emerald-100 text-emerald-700' },
+  FAILED:     { label: 'Thất bại', color: 'bg-red-100 text-red-700' },
+};
+
+const formatVnd = (n) => (n ? `${new Intl.NumberFormat('vi-VN').format(n)}đ` : '0đ');
+
 function PaymentTab({ paymentInfo, qc }) {
   const [form, setForm] = useState({
     account_holder_name: paymentInfo?.account_holder_name || '',
@@ -595,60 +615,208 @@ function PaymentTab({ paymentInfo, qc }) {
     account_number: paymentInfo?.account_number || '',
   });
 
+  const { data: myPaymentsRes, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['my-payments'],
+    queryFn: () => candidateApi.getMyPayments(),
+  });
+
+  const myPayments = myPaymentsRes?.data?.data || [];
+
   const mutation = useMutation({
     mutationFn: (data) => candidateApi.upsertPaymentInfo(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['payment-info'] }); toast.success('Đã lưu thông tin nhận tiền!'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payment-info'] });
+      toast.success('Đã lưu thông tin nhận tiền!');
+    },
     onError: (err) => toast.error(err.response?.data?.message || 'Lưu thất bại'),
   });
 
+  const matchedBank = resolveVietQrBank(form.bank_name);
+  const totalReceived = myPayments
+    .filter((p) => p.status === 'PAID')
+    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  const totalPending = myPayments
+    .filter((p) => p.status === 'PENDING' || p.status === 'PROCESSING')
+    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  const hasFailedPayment = myPayments.some((p) => p.status === 'FAILED');
+
   return (
-    <div className="card">
-      <h2 className="text-lg font-semibold mb-2">Thông tin nhận thù lao</h2>
-      <p className="text-sm text-gray-500 mb-4">Thông tin này được dùng để Admin thực hiện thanh toán sau khi nghiệm thu dự án.</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tên chủ tài khoản</label>
-          <input 
-            className="input-field uppercase" 
-            value={form.account_holder_name} 
-            onChange={e => setForm({ ...form, account_holder_name: e.target.value.toUpperCase() })} 
-            placeholder="NGUYEN VAN A" 
-          />
+    <div className="space-y-6">
+      {hasFailedPayment && (
+        <div className="rounded-xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+          <Icon name="alert" className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">
+              Có khoản thanh toán không thành công
+            </p>
+            <p className="text-xs text-red-600 mt-0.5">
+              Vui lòng kiểm tra và cập nhật lại chính xác Tên ngân hàng, Số tài khoản và Tên chủ tài khoản bên dưới để Admin thực hiện chuyển khoản lại.
+            </p>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ngân hàng</label>
-          <input 
-            list="bank-list"
-            className="input-field" 
-            value={form.bank_name} 
-            onChange={e => setForm({ ...form, bank_name: e.target.value })} 
-            placeholder="VD: Vietcombank, Techcombank..." 
-          />
-          <datalist id="bank-list">
-            <option value="Vietcombank (VCB)" />
-            <option value="Techcombank (TCB)" />
-            <option value="MBBank (MB)" />
-            <option value="ACB" />
-            <option value="VPBank" />
-            <option value="BIDV" />
-            <option value="Agribank" />
-            <option value="VietinBank" />
-            <option value="Sacombank" />
-            <option value="TPBank" />
-            <option value="VIB" />
-            <option value="HDBank" />
-          </datalist>
-          <p className="text-xs text-gray-500 mt-1">Chọn từ danh sách hoặc tự gõ tên ngân hàng của bạn.</p>
+      )}
+
+      {/* Thống kê thu nhập từ dự án */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="card bg-emerald-50 border border-emerald-100 py-4 text-center">
+          <p className="text-xl font-bold text-emerald-700">{formatVnd(totalReceived)}</p>
+          <p className="text-xs text-emerald-600 mt-0.5">Tổng thù lao đã nhận</p>
         </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Số tài khoản</label>
-          <input className="input-field" value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} placeholder="1234567890" />
+        <div className="card bg-amber-50 border border-amber-100 py-4 text-center">
+          <p className="text-xl font-bold text-amber-700">{formatVnd(totalPending)}</p>
+          <p className="text-xs text-amber-600 mt-0.5">Đang chờ thanh toán</p>
+        </div>
+        <div className="card bg-primary-50 border border-primary-100 py-4 text-center">
+          <p className="text-xl font-bold text-primary-700">{myPayments.length}</p>
+          <p className="text-xs text-primary-600 mt-0.5">Tổng số giao dịch</p>
         </div>
       </div>
-      <div className="mt-4 flex justify-end">
-        <button onClick={() => mutation.mutate(form)} disabled={mutation.isPending} className="btn-primary">
-          {mutation.isPending ? 'Đang lưu...' : 'Lưu thông tin'}
-        </button>
+
+      {/* Tài khoản nhận thù lao */}
+      <div className="card">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h2 className="text-lg font-semibold">Tài khoản ngân hàng nhận thù lao</h2>
+          {matchedBank && form.account_number && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              <Icon name="verified" className="w-3.5 h-3.5" /> Hỗ trợ VietQR ({matchedBank.code})
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Thông tin này được dùng để tạo mã VietQR tự động cho Admin chuyển khoản thù lao sau khi nghiệm thu dự án.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tên chủ tài khoản (Không dấu)
+            </label>
+            <input
+              className="input-field uppercase"
+              value={form.account_holder_name}
+              onChange={(e) =>
+                setForm({ ...form, account_holder_name: e.target.value.toUpperCase() })
+              }
+              placeholder="NGUYEN VAN A"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ngân hàng</label>
+            <input
+              list="bank-list"
+              className="input-field"
+              value={form.bank_name}
+              onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
+              placeholder="VD: Vietcombank (VCB), Techcombank (TCB)..."
+            />
+            <datalist id="bank-list">
+              {VIETQR_BANKS.map((b) => (
+                <option key={b.code} value={b.shortName}>
+                  {b.name}
+                </option>
+              ))}
+            </datalist>
+            <p className="text-xs text-gray-500 mt-1">
+              Chọn ngân hàng từ danh sách để hệ thống tự động tạo mã QR chuyển khoản chuẩn xác.
+            </p>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Số tài khoản</label>
+            <input
+              className="input-field font-mono"
+              value={form.account_number}
+              onChange={(e) => setForm({ ...form, account_number: e.target.value.trim() })}
+              placeholder="1234567890"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => {
+              if (!form.account_holder_name.trim() || !form.bank_name.trim() || !form.account_number.trim()) {
+                return toast.error('Vui lòng điền đầy đủ thông tin tài khoản ngân hàng');
+              }
+              mutation.mutate(form);
+            }}
+            disabled={mutation.isPending}
+            className="btn-primary"
+          >
+            {mutation.isPending ? 'Đang lưu...' : 'Lưu thông tin nhận tiền'}
+          </button>
+        </div>
+      </div>
+
+      {/* Lịch sử nhận thù lao */}
+      <div className="card">
+        <h2 className="text-lg font-semibold mb-1">Lịch sử nhận thù lao dự án</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Danh sách các khoản thanh toán thù lao từ các dự án thời vụ bạn đã tham gia trên DevHub.
+        </p>
+
+        {paymentsLoading ? (
+          <div className="py-8 flex justify-center">
+            <LoadingSpinner />
+          </div>
+        ) : myPayments.length === 0 ? (
+          <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl text-gray-400">
+            <IconBadge name="card" size="lg" className="mx-auto mb-2" />
+            <p className="text-sm">Chưa có giao dịch thanh toán thù lao nào.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 border-b text-xs text-gray-600 uppercase">
+                <tr>
+                  <th className="p-3 font-semibold">Dự án / Workspace</th>
+                  <th className="p-3 font-semibold">Vị trí đảm nhiệm</th>
+                  <th className="p-3 font-semibold">Số tiền</th>
+                  <th className="p-3 font-semibold">Mã giao dịch</th>
+                  <th className="p-3 font-semibold">Trạng thái</th>
+                  <th className="p-3 font-semibold">Ngày thanh toán</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {myPayments.map((p) => {
+                  const ws = p.WorkspaceMember?.Workspace;
+                  const projName = ws?.InternalProject?.name || ws?.name || 'Dự án DevHub';
+                  const jobTitle = p.WorkspaceMember?.ProjectJob?.title || 'Thành viên';
+                  const st = PAYMENT_STATUS_META[p.status] || {
+                    label: p.status,
+                    color: 'bg-gray-100 text-gray-600',
+                  };
+
+                  return (
+                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3 font-medium text-gray-900">{projName}</td>
+                      <td className="p-3 text-xs text-gray-600">{jobTitle}</td>
+                      <td className="p-3 font-bold text-primary-700 whitespace-nowrap">
+                        {formatVnd(p.amount)}
+                      </td>
+                      <td className="p-3 font-mono text-xs text-gray-600">
+                        {p.transaction_code || '—'}
+                      </td>
+                      <td className="p-3">
+                        <span className={`badge text-xs font-semibold px-2.5 py-1 ${st.color}`}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
+                        {p.paid_at
+                          ? new Date(p.paid_at).toLocaleDateString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })
+                          : p.createdAt || p.created_at
+                          ? `Tạo: ${new Date(p.createdAt || p.created_at).toLocaleDateString('vi-VN')}`
+                          : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

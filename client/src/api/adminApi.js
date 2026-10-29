@@ -13,6 +13,7 @@ export const adminApi = {
   
   // Payments
   getPayments: () => api.get('/admin/payments'),
+  getPayableMembers: () => api.get('/admin/payments/members'),
   createPayment: (data) => api.post('/admin/payments', data),
   processPayment: (id, data) => api.put(`/admin/payments/${id}/process`, data),
   

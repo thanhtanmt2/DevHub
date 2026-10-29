@@ -359,7 +359,17 @@ exports.getMyPayments = async (req, res, next) => {
       include: [{
         model: WM,
         where: { candidate_profile_id: profile.id },
-        include: [{ model: Workspace, attributes: ['id', 'name'] }],
+        include: [
+          {
+            model: Workspace,
+            attributes: ['id', 'name'],
+            include: [{ model: InternalProject, attributes: ['id', 'name', 'status'] }],
+          },
+          {
+            model: ProjectJob,
+            attributes: ['id', 'title', 'budget'],
+          },
+        ],
       }],
       order: [['created_at', 'DESC']],
     });

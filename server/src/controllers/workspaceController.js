@@ -1,7 +1,9 @@
-const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, ProjectApplication, Skill } = require('../models');
+const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, ProjectApplication, Skill, Payment } = require('../models');
+const { Op } = require('sequelize');
 const AppError = require('../utils/AppError');
 const { logActivity } = require('../utils/activityLogger');
 const { getWorkspaceAccess } = require('../utils/workspaceAccess');
+const { createNotification } = require('./notificationController');
 
 // Ngày (YYYY-MM-DD) theo giờ máy chủ, dùng để so sánh với các cột DATEONLY
 const toDateStr = (d) => {
@@ -136,6 +138,11 @@ exports.updateProject = async (req, res, next) => {
 
     // Ngày kết thúc không được trước ngày bắt đầu (chỉ kiểm tra khi có sửa ngày, không chặn các thay đổi khác)
     const start = data.start_date ?? project.start_date;
+    if (data.status === 'COMPLETED' && !data.actual_end_date && !project.actual_end_date) {
+      const today = toDateStr(new Date());
+      const startStr = toDateStr(start);
+      data.actual_end_date = startStr && today < startStr ? startStr : today;
+    }
     if (data.start_date !== undefined || data.expected_end_date !== undefined) {
       assertEndNotBeforeStart(start, data.expected_end_date ?? project.expected_end_date, 'Hạn hoàn thành dự kiến');
     }
@@ -157,7 +164,56 @@ exports.updateProject = async (req, res, next) => {
       metadata: { workspace_id: workspace?.id },
     });
 
-    res.json({ success: true, data: project });
+    // Tự động khởi tạo yêu cầu thanh toán thù lao khi nghiệm thu hoàn thành dự án
+    let autoCreatedPayments = 0;
+    if (data.status === 'COMPLETED' && oldStatus !== 'COMPLETED' && workspace) {
+      const members = await WorkspaceMember.findAll({
+        where: { workspace_id: workspace.id, status: { [Op.in]: ['ACTIVE', 'COMPLETED'] } },
+        include: [
+          { model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] },
+          { model: ProjectJob, attributes: ['id', 'title', 'budget'] },
+          { model: Payment, attributes: ['id', 'status'] },
+        ],
+      });
+
+      for (const m of members) {
+        const hasValidPayment = (m.Payments || []).some((p) => ['PENDING', 'PROCESSING', 'PAID'].includes(p.status));
+        if (hasValidPayment) continue;
+
+        const jobBudget = Number(m.ProjectJob?.budget) || 0;
+        if (jobBudget < 1000) continue;
+
+        const payment = await Payment.create({
+          workspace_member_id: m.id,
+          amount: jobBudget,
+          payment_method: 'BANK_TRANSFER',
+          status: 'PENDING',
+        });
+        autoCreatedPayments += 1;
+
+        const u = m.CandidateProfile?.User;
+        if (u) {
+          await logActivity(req, {
+            action: 'PAYMENT_CREATED',
+            entity_type: 'payment',
+            entity_id: payment.id,
+            entity_name: `Thanh toán ${jobBudget.toLocaleString('vi-VN')}đ cho ${u.full_name}`,
+            description: `Tự động tạo thanh toán ${jobBudget.toLocaleString('vi-VN')} VND cho ${u.full_name} khi nghiệm thu dự án "${project.name}"`,
+            metadata: { workspace_member_id: m.id, workspace_id: workspace.id },
+          });
+          await createNotification({
+            user_id: u.id,
+            type: 'PAYMENT_UPDATE',
+            title: 'Dự án hoàn thành — Có khoản thanh toán mới',
+            message: `Dự án "${project.name}" đã được nghiệm thu hoàn thành. Khoản thù lao ${jobBudget.toLocaleString('vi-VN')}đ đang được chuẩn bị thanh toán cho bạn.`,
+            link: '/candidate/profile?tab=payment',
+            metadata: { payment_id: payment.id },
+          });
+        }
+      }
+    }
+
+    res.json({ success: true, data: project, auto_created_payments: autoCreatedPayments });
   } catch (error) { next(error); }
 };
 

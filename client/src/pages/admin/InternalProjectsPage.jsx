@@ -39,6 +39,14 @@ const STATUS_LABELS = {
   REJECTED: { label: 'Từ chối', color: 'bg-red-100 text-red-700' },
 };
 
+const PROJECT_STATUS_META = {
+  PLANNING:    { label: 'Lập kế hoạch', color: 'bg-gray-100 text-gray-700' },
+  RECRUITING:  { label: 'Đang tuyển dụng', color: 'bg-blue-100 text-blue-700' },
+  IN_PROGRESS: { label: 'Đang triển khai', color: 'bg-amber-100 text-amber-700' },
+  COMPLETED:   { label: 'Đã nghiệm thu', color: 'bg-emerald-100 text-emerald-700' },
+  CANCELLED:   { label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
+};
+
 // ─── Candidate Detail Panel ─────────────────────────────────────────────────
 function CandidateDetailPanel({ app, onClose }) {
   useEscapeKey(onClose);
@@ -407,6 +415,23 @@ export default function InternalProjectsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi xóa dự án'),
   });
 
+  // Update Project Status (including Project Completion & Auto-create Payments)
+  const updateProjectStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => workspaceApi.updateProject(id, { status }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
+      qc.invalidateQueries({ queryKey: ['admin-payments'] });
+      qc.invalidateQueries({ queryKey: ['admin-payable-members'] });
+      const createdCount = res.data?.auto_created_payments || 0;
+      if (createdCount > 0) {
+        toast.success(`Đã nghiệm thu dự án và tự động tạo ${createdCount} khoản thanh toán thù lao!`);
+      } else {
+        toast.success('Đã cập nhật trạng thái dự án!');
+      }
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi cập nhật trạng thái dự án'),
+  });
+
   // Create Project Job
   const createJobMutation = useMutation({
     mutationFn: ({ projectId, data }) => projectJobApi.createAdminProjectJob(projectId, buildJobPayload(data)),
@@ -581,15 +606,39 @@ export default function InternalProjectsPage() {
           </div>
         )}
 
-        {projects.map((project) => (
+        {projects.map((project) => {
+          const pStatus = PROJECT_STATUS_META[project.status] || { label: project.status, color: 'bg-blue-100 text-blue-700' };
+          return (
           <div key={project.id} className="card hover:shadow-md transition-shadow flex flex-col justify-between">
             <div>
-              <div className="flex justify-between items-start mb-2">
+              <div className="flex justify-between items-start mb-2 gap-2">
                 <h3 className="font-bold text-lg text-gray-900">{project.name}</h3>
-                <div className="flex gap-2 items-center">
-                  <span className="badge bg-blue-100 text-blue-700 text-xs font-semibold">
-                    {project.status}
-                  </span>
+                <div className="flex gap-2 items-center flex-shrink-0">
+                  <select
+                    value={project.status}
+                    disabled={updateProjectStatusMutation.isPending}
+                    onChange={async (e) => {
+                      const nextStatus = e.target.value;
+                      if (nextStatus === project.status) return;
+                      if (nextStatus === 'COMPLETED') {
+                        const ok = await confirm({
+                          title: 'Nghiệm thu hoàn thành dự án',
+                          message: `Xác nhận nghiệm thu hoàn thành dự án "${project.name}"? Hệ thống sẽ tự động tạo yêu cầu thanh toán thù lao (trạng thái Chờ xử lý) cho các thành viên trong Workspace theo mức thù lao vị trí.`,
+                          confirmText: 'Nghiệm thu & Tạo thanh toán',
+                          tone: 'primary',
+                        });
+                        if (!ok) return;
+                      }
+                      updateProjectStatusMutation.mutate({ id: project.id, status: nextStatus });
+                    }}
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400 ${pStatus.color}`}
+                  >
+                    {Object.entries(PROJECT_STATUS_META).map(([k, v]) => (
+                      <option key={k} value={k} className="bg-white text-gray-800 font-normal">
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
                   <button 
                     onClick={async () => {
                       if (await confirm({ title: 'Xóa dự án', message: `Bạn có chắc chắn muốn xóa dự án "${project.name}" không?`, confirmText: 'Xóa dự án', tone: 'danger' })) {
@@ -615,7 +664,7 @@ export default function InternalProjectsPage() {
             </div>
 
             <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setViewJobsProject(project)}
                   className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium"
@@ -628,6 +677,14 @@ export default function InternalProjectsPage() {
                 >
                   + Thêm Vị Trí
                 </button>
+                {project.status === 'COMPLETED' && (
+                  <Link
+                    to="/admin/payments"
+                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-xs font-medium inline-flex items-center gap-1"
+                  >
+                    <Icon name="card" className="w-3.5 h-3.5" /> Thanh toán thù lao
+                  </Link>
+                )}
               </div>
 
               {project.Workspace ? (
@@ -648,7 +705,8 @@ export default function InternalProjectsPage() {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal Thêm / Sửa Vị Trí (ProjectJob) */}

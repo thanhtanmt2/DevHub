@@ -65,6 +65,7 @@ router.post('/workspaces/:workspaceId/members/:memberId/evaluate', [body('score'
 
 // Payments
 router.get('/payments', payCtrl.getAllPayments);
+router.get('/payments/members', payCtrl.getPayableMembers);
 router.post('/payments', [body('amount').isNumeric(), body('workspace_member_id').isUUID()], validate, payCtrl.createPayment);
 router.put('/payments/:id/process', [body('status').isIn(['PROCESSING', 'PAID', 'FAILED'])], validate, payCtrl.processPayment);
 
