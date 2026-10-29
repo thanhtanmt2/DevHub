@@ -4,8 +4,8 @@ const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const ctrl = require('../controllers/candidateController');
 
-// Public route — view profile by ID (for employers)
-router.get('/:id/public', ctrl.getPublicProfile);
+// Không có route công khai xem hồ sơ ứng viên: nhà tuyển dụng xem hồ sơ qua /api/employer/candidates/:id
+// (có khóa thông tin liên hệ với doanh nghiệp chưa xác thực)
 
 // All routes below require authentication as CANDIDATE
 router.use(protect, authorize('CANDIDATE'));
@@ -21,7 +21,7 @@ router.put('/profile', [
 // Skills
 router.get('/skills', ctrl.getMySkills);
 router.post('/skills', [
-  body('skill_id').isUUID().withMessage('Valid skill_id required'),
+  body('skill_id').isUUID().withMessage('Vui lòng chọn kỹ năng hợp lệ'),
 ], validate, ctrl.addSkill);
 router.delete('/skills/:skill_id', ctrl.removeSkill);
 
@@ -64,8 +64,8 @@ router.get('/payments', ctrl.getMyPayments);
 // CVs
 router.get('/cvs', ctrl.getMyCvs);
 router.post('/cvs', [
-  body('file_url').notEmpty().withMessage('file_url required'),
-  body('file_name').notEmpty().withMessage('file_name required'),
+  body('file_url').notEmpty().withMessage('Thiếu đường dẫn file CV'),
+  body('file_name').notEmpty().withMessage('Thiếu tên file CV'),
 ], validate, ctrl.addCv);
 router.put('/cvs/:id/default', ctrl.setDefaultCv);
 // Nhập kỹ năng / kinh nghiệm từ CV đã tải lên: parse = AI đọc và trả bản xem trước, import = lưu phần ứng viên đã chọn

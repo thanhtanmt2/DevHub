@@ -1,8 +1,9 @@
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
+const { Op } = require('sequelize');
 const {
-  Company, CandidateProfile, CandidateCv, Application, ProjectApplication, TaskSubmission, TaskAttachment, User
+  Company, CandidateProfile, CandidateCv, Application, ProjectApplication, TaskSubmission, TaskAttachment, User, RefreshToken
 } = require('../models');
 
 // File mới upload được giữ 1 giờ (người dùng up file mà chưa kịp bấm Lưu form thì không bị xóa nhầm)
@@ -77,11 +78,21 @@ const cleanupOrphanFiles = async () => {
   }
 };
 
+// Xóa các phiên đăng nhập (refresh token) đã hết hạn để bảng refresh_tokens không phình ra
+const cleanupExpiredSessions = async () => {
+  try {
+    await RefreshToken.destroy({ where: { expires_at: { [Op.lt]: new Date() } } });
+  } catch (error) {
+    console.error('[CRON] ❌ Lỗi khi dọn phiên đăng nhập hết hạn:', error);
+  }
+};
+
 // Khởi chạy lập lịch (Cron)
 const startCronJobs = () => {
   // Cú pháp cron: 'Phút Giờ Ngày Tháng Thứ'
   // '0 2 * * *' = Chạy vào đúng 2:00 AM (sáng sớm) mỗi ngày.
   cron.schedule('0 2 * * *', cleanupOrphanFiles);
+  cron.schedule('0 2 * * *', cleanupExpiredSessions);
 };
 
 module.exports = { startCronJobs, cleanupOrphanFiles };

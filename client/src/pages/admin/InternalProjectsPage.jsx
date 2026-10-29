@@ -542,6 +542,7 @@ export default function InternalProjectsPage() {
               <input
                 type="date"
                 className="input-field"
+                min={new Date().toISOString().split('T')[0]}
                 value={projectForm.expected_end_date}
                 onChange={(e) => setProjectForm({ ...projectForm, expected_end_date: e.target.value })}
               />

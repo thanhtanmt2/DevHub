@@ -120,10 +120,10 @@ function ProfileInfoTab({ profile, qc }) {
     mutationFn: (data) => candidateApi.updateProfile(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-profile'] }); toast.success('Cập nhật hồ sơ thành công!'); },
     onError: (err) => {
-      // Backend thường trả về mảng lỗi trong err.response.data.errors nếu dùng express-validator
+      // Backend trả về mảng lỗi { field, message } trong err.response.data.errors nếu dùng express-validator
       const errors = err.response?.data?.errors;
       if (errors && errors.length > 0) {
-        toast.error(errors[0].msg);
+        toast.error(errors[0].message || errors[0].msg || 'Dữ liệu không hợp lệ');
       } else {
         toast.error(err.response?.data?.message || 'Cập nhật thất bại');
       }

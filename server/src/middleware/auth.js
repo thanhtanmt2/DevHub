@@ -15,7 +15,7 @@ const protect = async (req, res, next) => {
     }
     // không có token thì từ chối truy cập 
     if (!token) {
-      return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+      return res.status(401).json({ success: false, message: 'Bạn cần đăng nhập để tiếp tục' });
     }
     // giải mã token và lấy thông tin user 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -25,9 +25,9 @@ const protect = async (req, res, next) => {
       include: [{ association: 'Roles', attributes: ['name'] }]
     });
     // không tìm thấy báo lỗi 401
-    if (!user) return res.status(401).json({ success: false, message: 'User not found' });
+    if (!user) return res.status(401).json({ success: false, message: 'Không tìm thấy tài khoản' });
     // user bị khóa báo lỗi 403 
-    if (user.status === 'LOCKED') return res.status(403).json({ success: false, message: 'Account is locked' });
+    if (user.status === 'LOCKED') return res.status(403).json({ success: false, message: 'Tài khoản đã bị khóa' });
 
     // nếu mọi thứ ok thì gán thông tin user vào req.user và userRoles vào req.userRoles 
     req.user = user;
@@ -35,7 +35,7 @@ const protect = async (req, res, next) => {
     // gọi next() để đưa gói tin đi sâu vào bên trong  
     next();
   } catch (error) {
-    return res.status(401).json({ success: false, message: 'Token invalid or expired' });
+    return res.status(401).json({ success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn' });
   }
 };
 
@@ -47,7 +47,7 @@ const authorize = (...roles) => {
       const hasRole = roles.some(role => req.userRoles && req.userRoles.includes(role));
       if (!hasRole) {
         // không có quyền từ chối 
-        return res.status(403).json({ success: false, message: `Access denied. Required role: ${roles.join(' or ')}` });
+        return res.status(403).json({ success: false, message: 'Bạn không có quyền thực hiện thao tác này' });
       }
       // có quyền thì cho qua 
       next();

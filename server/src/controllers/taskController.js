@@ -361,7 +361,7 @@ exports.getWorkspaceTasks = async (req, res, next) => {
 exports.getTaskById = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id, { include: TASK_INCLUDE });
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
     await requireView(req, task.workspace_id);
     res.json({ success: true, data: await withSubmitters(task) });
   } catch (error) { next(error); }
@@ -442,7 +442,7 @@ exports.createTask = async (req, res, next) => {
 exports.updateTask = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id);
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
 
     const access = await requireView(req, task.workspace_id);
     const { member, canManageTasks } = access;
@@ -624,7 +624,7 @@ exports.updateTask = async (req, res, next) => {
 exports.deleteTask = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id);
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
     await requireManageTasks(req, task.workspace_id);
     if (task.status === 'DONE') throw new AppError('Task đã được nghiệm thu, không thể xóa', 400);
     const { title, workspace_id } = task;
@@ -657,7 +657,7 @@ exports.reviewTask = async (req, res, next) => {
     const { action } = req.body; // action: 'APPROVE' | 'REVISION'
     const review_note = typeof req.body.review_note === 'string' ? req.body.review_note.trim() : '';
     const task = await Task.findByPk(req.params.id || req.params.taskId);
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
     if (task.status !== 'REVIEW') throw new AppError('Task chưa ở trạng thái chờ duyệt', 400);
 
     const access = await getWorkspaceAccess(req, task.workspace_id);
@@ -732,16 +732,16 @@ async function requireEditSubTasks(req, task) {
 // Helper: lấy subtask thuộc đúng task trên URL
 async function findSubTask(req) {
   const task = await Task.findByPk(req.params.id);
-  if (!task) throw new AppError('Task not found', 404);
+  if (!task) throw new AppError('Không tìm thấy task', 404);
   const sub = await SubTask.findOne({ where: { id: req.params.subId, task_id: task.id } });
-  if (!sub) throw new AppError('SubTask not found', 404);
+  if (!sub) throw new AppError('Không tìm thấy subtask', 404);
   return { task, sub };
 }
 
 exports.addSubTask = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id);
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
     await requireEditSubTasks(req, task);
     const title = cleanTitle(req.body.title, 'Tên subtask');
     const maxPos = await SubTask.max('position', { where: { task_id: task.id } });
@@ -779,7 +779,7 @@ exports.deleteSubTask = async (req, res, next) => {
 exports.addComment = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id);
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
 
     // Admin (chủ dự án) và Lead bình luận ở mọi task; thành viên chỉ bình luận/phản hồi trong task ĐƯỢC GIAO cho mình.
     // Task của người khác thì chỉ đọc.
@@ -837,9 +837,9 @@ exports.addComment = async (req, res, next) => {
 exports.deleteComment = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id);
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
     const comment = await TaskComment.findOne({ where: { id: req.params.commentId, task_id: task.id } });
-    if (!comment) throw new AppError('Comment not found', 404);
+    if (!comment) throw new AppError('Không tìm thấy bình luận', 404);
 
     // Chỉ người viết hoặc người quản lý task mới được xóa bình luận
     const access = await requireView(req, task.workspace_id);
@@ -857,7 +857,7 @@ exports.deleteComment = async (req, res, next) => {
 exports.submitTask = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id);
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
     const access = await requireView(req, task.workspace_id);
     if (!access.canManageTasks && !(await isAssignee(task.id, access.member))) {
       throw new AppError('Bạn không được phân công task này', 403);
@@ -923,7 +923,7 @@ exports.getTaskSubmissions = async (req, res, next) => {
     const task = await Task.findByPk(req.params.id, {
       include: [{ model: TaskSubmission, separate: true, order: [['version', 'DESC']] }]
     });
-    if (!task) throw new AppError('Task not found', 404);
+    if (!task) throw new AppError('Không tìm thấy task', 404);
     await requireView(req, task.workspace_id);
     const json = await withSubmitters(task);
     res.json({ success: true, data: json.TaskSubmissions });
@@ -939,7 +939,7 @@ const MAX_ATTACHMENTS_PER_TASK = 30;
 
 async function loadTaskForAttachment(req) {
   const task = await Task.findByPk(req.params.id);
-  if (!task) throw new AppError('Task not found', 404);
+  if (!task) throw new AppError('Không tìm thấy task', 404);
   const access = await requireView(req, task.workspace_id);
   const assigned = await isAssignee(task.id, access.member);
   return { task, access, assigned };

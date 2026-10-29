@@ -12,5 +12,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     joined_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     status: { type: DataTypes.ENUM('ACTIVE', 'COMPLETED', 'REMOVED'), defaultValue: 'ACTIVE' },
-  }, { tableName: 'workspace_members', underscored: true, timestamps: false });
+  }, {
+    tableName: 'workspace_members',
+    underscored: true,
+    timestamps: false,
+    // 1 ứng viên chỉ có 1 bản ghi thành viên trong 1 Workspace (thêm lại sau khi bị gỡ thì kích hoạt lại bản ghi cũ)
+    indexes: [{ unique: true, name: 'uq_workspace_members_workspace_candidate', fields: ['workspace_id', 'candidate_profile_id'] }],
+  });
 };

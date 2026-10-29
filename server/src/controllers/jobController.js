@@ -125,7 +125,7 @@ exports.getJobById = async (req, res, next) => {
         { model: User, as: 'creator', attributes: ['id', 'full_name'] },
       ],
     });
-    if (!job) throw new AppError('Job post not found', 404);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
     // Increment view count
     await job.increment('view_count');
     res.json({ success: true, data: job });
@@ -141,8 +141,8 @@ exports.createEmployerJob = async (req, res, next) => {
     assertValidSalary(fields);
     // Find company of this employer
     const company = await Company.findOne({ where: { user_id: req.user.id } });
-    if (!company) throw new AppError('Please complete your company profile first', 400);
-    if (company.verification_status !== 'VERIFIED') throw new AppError('Company not yet verified by admin', 403);
+    if (!company) throw new AppError('Vui lòng hoàn thiện hồ sơ doanh nghiệp trước', 400);
+    if (company.verification_status !== 'VERIFIED') throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể đăng tin', 403);
 
     const job = await JobPost.create({
       ...fields,
@@ -183,9 +183,9 @@ exports.createEmployerJob = async (req, res, next) => {
 exports.updateEmployerJob = async (req, res, next) => {
   try {
     const company = await Company.findOne({ where: { user_id: req.user.id } });
-    if (!company) throw new AppError('Company not found', 404);
+    if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
     const job = await JobPost.findOne({ where: { id: req.params.id, company_id: company.id } });
-    if (!job) throw new AppError('Job not found or not yours', 404);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng của bạn', 404);
     const { skill_ids } = req.body;
     const updateData = pickJobFields(req.body);
     const oldDeadline = job.deadline ? job.deadline.toISOString() : '';
@@ -223,9 +223,9 @@ exports.closeEmployerJob = async (req, res, next) => {
   try {
     const company = await Company.findOne({ where: { user_id: req.user.id } });
     const job = await JobPost.findOne({ where: { id: req.params.id, company_id: company?.id } });
-    if (!job) throw new AppError('Job not found', 404);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
     await job.update({ status: 'CLOSED' });
-    res.json({ success: true, message: 'Job closed' });
+    res.json({ success: true, message: 'Đã đóng tin tuyển dụng' });
   } catch (error) { next(error); }
 };
 
@@ -258,7 +258,7 @@ exports.getEmployerJobById = async (req, res, next) => {
   try {
     if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
     const company = await Company.findOne({ where: { user_id: req.user.id } });
-    if (!company) throw new AppError('Company not found', 404);
+    if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
     const job = await JobPost.findOne({
       where: { id: req.params.id, company_id: company.id },
       attributes: { include: COUNT_ATTRIBUTES },
@@ -317,8 +317,8 @@ exports.getAdminJobs = async (req, res, next) => {
 exports.approveJob = async (req, res, next) => {
   try {
     const job = await JobPost.findByPk(req.params.id);
-    if (!job) throw new AppError('Job not found', 404);
-    if (job.post_type !== 'PARTNER') throw new AppError('Only PARTNER jobs need approval', 400);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    if (job.post_type !== 'PARTNER') throw new AppError('Chỉ tin của doanh nghiệp đối tác mới cần duyệt', 400);
     await job.update({ status: 'OPEN' });
     await createNotification({
       user_id: job.created_by_user_id,
@@ -337,8 +337,8 @@ exports.rejectJob = async (req, res, next) => {
   try {
     const { reason } = req.body;
     const job = await JobPost.findByPk(req.params.id);
-    if (!job) throw new AppError('Job not found', 404);
-    if (job.post_type !== 'PARTNER') throw new AppError('Only PARTNER jobs can be rejected', 400);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    if (job.post_type !== 'PARTNER') throw new AppError('Chỉ tin của doanh nghiệp đối tác mới có thể từ chối', 400);
     await job.update({ status: 'HIDDEN' });
     await createNotification({
       user_id: job.created_by_user_id,

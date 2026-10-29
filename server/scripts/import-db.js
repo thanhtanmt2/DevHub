@@ -54,6 +54,24 @@ const migrations = [
   `ALTER TABLE project_jobs ADD COLUMN IF NOT EXISTS requirements TEXT`,
   `ALTER TABLE project_jobs ADD COLUMN IF NOT EXISTS benefits TEXT`,
   `ALTER TABLE project_jobs ADD COLUMN IF NOT EXISTS experience VARCHAR(20)`,
+  // candidate_skills: nguồn kỹ năng (MANUAL | CV | PROJECT); experiences: sơ đồ kinh nghiệm (loại mục, dự án con, việc đã làm, công nghệ, link)
+  `ALTER TABLE candidate_skills ADD COLUMN IF NOT EXISTS source VARCHAR(10) NOT NULL DEFAULT 'MANUAL'`,
+  `ALTER TABLE experiences ADD COLUMN IF NOT EXISTS type VARCHAR(10) NOT NULL DEFAULT 'COMPANY'`,
+  `ALTER TABLE experiences ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES experiences(id) ON DELETE CASCADE`,
+  `ALTER TABLE experiences ADD COLUMN IF NOT EXISTS tasks JSONB NOT NULL DEFAULT '[]'::jsonb`,
+  `ALTER TABLE experiences ADD COLUMN IF NOT EXISTS technologies JSONB NOT NULL DEFAULT '[]'::jsonb`,
+  `ALTER TABLE experiences ADD COLUMN IF NOT EXISTS link_url VARCHAR(500)`,
+  `CREATE INDEX IF NOT EXISTS idx_experiences_parent ON experiences(parent_id)`,
+  // users: hạn dùng của link xác thực email (24 giờ)
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_expires TIMESTAMPTZ`,
+  // refresh_tokens: đăng nhập nhiều thiết bị cùng lúc (chỉ lưu bản băm token). Phiên không đi theo file dump, nên xóa token cũ
+  `CREATE TABLE IF NOT EXISTS refresh_tokens (id UUID PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash VARCHAR(64) NOT NULL UNIQUE, user_agent VARCHAR(255), expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
+  `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id)`,
+  `UPDATE users SET refresh_token = NULL WHERE refresh_token IS NOT NULL`,
+  // chống trùng ở mức cơ sở dữ liệu (ứng tuyển, ứng tuyển dự án, thành viên Workspace)
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_applications_candidate_job ON applications (candidate_profile_id, job_post_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_project_applications_candidate_job ON project_applications (candidate_profile_id, project_job_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_workspace_members_workspace_candidate ON workspace_members (workspace_id, candidate_profile_id)`,
 ];
 
 console.log('Đang chạy migration patch...');

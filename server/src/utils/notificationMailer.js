@@ -1,5 +1,6 @@
 const { User } = require('../models');
 const sendEmail = require('./sendEmail');
+const { escapeHtml } = require('./escapeHtml');
 
 // Gửi email kèm mỗi thông báo trong hệ thống (chuông 🔔).
 // - Gửi NỀN theo hàng đợi: không làm chậm thao tác của người dùng, không bắn dồn dập khiến Gmail chặn.
@@ -10,10 +11,6 @@ let queue = Promise.resolve();
 
 const isEnabled = () =>
   process.env.EMAIL_DISABLED !== 'true' && !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS;
-
-const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-));
 
 // Bỏ emoji đầu tiêu đề cho dòng "Chủ đề" của email (hộp thư nhìn gọn hơn)
 const plainTitle = (title) => String(title || 'Thông báo mới').replace(/^[^\p{L}\p{N}]+/u, '').trim() || 'Thông báo mới';

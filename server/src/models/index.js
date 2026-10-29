@@ -7,6 +7,7 @@ const Role = require('./Role')(sequelize, DataTypes);
 const Permission = require('./Permission')(sequelize, DataTypes);
 const RolePermission = require('./RolePermission')(sequelize, DataTypes);
 const User = require('./User')(sequelize, DataTypes);
+const RefreshToken = require('./RefreshToken')(sequelize, DataTypes);
 const UserRole = require('./UserRole')(sequelize, DataTypes);
 const CandidateProfile = require('./CandidateProfile')(sequelize, DataTypes);
 const CandidateCv = require('./CandidateCv')(sequelize, DataTypes);
@@ -186,7 +187,7 @@ module.exports = {
   sequelize,
   Sequelize,
   Role, Permission, RolePermission,
-  User, UserRole,
+  User, UserRole, RefreshToken,
   CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation,
   Company,
   JobPost, JobPostSkill,

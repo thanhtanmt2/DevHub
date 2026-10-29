@@ -48,7 +48,7 @@ app.use('/api/notifications', require('./src/routes/notifications'));
 
 // 404
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  res.status(404).json({ success: false, message: 'Không tìm thấy đường dẫn' });
 });
 
 // Error handler

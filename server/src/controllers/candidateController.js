@@ -78,7 +78,7 @@ exports.addSkill = async (req, res, next) => {
     let profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) profile = await CandidateProfile.create({ user_id: req.user.id });
     const existing = await CandidateSkill.findOne({ where: { candidate_profile_id: profile.id, skill_id } });
-    if (existing) throw new AppError('Skill already added', 409);
+    if (existing) throw new AppError('Kỹ năng này đã có trong hồ sơ của bạn', 409);
     const cs = await CandidateSkill.create({ candidate_profile_id: profile.id, skill_id, source: 'MANUAL' });
     res.status(201).json({ success: true, data: cs });
   } catch (error) { next(error); }
@@ -90,10 +90,10 @@ exports.removeSkill = async (req, res, next) => {
   try {
     const { skill_id } = req.params;
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Profile not found', 404);
+    if (!profile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
     const deleted = await CandidateSkill.destroy({ where: { candidate_profile_id: profile.id, skill_id } });
-    if (!deleted) throw new AppError('Skill not found', 404);
-    res.json({ success: true, message: 'Skill removed' });
+    if (!deleted) throw new AppError('Không tìm thấy kỹ năng', 404);
+    res.json({ success: true, message: 'Đã xóa kỹ năng' });
   } catch (error) { next(error); }
 };
 
@@ -164,9 +164,9 @@ exports.addExperience = async (req, res, next) => {
 exports.updateExperience = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Profile not found', 404);
+    if (!profile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
     const exp = await Experience.findOne({ where: { id: req.params.id, candidate_profile_id: profile.id } });
-    if (!exp) throw new AppError('Experience not found', 404);
+    if (!exp) throw new AppError('Không tìm thấy mục kinh nghiệm', 404);
     const merged = { ...exp.toJSON(), ...req.body };
     const data = await buildExperienceData(merged, profile, exp.id);
     if (exp.type === 'COMPANY' && data.type !== 'COMPANY') {
@@ -183,12 +183,12 @@ exports.updateExperience = async (req, res, next) => {
 exports.deleteExperience = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Profile not found', 404);
+    if (!profile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
     const exp = await Experience.findOne({ where: { id: req.params.id, candidate_profile_id: profile.id } });
-    if (!exp) throw new AppError('Experience not found', 404);
+    if (!exp) throw new AppError('Không tìm thấy mục kinh nghiệm', 404);
     await Experience.destroy({ where: { parent_id: exp.id, candidate_profile_id: profile.id } });
     await exp.destroy();
-    res.json({ success: true, message: 'Experience deleted' });
+    res.json({ success: true, message: 'Đã xóa mục kinh nghiệm' });
   } catch (error) { next(error); }
 };
 
@@ -367,23 +367,6 @@ exports.getMyPayments = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// GET /api/candidates/:id/public — public profile for employers
-// Lấy hồ sơ công khai của ứng viên
-exports.getPublicProfile = async (req, res, next) => {
-  try {
-    const profile = await CandidateProfile.findByPk(req.params.id, {
-      attributes: { exclude: ['user_id'] },
-      include: [
-        { model: Skill, through: { attributes: ['source'] } },
-        { model: Experience },
-        { model: User, attributes: ['full_name'] },
-      ],
-    });
-    if (!profile) throw new AppError('Profile not found', 404);
-    res.json({ success: true, data: profile });
-  } catch (error) { next(error); }
-};
-
 // ── CV Management (Multiple CVs) ──────────────────────
 // GET /api/candidates/cvs
 exports.getMyCvs = async (req, res, next) => {
@@ -452,7 +435,7 @@ exports.addCv = async (req, res, next) => {
 exports.setDefaultCv = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Profile not found', 404);
+    if (!profile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
 
     const cv = await CandidateCv.findOne({
       where: { id: req.params.id, candidate_profile_id: profile.id },
@@ -473,7 +456,7 @@ exports.setDefaultCv = async (req, res, next) => {
 exports.deleteCv = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Profile not found', 404);
+    if (!profile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
 
     const cv = await CandidateCv.findOne({
       where: { id: req.params.id, candidate_profile_id: profile.id },

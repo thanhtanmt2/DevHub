@@ -33,7 +33,7 @@ exports.createSkill = async (req, res, next) => {
 exports.updateSkill = async (req, res, next) => {
   try {
     const skill = await Skill.findByPk(req.params.id);
-    if (!skill) throw new AppError('Skill not found', 404);
+    if (!skill) throw new AppError('Không tìm thấy kỹ năng', 404);
     await skill.update(req.body);
     res.json({ success: true, data: skill });
   } catch (error) { next(error); }

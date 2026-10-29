@@ -13,5 +13,11 @@ module.exports = (sequelize, DataTypes) => {
     company_email_verified: { type: DataTypes.BOOLEAN, defaultValue: false },
     company_email_token: { type: DataTypes.STRING(10) },
     company_email_token_expires: { type: DataTypes.DATE },
-  }, { tableName: 'companies', underscored: true });
+  }, {
+    tableName: 'companies',
+    underscored: true,
+    // Mã OTP xác thực email công ty không bao giờ được trả ra API (nếu lộ, người dùng xác thực được email không phải của mình).
+    // Chỗ cần đọc mã để so khớp dùng Company.unscoped().
+    defaultScope: { attributes: { exclude: ['company_email_token', 'company_email_token_expires'] } },
+  });
 };
