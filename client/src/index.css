@@ -4,35 +4,122 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
   }
   * {
     @apply border-gray-200;
   }
+  ::selection {
+    @apply bg-primary-100 text-primary-900;
+  }
+  /* Thanh cuộn mảnh, nhẹ nhàng */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 9999px; }
+  *::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+}
+
+/* Hiệu ứng chuyển động (khai báo ở đây thay vì tailwind.config để không cần khởi động lại dev server) */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@layer utilities {
+  .shadow-soft {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
+  }
+  .shadow-lift {
+    box-shadow: 0 4px 8px rgba(15, 23, 42, 0.05), 0 12px 28px rgba(15, 23, 42, 0.08);
+  }
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
 }
 
 @layer components {
+  /* Nền xanh thương hiệu dùng chung cho mọi banner đầu trang */
+  .bg-brand-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-primary-500;
+  }
   .btn-primary {
-    @apply px-4 py-2 bg-primary-600 text-white rounded-lg font-medium
-      hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500
-      focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-      transition-colors duration-200;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg font-medium shadow-md shadow-primary-500/25
+      hover:from-primary-600 hover:to-primary-700 hover:shadow-lg hover:shadow-primary-600/30 active:scale-[0.98]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+      disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100
+      transition-all duration-200;
   }
   .btn-secondary {
-    @apply px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium
-      hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm
+      hover:bg-gray-50 hover:border-gray-400 active:scale-[0.98]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+      disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100
+      transition-all duration-200;
+  }
+  /* Nút trắng (chữ xanh thương hiệu) dùng trên nền xanh: banner, hero, thanh điều hướng */
+  .btn-light {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary-700 rounded-lg font-semibold shadow-md shadow-primary-900/15
+      hover:bg-primary-50 hover:shadow-lg active:scale-[0.98]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70
       disabled:opacity-50 disabled:cursor-not-allowed
-      transition-colors duration-200;
+      transition-all duration-200;
+  }
+  /* Nút trong suốt dùng trên nền màu đậm (banner, hero) */
+  .btn-glass {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/15 text-white border border-white/30 rounded-lg font-medium backdrop-blur
+      hover:bg-white/25 active:scale-[0.98]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60
+      transition-all duration-200;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium shadow-sm
+      hover:bg-red-700 hover:shadow-md active:scale-[0.98]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
+      disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100
+      transition-all duration-200;
   }
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-      placeholder:text-gray-400 transition duration-200;
+    @apply w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900
+      hover:border-gray-400
+      focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500
+      placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500
+      transition duration-200;
   }
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-xl shadow-soft border border-gray-200 p-6;
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lift hover:-translate-y-0.5 hover:border-primary-200;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent;
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  /* Tiêu đề trang dùng chung */
+  .page-title {
+    @apply text-2xl font-bold text-slate-900 tracking-tight;
+  }
+  .page-subtitle {
+    @apply text-sm text-slate-500 mt-1;
   }
 }

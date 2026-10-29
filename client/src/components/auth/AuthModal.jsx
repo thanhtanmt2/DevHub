@@ -1,17 +1,53 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/api/authApi';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
+import { IconBadge } from '@/components/common/Icon';
+
+// "Ghi nhớ email": chỉ lưu email, tuyệt đối không lưu mật khẩu
+const REMEMBER_EMAIL_KEY = 'devhub_remembered_email';
+const readRememberedEmail = () => {
+  try { return localStorage.getItem(REMEMBER_EMAIL_KEY) || ''; } catch { return ''; }
+};
+const emptyLoginForm = () => {
+  const email = readRememberedEmail();
+  return { email, password: '', rememberMe: !!email };
+};
+const emptyRegisterForm = () => ({ full_name: '', email: '', password: '', confirmPassword: '', role: 'CANDIDATE' });
+
+// Báo "chưa xác thực email" ngay trong form kèm nút gửi lại link (đăng nhập hoặc đăng ký lại bằng email chưa xác thực)
+function UnverifiedNotice({ email, loading, onResend }) {
+  return (
+    <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3.5 text-sm" role="alert">
+      <p className="font-semibold text-yellow-800">Email này chưa được xác thực</p>
+      <p className="text-yellow-700 mt-0.5">
+        Hãy mở link trong email DevHub đã gửi tới <strong className="break-all">{email}</strong>. Không thấy thư? Kiểm tra mục Spam hoặc gửi lại.
+      </p>
+      <button
+        type="button"
+        disabled={loading}
+        onClick={() => onResend(email)}
+        className="mt-2 font-semibold text-primary-600 hover:underline disabled:opacity-60"
+      >
+        {loading ? 'Đang gửi...' : 'Gửi lại email xác thực'}
+      </button>
+    </div>
+  );
+}
 
 export default function AuthModal() {
   const { authModal, closeAuthModal, setAuthModalView, login, googleLogin } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+
+  // Đăng nhập xong luôn vào Dashboard của đúng vai trò
+  const goToDashboard = (roles) => {
+    navigate(roles.includes('ADMIN') ? '/admin' : roles.includes('EMPLOYER') ? '/employer' : '/candidate', { replace: true });
+  };
 
   // Login form state
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginForm, setLoginForm] = useState(emptyLoginForm);
   const [loginLoading, setLoginLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
@@ -30,18 +66,7 @@ export default function AuthModal() {
       toast.success(`Chào mừng trở lại, ${user.full_name}!`);
       closeAuthModal();
 
-      // kiểm tra xem trước khi đăng nhập user đã cố gắng truy cập vào trang nào khác 
-      const from = location.state?.from?.pathname;
-      if (from) {
-        // replace true để tránh back về trang login sau khi đăng nhập
-        navigate(from, { replace: true });
-      } else if (roles.includes('ADMIN')) {
-        navigate('/admin');
-      } else if (roles.includes('EMPLOYER')) {
-        navigate('/employer');
-      } else if (location.pathname === '/') {
-        navigate('/candidate');
-      }
+      goToDashboard(roles);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Đăng nhập Google thất bại');
     } finally {
@@ -51,13 +76,7 @@ export default function AuthModal() {
 
   // Register form state
   // hook useState để tạo ra một cấu trúc lưu trữ toàn bộ dữ liệu
-  const [registerForm, setRegisterForm] = useState({
-    full_name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'CANDIDATE', // mặc định sẽ là ứng viên 
-  });
+  const [registerForm, setRegisterForm] = useState(emptyRegisterForm); // vai trò mặc định là ứng viên
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
 
@@ -65,6 +84,11 @@ export default function AuthModal() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+
+  // Email đã đăng ký nhưng chưa xác thực → hiện nút "Gửi lại email xác thực"
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [registerEmailSent, setRegisterEmailSent] = useState(true); // false: đăng ký xong nhưng server chưa gửi được email
 
   // Đóng cửa sổ bằng phím tắt 
   useEffect(() => {
@@ -80,13 +104,25 @@ export default function AuthModal() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [authModal.isOpen, closeAuthModal]);
 
-  // Reset register/forgot success states when modal closes or view changes
+  // Khi đóng modal (đăng nhập xong, bấm X, Esc...): xóa sạch dữ liệu đã nhập để lần mở sau (kể cả sau khi
+  // đăng xuất) form luôn trống — chỉ giữ lại email nếu người dùng đã chọn "Ghi nhớ email"
   useEffect(() => {
     if (!authModal.isOpen) {
       setRegisterSuccess(false);
       setForgotSent(false);
+      setLoginForm(emptyLoginForm());
+      setRegisterForm(emptyRegisterForm());
+      setForgotEmail('');
+      setShowLoginPassword(false);
+      setShowRegisterPassword(false);
+      setShowRegisterConfirmPassword(false);
+      setUnverifiedEmail('');
+      setRegisterEmailSent(true);
     }
-  }, [authModal.isOpen, authModal.view]);
+  }, [authModal.isOpen]);
+
+  // Chuyển giữa Đăng nhập / Đăng ký / Quên mật khẩu thì bỏ thông báo "chưa xác thực" cũ
+  useEffect(() => { setUnverifiedEmail(''); }, [authModal.view]);
 
   if (!authModal.isOpen) return null;
 
@@ -95,30 +131,45 @@ export default function AuthModal() {
     e.preventDefault(); // chặn load lại trang web 
     setLoginLoading(true); // bật loading
     try {
-      const user = await login(loginForm);
-      // gán vai trò của user vào biến roles 
+      // Chỉ gửi email + mật khẩu lên server (rememberMe là thiết lập phía trình duyệt)
+      const user = await login({ email: loginForm.email, password: loginForm.password });
+      try {
+        if (loginForm.rememberMe) localStorage.setItem(REMEMBER_EMAIL_KEY, loginForm.email.trim());
+        else localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      } catch { /* trình duyệt chặn lưu trữ: bỏ qua */ }
+      // gán vai trò của user vào biến roles
       const roles = user.Roles?.map((r) => r.name) || [];
       toast.success(`Chào mừng trở lại, ${user.full_name}!`);
       closeAuthModal();
 
-      const from = location.state?.from?.pathname;
-      if (from) {
-        navigate(from, { replace: true });
-      } else if (roles.includes('ADMIN')) {
-        navigate('/admin');
-      } else if (roles.includes('EMPLOYER')) {
-        navigate('/employer');
-      } else if (location.pathname === '/') {
-        navigate('/candidate');
-      }
+      goToDashboard(roles);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Đăng nhập thất bại');
+      // Đúng mật khẩu nhưng chưa xác thực email: báo ngay trong form kèm nút gửi lại, không cần toast
+      if (err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+        setUnverifiedEmail(loginForm.email.trim());
+      } else {
+        setUnverifiedEmail('');
+        toast.error(err.response?.data?.message || 'Đăng nhập thất bại');
+      }
     } finally {
       setLoginLoading(false);
     }
   };
 
-  // Hàm xử lý khi bấm Đăng ký 
+  // Gửi lại email xác thực (link cũ hết hạn, email lỗi hoặc không nhận được thư)
+  const handleResend = async (email) => {
+    setResendLoading(true);
+    try {
+      const { data } = await authApi.resendVerification(email);
+      toast.success(data.message || 'Đã gửi lại email xác thực');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Chưa gửi được email, vui lòng thử lại sau');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  // Hàm xử lý khi bấm Đăng ký
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (registerForm.password !== registerForm.confirmPassword) {
@@ -128,17 +179,24 @@ export default function AuthModal() {
       return toast.error('Mật khẩu tối thiểu 8 ký tự');
     }
     setRegisterLoading(true);
+    setUnverifiedEmail('');
     try {
-      // gọi hàm API để gửi dữ liệu lên server 
-      await authApi.register({
+      // gọi hàm API để gửi dữ liệu lên server
+      const { data } = await authApi.register({
         full_name: registerForm.full_name,
         email: registerForm.email,
         password: registerForm.password,
         role: registerForm.role,
       });
+      setRegisterEmailSent(data.data?.email_sent !== false);
       setRegisterSuccess(true);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Đăng ký thất bại');
+      // Email đã đăng ký từ trước nhưng chưa xác thực: gợi ý gửi lại email thay vì chỉ báo "đã tồn tại"
+      if (err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+        setUnverifiedEmail(registerForm.email.trim());
+      } else {
+        toast.error(err.response?.data?.message || 'Đăng ký thất bại');
+      }
     } finally {
       setRegisterLoading(false);
     }
@@ -219,16 +277,13 @@ export default function AuthModal() {
 
         {/* --- VIEW: LOGIN --- */}
         {authModal.view === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
-            {/* Hidden dummy inputs để đánh lừa trình duyệt không autofill */}
-            <input type="text" style={{ display: 'none' }} />
-            <input type="password" style={{ display: 'none' }} />
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
                 name="email_devhub"
-                autoComplete="new-password"
+                autoComplete="off"
                 required
                 className="input-field"
                 placeholder="you@example.com"
@@ -280,7 +335,7 @@ export default function AuthModal() {
                   onChange={(e) => setLoginForm({ ...loginForm, rememberMe: e.target.checked })}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer">
-                  Lưu mật khẩu
+                  Ghi nhớ email
                 </label>
               </div>
               <button
@@ -291,6 +346,7 @@ export default function AuthModal() {
                 Quên mật khẩu?
               </button>
             </div>
+            {unverifiedEmail && <UnverifiedNotice email={unverifiedEmail} loading={resendLoading} onResend={handleResend} />}
             <button type="submit" disabled={loginLoading} className="btn-primary w-full">
               {loginLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
@@ -326,10 +382,25 @@ export default function AuthModal() {
         {authModal.view === 'register' && (
           registerSuccess ? (
             <div className="text-center py-4">
-              <div className="text-5xl mb-3">📧</div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Kiểm tra email của bạn</h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Chúng tôi đã gửi link xác thực đến <strong>{registerForm.email}</strong>. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.
+              <IconBadge name="mail" size="lg" tone="blue" className="mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                {registerEmailSent ? 'Kiểm tra email của bạn' : 'Đăng ký thành công'}
+              </h3>
+              <p className="text-sm text-gray-500 mb-3">
+                {registerEmailSent
+                  ? <>Chúng tôi đã gửi link xác thực đến <strong>{registerForm.email}</strong>. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.</>
+                  : <>Tài khoản đã được tạo nhưng hệ thống chưa gửi được email xác thực tới <strong>{registerForm.email}</strong>. Hãy bấm gửi lại bên dưới.</>}
+              </p>
+              <p className={`mb-6 ${registerEmailSent ? 'text-xs text-gray-500' : 'text-sm'}`}>
+                {registerEmailSent ? 'Không thấy email? Kiểm tra mục Spam hoặc ' : ''}
+                <button
+                  type="button"
+                  disabled={resendLoading}
+                  onClick={() => handleResend(registerForm.email.trim())}
+                  className="font-semibold text-primary-600 hover:underline disabled:opacity-60"
+                >
+                  {resendLoading ? 'Đang gửi...' : registerEmailSent ? 'gửi lại email xác thực' : 'Gửi lại email xác thực'}
+                </button>
               </p>
               <button
                 type="button"
@@ -450,6 +521,7 @@ export default function AuthModal() {
                   </button>
                 </div>
               </div>
+              {unverifiedEmail && <UnverifiedNotice email={unverifiedEmail} loading={resendLoading} onResend={handleResend} />}
               <button type="submit" disabled={registerLoading} className="btn-primary w-full mt-2">
                 {registerLoading ? 'Đang xử lý...' : 'Tạo tài khoản'}
               </button>
@@ -473,7 +545,7 @@ export default function AuthModal() {
           <div>
             {forgotSent ? (
               <div className="text-center py-4">
-                <div className="text-4xl mb-3">✉️</div>
+                <IconBadge name="mail" size="lg" tone="blue" className="mx-auto mb-3" />
                 <h3 className="font-semibold text-lg mb-2">Email đã được gửi</h3>
                 <p className="text-gray-500 text-sm mb-5">
                   Nếu email <strong>{forgotEmail}</strong> tồn tại trong hệ thống, bạn sẽ nhận được liên kết đặt lại mật khẩu.

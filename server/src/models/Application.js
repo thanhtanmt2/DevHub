@@ -7,5 +7,12 @@ module.exports = (sequelize, DataTypes) => {
     cv_url: { type: DataTypes.STRING(500) },
     status: { type: DataTypes.ENUM('PENDING', 'VIEWED', 'INTERVIEW', 'HIRED', 'REJECTED'), defaultValue: 'PENDING' },
     applied_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  }, { tableName: 'applications', underscored: true, updatedAt: 'updated_at', createdAt: 'applied_at' });
+  }, {
+    tableName: 'applications',
+    underscored: true,
+    updatedAt: 'updated_at',
+    createdAt: 'applied_at',
+    // 1 ứng viên chỉ ứng tuyển 1 lần vào 1 tin (chặn cả trường hợp bấm đúp nhanh)
+    indexes: [{ unique: true, name: 'uq_applications_candidate_job', fields: ['candidate_profile_id', 'job_post_id'] }],
+  });
 };

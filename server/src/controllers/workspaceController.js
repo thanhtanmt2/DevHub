@@ -3,10 +3,28 @@ const AppError = require('../utils/AppError');
 const { logActivity } = require('../utils/activityLogger');
 const { getWorkspaceAccess } = require('../utils/workspaceAccess');
 
+// Ngày (YYYY-MM-DD) theo giờ máy chủ, dùng để so sánh với các cột DATEONLY
+const toDateStr = (d) => {
+  if (!d) return null;
+  if (typeof d === 'string') return d.slice(0, 10);
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+};
+
+// Ràng buộc dữ liệu: ngày kết thúc dự án không được trước ngày bắt đầu
+const assertEndNotBeforeStart = (start, end, label) => {
+  const s = toDateStr(start);
+  const e = toDateStr(end);
+  if (s && e && e < s) throw new AppError(`${label} không được trước ngày bắt đầu dự án (${s.split('-').reverse().join('/')})`, 400);
+};
+
 // POST /api/admin/projects
 exports.createProject = async (req, res, next) => {
   try {
     const { name, description, budget, expected_end_date } = req.body;
+
+    // Dự án bắt đầu từ hôm nay nên hạn hoàn thành dự kiến không thể ở quá khứ
+    assertEndNotBeforeStart(new Date(), expected_end_date, 'Hạn hoàn thành dự kiến');
 
     const project = await Project.create({
       name,
@@ -100,7 +118,7 @@ exports.getProjectById = async (req, res, next) => {
         }
       ]
     });
-    if (!project) throw new AppError('Project not found', 404);
+    if (!project) throw new AppError('Không tìm thấy dự án', 404);
     res.json({ success: true, data: project });
   } catch (error) { next(error); }
 };
@@ -109,10 +127,24 @@ exports.getProjectById = async (req, res, next) => {
 exports.updateProject = async (req, res, next) => {
   try {
     const project = await Project.findByPk(req.params.id);
-    if (!project) throw new AppError('Project not found', 404);
-    
+    if (!project) throw new AppError('Không tìm thấy dự án', 404);
+
+    // Chỉ nhận các trường cho phép sửa (không nhận id, người tạo, tỷ lệ hoàn thành do hệ thống tính...)
+    const data = {};
+    ['name', 'description', 'budget', 'status', 'start_date', 'expected_end_date', 'actual_end_date']
+      .forEach((k) => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
+
+    // Ngày kết thúc không được trước ngày bắt đầu (chỉ kiểm tra khi có sửa ngày, không chặn các thay đổi khác)
+    const start = data.start_date ?? project.start_date;
+    if (data.start_date !== undefined || data.expected_end_date !== undefined) {
+      assertEndNotBeforeStart(start, data.expected_end_date ?? project.expected_end_date, 'Hạn hoàn thành dự kiến');
+    }
+    if (data.start_date !== undefined || data.actual_end_date !== undefined) {
+      assertEndNotBeforeStart(start, data.actual_end_date ?? project.actual_end_date, 'Ngày kết thúc thực tế');
+    }
+
     const oldStatus = project.status;
-    await project.update(req.body);
+    await project.update(data);
 
     const workspace = await Workspace.findOne({ where: { project_id: project.id } });
 
@@ -232,6 +264,10 @@ exports.addWorkspaceMember = async (req, res, next) => {
           role: role || 'MEMBER',
           status: 'ACTIVE',
           joined_at: new Date()
+        }).catch((err) => {
+          // Hai yêu cầu thêm cùng lúc: ràng buộc unique của DB chặn bản ghi thứ hai
+          if (err.name === 'SequelizeUniqueConstraintError') throw new AppError('Thành viên này đã có trong không gian làm việc', 409);
+          throw err;
         });
 
     const cp = await CandidateProfile.findByPk(candidate_profile_id, { include: [{ model: User, attributes: ['id', 'full_name'] }] });
@@ -275,15 +311,15 @@ exports.getWorkspaceDetail = async (req, res, next) => {
         }
       ]
     });
-    if (!workspace) throw new AppError('Workspace not found', 404);
+    if (!workspace) throw new AppError('Không tìm thấy Workspace', 404);
 
     // Verify access
     if (!req.userRoles?.includes('ADMIN')) {
       const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-      if (!profile) throw new AppError('Access denied', 403);
+      if (!profile) throw new AppError('Bạn không có quyền truy cập', 403);
       
       const myMember = workspace.WorkspaceMembers.find(m => m.candidate_profile_id === profile.id);
-      if (!myMember) throw new AppError('Access denied. Not a member of this workspace', 403);
+      if (!myMember) throw new AppError('Bạn không phải thành viên của Workspace này', 403);
 
       const workspaceData = workspace.toJSON();
       workspaceData.myRole = myMember.role; // LEAD | MEMBER
@@ -351,7 +387,7 @@ exports.removeWorkspaceMember = async (req, res, next) => {
       });
     }
 
-    res.json({ success: true, message: 'Member removed' });
+    res.json({ success: true, message: 'Đã gỡ thành viên khỏi Workspace' });
   } catch (error) { next(error); }
 };
 
@@ -415,11 +451,14 @@ exports.getWorkspaceStats = async (req, res, next) => {
 
     const workspaceId = req.params.id;
     const access = await getWorkspaceAccess(req, workspaceId);
-    if (!access.canView) throw new AppError('Access denied. Not a member of this workspace', 403);
+    if (!access.canView) throw new AppError('Bạn không phải thành viên của Workspace này', 403);
 
     const tasks = await Task.findAll({
       where: { workspace_id: workspaceId },
-      include: [{ model: WM, as: 'Assignees', through: { attributes: [] }, attributes: ['id'] }]
+      include: [{
+        model: WM, as: 'Assignees', through: { attributes: [] }, attributes: ['id'],
+        include: [{ model: CP, attributes: ['id'], include: [{ model: U, attributes: ['full_name'] }] }],
+      }],
     });
 
     const now = new Date();
@@ -427,7 +466,8 @@ exports.getWorkspaceStats = async (req, res, next) => {
     const deadlineEnd = (d) => { const end = new Date(d); end.setHours(23, 59, 59, 999); return end; };
     const isOpen = (t) => ['TODO', 'IN_PROGRESS'].includes(t.status);
     const isOverdue = (t) => t.deadline && isOpen(t) && deadlineEnd(t.deadline) < now;
-    // Tiến độ tổng thể = trung bình % hoàn thành của các task (không tính task đã hủy)
+    const daysLeft = (t) => (deadlineEnd(t.deadline) - now) / (1000 * 60 * 60 * 24);
+    const isDueSoon = (t) => t.deadline && isOpen(t) && daysLeft(t) >= 0 && daysLeft(t) <= 3;
     const activeTasks = tasks.filter(t => t.status !== 'CANCELLED');
     const stats = {
       total: activeTasks.length,
@@ -438,34 +478,45 @@ exports.getWorkspaceStats = async (req, res, next) => {
         DONE: tasks.filter(t => t.status === 'DONE').length,
       },
       overdue: tasks.filter(isOverdue).length,
-      due_soon: tasks.filter(t => {
-        if (!t.deadline || !isOpen(t)) return false;
-        const diff = (deadlineEnd(t.deadline) - now) / (1000 * 60 * 60 * 24);
-        return diff >= 0 && diff <= 3;
-      }).length,
-      completion_rate: activeTasks.length
-        ? Math.round(activeTasks.reduce((acc, t) => acc + (t.completion_rate || 0), 0) / activeTasks.length)
-        : 0,
+      due_soon: tasks.filter(isDueSoon).length,
+      // Việc cần chú ý: quá hạn và sắp đến hạn (3 ngày tới), gần hạn nhất lên trước
+      attention: tasks
+        .filter(t => isOverdue(t) || isDueSoon(t))
+        .sort((x, y) => new Date(x.deadline) - new Date(y.deadline))
+        .slice(0, 10)
+        .map(t => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          priority: t.priority,
+          deadline: t.deadline,
+          overdue: !!isOverdue(t),
+          assignees: (t.Assignees || []).map(a => a.CandidateProfile?.User?.full_name).filter(Boolean),
+        })),
     };
 
-    // Per-member stats
+    // Khối lượng việc của từng thành viên (giống "Workload" trong Jira)
     const members = await WM.findAll({
       where: { workspace_id: workspaceId, status: 'ACTIVE' },
       include: [{ model: CP, attributes: ['id', 'avatar_url'], include: [{ model: U, attributes: ['full_name'] }] }]
     });
 
-    const memberStats = await Promise.all(members.map(async (m) => {
-      const assigned = tasks.filter(t => t.Assignees?.some(a => a.id === m.id));
+    const memberStats = members.map((m) => {
+      const assigned = tasks.filter(t => t.status !== 'CANCELLED' && t.Assignees?.some(a => a.id === m.id));
       return {
         id: m.id,
         role: m.role,
         name: m.CandidateProfile?.User?.full_name,
         total_assigned: assigned.length,
-        done: assigned.filter(t => t.status === 'DONE').length,
+        todo: assigned.filter(t => t.status === 'TODO').length,
         in_progress: assigned.filter(t => t.status === 'IN_PROGRESS').length,
+        review: assigned.filter(t => t.status === 'REVIEW').length,
+        done: assigned.filter(t => t.status === 'DONE').length,
         overdue: assigned.filter(isOverdue).length,
       };
-    }));
+    });
+    // Người đang có nhiều việc chưa xong nhất lên trước
+    memberStats.sort((x, y) => (y.todo + y.in_progress + y.review) - (x.todo + x.in_progress + x.review));
 
     res.json({ success: true, data: { ...stats, members: memberStats } });
   } catch (error) { next(error); }

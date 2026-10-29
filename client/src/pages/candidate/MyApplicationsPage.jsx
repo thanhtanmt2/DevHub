@@ -4,25 +4,23 @@ import { Link } from 'react-router-dom';
 import { candidateApi } from '@/api/candidateApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import PageBanner from '@/components/common/PageBanner';
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '@/utils/applicationStatus';
 
-const STATUS_LABELS = {
-  PENDING: 'Chờ xem xét',
-  VIEWED: 'Đã xem',
-  INTERVIEW: 'Phỏng vấn',
-  HIRED: 'Trúng tuyển',
-  REJECTED: 'Không phù hợp',
-  REVIEWING: 'Đang xét duyệt',
-  ACCEPTED: 'Trúng tuyển dự án'
-};
+const STATUS_LABELS = APPLICATION_STATUS_LABELS;
+const STATUS_COLORS = APPLICATION_STATUS_COLORS;
 
-const STATUS_COLORS = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  VIEWED: 'bg-blue-100 text-blue-700',
-  INTERVIEW: 'bg-purple-100 text-purple-700',
-  HIRED: 'bg-emerald-100 text-emerald-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  REVIEWING: 'bg-indigo-100 text-indigo-700',
-  ACCEPTED: 'bg-emerald-100 text-emerald-700'
+// Viền trái của thẻ theo trạng thái hồ sơ
+const STATUS_BORDER = {
+  PENDING: 'border-l-amber-400',
+  VIEWED: 'border-l-blue-400',
+  INTERVIEW: 'border-l-sky-500',
+  HIRED: 'border-l-emerald-500',
+  ACCEPTED: 'border-l-emerald-500',
+  REJECTED: 'border-l-red-400',
+  REVIEWING: 'border-l-primary-400',
 };
 
 const formatSalary = (amount) => {
@@ -31,6 +29,7 @@ const formatSalary = (amount) => {
 };
 
 export default function MyApplicationsPage() {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState('projects');
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
@@ -70,9 +69,9 @@ export default function MyApplicationsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Không thể rút đơn'),
   });
 
-  const handleWithdraw = (e, appId) => {
+  const handleWithdraw = async (e, appId) => {
     e.stopPropagation();
-    if (window.confirm('Bạn có chắc muốn rút đơn ứng tuyển này không?')) {
+    if (await confirm({ title: 'Rút đơn ứng tuyển', message: 'Bạn có chắc muốn rút đơn ứng tuyển này không?', confirmText: 'Rút đơn', tone: 'danger' })) {
       withdrawMutation.mutate(appId);
     }
   };
@@ -105,6 +104,8 @@ export default function MyApplicationsPage() {
 
   return (
     <div className="space-y-6">
+      <PageBanner compact icon="clipboard" title="Hồ sơ ứng tuyển" subtitle="Theo dõi trạng thái các đơn bạn đã nộp cho dự án thời vụ và việc làm doanh nghiệp" />
+
       {/* Tab + Stats Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -168,7 +169,7 @@ export default function MyApplicationsPage() {
         <div>
           {projectApps.length === 0 ? (
             <div className="card text-center py-12">
-              <p className="text-4xl mb-2">📁</p>
+              <IconBadge name="folder" size="lg" className="mx-auto mb-2" />
               <p className="text-gray-500 font-medium">Bạn chưa ứng tuyển vị trí dự án nào</p>
               <p className="text-xs text-gray-400 mt-1">Khám phá các dự án nội bộ đang tìm kiếm nhân sự thời vụ</p>
               <Link to="/projects" className="btn-primary mt-4 inline-block">Khám phá dự án ngay</Link>
@@ -180,49 +181,55 @@ export default function MyApplicationsPage() {
           ) : (
             <div className="space-y-4">
               {filteredApps.map((app) => (
-                <div key={app.id} className="card hover:shadow-md transition-shadow">
+                <div key={app.id} className={`card border-l-4 ${STATUS_BORDER[app.status] || 'border-l-gray-300'} hover:shadow-lift hover:-translate-y-0.5 transition-all`}>
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-lg text-gray-900">{app.ProjectJob?.title}</h3>
-                        <span className="badge bg-purple-100 text-purple-700 text-xs">Dự án thời vụ</span>
+                        <span className="badge bg-primary-100 text-primary-700 text-xs">Dự án thời vụ</span>
                       </div>
-                      <p className="text-sm font-medium text-primary-700 mb-2">📁 Dự án: {app.ProjectJob?.Project?.name}</p>
+                      <p className="text-sm font-medium text-primary-700 mb-2"><Icon name="folder" className="w-4 h-4 mr-1" />Dự án: {app.ProjectJob?.Project?.name}</p>
                       {app.cover_letter && (
                         <p className="text-xs text-gray-500 italic line-clamp-2 mb-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                           "{app.cover_letter}"
                         </p>
                       )}
                       <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                        <span className="font-semibold text-green-700 text-sm">💰 Thù lao: {formatSalary(app.ProjectJob?.budget)}</span>
-                        <span>📅 Ngày nộp: {new Date(app.applied_at).toLocaleDateString('vi-VN')}</span>
+                        <span className="font-semibold text-green-700 text-sm"><Icon name="cash" className="w-4 h-4 mr-1" />Thù lao: {formatSalary(app.ProjectJob?.budget)}</span>
+                        <span><Icon name="calendar" className="w-4 h-4 mr-1" />Ngày nộp: {new Date(app.applied_at).toLocaleDateString('vi-VN')}</span>
                         {app.cv_url && (
                           <a href={app.cv_url} target="_blank" rel="noopener noreferrer"
                             className="font-medium text-primary-600 hover:underline flex items-center gap-1">
-                            📄 Xem CV đã nộp
+                            <Icon name="document" className="w-3.5 h-3.5" />Xem CV đã nộp
                           </a>
                         )}
                       </div>
 
-                      {app.status === 'INTERVIEW' && app.interview_time && (
-                        <div className="mt-4 bg-purple-50 p-3.5 rounded-xl border border-purple-100">
-                          <p className="text-sm font-bold text-purple-800 mb-1.5 flex items-center gap-1.5">
-                            <span>📅</span> Thông tin lịch phỏng vấn
+                      {/* Thông tin phỏng vấn (một khối duy nhất): có lịch thì hiện chi tiết, chưa có thì báo chờ liên hệ */}
+                      {app.status === 'INTERVIEW' && (
+                        <div className="mt-4 bg-primary-50 p-3.5 rounded-xl border border-primary-100">
+                          <p className="text-sm font-bold text-primary-800 mb-1.5 flex items-center gap-1.5">
+                            <Icon name="calendar" className="w-4 h-4" /> Thông tin lịch phỏng vấn
                           </p>
                           <div className="space-y-1">
-                            <p className="text-sm text-purple-700">
-                              <span className="font-semibold">Thời gian:</span> {new Date(app.interview_time).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                            {app.interview_time && (
+                              <p className="text-sm text-primary-700">
+                                <span className="font-semibold">Thời gian:</span> {new Date(app.interview_time).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            )}
+                            {!app.interview_time && !app.meet_url && !app.interview_note && (
+                              <p className="text-sm text-primary-700">Nhà tuyển dụng sẽ liên hệ sớm với bạn.</p>
+                            )}
                             {app.meet_url && (
-                              <p className="text-sm text-purple-700 flex items-center gap-1 flex-wrap">
+                              <p className="text-sm text-primary-700 flex items-center gap-1 flex-wrap">
                                 <span className="font-semibold">Phòng họp:</span>
-                                <a href={app.meet_url} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-purple-900 break-all font-medium">
+                                <a href={app.meet_url} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-primary-900 break-all font-medium">
                                   {app.meet_url} ↗
                                 </a>
                               </p>
                             )}
                             {app.interview_note && (
-                              <p className="text-sm text-purple-700 mt-2 bg-white/60 p-2 rounded-lg border border-purple-100/50">
+                              <p className="text-sm text-primary-700 mt-2 bg-white/60 p-2 rounded-lg border border-primary-100/50">
                                 <span className="font-semibold">Ghi chú:</span> <span className="italic">{app.interview_note}</span>
                               </p>
                             )}
@@ -245,35 +252,6 @@ export default function MyApplicationsPage() {
                           <p className="text-xs text-gray-400 mt-1">Bạn không còn trong Workspace của dự án này</p>
                         )
                       )}
-                      {/* [Critical] Hiển thị thông tin phỏng vấn khi status = INTERVIEW */}
-                      {app.status === 'INTERVIEW' && (
-                        <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs space-y-1.5 text-left min-w-[220px]">
-                          <p className="font-bold text-purple-700 text-sm">📅 Thông tin phỏng vấn</p>
-                          {app.interview_time && (
-                            <p className="text-purple-800">
-                              <span className="font-semibold">⏰ Thời gian:</span>{' '}
-                              {new Date(app.interview_time).toLocaleString('vi-VN')}
-                            </p>
-                          )}
-                          {app.meet_url && (
-                            <p>
-                              <span className="font-semibold text-purple-800">🔗 Link phỏng vấn:</span>{' '}
-                              <a href={app.meet_url} target="_blank" rel="noopener noreferrer"
-                                className="text-purple-600 hover:underline font-medium break-all">
-                                Tham gia phỏng vấn
-                              </a>
-                            </p>
-                          )}
-                          {app.interview_note && (
-                            <p className="text-gray-700 italic">
-                              <span className="font-semibold not-italic text-purple-800">📝 Ghi chú:</span>{' '}{app.interview_note}
-                            </p>
-                          )}
-                          {!app.interview_time && !app.meet_url && !app.interview_note && (
-                            <p className="text-purple-600">Nhà tuyển dụng sẽ liên hệ sớm với bạn.</p>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -288,7 +266,7 @@ export default function MyApplicationsPage() {
         <div>
           {companyApps.length === 0 ? (
             <div className="card text-center py-12">
-              <p className="text-4xl mb-2">💼</p>
+              <IconBadge name="briefcase" size="lg" className="mx-auto mb-2" />
               <p className="text-gray-500 font-medium">Chưa có hồ sơ ứng tuyển công ty nào</p>
               <p className="text-xs text-gray-400 mt-1">Tìm việc làm toàn thời gian hoặc bán thời gian tại các doanh nghiệp</p>
               <Link to="/jobs" className="btn-primary mt-4 inline-block">Tìm việc công ty ngay</Link>
@@ -302,7 +280,7 @@ export default function MyApplicationsPage() {
               {filteredApps.map((app) => (
                 <div
                   key={app.id}
-                  className="card hover:shadow-md transition-shadow cursor-pointer"
+                  className={`card border-l-4 ${STATUS_BORDER[app.status] || 'border-l-gray-300'} hover:shadow-lift hover:-translate-y-0.5 transition-all cursor-pointer`}
                   onClick={() => setSelectedAppId(selectedAppId === app.id ? null : app.id)}
                 >
                   <div className="flex items-start justify-between">
@@ -323,12 +301,12 @@ export default function MyApplicationsPage() {
                         </p>
                       )}
                       <div className="flex items-center gap-4 mt-2">
-                        <p className="text-xs text-gray-400">📅 Ngày nộp: {new Date(app.applied_at).toLocaleDateString('vi-VN')}</p>
+                        <p className="text-xs text-gray-400"><Icon name="calendar" className="w-3.5 h-3.5 mr-1" />Ngày nộp: {new Date(app.applied_at).toLocaleDateString('vi-VN')}</p>
                         {app.cv_url && (
                           <a href={app.cv_url} target="_blank" rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
                             className="text-xs font-medium text-primary-600 hover:underline flex items-center gap-1">
-                            📄 Xem CV đã nộp
+                            <Icon name="document" className="w-3.5 h-3.5" />Xem CV đã nộp
                           </a>
                         )}
                       </div>
@@ -337,7 +315,7 @@ export default function MyApplicationsPage() {
                       <span className={`badge text-xs px-3 py-1 font-semibold ${STATUS_COLORS[app.status] || 'bg-gray-100 text-gray-700'}`}>
                         {STATUS_LABELS[app.status] || app.status}
                       </span>
-                      <p className="text-xs text-gray-400">👁️ Xem lịch sử</p>
+                      <p className="text-xs text-gray-400"><Icon name="history" className="w-3.5 h-3.5 mr-1" />Xem lịch sử</p>
                       {/* Nút rút đơn — chỉ hiện khi PENDING */}
                       {app.status === 'PENDING' && (
                         <button
@@ -345,7 +323,7 @@ export default function MyApplicationsPage() {
                           disabled={withdrawMutation.isPending}
                           className="text-xs text-red-500 hover:text-red-700 hover:underline font-medium mt-1 disabled:opacity-50"
                         >
-                          {withdrawMutation.isPending ? 'Đang rút...' : '✕ Rút đơn'}
+                          {withdrawMutation.isPending ? 'Đang rút...' : 'Rút đơn'}
                         </button>
                       )}
                     </div>
@@ -358,7 +336,7 @@ export default function MyApplicationsPage() {
                         <p className="text-xs text-gray-400 text-center py-2">Đang tải lịch sử...</p>
                       ) : appDetail?.ApplicationStatusHistories?.length > 0 ? (
                         <div>
-                          <p className="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wide">📜 Lịch sử trạng thái hồ sơ</p>
+                          <p className="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wide">Lịch sử trạng thái hồ sơ</p>
                           <div className="space-y-2">
                             {appDetail.ApplicationStatusHistories.map((h, idx) => (
                               <div key={h.id || idx} className="flex items-start gap-3 text-xs">

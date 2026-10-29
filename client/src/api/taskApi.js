@@ -16,6 +16,10 @@ export const taskApi = {
   updateSubTask: (taskId, subId, data) => api.put(`/tasks/${taskId}/subtasks/${subId}`, data),
   deleteSubTask: (taskId, subId) => api.delete(`/tasks/${taskId}/subtasks/${subId}`),
 
+  // Tệp / liên kết tài liệu đính kèm (kind: 'FILE' | 'LINK')
+  addAttachment: (taskId, data) => api.post(`/tasks/${taskId}/attachments`, data),
+  deleteAttachment: (taskId, attId) => api.delete(`/tasks/${taskId}/attachments/${attId}`),
+
   // Comments
   addComment: (taskId, content) => api.post(`/tasks/${taskId}/comments`, { content }),
   deleteComment: (taskId, commentId) => api.delete(`/tasks/${taskId}/comments/${commentId}`),

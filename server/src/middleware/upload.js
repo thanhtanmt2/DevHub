@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const AppError = require('../utils/AppError');
 
 // Ensure directory exists
 const uploadDir = path.join(__dirname, '../../uploads/cvs');
@@ -26,7 +27,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận file định dạng .pdf, .doc, hoặc .docx'), false);
+    cb(new AppError('Chỉ chấp nhận file định dạng .pdf, .doc, hoặc .docx', 400), false);
   }
 };
 
@@ -56,7 +57,7 @@ const imageFilter = (req, file, cb) => {
   if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận file hình ảnh (.jpg, .png, .gif, .webp)'), false);
+    cb(new AppError('Chỉ chấp nhận file hình ảnh (.jpg, .png, .gif, .webp)', 400), false);
   }
 };
 
@@ -99,7 +100,7 @@ const taskFileFilter = (req, file, cb) => {
   if (TASK_FILE_EXTENSIONS.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error(`Định dạng file không được hỗ trợ. Chấp nhận: ${TASK_FILE_EXTENSIONS.join(', ')}`), false);
+    cb(new AppError(`Định dạng file không được hỗ trợ. Chấp nhận: ${TASK_FILE_EXTENSIONS.join(', ')}`, 400), false);
   }
 };
 

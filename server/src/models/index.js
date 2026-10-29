@@ -7,6 +7,7 @@ const Role = require('./Role')(sequelize, DataTypes);
 const Permission = require('./Permission')(sequelize, DataTypes);
 const RolePermission = require('./RolePermission')(sequelize, DataTypes);
 const User = require('./User')(sequelize, DataTypes);
+const RefreshToken = require('./RefreshToken')(sequelize, DataTypes);
 const UserRole = require('./UserRole')(sequelize, DataTypes);
 const CandidateProfile = require('./CandidateProfile')(sequelize, DataTypes);
 const CandidateCv = require('./CandidateCv')(sequelize, DataTypes);
@@ -35,6 +36,7 @@ const SubTask = require('./SubTask')(sequelize, DataTypes);
 const TaskComment = require('./TaskComment')(sequelize, DataTypes);
 const TaskActivity = require('./TaskActivity')(sequelize, DataTypes);
 const TaskSubmission = require('./TaskSubmission')(sequelize, DataTypes);
+const TaskAttachment = require('./TaskAttachment')(sequelize, DataTypes);
 const CandidateEvaluation = require('./CandidateEvaluation')(sequelize, DataTypes);
 const Payment = require('./Payment')(sequelize, DataTypes);
 const Notification = require('./Notification')(sequelize, DataTypes);
@@ -158,6 +160,10 @@ TaskActivity.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id', as:
 Task.hasMany(TaskSubmission, { foreignKey: 'task_id' });
 TaskSubmission.belongsTo(Task, { foreignKey: 'task_id' });
 
+// TaskAttachment (tệp / liên kết tài liệu đính kèm trong lúc làm việc)
+Task.hasMany(TaskAttachment, { foreignKey: 'task_id', as: 'Attachments' });
+TaskAttachment.belongsTo(Task, { foreignKey: 'task_id' });
+
 // CandidateEvaluation
 WorkspaceMember.hasOne(CandidateEvaluation, { foreignKey: 'workspace_member_id' });
 CandidateEvaluation.belongsTo(WorkspaceMember, { foreignKey: 'workspace_member_id' });
@@ -181,7 +187,7 @@ module.exports = {
   sequelize,
   Sequelize,
   Role, Permission, RolePermission,
-  User, UserRole,
+  User, UserRole, RefreshToken,
   CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation,
   Company,
   JobPost, JobPostSkill,
@@ -189,7 +195,7 @@ module.exports = {
   Project, ProjectJob, ProjectJobSkill, ProjectApplication,
   InternalProject, // alias
   Workspace, WorkspaceMember,
-  Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission,
+  Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,
   CandidateEvaluation,
   Payment,
   Notification,

@@ -1,3 +1,9 @@
+import Icon, { IconBadge } from '@/components/common/Icon';
+import ExperienceTab from '@/components/candidate/ExperienceTab';
+import CvImportModal from '@/components/candidate/CvImportModal';
+import { SkillEvidenceModal } from '@/components/common/Badges';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import AvatarUploader from '@/components/common/AvatarUploader';
 ﻿import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { candidateApi } from '@/api/candidateApi';
@@ -7,9 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
-const SKILL_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'];
-const LEVEL_LABELS = { BEGINNER: 'Mới bắt đầu', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên gia' };
-const LEVEL_COLORS = { BEGINNER: 'bg-gray-100 text-gray-700', INTERMEDIATE: 'bg-blue-100 text-blue-700', ADVANCED: 'bg-purple-100 text-purple-700', EXPERT: 'bg-green-100 text-green-700' };
 
 // trang hiển thị thông tin cá nhân của ứng viên 
 export default function ProfilePage() {
@@ -61,30 +64,32 @@ export default function ProfilePage() {
   return (
     <div>
       {/* Header */}
-      <div className="card mb-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center text-2xl font-bold text-primary-700">
-              {user?.full_name?.[0]?.toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{user?.full_name}</h1>
-              <p className="text-gray-500 text-sm">{profile?.professional_title || 'Chưa cập nhật chức danh'}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="badge bg-primary-100 text-primary-700">Điểm năng lực: {parseFloat(profile?.competency_score || 0).toFixed(1)}/10</span>
-              </div>
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white p-6 mb-6 shadow-lift">
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-5">
+          <AvatarUploader size="xl" light className="ring-4 ring-white/40" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight">{user?.full_name}</h1>
+            <p className="text-white">{profile?.professional_title || 'Chưa cập nhật chức danh'}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-primary-700 text-sm font-bold shadow">
+                <Icon name="star" className="w-4 h-4" />Điểm năng lực: {parseFloat(profile?.competency_score || 0).toFixed(1)}/10
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-sm font-medium">
+                <Icon name="skills" className="w-4 h-4" />{mySkills.length} kỹ năng
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-6">
+      <div className="mb-6 overflow-x-auto">
+        <nav className="flex gap-2 min-w-max">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}>
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab.id
+                ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md shadow-primary-600/25'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900'}`}>
               {tab.label}
             </button>
           ))}
@@ -115,10 +120,10 @@ function ProfileInfoTab({ profile, qc }) {
     mutationFn: (data) => candidateApi.updateProfile(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-profile'] }); toast.success('Cập nhật hồ sơ thành công!'); },
     onError: (err) => {
-      // Backend thường trả về mảng lỗi trong err.response.data.errors nếu dùng express-validator
+      // Backend trả về mảng lỗi { field, message } trong err.response.data.errors nếu dùng express-validator
       const errors = err.response?.data?.errors;
       if (errors && errors.length > 0) {
-        toast.error(errors[0].msg);
+        toast.error(errors[0].message || errors[0].msg || 'Dữ liệu không hợp lệ');
       } else {
         toast.error(err.response?.data?.message || 'Cập nhật thất bại');
       }
@@ -196,6 +201,7 @@ function ProfileInfoTab({ profile, qc }) {
 
 // ── CV Management Tab (Multiple CVs) ──────────────────
 function CvTab({ profile, qc }) {
+  const confirm = useConfirm();
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [cvTitle, setCvTitle] = useState('');
@@ -209,7 +215,7 @@ function CvTab({ profile, qc }) {
 
   const cvList = cvsRes?.data?.data || [];
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -225,7 +231,7 @@ function CvTab({ profile, qc }) {
     );
 
     if (isDuplicate) {
-      if (!window.confirm('Phát hiện CV có tên hoặc dung lượng giống với một CV đã có trong danh sách. Bạn có chắc chắn muốn tải lên bản sao này không?')) {
+      if (!(await confirm({ title: 'CV có thể bị trùng', message: 'Phát hiện CV có tên hoặc dung lượng giống với một CV đã có trong danh sách. Bạn có chắc chắn muốn tải lên bản sao này không?', confirmText: 'Vẫn tải lên' }))) {
         // Reset input file
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
@@ -257,6 +263,7 @@ function CvTab({ profile, qc }) {
 
       qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
       qc.invalidateQueries({ queryKey: ['candidate-profile'] });
+      qc.invalidateQueries({ queryKey: ['candidate-skills'] });
       toast.success('Đã tải lên và lưu CV thành công!');
       setCvTitle('');
       setMakeDefault(false);
@@ -274,6 +281,7 @@ function CvTab({ profile, qc }) {
       await candidateApi.setDefaultCv(cvId);
       qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
       qc.invalidateQueries({ queryKey: ['candidate-profile'] });
+      qc.invalidateQueries({ queryKey: ['candidate-skills'] });
       toast.success('Đã đặt làm CV mặc định');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Không thể đặt làm mặc định');
@@ -281,7 +289,7 @@ function CvTab({ profile, qc }) {
   };
 
   const handleDeleteCV = async (cvId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa bản CV này khỏi hồ sơ không?')) return;
+    if (!(await confirm({ title: 'Xóa CV', message: 'Bạn có chắc chắn muốn xóa bản CV này khỏi hồ sơ không?', confirmText: 'Xóa', tone: 'danger' }))) return;
     try {
       await candidateApi.deleteCv(cvId);
       qc.invalidateQueries({ queryKey: ['candidate-cvs'] });
@@ -309,7 +317,7 @@ function CvTab({ profile, qc }) {
           <div className="text-center py-8 text-gray-400">Đang tải danh sách CV...</div>
         ) : cvList.length === 0 ? (
           <div className="p-8 bg-gray-50 rounded-2xl border border-gray-200 text-center mb-6">
-            <div className="text-4xl mb-2">📂</div>
+            <IconBadge name="folder" size="lg" className="mx-auto mb-2" />
             <h3 className="font-semibold text-gray-800 text-base">Chưa có CV nào trong hồ sơ</h3>
             <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
               Hãy tải lên bản CV đầu tiên bên dưới để hệ thống lưu trữ và giúp bạn ứng tuyển nhanh chóng.
@@ -326,15 +334,15 @@ function CvTab({ profile, qc }) {
                   }`}
               >
                 <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-primary-100/70 border border-primary-200 flex items-center justify-center text-2xl shrink-0">
-                    📄
+                  <div className="w-11 h-11 rounded-xl bg-primary-100/70 border border-primary-200 flex items-center justify-center text-primary-600 shrink-0">
+                    <Icon name="document" className="w-6 h-6" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold text-gray-900 text-base truncate">{cv.name}</h4>
                       {cv.is_default && (
                         <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200">
-                          ⭐ CV Mặc định
+                          <Icon name="star" className="w-3 h-3 mr-1" />CV Mặc định
                         </span>
                       )}
                     </div>
@@ -355,7 +363,7 @@ function CvTab({ profile, qc }) {
                       onClick={() => handleSetDefault(cv.id)}
                       className="btn text-xs py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
                     >
-                      ⭐ Đặt làm mặc định
+                      <Icon name="star" className="w-3.5 h-3.5 mr-1" />Đặt làm mặc định
                     </button>
                   )}
                   <a
@@ -364,7 +372,7 @@ function CvTab({ profile, qc }) {
                     rel="noopener noreferrer"
                     className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1"
                   >
-                    <span>👁️</span> Xem CV ↗
+                    <Icon name="eye" className="w-4 h-4" /> Xem CV
                   </a>
                   <a
                     href={cv.file_url}
@@ -373,15 +381,16 @@ function CvTab({ profile, qc }) {
                     rel="noopener noreferrer"
                     className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1"
                   >
-                    <span>📥</span> Tải về
+                    <Icon name="download" className="w-4 h-4" /> Tải về
                   </a>
                   <button
                     type="button"
                     onClick={() => handleDeleteCV(cv.id)}
                     className="btn text-xs py-1.5 px-2.5 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg transition"
                     title="Xóa bản CV này"
+                    aria-label="Xóa bản CV này"
                   >
-                    🗑️
+                    <Icon name="trash" className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -392,7 +401,7 @@ function CvTab({ profile, qc }) {
         {/* Upload form for new CV */}
         <div className="border-t border-gray-100 pt-6">
           <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span>➕</span> Tải lên bản CV mới
+            <Icon name="plus" className="w-4 h-4" /> Tải lên bản CV mới
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -435,7 +444,7 @@ function CvTab({ profile, qc }) {
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 p-7 rounded-2xl text-center cursor-pointer transition duration-150 flex flex-col items-center justify-center gap-2"
             >
-              <span className="text-3xl">📤</span>
+              <IconBadge name="upload" size="lg" />
               <p className="text-sm font-semibold text-gray-800">
                 Nhấp để chọn hoặc kéo thả file CV vào đây
               </p>
@@ -446,8 +455,8 @@ function CvTab({ profile, qc }) {
           ) : (
             <div className="border border-primary-200 bg-primary-50/50 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white border border-primary-100 flex items-center justify-center text-xl shrink-0 shadow-sm">
-                  📄
+                <div className="w-10 h-10 rounded-lg bg-white border border-primary-100 flex items-center justify-center text-primary-600 shrink-0 shadow-sm">
+                  <Icon name="document" className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px] sm:max-w-xs">{selectedFile.name}</p>
@@ -476,7 +485,7 @@ function CvTab({ profile, qc }) {
                     </>
                   ) : (
                     <>
-                      <span>💾</span> Lưu CV này
+                      <Icon name="save" className="w-4 h-4" /> Lưu CV này
                     </>
                   )}
                 </button>
@@ -489,11 +498,11 @@ function CvTab({ profile, qc }) {
       {/* Guide Card */}
       <div className="card bg-blue-50/40 border border-blue-100 p-5 rounded-xl">
         <h4 className="text-sm font-bold text-blue-950 flex items-center gap-2 mb-2">
-          <span>💡</span> Mẹo sử dụng nhiều CV hiệu quả
+          <Icon name="lightbulb" className="w-4 h-4" /> Mẹo sử dụng nhiều CV hiệu quả
         </h4>
         <ul className="text-xs text-blue-900/80 space-y-1.5 list-disc list-inside">
           <li>Bạn có thể tạo các bản CV chuyên biệt: <strong>CV Frontend</strong> (tập trung React, UI/UX), <strong>CV Backend</strong> (tập trung Node.js, Database, Docker) hoặc <strong>CV Tiếng Anh</strong> cho các vị trí yêu cầu ngoại ngữ.</li>
-          <li>CV được đánh dấu ⭐ <strong>CV Mặc định</strong> sẽ được tự động chọn đầu tiên khi bạn bấm nút ứng tuyển.</li>
+          <li>CV được gắn nhãn <strong>CV Mặc định</strong> sẽ được tự động chọn đầu tiên khi bạn bấm nút ứng tuyển.</li>
           <li>Định dạng khuyên dùng tốt nhất là <strong>PDF</strong> để giữ nguyên định dạng thẩm mỹ.</li>
         </ul>
       </div>
@@ -504,7 +513,9 @@ function CvTab({ profile, qc }) {
 // ── Skills Tab ────────────────────────────────────────
 function SkillsTab({ mySkills, publicSkills, qc }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [newSkill, setNewSkill] = useState({ skill_id: '', level: 'BEGINNER', years_of_experience: 0 });
+  const [evidenceOf, setEvidenceOf] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+  const [newSkill, setNewSkill] = useState({ skill_id: '' });
 
   const addMutation = useMutation({
     mutationFn: (data) => candidateApi.addSkill(data),
@@ -524,29 +535,21 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
     <div className="card">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Kỹ năng ({mySkills.length})</h2>
-        <button onClick={() => setShowAdd(!showAdd)} className="btn-primary text-sm">+ Thêm kỹ năng</button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowImport(true)} className="btn-secondary text-sm">Nhập từ CV</button>
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary text-sm">+ Thêm kỹ năng</button>
+        </div>
       </div>
 
       {showAdd && (
         <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Kỹ năng</label>
               <select className="input-field" value={newSkill.skill_id} onChange={e => setNewSkill({ ...newSkill, skill_id: e.target.value })}>
                 <option value="">Chọn kỹ năng...</option>
                 {availableSkills.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Mức độ</label>
-              <select className="input-field" value={newSkill.level} onChange={e => setNewSkill({ ...newSkill, level: e.target.value })}>
-                {SKILL_LEVELS.map(l => <option key={l} value={l}>{LEVEL_LABELS[l]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Số năm kinh nghiệm</label>
-              <input type="number" min="0" step="0.5" className="input-field"
-                value={newSkill.years_of_experience} onChange={e => setNewSkill({ ...newSkill, years_of_experience: parseFloat(e.target.value) })} />
             </div>
           </div>
           <div className="flex gap-2 mt-3">
@@ -559,169 +562,27 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
       )}
 
       <div className="flex flex-wrap gap-2">
-        {mySkills.length === 0 && <p className="text-gray-400 text-sm">Chưa có kỹ năng nào. Hãy thêm kỹ năng của bạn!</p>}
-        {mySkills.map(s => (
-          <div key={s.skill_id} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${LEVEL_COLORS[s.level]}`}>
-            <span>{s.Skill?.name || s.skill_id}</span>
-            <span className="text-xs opacity-70">
-              · {LEVEL_LABELS[s.level]} {s.years_of_experience > 0 && `(${Number(s.years_of_experience)} năm)`}
-            </span>
-            <button onClick={() => removeMutation.mutate(s.skill_id)} className="ml-1 text-xs opacity-60 hover:opacity-100">✕</button>
+        {mySkills.length === 0 && <p className="text-gray-400 text-sm">Chưa có kỹ năng nào. Hãy thêm kỹ năng hoặc tải CV (PDF) để hệ thống tự lọc kỹ năng!</p>}
+        {mySkills.some(s => s.evidence?.length > 0) && <p className="w-full text-xs text-emerald-700">Kỹ năng viền xanh có minh chứng từ dự án đã hoàn thành trên nền tảng. Bấm vào tên kỹ năng để xem dự án.</p>}
+        {mySkills.map(s => {
+          const projects = [...new Set((s.evidence || []).map(e => e.project_name))];
+          const verified = projects.length > 0;
+          return (
+          <div key={s.skill_id}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${verified ? 'bg-emerald-50 text-emerald-800 ring-2 ring-emerald-400 shadow-sm' : 'bg-gray-100 text-gray-700'}`}>
+            {verified && <Icon name="verified" className="w-4 h-4 text-emerald-600" />}
+            {verified
+              ? <button type="button" onClick={() => setEvidenceOf(s)} className="underline decoration-dotted underline-offset-2 hover:text-emerald-900" title="Bấm để xem các dự án minh chứng">{s.Skill?.name || s.skill_id}</button>
+              : <span>{s.Skill?.name || s.skill_id}</span>}
+            {verified && <span className="text-xs opacity-70">· {projects.length} dự án</span>}
+            {!verified && s.source === 'CV' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 border border-gray-300">Từ CV</span>}
+            <button onClick={() => removeMutation.mutate(s.skill_id)} className="ml-1 opacity-60 hover:opacity-100" aria-label="Xóa kỹ năng"><Icon name="x" className="w-3.5 h-3.5" /></button>
           </div>
-        ))}
+          );
+        })}
       </div>
-    </div>
-  );
-}
-
-// ── Experience Tab ────────────────────────────────────
-function ExperienceTab({ experiences, qc }) {
-  const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ job_title: '', company_name: '', start_date: '', end_date: '', description: '' });
-
-  const addMutation = useMutation({
-    mutationFn: (data) => editId ? candidateApi.updateExperience(editId, data) : candidateApi.addExperience(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-experiences'] }); setShowForm(false); setEditId(null); toast.success(editId ? 'Đã cập nhật!' : 'Đã thêm kinh nghiệm!'); },
-    onError: (err) => toast.error(err.response?.data?.message || 'Thất bại'),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => candidateApi.deleteExperience(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-experiences'] }); toast.success('Đã xóa'); },
-  });
-
-  const startEdit = (exp) => {
-    setEditId(exp.id);
-    setForm({ job_title: exp.job_title, company_name: exp.company_name, start_date: exp.start_date || '', end_date: exp.end_date || '', description: exp.description || '' });
-    setShowForm(true);
-  };
-
-  // Sắp xếp: Công việc hiện tại (end_date = null) lên đầu, sau đó xếp theo end_date giảm dần, cuối cùng là start_date giảm dần
-  const sortedExperiences = [...experiences].sort((a, b) => {
-    if (!a.end_date && b.end_date) return -1;
-    if (a.end_date && !b.end_date) return 1;
-    
-    if (a.end_date && b.end_date) {
-      const timeA = new Date(a.end_date).getTime();
-      const timeB = new Date(b.end_date).getTime();
-      if (timeA !== timeB) return timeB - timeA;
-    }
-    
-    return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
-  });
-
-  return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Kinh nghiệm làm việc</h2>
-        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ job_title: '', company_name: '', start_date: '', end_date: '', description: '' }); }} className="btn-primary text-sm">+ Thêm</button>
-      </div>
-
-      {showForm && (
-        <div className="mb-5 p-4 bg-gray-50 rounded-lg border">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Chức vụ</label>
-              <input className="input-field" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} placeholder="Senior Developer" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Công ty</label>
-              <input className="input-field" value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} placeholder="FPT Software" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Ngày bắt đầu</label>
-              <input type="date" className="input-field" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Ngày kết thúc (để trống nếu hiện tại)</label>
-              <input type="date" className="input-field" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Mô tả</label>
-              <textarea className="input-field resize-none" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-            </div>
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button 
-              onClick={() => {
-                const payload = { ...form };
-                if (!payload.end_date) payload.end_date = null;
-                addMutation.mutate(payload);
-              }} 
-              disabled={!form.job_title || !form.company_name || !form.start_date || addMutation.isPending} 
-              className="btn-primary text-sm"
-            >
-              {addMutation.isPending ? 'Đang lưu...' : (editId ? 'Cập nhật' : 'Thêm')}
-            </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary text-sm">Hủy</button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-6">
-        {experiences.length === 0 ? (
-          <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            <span className="text-4xl">💼</span>
-            <p className="text-gray-500 text-sm mt-3 font-medium">Chưa có kinh nghiệm nào.</p>
-            <p className="text-gray-400 text-xs mt-1">Hãy thêm các công việc bạn từng làm để nhà tuyển dụng chú ý hơn.</p>
-          </div>
-        ) : (
-          <div className="relative border-l-2 border-primary-100 ml-4 space-y-6 py-2">
-            {sortedExperiences.map(exp => {
-              const formatDate = (dateString) => {
-                if (!dateString) return '';
-                const d = new Date(dateString);
-                return `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
-              };
-              
-              return (
-                <div key={exp.id} className="relative pl-6">
-                  {/* Timeline dot */}
-                  <div className="absolute w-3.5 h-3.5 bg-primary-500 rounded-full border-[3px] border-white -left-[9px] top-1.5 shadow-sm"></div>
-                  
-                  {/* Content Card */}
-                  <div className="bg-white border border-gray-100 hover:border-primary-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-lg">{exp.job_title}</h4>
-                        <p className="text-sm font-semibold text-primary-600 mb-2">{exp.company_name}</p>
-                        
-                        <div className="inline-flex items-center gap-2 text-xs text-gray-600 mb-3 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full font-medium">
-                          <span>📅</span>
-                          <span>{formatDate(exp.start_date)} — {exp.end_date ? formatDate(exp.end_date) : 'Hiện tại'}</span>
-                        </div>
-                        
-                        {exp.description && (
-                          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line mt-1">
-                            {exp.description}
-                          </p>
-                        )}
-                      </div>
-                      
-                      {/* Action buttons (hidden by default, shown on hover) */}
-                      <div className="flex gap-2 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => startEdit(exp)} 
-                          className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
-                        >
-                          Sửa
-                        </button>
-                        <button 
-                          onClick={() => deleteMutation.mutate(exp.id)} 
-                          className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {showImport && <CvImportModal mode="skills" onClose={() => setShowImport(false)} onDone={() => qc.invalidateQueries({ queryKey: ['candidate-skills'] })} />}
+      {evidenceOf && <SkillEvidenceModal skill={evidenceOf.Skill?.name || ''} evidence={evidenceOf.evidence} onClose={() => setEvidenceOf(null)} />}
     </div>
   );
 }

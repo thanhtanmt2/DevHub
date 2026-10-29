@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/authApi';
 import toast from 'react-hot-toast';
+import AuthPageShell from '@/components/common/AuthPageShell';
 
 export default function ResetPasswordPage() {
   const { token } = useParams();
@@ -22,8 +23,8 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="card w-full max-w-md">
+    <AuthPageShell>
+      <div className="card">
         <h2 className="text-xl font-semibold mb-4">Đặt lại mật khẩu</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="password" required className="input-field" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)"
@@ -35,6 +36,6 @@ export default function ResetPasswordPage() {
           </button>
         </form>
       </div>
-    </div>
+    </AuthPageShell>
   );
 }

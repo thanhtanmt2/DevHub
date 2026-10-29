@@ -1,34 +1,75 @@
 const { Application, ApplicationStatusHistory, CandidateProfile, JobPost, Company, User, Skill } = require('../models');
 const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
+const { escapeHtml } = require('../utils/escapeHtml');
+const { createNotification, notifyAdmins } = require('./notificationController');
 
 // POST /api/applications — candidate submits application
 exports.apply = async (req, res, next) => {
   try {
     const { job_post_id, cover_letter, cv_url } = req.body;
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Please complete your candidate profile first', 400);
+    if (!profile) throw new AppError('Vui lòng hoàn thiện hồ sơ ứng viên trước khi ứng tuyển', 400);
 
     const job = await JobPost.findByPk(job_post_id);
-    if (!job) throw new AppError('Job post not found', 404);
-    if (job.status !== 'OPEN') throw new AppError('This job post is no longer accepting applications', 400);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    if (job.status !== 'OPEN') throw new AppError('Tin tuyển dụng này không còn nhận hồ sơ', 400);
+    if (job.deadline && new Date(job.deadline) < new Date()) throw new AppError('Tin tuyển dụng này đã hết hạn nộp hồ sơ', 400);
 
     // Check duplicate
     const existing = await Application.findOne({ where: { candidate_profile_id: profile.id, job_post_id } });
-    if (existing) throw new AppError('You have already applied for this position', 409);
+    if (existing) throw new AppError('Bạn đã ứng tuyển vị trí này rồi', 409);
 
-    const application = await Application.create({
-      candidate_profile_id: profile.id,
-      job_post_id,
-      cover_letter,
-      cv_url,
-      status: 'PENDING',
-    });
+    let application;
+    try {
+      application = await Application.create({
+        candidate_profile_id: profile.id,
+        job_post_id,
+        cover_letter,
+        cv_url,
+        status: 'PENDING',
+      });
+    } catch (err) {
+      // Hai yêu cầu gửi gần như cùng lúc (bấm đúp...): ràng buộc unique của DB chặn bản ghi thứ hai
+      if (err.name === 'SequelizeUniqueConstraintError') throw new AppError('Bạn đã ứng tuyển vị trí này rồi', 409);
+      throw err;
+    }
 
     await ApplicationStatusHistory.create({
       application_id: application.id,
       status: 'PENDING',
       note: 'Hồ sơ vừa được nộp',
+    });
+
+    // Thông báo: nhà tuyển dụng (hoặc Admin với tin nội bộ) có hồ sơ mới; ứng viên nhận xác nhận đã nộp
+    const candidateName = req.user.full_name || 'Một ứng viên';
+    const company = job.company_id ? await Company.findByPk(job.company_id, { attributes: ['id', 'name', 'user_id'] }) : null;
+    if (company?.user_id) {
+      await createNotification({
+        user_id: company.user_id,
+        type: 'APPLICATION_SUBMITTED',
+        title: 'Có hồ sơ ứng tuyển mới',
+        message: `${candidateName} vừa nộp hồ sơ vào vị trí "${job.title}".`,
+        link: `/employer/jobs/${job.id}?tab=applications`,
+        metadata: { job_post_id: job.id, application_id: application.id },
+      });
+    } else {
+      await notifyAdmins({
+        type: 'APPLICATION_SUBMITTED',
+        title: 'Có hồ sơ ứng tuyển mới',
+        message: `${candidateName} vừa nộp hồ sơ vào vị trí "${job.title}".`,
+        link: '/admin/jobs',
+        metadata: { job_post_id: job.id, application_id: application.id },
+      });
+    }
+    await createNotification({
+      user_id: req.user.id,
+      type: 'APPLICATION_SUBMITTED',
+      title: 'Đã nộp hồ sơ ứng tuyển',
+      message: `Hồ sơ của bạn cho vị trí "${job.title}"${company ? ` tại ${company.name}` : ''} đã được gửi. Bạn sẽ nhận thông báo khi nhà tuyển dụng cập nhật.`,
+      link: '/candidate/applications',
+      email: false,
+      metadata: { job_post_id: job.id, application_id: application.id },
     });
 
     res.status(201).json({ success: true, data: application });
@@ -64,7 +105,7 @@ exports.getApplicationDetail = async (req, res, next) => {
         { model: ApplicationStatusHistory, order: [['changed_at', 'ASC']] },
       ],
     });
-    if (!application) throw new AppError('Application not found', 404);
+    if (!application) throw new AppError('Không tìm thấy hồ sơ ứng tuyển', 404);
     res.json({ success: true, data: application });
   } catch (error) { next(error); }
 };
@@ -73,7 +114,7 @@ exports.getApplicationDetail = async (req, res, next) => {
 exports.getAllEmployerApplications = async (req, res, next) => {
   try {
     const company = await Company.findOne({ where: { user_id: req.user.id } });
-    if (!company) throw new AppError('Company not found', 404);
+    if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
 
     const { job_id, status } = req.query;
     const jobWhere = { company_id: company.id };
@@ -92,10 +133,10 @@ exports.getAllEmployerApplications = async (req, res, next) => {
         },
         {
           model: CandidateProfile,
-          attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name'],
+          attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name', 'avatar_url', 'phone'],
           include: [
             { model: User, attributes: ['full_name', 'email'] },
-            { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
+            { model: Skill, through: { attributes: [] }, attributes: ['name'] },
           ],
         },
       ],
@@ -109,18 +150,18 @@ exports.getAllEmployerApplications = async (req, res, next) => {
 exports.getJobApplications = async (req, res, next) => {
   try {
     const company = await Company.findOne({ where: { user_id: req.user.id } });
-    if (!company) throw new AppError('Company not found', 404);
+    if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
     const job = await JobPost.findOne({ where: { id: req.params.jobId, company_id: company.id } });
-    if (!job) throw new AppError('Job not found or not yours', 404);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng của bạn', 404);
 
     const applications = await Application.findAll({
       where: { job_post_id: req.params.jobId },
       include: [{
         model: CandidateProfile,
-        attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name'],
+        attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name', 'avatar_url', 'phone'],
         include: [
           { model: User, attributes: ['full_name', 'email'] },
-          { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
+          { model: Skill, through: { attributes: [] }, attributes: ['name'] },
         ],
       }],
       order: [['applied_at', 'DESC']],
@@ -134,7 +175,7 @@ exports.updateApplicationStatus = async (req, res, next) => {
   try {
     const { status, note } = req.body;
     const validStatuses = ['VIEWED', 'INTERVIEW', 'HIRED', 'REJECTED'];
-    if (!validStatuses.includes(status)) throw new AppError('Invalid status', 400);
+    if (!validStatuses.includes(status)) throw new AppError('Trạng thái không hợp lệ', 400);
 
     const company = await Company.findOne({ where: { user_id: req.user.id } });
     const application = await Application.findByPk(req.params.id, {
@@ -143,10 +184,34 @@ exports.updateApplicationStatus = async (req, res, next) => {
         { model: CandidateProfile, include: [{ model: User }] }
       ],
     });
-    if (!application) throw new AppError('Application not found or access denied', 404);
+    if (!application) throw new AppError('Không tìm thấy hồ sơ ứng tuyển hoặc bạn không có quyền xử lý hồ sơ này', 404);
 
+    const previousStatus = application.status;
     await application.update({ status });
     await ApplicationStatusHistory.create({ application_id: application.id, status, note });
+
+    // Thông báo cho ứng viên mỗi khi trạng thái hồ sơ thay đổi (email chi tiết của 3 trạng thái cuối được gửi riêng bên dưới)
+    const candidateUserId = application.CandidateProfile?.User?.id;
+    if (candidateUserId && previousStatus !== status) {
+      const pos = application.JobPost?.title || 'vị trí ứng tuyển';
+      const co = company?.name || 'Nhà tuyển dụng';
+      const NOTICE = {
+        VIEWED: ['Hồ sơ của bạn đã được xem', `${co} đã xem hồ sơ ứng tuyển vị trí "${pos}" của bạn.`],
+        INTERVIEW: ['Bạn được mời phỏng vấn', `${co} mời bạn vào vòng phỏng vấn cho vị trí "${pos}". Hãy chú ý email và điện thoại để nhận lịch.`],
+        HIRED: ['Chúc mừng, bạn đã trúng tuyển!', `${co} đã nhận bạn vào vị trí "${pos}". Bộ phận nhân sự sẽ sớm liên hệ để trao đổi chi tiết.`],
+        REJECTED: ['Kết quả ứng tuyển', `${co} chưa thể tiếp nhận hồ sơ vị trí "${pos}" của bạn lần này. Cảm ơn bạn đã quan tâm, hãy tiếp tục ứng tuyển các vị trí khác.`],
+      };
+      const [title, message] = NOTICE[status];
+      await createNotification({
+        user_id: candidateUserId,
+        type: 'APPLICATION_STATUS',
+        title,
+        message: note ? `${message}\nGhi chú từ nhà tuyển dụng: ${note}` : message,
+        link: '/candidate/applications',
+        email: false, // INTERVIEW / HIRED / REJECTED đã có email riêng; VIEWED chỉ cần thông báo trong ứng dụng
+        metadata: { application_id: application.id, status },
+      });
+    }
 
     // --- SEND PROFESSIONAL EMAIL ---
     const candidateEmail = application.CandidateProfile?.User?.email;
@@ -164,7 +229,7 @@ exports.updateApplicationStatus = async (req, res, next) => {
         titleHtml = 'Chúc mừng bạn bước vào Vòng phỏng vấn';
         bodyHtml = `
           <p style="color: #374151; margin: 0 0 16px;">
-            Hồ sơ của bạn cho vị trí <strong>${positionName}</strong> đã vượt qua vòng sơ loại và chúng tôi rất ấn tượng với năng lực của bạn.
+            Hồ sơ của bạn cho vị trí <strong>${escapeHtml(positionName)}</strong> đã vượt qua vòng sơ loại và chúng tôi rất ấn tượng với năng lực của bạn.
           </p>
           <p style="color: #374151; margin: 0 0 16px;">
             Chúng tôi sẽ sớm liên hệ với bạn qua email hoặc điện thoại để sắp xếp lịch phỏng vấn chính thức. Hãy chú ý hộp thư đến nhé!
@@ -175,7 +240,7 @@ exports.updateApplicationStatus = async (req, res, next) => {
         titleHtml = 'Chúc mừng bạn đã Trúng tuyển! 🎉';
         bodyHtml = `
           <p style="color: #374151; margin: 0 0 16px;">
-            Chúng tôi vô cùng vui mừng thông báo rằng bạn đã <strong>chính thức trúng tuyển</strong> vào vị trí <strong>${positionName}</strong>.
+            Chúng tôi vô cùng vui mừng thông báo rằng bạn đã <strong>chính thức trúng tuyển</strong> vào vị trí <strong>${escapeHtml(positionName)}</strong>.
           </p>
           <p style="color: #374151; margin: 0 0 16px;">
             Bộ phận Nhân sự của công ty sẽ liên hệ với bạn trong thời gian sớm nhất để trao đổi về Offer (Lương, thưởng, phúc lợi) và ngày bắt đầu công việc (Onboarding).
@@ -189,7 +254,7 @@ exports.updateApplicationStatus = async (req, res, next) => {
         titleHtml = 'Cập nhật kết quả ứng tuyển';
         bodyHtml = `
           <p style="color: #374151; margin: 0 0 16px;">
-            Cảm ơn bạn đã quan tâm và dành thời gian ứng tuyển vào vị trí <strong>${positionName}</strong> tại <strong>${companyName}</strong>.
+            Cảm ơn bạn đã quan tâm và dành thời gian ứng tuyển vào vị trí <strong>${escapeHtml(positionName)}</strong> tại <strong>${escapeHtml(companyName)}</strong>.
           </p>
           <p style="color: #374151; margin: 0 0 16px;">
             Sau khi xem xét kỹ lưỡng hồ sơ, chúng tôi rất tiếc phải thông báo rằng kinh nghiệm của bạn hiện tại chưa hoàn toàn phù hợp với định hướng của vị trí này. 
@@ -205,19 +270,19 @@ exports.updateApplicationStatus = async (req, res, next) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px; border-radius: 12px;">
             <div style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); padding: 24px; border-radius: 8px 8px 0 0; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">${companyName}</h1>
+              <h1 style="color: white; margin: 0; font-size: 24px;">${escapeHtml(companyName)}</h1>
               <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0; font-size: 14px;">Thông báo từ Nhà tuyển dụng</p>
             </div>
             <div style="background: white; padding: 28px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
               <h2 style="color: #111827; margin: 0 0 20px; font-size: 18px;">${titleHtml}</h2>
-              <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${candidateName}</strong>,</p>
+              <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${escapeHtml(candidateName)}</strong>,</p>
               
               ${bodyHtml}
               
               ${note ? `
               <div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 12px 16px; margin: 20px 0;">
                 <p style="color: #475569; margin: 0; font-size: 14px; font-style: italic;">
-                  <strong>Ghi chú từ HR:</strong> ${note}
+                  <strong>Ghi chú từ HR:</strong> ${escapeHtml(note)}
                 </p>
               </div>
               ` : ''}
@@ -242,14 +307,14 @@ exports.updateApplicationStatus = async (req, res, next) => {
 exports.getAdminJobApplications = async (req, res, next) => {
   try {
     const job = await JobPost.findByPk(req.params.jobId);
-    if (!job) throw new AppError('Job not found', 404);
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
     const applications = await Application.findAll({
       where: { job_post_id: req.params.jobId },
       include: [{
         model: CandidateProfile,
         include: [
           { model: User, attributes: ['full_name', 'email'] },
-          { model: Skill, through: { attributes: ['level'] }, attributes: ['name'] },
+          { model: Skill, through: { attributes: [] }, attributes: ['name'] },
         ],
       }],
       order: [['applied_at', 'DESC']],
@@ -263,7 +328,7 @@ exports.adminUpdateApplicationStatus = async (req, res, next) => {
   try {
     const { status, note } = req.body;
     const application = await Application.findByPk(req.params.id);
-    if (!application) throw new AppError('Application not found', 404);
+    if (!application) throw new AppError('Không tìm thấy hồ sơ ứng tuyển', 404);
     await application.update({ status });
     await ApplicationStatusHistory.create({ application_id: application.id, status, note });
     res.json({ success: true, data: application });
@@ -274,17 +339,30 @@ exports.adminUpdateApplicationStatus = async (req, res, next) => {
 exports.withdrawApplication = async (req, res, next) => {
   try {
     const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!profile) throw new AppError('Profile not found', 404);
+    if (!profile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
 
     const application = await Application.findOne({
       where: { id: req.params.id, candidate_profile_id: profile.id },
     });
-    if (!application) throw new AppError('Application not found or access denied', 404);
+    if (!application) throw new AppError('Không tìm thấy hồ sơ ứng tuyển hoặc bạn không có quyền xử lý hồ sơ này', 404);
 
     // Only allow withdraw if status is PENDING
     if (!['PENDING'].includes(application.status)) {
       throw new AppError('Chỉ có thể rút đơn khi hồ sơ đang ở trạng thái Chờ xem xét', 400);
     }
+
+    // Báo cho nhà tuyển dụng (hoặc Admin với tin nội bộ) biết ứng viên đã rút hồ sơ
+    const job = await JobPost.findByPk(application.job_post_id, { attributes: ['id', 'title', 'company_id'] });
+    const company = job?.company_id ? await Company.findByPk(job.company_id, { attributes: ['user_id'] }) : null;
+    const notice = {
+      type: 'APPLICATION_WITHDRAWN',
+      title: 'Ứng viên đã rút hồ sơ',
+      message: `${req.user.full_name || 'Một ứng viên'} đã rút hồ sơ ứng tuyển vị trí "${job?.title || ''}".`,
+      link: company ? `/employer/jobs/${job.id}?tab=applications` : '/admin/jobs',
+      email: false,
+    };
+    if (company?.user_id) await createNotification({ ...notice, user_id: company.user_id });
+    else if (job) await notifyAdmins(notice);
 
     await application.destroy();
     res.json({ success: true, message: 'Đã rút đơn ứng tuyển thành công' });

@@ -7,7 +7,6 @@ const cookieParser = require('cookie-parser');
 const { sequelize } = require('./src/models');
 const errorHandler = require('./src/middleware/errorHandler');
 const { startCronJobs, cleanupOrphanFiles } = require('./src/utils/cronJobs');
-const { backfillProjectProgress } = require('./src/utils/projectProgress');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -49,7 +48,7 @@ app.use('/api/notifications', require('./src/routes/notifications'));
 
 // 404
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  res.status(404).json({ success: false, message: 'Không tìm thấy đường dẫn' });
 });
 
 // Error handler
@@ -72,9 +71,6 @@ const startServer = async () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       // Khởi động hệ thống dọn rác ngầm
       startCronJobs();
-
-      // Đồng bộ tiến độ dự án từ task (dữ liệu cũ chưa từng được cập nhật)
-      backfillProjectProgress();
 
       // (Tuỳ chọn) Chạy dọn dẹp ngay lần đầu bật server nếu muốn nghiệm thu
       setTimeout(() => cleanupOrphanFiles(), 5000); 

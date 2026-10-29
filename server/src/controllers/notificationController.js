@@ -1,4 +1,4 @@
-const { Notification } = require('../models');
+const { Notification, User } = require('../models');
 const AppError = require('../utils/AppError');
 const { emailNotification } = require('../utils/notificationMailer');
 
@@ -10,6 +10,26 @@ exports.createNotification = async ({ user_id, type, title, message, link, metad
     if (email) emailNotification({ user_id, title, message, link }); // gửi nền, không chờ
   } catch (e) {
     console.error('Notification create error:', e.message);
+  }
+};
+
+// Danh sách Admin đang hoạt động (người nhận các thông báo "việc cần xử lý")
+async function getAdminUserIds() {
+  const admins = await User.findAll({
+    attributes: ['id'],
+    where: { status: 'ACTIVE' },
+    include: [{ association: 'Roles', where: { name: 'ADMIN' }, attributes: [], through: { attributes: [] } }],
+  });
+  return admins.map((u) => u.id);
+}
+
+// Gửi cho mọi Admin. Mặc định KHÔNG kèm email (việc chờ xử lý xuất hiện liên tục, tránh làm ngập hộp thư)
+exports.notifyAdmins = async (payload) => {
+  try {
+    const ids = await getAdminUserIds();
+    await Promise.all(ids.map((user_id) => exports.createNotification({ email: false, ...payload, user_id })));
+  } catch (e) {
+    console.error('notifyAdmins error:', e.message);
   }
 };
 

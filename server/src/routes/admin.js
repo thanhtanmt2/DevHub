@@ -16,6 +16,7 @@ router.use(protect, authorize('ADMIN'));
 
 // Stats
 router.get('/stats', statsCtrl.getAdminStats);
+router.get('/dashboard', statsCtrl.getAdminDashboard);
 
 // Users
 router.get('/users', userCtrl.getUsers);
@@ -55,6 +56,7 @@ router.post('/projects/:id/workspace', wsCtrl.createProjectWorkspace);
 const projectJobCtrl = require('../controllers/projectJobController');
 router.get('/projects/:projectId/jobs', projectJobCtrl.adminGetProjectJobs);
 router.post('/projects/:projectId/jobs', [body('title').notEmpty()], validate, projectJobCtrl.adminCreateProjectJob);
+router.put('/project-jobs/:id', projectJobCtrl.adminUpdateProjectJob);
 router.put('/project-applications/:id/status', [body('status').isIn(['REVIEWING', 'ACCEPTED', 'REJECTED', 'INTERVIEW'])], validate, projectJobCtrl.adminUpdateProjectApplicationStatus);
 router.post('/project-applications/:id/schedule-interview', [body('interview_time').notEmpty(), body('meet_url').notEmpty()], validate, projectJobCtrl.adminScheduleInterview);
 

@@ -16,6 +16,8 @@ export const candidateApi = {
   addExperience: (data) => api.post('/candidates/experiences', data),
   updateExperience: (id, data) => api.put(`/candidates/experiences/${id}`, data),
   deleteExperience: (id) => api.delete(`/candidates/experiences/${id}`),
+  // Dự án thật đã tham gia trên DevHub (hiện tự động trên sơ đồ kinh nghiệm)
+  getDevhubProjects: () => api.get('/candidates/devhub-projects'),
   
   // Payment info
   getPaymentInfo: () => api.get('/candidates/payment-info'),
@@ -25,6 +27,9 @@ export const candidateApi = {
   getMyCvs: () => api.get('/candidates/cvs'),
   addCv: (data) => api.post('/candidates/cvs', data),
   setDefaultCv: (id) => api.put(`/candidates/cvs/${id}/default`),
+  // Nhập từ CV: parse = AI đọc và trả bản xem trước (mode: 'skills' | 'experience'), import = lưu phần đã chọn
+  parseCv: (id, mode) => api.post(`/candidates/cvs/${id}/parse`, { mode }, { timeout: 120000 }),
+  importFromCv: (data) => api.post('/candidates/cvs/import', data),
   deleteCv: (id) => api.delete(`/candidates/cvs/${id}`),
   
   // Workspaces & payments

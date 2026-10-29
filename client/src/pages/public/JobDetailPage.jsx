@@ -1,26 +1,25 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobApi } from '@/api/jobApi';
 import { candidateApi } from '@/api/candidateApi';
 import { useAuth } from '@/contexts/AuthContext';
 import CvSelector from '@/components/candidate/CvSelector';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-
-const formatSalary = (min, max) => {
-  if (!min && !max) return 'Thỏa thuận';
-  const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n);
-  if (min && max) return `${fmt(min)} – ${fmt(max)} VNĐ/tháng`;
-  if (min) return `Từ ${fmt(min)} VNĐ/tháng`;
-  return `Đến ${fmt(max)} VNĐ/tháng`;
-};
+import JobDetailView from '@/components/job/JobDetailView';
+import { AppliedBadge } from '@/components/job/JobParts';
+import { deadlineInfo } from '@/utils/jobMeta';
+import Icon from '@/components/common/Icon';
+import useEscapeKey from '@/hooks/useEscapeKey';
 
 export default function JobDetailPage() {
   const { id } = useParams();
   const { user, isCandidate, openLoginModal } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [showApply, setShowApply] = useState(false);
+  useEscapeKey(() => setShowApply(false), showApply);
   const [applyForm, setApplyForm] = useState({ cover_letter: '', cv_url: '' });
 
   const { data, isLoading } = useQuery({
@@ -34,12 +33,21 @@ export default function JobDetailPage() {
     enabled: !!user && isCandidate(),
   });
 
+  const { data: myAppsRes } = useQuery({
+    queryKey: ['my-applications'],
+    queryFn: () => candidateApi.getMyApplications(),
+    enabled: !!user && isCandidate(),
+  });
+
   const profile = profileRes?.data?.data;
+  const applied = myAppsRes?.data?.data?.find((a) => a.job_post_id === id);
 
   const applyMutation = useMutation({
     mutationFn: (data) => jobApi.apply({ job_post_id: id, ...data }),
     onSuccess: () => {
       toast.success('Nộp hồ sơ ứng tuyển thành công!');
+      qc.invalidateQueries({ queryKey: ['my-applications'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
       setShowApply(false);
       navigate('/candidate/applications');
     },
@@ -78,107 +86,28 @@ export default function JobDetailPage() {
   const job = data?.data?.data;
   if (!job) return <div className="card text-center text-gray-400">Không tìm thấy việc làm</div>;
 
+  const closed = job.status !== 'OPEN' || deadlineInfo(job.deadline).expired;
+  let action = null;
+  if (!user) {
+    action = <button onClick={openLoginModal} className="btn-primary px-7 py-2.5">Đăng nhập để ứng tuyển</button>;
+  } else if (isCandidate()) {
+    if (applied) {
+      action = <AppliedBadge application={applied} className="!px-4 !py-2 !text-sm" />;
+    } else {
+      action = (
+        <button onClick={handleOpenApply} disabled={closed} className="btn-primary px-7 py-2.5">
+          {closed ? 'Đã hết hạn nộp hồ sơ' : 'Ứng tuyển ngay'}
+        </button>
+      );
+    }
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="card mb-6">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-              <span className="badge bg-blue-100 text-blue-700 text-xs font-semibold">
-                Doanh nghiệp tuyển dụng
-              </span>
-            </div>
-            {job.Company && <p className="text-gray-600 font-medium">{job.Company.name}</p>}
-          </div>
-
-          {isCandidate() && (
-            <button onClick={handleOpenApply} className="btn-primary shadow-sm px-6 py-2.5">
-              Ứng tuyển ngay
-            </button>
-          )}
-          {!user && (
-            <button onClick={openLoginModal} className="btn-primary">
-              Đăng nhập để ứng tuyển
-            </button>
-          )}
-        </div>
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400">Mức lương</p>
-            <p className="font-semibold text-sm text-green-700 mt-0.5">{formatSalary(job.salary_min, job.salary_max)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Hình thức</p>
-            <p className="font-medium text-sm mt-0.5">{job.work_type || 'Thỏa thuận'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Địa điểm</p>
-            <p className="font-medium text-sm mt-0.5">{job.location || 'Toàn quốc / Remote'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Hạn nộp</p>
-            <p className="font-medium text-sm mt-0.5">{job.deadline ? new Date(job.deadline).toLocaleDateString('vi-VN') : 'Còn hạn'}</p>
-          </div>
-        </div>
-
-        {/* Skills */}
-        {job.Skills?.length > 0 && (
-          <div className="mb-5">
-            <h3 className="font-semibold text-sm text-gray-900 mb-2 uppercase tracking-wide">Kỹ năng yêu cầu</h3>
-            <div className="flex flex-wrap gap-2">
-              {job.Skills.map(s => (
-                <span key={s.id} className="badge bg-primary-50 text-primary-700 border border-primary-200">
-                  {s.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Company Info */}
-        {job.Company && (
-          <div className="mb-5 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
-            <h3 className="font-semibold text-sm text-gray-900 mb-3 uppercase tracking-wide">Thông tin công ty</h3>
-            <div className="flex items-start gap-3">
-              {job.Company.logo_url && (
-                <img
-                  src={job.Company.logo_url}
-                  alt={job.Company.name}
-                  className="w-12 h-12 rounded-lg object-cover border border-gray-200 flex-shrink-0"
-                />
-              )}
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">{job.Company.name}</p>
-                {job.Company.address && (
-                  <p className="text-xs text-gray-500 mt-1">📍 {job.Company.address}</p>
-                )}
-                {job.Company.website && (
-                  <a
-                    href={job.Company.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary-600 hover:underline mt-1 inline-block"
-                  >
-                    🌐 {job.Company.website}
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        <div>
-          <h3 className="font-semibold text-sm text-gray-900 mb-2 uppercase tracking-wide">Mô tả công việc</h3>
-          <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-            {job.description}
-          </div>
-        </div>
-      </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <Link to="/jobs" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-4">
+        <Icon name="chevronRight" className="w-4 h-4 rotate-180" />Quay lại danh sách việc làm
+      </Link>
+      <JobDetailView job={job} action={action} />
 
       {/* Apply Modal */}
       {showApply && (
@@ -193,9 +122,9 @@ export default function JobDetailPage() {
                 </div>
                 <button
                   onClick={() => setShowApply(false)}
-                  className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
+                  className="text-gray-400 hover:text-gray-600 p-1" aria-label="Đóng"
                 >
-                  ✕
+                  <Icon name="x" className="w-5 h-5" />
                 </button>
               </div>
 

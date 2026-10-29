@@ -6,6 +6,9 @@ module.exports = (sequelize, DataTypes) => {
     description: { type: DataTypes.TEXT },
     budget: { type: DataTypes.DECIMAL(15, 2) },
     quantity: { type: DataTypes.INTEGER, defaultValue: 1 },
+    requirements: { type: DataTypes.TEXT },
+    benefits: { type: DataTypes.TEXT },
+    experience: { type: DataTypes.STRING(20) },
     deadline: { type: DataTypes.DATE },
     status: { type: DataTypes.ENUM('OPEN', 'CLOSED'), defaultValue: 'OPEN' },
   }, { tableName: 'project_jobs', underscored: true });

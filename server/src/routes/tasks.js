@@ -33,6 +33,10 @@ router.delete('/:id/subtasks/:subId', ctrl.deleteSubTask);
 router.post('/:id/comments', [body('content').notEmpty()], validate, ctrl.addComment);
 router.delete('/:id/comments/:commentId', ctrl.deleteComment);
 
+// ─── Tệp / liên kết tài liệu đính kèm (Admin/Lead, hoặc người được giao khi task chưa gửi duyệt)
+router.post('/:id/attachments', ctrl.addAttachment);
+router.delete('/:id/attachments/:attId', ctrl.deleteAttachment);
+
 // ─── Nộp sản phẩm & gửi duyệt (Đang làm → Chờ duyệt), lịch sử các lần nộp
 router.post('/:id/submissions', ctrl.submitTask);
 router.get('/:id/submissions', ctrl.getTaskSubmissions);

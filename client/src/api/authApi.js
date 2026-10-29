@@ -7,7 +7,9 @@ export const authApi = {
   logout: () => api.post('/auth/logout'),
   refresh: () => api.post('/auth/refresh'),
   getMe: () => api.get('/auth/me'),
+  updateAvatar: (avatar_url) => api.put('/auth/me/avatar', { avatar_url }),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password }),
   verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
+  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
 };

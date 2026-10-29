@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Layouts
@@ -21,6 +21,7 @@ import JobsPage from '@/pages/public/JobsPage';
 import ProjectsPage from '@/pages/public/ProjectsPage';
 import JobDetailPage from '@/pages/public/JobDetailPage';
 import ProjectJobDetailPage from '@/pages/public/ProjectJobDetailPage';
+import AccountPage from '@/pages/public/AccountPage';
 
 // Candidate pages
 import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
@@ -35,7 +36,8 @@ import WorkspacePage from '@/pages/workspace/WorkspacePage';
 import EmployerDashboard from '@/pages/employer/EmployerDashboard';
 import ManageJobsPage from '@/pages/employer/ManageJobsPage';
 import SearchCandidatesPage from '@/pages/employer/SearchCandidatesPage';
-import ManageApplicationsPage from '@/pages/employer/ManageApplicationsPage';
+import EmployerJobDetailPage from '@/pages/employer/EmployerJobDetailPage';
+import CandidateDetailPage from '@/pages/employer/CandidateDetailPage';
 import CompanyPage from '@/pages/employer/CompanyPage';
 
 // Admin pages
@@ -53,7 +55,15 @@ import SystemLogsPage from '@/pages/admin/SystemLogsPage';
 // Components
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { ConfirmProvider } from '@/components/common/ConfirmDialog';
 import { AuthProvider } from '@/contexts/AuthContext';
+
+// Hồ sơ ứng tuyển nay nằm trong từng tin tuyển dụng; đường dẫn cũ (thông báo, liên kết đã lưu) vẫn dùng được
+function LegacyApplicationsRedirect() {
+  const [params] = useSearchParams();
+  const jobId = params.get('job_id');
+  return <Navigate to={jobId ? `/employer/jobs/${jobId}?tab=applications` : '/employer/jobs'} replace />;
+}
 
 function AppRoutes() {
   const { loading } = useAuth();
@@ -71,6 +81,13 @@ function AppRoutes() {
       </Route>
 
       {/* Auth */}
+      {/* Hồ sơ cá nhân dùng chung (Nhà tuyển dụng / Admin; mọi tài khoản đã đăng nhập đều vào được) */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<PublicLayout />}>
+          <Route path="/account" element={<AccountPage />} />
+        </Route>
+      </Route>
+
       <Route path="/login" element={<Navigate to="/?auth=login" replace />} />
       <Route path="/register" element={<Navigate to="/?auth=register" replace />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -95,7 +112,9 @@ function AppRoutes() {
           <Route path="/employer/company" element={<CompanyPage />} />
           <Route path="/employer/jobs" element={<ManageJobsPage />} />
           <Route path="/employer/candidates" element={<SearchCandidatesPage />} />
-          <Route path="/employer/applications" element={<ManageApplicationsPage />} />
+          <Route path="/employer/candidates/:id" element={<CandidateDetailPage />} />
+          <Route path="/employer/jobs/:id" element={<EmployerJobDetailPage />} />
+          <Route path="/employer/applications" element={<LegacyApplicationsRedirect />} />
         </Route>
       </Route>
 
@@ -123,8 +142,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
-      <AuthModal />
+      <ConfirmProvider>
+        <AppRoutes />
+        <AuthModal />
+      </ConfirmProvider>
     </AuthProvider>
   );
 }

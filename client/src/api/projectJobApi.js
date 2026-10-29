@@ -12,6 +12,7 @@ export const projectJobApi = {
   // Admin
   getAdminProjectJobs: (projectId) => api.get(`/admin/projects/${projectId}/jobs`),
   createAdminProjectJob: (projectId, data) => api.post(`/admin/projects/${projectId}/jobs`, data),
+  updateAdminProjectJob: (id, data) => api.put(`/admin/project-jobs/${id}`, data),
   updateProjectApplicationStatus: (id, data) => api.put(`/admin/project-applications/${id}/status`, data),
   scheduleInterview: (id, data) => api.post(`/admin/project-applications/${id}/schedule-interview`, data),
 };

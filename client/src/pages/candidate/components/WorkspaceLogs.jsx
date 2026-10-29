@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { logApi } from '../../../api/logApi';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { stripEmoji } from '@/utils/stripEmoji';
 
 const ACTION_LABELS = {
-  TASK_CREATED: { text: 'Tạo Task', color: 'bg-indigo-100 text-indigo-700' },
-  TASK_UPDATED: { text: 'Cập nhật Task', color: 'bg-indigo-50 text-indigo-600' },
-  TASK_STATUS_CHANGED: { text: 'Đổi TT Task', color: 'bg-purple-100 text-purple-700' },
+  TASK_CREATED: { text: 'Tạo Task', color: 'bg-primary-100 text-primary-700' },
+  TASK_UPDATED: { text: 'Cập nhật Task', color: 'bg-primary-50 text-primary-600' },
+  TASK_STATUS_CHANGED: { text: 'Đổi TT Task', color: 'bg-sky-100 text-sky-700' },
   TASK_DELETED: { text: 'Xóa Task', color: 'bg-red-100 text-red-700' },
   TASK_APPROVED: { text: 'Duyệt Task', color: 'bg-emerald-100 text-emerald-700' },
   TASK_REVISION_REQUESTED: { text: 'Yêu cầu sửa', color: 'bg-orange-100 text-orange-700' },
@@ -69,7 +70,7 @@ export default function WorkspaceLogs({ workspaceId }) {
                         {meta.text}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">{log.description}</p>
+                    <p className="text-sm text-gray-600">{stripEmoji(log.description)}</p>
                   </div>
                 </div>
               );

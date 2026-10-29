@@ -119,9 +119,9 @@ module.exports = {
 
     // Add Candidate Skills
     await queryInterface.bulkInsert('candidate_skills', [
-      { candidate_profile_id: profile1Id, skill_id: reactSkillId, level: 'ADVANCED', years_of_experience: 2 },
-      { candidate_profile_id: profile1Id, skill_id: nodeSkillId, level: 'INTERMEDIATE', years_of_experience: 1.5 },
-      { candidate_profile_id: profile2Id, skill_id: reactSkillId, level: 'EXPERT', years_of_experience: 3 }
+      { candidate_profile_id: profile1Id, skill_id: reactSkillId },
+      { candidate_profile_id: profile1Id, skill_id: nodeSkillId },
+      { candidate_profile_id: profile2Id, skill_id: reactSkillId }
     ]);
 
     // 5. Tuyển dụng Công ty: Job Posts (Thuần túy Doanh nghiệp tuyển nhân sự dài hạn)

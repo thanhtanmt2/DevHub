@@ -7,9 +7,11 @@ const generateAccessToken = (userId) => {
   });
 };
 
+// jwtid ngẫu nhiên: hai lần đăng nhập trong cùng một giây vẫn ra hai token khác nhau (mỗi thiết bị một phiên riêng)
 const generateRefreshToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
+    jwtid: crypto.randomUUID(),
   });
 };
 

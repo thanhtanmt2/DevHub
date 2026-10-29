@@ -14,7 +14,7 @@ exports.evaluateCandidate = async (req, res, next) => {
       include: [{ model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] }]
     });
 
-    if (!member) throw new AppError('Workspace member not found', 404);
+    if (!member) throw new AppError('Không tìm thấy thành viên trong Workspace', 404);
 
     // Check if evaluation already exists for this member in this workspace
     let evaluation = await CandidateEvaluation.findOne({
@@ -58,8 +58,9 @@ exports.evaluateCandidate = async (req, res, next) => {
       where: { workspace_member_id: memberIds },
     });
 
-    const totalScore = allEvaluations.reduce((sum, ev) => sum + ev.score, 0);
-    const avgScore = totalScore / allEvaluations.length;
+    // score là DECIMAL nên driver trả về chuỗi ("9.00"): phải ép sang số, nếu không phép + nối chuỗi và điểm trung bình thành NaN
+    const totalScore = allEvaluations.reduce((sum, ev) => sum + Number(ev.score), 0);
+    const avgScore = Math.round((totalScore / allEvaluations.length) * 100) / 100;
 
     await member.CandidateProfile.update({ competency_score: avgScore });
 

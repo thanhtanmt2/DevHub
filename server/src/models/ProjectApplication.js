@@ -16,8 +16,10 @@ module.exports = (sequelize, DataTypes) => {
   }, { 
     tableName: 'project_applications', 
     underscored: true, 
-    updatedAt: 'updated_at', 
-    createdAt: 'applied_at' 
+    updatedAt: 'updated_at',
+    createdAt: 'applied_at',
+    // 1 ứng viên chỉ ứng tuyển 1 lần vào 1 vị trí dự án
+    indexes: [{ unique: true, name: 'uq_project_applications_candidate_job', fields: ['candidate_profile_id', 'project_job_id'] }],
   });
 };
 

@@ -1,3 +1,4 @@
+import Icon from '@/components/common/Icon';
 ﻿import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { uploadApi } from '@/api/uploadApi';
@@ -122,7 +123,7 @@ export default function CvSelector({ profile, value, onChange }) {
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          📂 Chọn từ hồ sơ ({cvList.length})
+          <Icon name="folder" className="w-4 h-4 mr-1" />Chọn từ hồ sơ ({cvList.length})
         </button>
         <button
           type="button"
@@ -133,7 +134,7 @@ export default function CvSelector({ profile, value, onChange }) {
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          📤 Tải lên CV mới
+          <Icon name="upload" className="w-4 h-4 mr-1" />Tải lên CV mới
         </button>
       </div>
 
@@ -152,7 +153,7 @@ export default function CvSelector({ profile, value, onChange }) {
                 onClick={() => handleSwitchMode('upload')}
                 className="btn-primary text-xs py-1.5 px-3 mt-2 inline-flex items-center gap-1"
               >
-                📤 Tải lên CV ngay
+                <Icon name="upload" className="w-4 h-4" /> Tải lên CV ngay
               </button>
             </div>
           ) : (
@@ -201,7 +202,7 @@ export default function CvSelector({ profile, value, onChange }) {
                       onClick={(e) => e.stopPropagation()}
                       className="text-xs text-primary-700 hover:text-primary-800 font-medium bg-primary-100/70 hover:bg-primary-100 px-2.5 py-1 rounded-lg shrink-0 flex items-center gap-1"
                     >
-                      👁️ Xem file
+                      <Icon name="eye" className="w-3.5 h-3.5" /> Xem file
                     </a>
                   </label>
                 );
@@ -247,7 +248,7 @@ export default function CvSelector({ profile, value, onChange }) {
             ) : uploadedFile ? (
               <div className="flex items-center justify-between gap-2 text-xs text-emerald-700">
                 <div className="flex items-center gap-1.5 truncate">
-                  <span className="text-base font-bold">✓</span>
+                  <Icon name="check" className="w-4 h-4" strokeWidth={2.5} />
                   <span className="font-semibold truncate">
                     {uploadedFile.name} ({uploadedFile.filename})
                   </span>
@@ -260,7 +261,7 @@ export default function CvSelector({ profile, value, onChange }) {
                     onClick={(e) => e.stopPropagation()}
                     className="px-2 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold text-[11px]"
                   >
-                    👁️ Xem trước
+                    <Icon name="eye" className="w-3.5 h-3.5 mr-1" />Xem trước
                   </a>
                   <span className="text-gray-400 underline hover:text-primary-600">
                     Chọn file khác
@@ -269,7 +270,7 @@ export default function CvSelector({ profile, value, onChange }) {
               </div>
             ) : (
               <div>
-                <span className="text-2xl block mb-1">📤</span>
+                <span className="block mb-1 text-gray-400"><Icon name="upload" className="w-7 h-7" /></span>
                 <p className="text-xs font-medium text-gray-700">
                   Nhấp vào đây để chọn file CV từ máy tính
                 </p>

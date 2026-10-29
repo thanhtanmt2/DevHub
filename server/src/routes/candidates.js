@@ -4,8 +4,8 @@ const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const ctrl = require('../controllers/candidateController');
 
-// Public route — view profile by ID (for employers)
-router.get('/:id/public', ctrl.getPublicProfile);
+// Không có route công khai xem hồ sơ ứng viên: nhà tuyển dụng xem hồ sơ qua /api/employer/candidates/:id
+// (có khóa thông tin liên hệ với doanh nghiệp chưa xác thực)
 
 // All routes below require authentication as CANDIDATE
 router.use(protect, authorize('CANDIDATE'));
@@ -21,24 +21,31 @@ router.put('/profile', [
 // Skills
 router.get('/skills', ctrl.getMySkills);
 router.post('/skills', [
-  body('skill_id').isUUID().withMessage('Valid skill_id required'),
-  body('level').isIn(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']),
-  body('years_of_experience').isFloat({ min: 0 }),
+  body('skill_id').isUUID().withMessage('Vui lòng chọn kỹ năng hợp lệ'),
 ], validate, ctrl.addSkill);
-router.put('/skills/:skill_id', [
-  body('level').optional().isIn(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']),
-  body('years_of_experience').optional().isFloat({ min: 0 }),
-], validate, ctrl.updateSkill);
 router.delete('/skills/:skill_id', ctrl.removeSkill);
 
 // Experiences
 router.get('/experiences', ctrl.getExperiences);
+const experienceRules = [
+  body('type').optional().isIn(['COMPANY', 'FREELANCE', 'PERSONAL', 'PROJECT']).withMessage('Loại kinh nghiệm không hợp lệ'),
+  body('end_date').optional({ nullable: true, checkFalsy: true }).isDate().withMessage('Ngày kết thúc không hợp lệ'),
+  body('parent_id').optional({ nullable: true, checkFalsy: true }).isUUID().withMessage('Công ty không hợp lệ'),
+  body('tasks').optional().isArray({ max: 20 }).withMessage('Danh sách việc đã làm không hợp lệ'),
+  body('technologies').optional().isArray({ max: 20 }).withMessage('Danh sách công nghệ không hợp lệ'),
+  body('link_url').optional({ nullable: true, checkFalsy: true }).isURL({ require_protocol: true }).withMessage('Link phải bắt đầu bằng http:// hoặc https://'),
+];
+router.get('/devhub-projects', ctrl.getMyDevhubProjects);
 router.post('/experiences', [
   body('job_title').notEmpty(),
   body('company_name').notEmpty(),
   body('start_date').isDate(),
+  ...experienceRules,
 ], validate, ctrl.addExperience);
-router.put('/experiences/:id', ctrl.updateExperience);
+router.put('/experiences/:id', [
+  body('start_date').optional().isDate(),
+  ...experienceRules,
+], validate, ctrl.updateExperience);
 router.delete('/experiences/:id', ctrl.deleteExperience);
 
 // Payment info
@@ -57,10 +64,14 @@ router.get('/payments', ctrl.getMyPayments);
 // CVs
 router.get('/cvs', ctrl.getMyCvs);
 router.post('/cvs', [
-  body('file_url').notEmpty().withMessage('file_url required'),
-  body('file_name').notEmpty().withMessage('file_name required'),
+  body('file_url').notEmpty().withMessage('Thiếu đường dẫn file CV'),
+  body('file_name').notEmpty().withMessage('Thiếu tên file CV'),
 ], validate, ctrl.addCv);
 router.put('/cvs/:id/default', ctrl.setDefaultCv);
+// Nhập kỹ năng / kinh nghiệm từ CV đã tải lên: parse = AI đọc và trả bản xem trước, import = lưu phần ứng viên đã chọn
+const cvImportCtrl = require('../controllers/cvImportController');
+router.post('/cvs/import', cvImportCtrl.importFromCv);
+router.post('/cvs/:id/parse', cvImportCtrl.parseCv);
 router.delete('/cvs/:id', ctrl.deleteCv);
 
 // Project Applications

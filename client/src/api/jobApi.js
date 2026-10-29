@@ -10,6 +10,7 @@ export const jobApi = {
   
   // Employer
   getMyJobs: () => api.get('/employer/jobs'),
+  getMyJob: (id) => api.get(`/employer/jobs/${id}`),
   createJob: (data) => api.post('/employer/jobs', data),
   updateJob: (id, data) => api.put(`/employer/jobs/${id}`, data),
   closeJob: (id) => api.delete(`/employer/jobs/${id}`),

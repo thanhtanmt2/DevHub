@@ -28,13 +28,21 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Các endpoint xác thực mà 401 là kết quả thật (sai mật khẩu, phiên đã hết hạn...): không thử gia hạn token.
+// /auth/me thì khác: mở lại trang sau >15 phút thì access token đã hết hạn nhưng refresh token (7 ngày) vẫn còn,
+// nên phải được gia hạn rồi gọi lại, nếu không người dùng bị đăng xuất mỗi lần F5.
+const NO_REFRESH_URLS = [
+  '/auth/login', '/auth/google', '/auth/register', '/auth/refresh', '/auth/logout',
+  '/auth/forgot-password', '/auth/reset-password', '/auth/verify-email', '/auth/resend-verification',
+];
+const skipRefresh = (url = '') => NO_REFRESH_URLS.some((p) => url.includes(p));
+
 // Interceptor bắt lỗi 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry &&
-      !originalRequest.url.includes('/auth/')) {
+    if (error.response?.status === 401 && !originalRequest._retry && !skipRefresh(originalRequest.url)) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -55,7 +63,8 @@ api.interceptors.response.use(
       } catch (err) {
         processQueue(err, null);
         localStorage.removeItem('accessToken');
-        window.location.href = '/login';
+        // Khôi phục phiên lúc vừa mở trang (/auth/me) thất bại thì chỉ coi là khách, không ép chuyển trang
+        if (!originalRequest.url.includes('/auth/me')) window.location.href = '/login';
         return Promise.reject(err);
       } finally {
         isRefreshing = false;

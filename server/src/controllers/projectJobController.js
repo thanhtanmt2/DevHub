@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const { sequelize } = require('../models');
 const { 
   Project, ProjectJob, ProjectJobSkill, Skill, 
   ProjectApplication, CandidateProfile, User, CandidateSkill,
@@ -6,20 +7,43 @@ const {
 } = require('../models');
 const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
+const { escapeHtml, safeHref } = require('../utils/escapeHtml');
 const { logActivity } = require('../utils/activityLogger');
+const { createNotification, notifyAdmins } = require('./notificationController');
+
+// Các trường vị trí dự án mà Admin được nhập
+const PROJECT_JOB_FIELDS = [
+  'title', 'description', 'requirements', 'benefits', 'budget', 'quantity', 'deadline',
+  'experience',
+];
+const pickProjectJobFields = (body) => {
+  const out = {};
+  for (const f of PROJECT_JOB_FIELDS) {
+    if (body[f] === undefined) continue;
+    const blank = typeof body[f] === 'string' && body[f].trim() === '';
+    out[f] = blank && f !== 'title' ? null : body[f];
+  }
+  return out;
+};
 
 // GET /api/project-jobs — Public listing of project jobs
 exports.getProjectJobs = async (req, res, next) => {
   try {
-    const { keyword, skill_id, page = 1, limit = 10 } = req.query;
-    const where = { status: 'OPEN' };
+    const { keyword, skill_id, experience, sort = 'newest', page = 1, limit = 10 } = req.query;
+    // Vị trí đã hết hạn nộp hồ sơ thì không hiển thị nữa (vẫn mở được bằng đường link trực tiếp)
+    const where = {
+      status: 'OPEN',
+      [Op.and]: [{ [Op.or]: [{ deadline: null }, { deadline: { [Op.gte]: new Date() } }] }],
+    };
 
     if (keyword) {
       where[Op.or] = [
         { title: { [Op.iLike]: `%${keyword}%` } },
         { description: { [Op.iLike]: `%${keyword}%` } },
+        { requirements: { [Op.iLike]: `%${keyword}%` } },
       ];
     }
+    if (experience) where.experience = experience;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const include = [
@@ -44,7 +68,11 @@ exports.getProjectJobs = async (req, res, next) => {
       include,
       limit: parseInt(limit),
       offset,
-      order: [['created_at', 'DESC']],
+      order: [
+        ...(sort === 'deadline' ? [[sequelize.literal('"ProjectJob"."deadline" ASC NULLS LAST')]]
+          : sort === 'budget' ? [[sequelize.literal('"ProjectJob"."budget" DESC NULLS LAST')]] : []),
+        ['created_at', 'DESC'],
+      ],
       distinct: true,
     });
 
@@ -77,7 +105,7 @@ exports.getProjectJobById = async (req, res, next) => {
         }
       ]
     });
-    if (!job) throw new AppError('Project job not found', 404);
+    if (!job) throw new AppError('Không tìm thấy vị trí dự án', 404);
     res.json({ success: true, data: job });
   } catch (error) { next(error); }
 };
@@ -90,9 +118,12 @@ exports.applyProjectJob = async (req, res, next) => {
     if (!projectJob || projectJob.status !== 'OPEN') {
       throw new AppError('Vị trí dự án này không khả dụng hoặc đã đóng', 400);
     }
+    if (projectJob.deadline && new Date(projectJob.deadline) < new Date()) {
+      throw new AppError('Vị trí dự án này đã hết hạn nộp hồ sơ', 400);
+    }
 
     const candidateProfile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
-    if (!candidateProfile) throw new AppError('Candidate profile not found', 404);
+    if (!candidateProfile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
 
     const existing = await ProjectApplication.findOne({
       where: {
@@ -102,13 +133,20 @@ exports.applyProjectJob = async (req, res, next) => {
     });
     if (existing) throw new AppError('Bạn đã nộp đơn cho vị trí này rồi', 409);
 
-    const application = await ProjectApplication.create({
-      project_job_id: projectJob.id,
-      candidate_profile_id: candidateProfile.id,
-      cover_letter,
-      cv_url,
-      status: 'PENDING'
-    });
+    let application;
+    try {
+      application = await ProjectApplication.create({
+        project_job_id: projectJob.id,
+        candidate_profile_id: candidateProfile.id,
+        cover_letter,
+        cv_url,
+        status: 'PENDING'
+      });
+    } catch (err) {
+      // Hai yêu cầu gửi gần như cùng lúc (bấm đúp...): ràng buộc unique của DB chặn bản ghi thứ hai
+      if (err.name === 'SequelizeUniqueConstraintError') throw new AppError('Bạn đã nộp đơn cho vị trí này rồi', 409);
+      throw err;
+    }
 
     await logActivity(req, {
       action: 'APPLICATION_SUBMITTED',
@@ -117,6 +155,24 @@ exports.applyProjectJob = async (req, res, next) => {
       entity_name: `Ứng tuyển vị trí ${projectJob.title}`,
       description: `Đã nộp đơn ứng tuyển cho vị trí "${projectJob.title}"`,
       metadata: { project_job_id: projectJob.id, project_id: projectJob.project_id },
+    });
+
+    // Admin có hồ sơ mới cần duyệt; ứng viên nhận xác nhận đã nộp
+    await notifyAdmins({
+      type: 'PROJECT_APPLICATION',
+      title: 'Có ứng viên mới ứng tuyển dự án',
+      message: `${req.user.full_name || 'Một ứng viên'} vừa ứng tuyển vị trí "${projectJob.title}".`,
+      link: '/admin/projects',
+      metadata: { project_job_id: projectJob.id, application_id: application.id },
+    });
+    await createNotification({
+      user_id: req.user.id,
+      type: 'APPLICATION_SUBMITTED',
+      title: 'Đã nộp hồ sơ ứng tuyển dự án',
+      message: `Hồ sơ của bạn cho vị trí "${projectJob.title}" đã được gửi. Bạn sẽ nhận thông báo khi Admin xem xét.`,
+      link: '/candidate/applications',
+      email: false,
+      metadata: { project_job_id: projectJob.id, application_id: application.id },
     });
 
     res.status(201).json({ success: true, data: application, message: 'Ứng tuyển thành công' });
@@ -147,17 +203,16 @@ exports.getMyProjectApplications = async (req, res, next) => {
 // POST /api/admin/projects/:projectId/jobs — Admin adds a job position to project
 exports.adminCreateProjectJob = async (req, res, next) => {
   try {
-    const { title, description, budget, quantity, deadline, skill_ids } = req.body;
+    const { skill_ids } = req.body;
+    const fields = pickProjectJobFields(req.body);
+    if (fields.deadline && new Date(fields.deadline) < new Date()) throw new AppError('Hạn nộp hồ sơ phải sau thời điểm hiện tại', 400);
     const project = await Project.findByPk(req.params.projectId);
-    if (!project) throw new AppError('Project not found', 404);
+    if (!project) throw new AppError('Không tìm thấy dự án', 404);
 
     const projectJob = await ProjectJob.create({
+      ...fields,
       project_id: project.id,
-      title,
-      description,
-      budget,
-      quantity: quantity || 1,
-      deadline,
+      quantity: fields.quantity || 1,
       status: 'OPEN'
     });
 
@@ -167,6 +222,30 @@ exports.adminCreateProjectJob = async (req, res, next) => {
     }
 
     res.status(201).json({ success: true, data: projectJob });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/admin/project-jobs/:id — Admin sửa vị trí (kể cả gia hạn / đóng vị trí)
+exports.adminUpdateProjectJob = async (req, res, next) => {
+  try {
+    const job = await ProjectJob.findByPk(req.params.id);
+    if (!job) throw new AppError('Không tìm thấy vị trí dự án', 404);
+    const { skill_ids, status } = req.body;
+    const fields = pickProjectJobFields(req.body);
+    const oldDeadline = job.deadline ? job.deadline.toISOString() : '';
+    if (fields.deadline !== undefined && String(fields.deadline ? new Date(fields.deadline).toISOString() : '') !== oldDeadline
+        && fields.deadline && new Date(fields.deadline) < new Date()) {
+      throw new AppError('Hạn nộp hồ sơ phải sau thời điểm hiện tại', 400);
+    }
+    if (status && ['OPEN', 'CLOSED'].includes(status)) fields.status = status;
+    await job.update(fields);
+    if (Array.isArray(skill_ids)) {
+      await ProjectJobSkill.destroy({ where: { project_job_id: job.id } });
+      if (skill_ids.length > 0) {
+        await ProjectJobSkill.bulkCreate(skill_ids.map((skill_id) => ({ project_job_id: job.id, skill_id })), { ignoreDuplicates: true });
+      }
+    }
+    res.json({ success: true, data: job, message: 'Đã cập nhật vị trí dự án' });
   } catch (error) { next(error); }
 };
 
@@ -187,7 +266,7 @@ exports.adminGetProjectJobs = async (req, res, next) => {
               { model: User, attributes: ['full_name', 'email'] },
               { 
                 model: Skill, 
-                through: { model: CandidateSkill, attributes: ['level', 'years_of_experience'] }, 
+                through: { model: CandidateSkill, attributes: ['source'] }, 
                 attributes: ['id', 'name'] 
               },
               { 
@@ -234,13 +313,13 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
   try {
     const { status } = req.body; // ACCEPTED, REJECTED, REVIEWING, INTERVIEW
     if (!['REVIEWING', 'ACCEPTED', 'REJECTED', 'INTERVIEW'].includes(status)) {
-      throw new AppError('Invalid status', 400);
+      throw new AppError('Trạng thái không hợp lệ', 400);
     }
 
     const application = await ProjectApplication.findByPk(req.params.id, {
       include: [{ model: ProjectJob }]
     });
-    if (!application) throw new AppError('Application not found', 404);
+    if (!application) throw new AppError('Không tìm thấy hồ sơ ứng tuyển', 404);
 
     // Hồ sơ đã trúng tuyển (đã vào Workspace) thì khóa trạng thái
     if (application.status === 'ACCEPTED') {
@@ -318,7 +397,7 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
           titleHtml = 'Chúc mừng bạn đã Trúng tuyển! 🎉';
           bodyHtml = `
             <p style="color: #374151; margin: 0 0 16px;">
-              Chúng tôi vô cùng vui mừng thông báo rằng bạn đã <strong>chính thức được chọn</strong> vào vị trí <strong>${positionName}</strong> của dự án <strong>${projectName}</strong>.
+              Chúng tôi vô cùng vui mừng thông báo rằng bạn đã <strong>chính thức được chọn</strong> vào vị trí <strong>${escapeHtml(positionName)}</strong> của dự án <strong>${escapeHtml(projectName)}</strong>.
             </p>
             <p style="color: #374151; margin: 0 0 16px;">
               Hệ thống đã tự động thêm bạn vào Không gian làm việc (Workspace) của dự án. 
@@ -333,7 +412,7 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
           titleHtml = 'Cập nhật kết quả ứng tuyển';
           bodyHtml = `
             <p style="color: #374151; margin: 0 0 16px;">
-              Cảm ơn bạn đã quan tâm và dành thời gian ứng tuyển vào vị trí <strong>${positionName}</strong> của dự án <strong>${projectName}</strong>.
+              Cảm ơn bạn đã quan tâm và dành thời gian ứng tuyển vào vị trí <strong>${escapeHtml(positionName)}</strong> của dự án <strong>${escapeHtml(projectName)}</strong>.
             </p>
             <p style="color: #374151; margin: 0 0 16px;">
               Sau khi xem xét kỹ lưỡng hồ sơ và kết quả phỏng vấn, chúng tôi rất tiếc phải thông báo rằng bạn chưa phù hợp với yêu cầu hiện tại của dự án này.
@@ -355,7 +434,7 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
               </div>
               <div style="background: white; padding: 28px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
                 <h2 style="color: #111827; margin: 0 0 20px; font-size: 18px;">${titleHtml}</h2>
-                <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${candidateName}</strong>,</p>
+                <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${escapeHtml(candidateName)}</strong>,</p>
                 
                 ${bodyHtml}
 
@@ -410,7 +489,7 @@ exports.adminScheduleInterview = async (req, res, next) => {
       ]
     });
 
-    if (!application) throw new AppError('Application not found', 404);
+    if (!application) throw new AppError('Không tìm thấy hồ sơ ứng tuyển', 404);
 
     // Save interview info to application
     await application.update({
@@ -434,9 +513,10 @@ exports.adminScheduleInterview = async (req, res, next) => {
     const projectName = application.ProjectJob?.Project?.name || 'Dự án';
     const positionName = application.ProjectJob?.title || 'Vị trí ứng tuyển';
 
-    // Send email
+    // Send email (gửi lỗi vẫn giữ lịch phỏng vấn, chỉ báo lại cho Admin)
+    let emailSent = false;
     if (candidateEmail) {
-      await sendEmail({
+      emailSent = await sendEmail({
         to: candidateEmail,
         subject: `[DevHub] Thư mời phỏng vấn - Vị trí ${positionName} tại dự án ${projectName}`,
         html: `
@@ -446,10 +526,10 @@ exports.adminScheduleInterview = async (req, res, next) => {
               <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0; font-size: 14px;">Thư mời phỏng vấn</p>
             </div>
             <div style="background: white; padding: 28px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
-              <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${candidateName}</strong>,</p>
+              <p style="color: #374151; margin: 0 0 16px;">Xin chào <strong>${escapeHtml(candidateName)}</strong>,</p>
               <p style="color: #374151; margin: 0 0 24px;">
-                Chúng tôi rất vui khi thông báo rằng hồ sơ của bạn cho vị trí <strong>${positionName}</strong>
-                tại dự án <strong>${projectName}</strong> đã được xem xét và chúng tôi muốn mời bạn tham gia buổi phỏng vấn.
+                Chúng tôi rất vui khi thông báo rằng hồ sơ của bạn cho vị trí <strong>${escapeHtml(positionName)}</strong>
+                tại dự án <strong>${escapeHtml(projectName)}</strong> đã được xem xét và chúng tôi muốn mời bạn tham gia buổi phỏng vấn.
               </p>
 
               <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
@@ -457,11 +537,11 @@ exports.adminScheduleInterview = async (req, res, next) => {
                 <table style="width: 100%; border-collapse: collapse;">
                   <tr>
                     <td style="padding: 6px 0; color: #6b7280; width: 140px; font-size: 14px;">Dự án:</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: 600; font-size: 14px;">${projectName}</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: 600; font-size: 14px;">${escapeHtml(projectName)}</td>
                   </tr>
                   <tr>
                     <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">Vị trí:</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: 600; font-size: 14px;">${positionName}</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: 600; font-size: 14px;">${escapeHtml(positionName)}</td>
                   </tr>
                   <tr>
                     <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">Ngày phỏng vấn:</td>
@@ -479,17 +559,17 @@ exports.adminScheduleInterview = async (req, res, next) => {
               </div>
 
               <div style="text-align: center; margin-bottom: 24px;">
-                <a href="${meet_url}" target="_blank"
+                <a href="${safeHref(meet_url)}" target="_blank"
                    style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
                   🎥 Tham gia Google Meet
                 </a>
-                <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0;">Link: <a href="${meet_url}" style="color: #6366f1;">${meet_url}</a></p>
+                <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0;">Link: <a href="${safeHref(meet_url)}" style="color: #6366f1;">${escapeHtml(meet_url)}</a></p>
               </div>
 
               ${interview_note ? `
               <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
                 <h4 style="color: #92400e; margin: 0 0 8px; font-size: 14px;">📝 Ghi chú từ ban tổ chức:</h4>
-                <p style="color: #78350f; margin: 0; font-size: 14px; line-height: 1.6;">${interview_note}</p>
+                <p style="color: #78350f; margin: 0; font-size: 14px; line-height: 1.6;">${escapeHtml(interview_note)}</p>
               </div>
               ` : ''}
 
@@ -508,7 +588,7 @@ exports.adminScheduleInterview = async (req, res, next) => {
             </div>
           </div>
         `
-      });
+      }).then(() => true).catch((err) => { console.error('[project] Gửi thư mời phỏng vấn lỗi:', err.message); return false; });
     }
 
     const u = application.CandidateProfile?.User;
@@ -528,7 +608,9 @@ exports.adminScheduleInterview = async (req, res, next) => {
     res.json({
       success: true,
       data: application,
-      message: `Đã đặt lịch phỏng vấn và gửi email đến ${candidateEmail}`
+      message: emailSent
+        ? `Đã đặt lịch phỏng vấn và gửi email đến ${candidateEmail}`
+        : 'Đã đặt lịch phỏng vấn (ứng viên nhận thông báo trong hệ thống) nhưng chưa gửi được email, hãy báo thêm cho ứng viên qua kênh khác'
     });
   } catch (error) { next(error); }
 };

@@ -21,6 +21,7 @@ router.post('/company/verify-email', [body('otp').notEmpty()], validate, compCtr
 
 // Job posts
 router.get('/jobs', jobCtrl.getEmployerJobs);
+router.get('/jobs/:id', jobCtrl.getEmployerJobById);
 router.post('/jobs', [body('title').notEmpty(), body('description').notEmpty()], validate, jobCtrl.createEmployerJob);
 router.put('/jobs/:id', jobCtrl.updateEmployerJob);
 router.delete('/jobs/:id', jobCtrl.closeEmployerJob);
@@ -33,6 +34,6 @@ router.put('/applications/:id/status', [body('status').isIn(['VIEWED', 'INTERVIE
 // Candidate search
 const candidateCtrl = require('../controllers/candidateController');
 router.get('/candidates', candidateCtrl.searchCandidates);
-router.get('/candidates/:id', candidateCtrl.getPublicProfile);
+router.get('/candidates/:id', candidateCtrl.getCandidateForEmployer);
 
 module.exports = router;

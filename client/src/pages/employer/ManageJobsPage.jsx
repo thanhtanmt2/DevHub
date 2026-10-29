@@ -1,326 +1,168 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { jobApi } from '@/api/jobApi';
-import { skillApi } from '@/api/skillApi';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { jobApi } from '@/api/jobApi';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import PageBanner from '@/components/common/PageBanner';
+import { SkillTag, WorkTypeBadge } from '@/components/common/Badges';
+import { DeadlineChip, MetaItem } from '@/components/job/JobParts';
+import JobFormModal from '@/components/employer/JobFormModal';
+import { useConfirm } from '@/components/common/ConfirmDialog';
+import { timeAgo } from '@/utils/timeAgo';
+import {
+  JOB_STATUS_META, EXPERIENCE_LABELS, LEVEL_LABELS, formatSalaryShort, shortLocation,
+} from '@/utils/jobMeta';
 
-const WORK_TYPES = ['FULL_TIME', 'PART_TIME', 'REMOTE', 'FREELANCE'];
-const WORK_TYPE_LABELS = { FULL_TIME: 'Full-time', PART_TIME: 'Part-time', REMOTE: 'Remote', FREELANCE: 'Freelance' };
-
-const STATUS_LABELS = {
-  DRAFT: 'Bản nháp',
-  PENDING_APPROVAL: 'Chờ duyệt',
-  OPEN: 'Đang tuyển',
-  HIDDEN: 'Đang ẩn',
-  CLOSED: 'Đã đóng'
-};
-const STATUS_COLORS = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800',
-  OPEN: 'bg-green-100 text-green-800',
-  HIDDEN: 'bg-gray-100 text-gray-500',
-  CLOSED: 'bg-red-100 text-red-800'
-};
-
-const INITIAL_FORM = {
-  title: '',
-  description: '',
-  work_type: 'FULL_TIME',
-  location: '',
-  salary_min: '',
-  salary_max: '',
-  quantity: 1,
-  deadline: '',
-  skill_ids: []
-};
+// Bộ lọc nhanh theo trạng thái tin
+const FILTERS = [
+  { key: 'ALL', label: 'Tất cả', match: () => true },
+  { key: 'OPEN', label: 'Đang tuyển', match: (j) => j.status === 'OPEN' },
+  { key: 'PENDING', label: 'Chờ duyệt', match: (j) => ['PENDING_APPROVAL', 'DRAFT'].includes(j.status) },
+  { key: 'CLOSED', label: 'Đã đóng / từ chối', match: (j) => ['CLOSED', 'HIDDEN'].includes(j.status) },
+];
 
 export default function ManageJobsPage() {
   const qc = useQueryClient();
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState(INITIAL_FORM);
+  const confirm = useConfirm();
+  const navigate = useNavigate();
+  const [form, setForm] = useState(null); // null = đóng; { job } = mở form (job = null là đăng mới)
+  const [filter, setFilter] = useState('ALL');
 
   const { data: jobsData, isLoading } = useQuery({
     queryKey: ['employer-jobs'],
-    queryFn: jobApi.getMyJobs
+    queryFn: jobApi.getMyJobs,
+    refetchInterval: 20000, // hồ sơ mới nộp thì số hồ sơ trên thẻ tự tăng
   });
-  
-  const { data: skillsData } = useQuery({
-    queryKey: ['public-skills'],
-    queryFn: skillApi.getPublicSkills
-  });
-
   const jobs = jobsData?.data?.data || [];
-  const skills = skillsData?.data?.data || [];  // axios: response.data = { success, data: [...] }
-
-  const createMut = useMutation({
-    mutationFn: (data) => jobApi.createJob(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['employer-jobs'] });
-      toast.success('Đã tạo tin tuyển dụng');
-      closeModal();
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra')
-  });
-
-  const updateMut = useMutation({
-    mutationFn: ({ id, data }) => jobApi.updateJob(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['employer-jobs'] });
-      toast.success('Đã cập nhật tin tuyển dụng');
-      closeModal();
-    },
-    onError: (err) => {
-      console.error('❌ Update job error:', err.response?.status, err.response?.data);
-      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật');
-    }
-  });
 
   const closeJobMut = useMutation({
     mutationFn: (id) => jobApi.closeJob(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: ['employer-jobs'] });
+      qc.invalidateQueries({ queryKey: ['employer-job', id] });
       toast.success('Đã đóng tin tuyển dụng');
-    }
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không thể đóng tin'),
   });
 
-  const openCreateModal = () => {
-    setFormData(INITIAL_FORM);
-    setEditingId(null);
-    setShowModal(true);
-  };
-
-  const openEditModal = (job) => {
-    setFormData({
-      title: job.title,
-      description: job.description,
-      work_type: job.work_type,
-      location: job.location || '',
-      salary_min: job.salary_min || '',
-      salary_max: job.salary_max || '',
-      quantity: job.quantity,
-      deadline: job.deadline ? job.deadline.slice(0, 16) : '',
-      skill_ids: job.Skills?.map(s => s.id) || []
-    });
-    setEditingId(job.id);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingId(null);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // Validate thủ công — tránh HTML required bị khuất trong modal
-    if (!formData.title.trim()) return toast.error('Vui lòng nhập tiêu đề công việc');
-    if (!formData.description.trim()) return toast.error('Vui lòng nhập mô tả công việc');
-    if (!formData.work_type) return toast.error('Vui lòng chọn hình thức làm việc');
-    if (formData.salary_min && formData.salary_max &&
-        parseFloat(formData.salary_min) > parseFloat(formData.salary_max)) {
-      return toast.error('Lương tối thiểu không được lớn hơn lương tối đa');
+  const askClose = async (job) => {
+    if (await confirm({ title: 'Đóng tin tuyển dụng', message: `Đóng tin "${job.title}"? Ứng viên sẽ không thể nộp thêm hồ sơ vào tin này.`, confirmText: 'Đóng tin', tone: 'danger' })) {
+      closeJobMut.mutate(job.id);
     }
-
-    const payload = {
-      ...formData,
-      salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null,
-      salary_max: formData.salary_max ? parseFloat(formData.salary_max) : null,
-      quantity: parseInt(formData.quantity) || 1,
-      deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null
-    };
-
-    if (editingId) {
-      updateMut.mutate({ id: editingId, data: payload });
-    } else {
-      createMut.mutate(payload);
-    }
-  };
-
-  const toggleSkill = (skillId) => {
-    setFormData(prev => ({
-      ...prev,
-      skill_ids: prev.skill_ids.includes(skillId)
-        ? prev.skill_ids.filter(id => id !== skillId)
-        : [...prev.skill_ids, skillId]
-    }));
   };
 
   if (isLoading) return <LoadingSpinner />;
 
+  const current = FILTERS.find((f) => f.key === filter) || FILTERS[0];
+  const shown = jobs.filter(current.match);
+  const stop = (fn) => (e) => { e.stopPropagation(); fn(e); }; // nút con không kích hoạt việc mở thẻ
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl border shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý tin tuyển dụng</h1>
-          <p className="text-gray-500 mt-1">Đăng tin và quản lý các cơ hội việc làm của doanh nghiệp</p>
-        </div>
-        <button onClick={openCreateModal} className="btn-primary">
-          + Đăng tin mới
-        </button>
-      </div>
+      <PageBanner compact icon="briefcase" title="Tin tuyển dụng" subtitle="Đăng tin, xem nội dung tin và xử lý hồ sơ ứng viên ngay trong từng tin">
+        <button onClick={() => setForm({ job: null })} className="btn-light">+ Đăng tin mới</button>
+      </PageBanner>
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-4 py-3 font-medium text-gray-700">Tiêu đề / Chức danh</th>
-              <th className="px-4 py-3 font-medium text-gray-700">Hình thức</th>
-              <th className="px-4 py-3 font-medium text-gray-700">Hạn nộp</th>
-              <th className="px-4 py-3 font-medium text-gray-700">Lượt xem</th>
-              <th className="px-4 py-3 font-medium text-gray-700">Trạng thái</th>
-              <th className="px-4 py-3 font-medium text-gray-700 text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {jobs.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
-                  Bạn chưa có tin tuyển dụng nào.
-                </td>
-              </tr>
-            ) : (
-              jobs.map(job => (
-                <tr key={job.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-bold text-gray-900">{job.title}</div>
-                    <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-1">
-                      {job.Skills?.map(s => (
-                        <span key={s.id} className="bg-gray-100 border px-1.5 py-0.5 rounded">{s.name}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">{WORK_TYPE_LABELS[job.work_type]}</td>
-                  <td className="px-4 py-3">
-                    {job.deadline ? new Date(job.deadline).toLocaleDateString("vi-VN") : "--"}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-primary-600">{job.view_count || 0}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2.5 py-1 text-xs rounded-full font-medium ${STATUS_COLORS[job.status]}`}>
-                      {STATUS_LABELS[job.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right space-x-3">
-                    <Link to={`/employer/applications?job_id=${job.id}`} className="text-primary-600 hover:text-primary-800 hover:underline font-medium">
-                      Hồ sơ
-                    </Link>
-                    <button onClick={() => openEditModal(job)} className="text-gray-600 hover:text-blue-600 font-medium">
-                      Sửa
-                    </button>
-                    {job.status !== 'CLOSED' && (
-                      <button onClick={() => {
-                        if(confirm("Bạn có chắc muốn đóng tin này? Ứng viên sẽ không thể nộp thêm hồ sơ.")) closeJobMut.mutate(job.id);
-                      }} className="text-red-500 hover:text-red-700 hover:underline font-medium">
-                        Đóng
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 py-8 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl">
-            <div className="px-6 py-4 border-b flex justify-between items-center bg-white rounded-t-xl">
-              <h3 className="font-bold text-lg">{editingId ? 'Sửa tin tuyển dụng' : 'Đăng tin tuyển dụng mới'}</h3>
-              <button type="button" onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Tiêu đề (Chức danh) <span className="text-red-500">*</span></label>
-                <input type="text" required className="input-field" placeholder="Ví dụ: Lập trình viên Frontend (ReactJS)"
-                  value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Hình thức <span className="text-red-500">*</span></label>
-                  <select className="input-field" required
-                    value={formData.work_type} onChange={e => setFormData({ ...formData, work_type: e.target.value })}
-                  >
-                    {WORK_TYPES.map(t => <option key={t} value={t}>{WORK_TYPE_LABELS[t]}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Số lượng tuyển</label>
-                  <input type="number" min="1" className="input-field"
-                    value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Địa điểm làm việc</label>
-                <input type="text" className="input-field" placeholder="Ví dụ: Quận 1, TP. HCM (Để trống nếu Remote)"
-                  value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Lương tối thiểu (VNĐ)</label>
-                  <input type="number" step="500000" className="input-field" placeholder="10000000"
-                    value={formData.salary_min} onChange={e => setFormData({ ...formData, salary_min: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Lương tối đa (VNĐ)</label>
-                  <input type="number" step="500000" className="input-field" placeholder="20000000"
-                    value={formData.salary_max} onChange={e => setFormData({ ...formData, salary_max: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Hạn chót nộp hồ sơ</label>
-                <input type="datetime-local" className="input-field"
-                  value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Kỹ năng yêu cầu</label>
-                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 border rounded-lg bg-gray-50">
-                  {skills.map(s => {
-                    const isSelected = formData.skill_ids.includes(s.id);
-                    return (
-                      <button type="button" key={s.id} onClick={() => toggleSkill(s.id)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                          isSelected ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        {s.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Mô tả công việc & Yêu cầu <span className="text-red-500">*</span></label>
-                <textarea required rows="8" className="input-field font-mono text-sm" placeholder="Nhập mô tả chi tiết công việc..."
-                  value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
-                ></textarea>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={closeModal} className="btn-secondary">Hủy</button>
-                <button type="submit" className="btn-primary" disabled={createMut.isPending || updateMut.isPending}>
-                  {(createMut.isPending || updateMut.isPending) ? 'Đang lưu...' : 'Lưu tin tuyển dụng'}
-                </button>
-              </div>
-            </form>
-          </div>
+      {jobs.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => {
+            const n = jobs.filter(f.match).length;
+            if (f.key !== 'ALL' && n === 0) return null;
+            return (
+              <button key={f.key} onClick={() => setFilter(f.key)}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  filter === f.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-slate-600 border-slate-200 hover:border-primary-300'
+                }`}>
+                {f.label} <span className={filter === f.key ? 'text-white' : 'text-slate-400'}>({n})</span>
+              </button>
+            );
+          })}
         </div>
       )}
+
+      {jobs.length === 0 ? (
+        <div className="card text-center py-14">
+          <IconBadge name="briefcase" size="lg" className="mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-slate-900 mb-1">Bạn chưa có tin tuyển dụng nào</h3>
+          <p className="text-slate-500 text-sm mb-4">Đăng tin đầu tiên để ứng viên IT bắt đầu nộp hồ sơ.</p>
+          <button onClick={() => setForm({ job: null })} className="btn-primary">+ Đăng tin mới</button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {shown.map((job) => {
+            const st = JOB_STATUS_META[job.status] || JOB_STATUS_META.DRAFT;
+            const total = Number(job.application_count) || 0;
+            const pending = Number(job.pending_count) || 0;
+            const open = () => navigate(`/employer/jobs/${job.id}`);
+            return (
+              <div
+                key={job.id}
+                role="link"
+                tabIndex={0}
+                onClick={open}
+                onKeyDown={(e) => { if (e.key === 'Enter') open(); }}
+                className="card card-hover cursor-pointer !p-5 border-2 border-transparent border-l-4 border-l-primary-400 hover:border-l-primary-500"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-lg font-bold text-slate-900">{job.title}</h3>
+                      <span className={`px-2.5 py-0.5 text-xs rounded-full font-semibold ${st.cls}`}>{st.label}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2">
+                      <MetaItem icon="mapPin">{shortLocation(job.location) || 'Toàn quốc'}</MetaItem>
+                      <MetaItem icon="clock">{EXPERIENCE_LABELS[job.experience]}</MetaItem>
+                      <MetaItem icon="badge">{LEVEL_LABELS[job.position_level]}</MetaItem>
+                      <MetaItem icon="users">{job.quantity > 1 ? `Cần ${job.quantity} người` : ''}</MetaItem>
+                    </div>
+                    {job.Skills?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {job.Skills.slice(0, 6).map((s) => <SkillTag key={s.id} name={s.name} />)}
+                        {job.Skills.length > 6 && <span className="text-xs text-slate-400 self-center">+{job.Skills.length - 6}</span>}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-primary-700 font-bold whitespace-nowrap">{formatSalaryShort(job.salary_min, job.salary_max)}</span>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <button
+                      onClick={stop(() => navigate(`/employer/jobs/${job.id}?tab=applications`))}
+                      className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+                        pending > 0 ? 'bg-primary-50 text-primary-700 hover:bg-primary-100' : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon name="inbox" className="w-4 h-4" />
+                      {total} hồ sơ
+                      {pending > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary-600 text-white text-[11px] leading-none">{pending} mới</span>}
+                    </button>
+                    <span className="inline-flex items-center gap-1.5 text-sm text-slate-500"><Icon name="eye" className="w-4 h-4" />{job.view_count || 0} lượt xem</span>
+                    <WorkTypeBadge type={job.work_type} />
+                    <DeadlineChip deadline={job.deadline} />
+                    {job.posted_at && <span className="text-xs text-slate-400">Đăng {timeAgo(job.posted_at)}</span>}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={stop(() => setForm({ job }))} className="text-sm font-medium text-slate-600 hover:text-primary-700 px-3 py-1.5 rounded-lg hover:bg-slate-100">
+                      <Icon name="pencil" className="w-4 h-4 mr-1" />Sửa
+                    </button>
+                    {job.status !== 'CLOSED' && (
+                      <button onClick={stop(() => askClose(job))} className="text-sm font-medium text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50">
+                        <Icon name="lock" className="w-4 h-4 mr-1" />Đóng tin
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {!shown.length && <p className="text-center text-sm text-slate-400 py-8">Không có tin nào ở nhóm này.</p>}
+        </div>
+      )}
+
+      {form && <JobFormModal job={form.job} onClose={() => setForm(null)} />}
     </div>
   );
 }

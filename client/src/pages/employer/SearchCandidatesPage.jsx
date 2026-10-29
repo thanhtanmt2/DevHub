@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { companyApi } from '@/api/companyApi';
 import { skillApi } from '@/api/skillApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-
-const LEVEL_LABELS = { BEGINNER: 'Mới', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Cao cấp', EXPERT: 'Chuyên gia' };
-const LEVEL_COLORS = {
-  BEGINNER: 'bg-gray-100 text-gray-600',
-  INTERMEDIATE: 'bg-blue-100 text-blue-700',
-  ADVANCED: 'bg-purple-100 text-purple-700',
-  EXPERT: 'bg-amber-100 text-amber-700',
-};
+import Icon, { IconBadge } from '@/components/common/Icon';
+import PageBanner from '@/components/common/PageBanner';
+import Avatar from '@/components/common/Avatar';
+import { SkillTag, VerifiedSkillTag } from '@/components/common/Badges';
 
 function ScoreBadge({ score }) {
-  if (score == null || score === 0) return <span className="text-gray-400 text-xs">Chưa đánh giá</span>;
   const s = parseFloat(score);
+  // competency_score là DECIMAL (API trả chuỗi "0.00"): rỗng hoặc 0 nghĩa là chưa được đánh giá, không hiện "0.0/10" màu đỏ
+  if (!s) return <span className="text-gray-400 text-xs">Chưa đánh giá</span>;
   const color = s >= 8 ? 'text-emerald-600' : s >= 5 ? 'text-amber-600' : 'text-red-500';
   return (
     <span className={`font-bold text-lg ${color}`}>
@@ -24,138 +22,33 @@ function ScoreBadge({ score }) {
   );
 }
 
-function CandidateDetailModal({ profile, onClose }) {
-  if (!profile) return null;
-  const user = profile.User;
-  const skills = profile.Skills || [];
-  const experiences = profile.Experiences || [];
-
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-start p-5 border-b">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold shadow-md flex-shrink-0">
-              {profile.avatar_url
-                ? <img src={profile.avatar_url} alt="avatar" className="w-14 h-14 rounded-full object-cover" />
-                : (user?.full_name?.[0] || '?')}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{user?.full_name}</h2>
-              <p className="text-sm text-primary-600 font-medium">{profile.professional_title || 'Chưa cập nhật'}</p>
-              {profile.address && <p className="text-xs text-gray-500 mt-0.5">📍 {profile.address}</p>}
-            </div>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">✕</button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-center">
-              <ScoreBadge score={profile.competency_score} />
-              <p className="text-xs text-indigo-500 mt-1">Điểm năng lực</p>
-            </div>
-            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-emerald-700">{skills.length}</p>
-              <p className="text-xs text-emerald-500 mt-1">Kỹ năng</p>
-            </div>
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-amber-700">{experiences.length}</p>
-              <p className="text-xs text-amber-500 mt-1">Kinh nghiệm</p>
-            </div>
-          </div>
-
-          {/* Links */}
-          <div className="flex flex-wrap gap-2">
-            {profile.cv_url && (
-              <a href={profile.cv_url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium border border-blue-200 transition-colors">
-                📄 Xem CV
-              </a>
-            )}
-            {profile.github_url && (
-              <a href={profile.github_url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                🐙 GitHub
-              </a>
-            )}
-            {profile.portfolio_url && (
-              <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                🌐 Portfolio
-              </a>
-            )}
-          </div>
-
-          {/* Giới thiệu */}
-          {profile.introduction && (
-            <div>
-              <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide mb-2">Giới thiệu</h3>
-              <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
-                {profile.introduction}
-              </p>
-            </div>
-          )}
-
-          {/* Skills */}
-          {skills.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide mb-2">Kỹ năng</h3>
-              <div className="flex flex-wrap gap-2">
-                {skills.map(s => (
-                  <div key={s.id} className="flex items-center gap-1.5">
-                    <span className="badge bg-primary-50 text-primary-700 border border-primary-200 text-xs px-2.5 py-1">
-                      {s.name}
-                    </span>
-                    {s.CandidateSkill?.level && (
-                      <span className={`badge text-xs px-2 py-0.5 ${LEVEL_COLORS[s.CandidateSkill.level]}`}>
-                        {LEVEL_LABELS[s.CandidateSkill.level]}
-                        {s.CandidateSkill.years_of_experience ? ` · ${s.CandidateSkill.years_of_experience}y` : ''}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Experiences */}
-          {experiences.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide mb-2">Kinh nghiệm làm việc</h3>
-              <div className="space-y-3">
-                {experiences.map(exp => (
-                  <div key={exp.id} className="bg-gray-50 border border-gray-100 rounded-lg p-3">
-                    <p className="font-semibold text-gray-800 text-sm">{exp.job_title}</p>
-                    <p className="text-xs text-primary-600 font-medium">{exp.company_name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(exp.start_date).toLocaleDateString('vi-VN')} —{' '}
-                      {exp.end_date ? new Date(exp.end_date).toLocaleDateString('vi-VN') : 'Hiện tại'}
-                    </p>
-                    {exp.description && <p className="text-xs text-gray-500 mt-1">{exp.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+const FILTER_KEYS = ['keyword', 'skill_id', 'score_min', 'score_max', 'address'];
 
 export default function SearchCandidatesPage() {
-  const [keyword, setKeyword] = useState('');
-  const [filters, setFilters] = useState({ keyword: '', skill_id: '', score_min: '', score_max: '', address: '', page: 1 });
-  const [selectedProfile, setSelectedProfile] = useState(null);
+  const navigate = useNavigate();
+  // Bộ lọc nằm trên đường dẫn: xem hồ sơ xong bấm "Quay lại" vẫn còn nguyên kết quả đang tìm
+  const [params, setParams] = useSearchParams();
+  const filters = {
+    ...Object.fromEntries(FILTER_KEYS.map((k) => [k, params.get(k) || ''])),
+    page: parseInt(params.get('page')) || 1,
+  };
+  const [keyword, setKeyword] = useState(filters.keyword);
 
-  // Debounce keyword
+  const setFilter = (patch, { keepPage = false } = {}) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(patch).forEach(([k, v]) => (v === '' || v === null || v === undefined ? next.delete(k) : next.set(k, v)));
+      if (!keepPage) next.delete('page');
+      return next;
+    }, { replace: true });
+  };
+
+  // Debounce từ khóa: chờ 400ms sau khi ngừng gõ mới tìm
   useEffect(() => {
-    const t = setTimeout(() => setFilters(p => ({ ...p, keyword, page: 1 })), 400);
+    if (keyword === filters.keyword) return undefined;
+    const t = setTimeout(() => setFilter({ keyword }), 400);
     return () => clearTimeout(t);
-  }, [keyword]);
+  }, [keyword]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['employer-search-candidates', filters],
@@ -173,22 +66,19 @@ export default function SearchCandidatesPage() {
   const candidates = data?.data?.data || [];
   const pagination = data?.data?.pagination;
   const skills = skillsRes?.data?.data || [];
+  const hasFilter = FILTER_KEYS.some((k) => filters[k]) || keyword;
 
-  const handleFilterChange = (key, value) => setFilters(p => ({ ...p, [key]: value, page: 1 }));
+  const open = (profile) => navigate(`/employer/candidates/${profile.id}`);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tìm kiếm ứng viên</h1>
-          <p className="text-sm text-gray-500 mt-1">Tìm ứng viên phù hợp dựa trên kỹ năng, điểm năng lực và kinh nghiệm</p>
-        </div>
+      <PageBanner compact icon="search" title="Tìm kiếm ứng viên" subtitle="Tìm ứng viên phù hợp dựa trên kỹ năng, điểm năng lực và các dự án đã làm trên DevHub">
         {pagination && (
-          <span className="text-sm text-gray-500">
-            Tìm thấy <strong className="text-gray-800">{pagination.total}</strong> ứng viên
+          <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/20 border border-white/30 text-sm font-medium">
+            Tìm thấy <strong className="mx-1">{pagination.total}</strong> ứng viên
           </span>
         )}
-      </div>
+      </PageBanner>
 
       {/* Filters */}
       <div className="card space-y-3">
@@ -202,7 +92,7 @@ export default function SearchCandidatesPage() {
           <select
             className="input-field md:w-52"
             value={filters.skill_id}
-            onChange={e => handleFilterChange('skill_id', e.target.value)}
+            onChange={e => setFilter({ skill_id: e.target.value })}
           >
             <option value="">-- Tất cả kỹ năng --</option>
             {skills.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -211,7 +101,7 @@ export default function SearchCandidatesPage() {
             className="input-field md:w-40"
             placeholder="Địa điểm"
             value={filters.address}
-            onChange={e => handleFilterChange('address', e.target.value)}
+            onChange={e => setFilter({ address: e.target.value })}
           />
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -222,7 +112,7 @@ export default function SearchCandidatesPage() {
               className="input-field w-20 text-center text-sm"
               placeholder="Từ"
               value={filters.score_min}
-              onChange={e => handleFilterChange('score_min', e.target.value)}
+              onChange={e => setFilter({ score_min: e.target.value })}
             />
             <span className="text-gray-400">—</span>
             <input
@@ -230,12 +120,12 @@ export default function SearchCandidatesPage() {
               className="input-field w-20 text-center text-sm"
               placeholder="Đến"
               value={filters.score_max}
-              onChange={e => handleFilterChange('score_max', e.target.value)}
+              onChange={e => setFilter({ score_max: e.target.value })}
             />
           </div>
-          {(filters.skill_id || filters.address || filters.score_min || filters.score_max || keyword) && (
+          {hasFilter && (
             <button
-              onClick={() => { setKeyword(''); setFilters({ keyword: '', skill_id: '', score_min: '', score_max: '', address: '', page: 1 }); }}
+              onClick={() => { setKeyword(''); setParams({}, { replace: true }); }}
               className="text-xs text-red-500 hover:text-red-700 underline"
             >
               Xóa bộ lọc
@@ -251,7 +141,7 @@ export default function SearchCandidatesPage() {
         <div className="card text-center py-10 text-red-500">Lỗi tải dữ liệu. Vui lòng thử lại.</div>
       ) : candidates.length === 0 ? (
         <div className="card text-center py-16">
-          <p className="text-5xl mb-3">🔍</p>
+          <IconBadge name="search" size="lg" className="mx-auto mb-3" />
           <p className="text-gray-500 font-medium">Không tìm thấy ứng viên phù hợp</p>
           <p className="text-xs text-gray-400 mt-1">Thử thay đổi bộ lọc để tìm thêm ứng viên</p>
         </div>
@@ -260,25 +150,26 @@ export default function SearchCandidatesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {candidates.map(profile => {
               const user = profile.User;
-              const skills = profile.Skills || [];
+              const cardSkills = profile.Skills || [];
               const score = parseFloat(profile.competency_score) || 0;
+              const projects = Number(profile.project_count) || 0;
+              const doneTasks = Number(profile.done_task_count) || 0;
               const scoreColor = score >= 8 ? 'border-emerald-200 bg-emerald-50' : score >= 5 ? 'border-amber-100 bg-amber-50/50' : 'border-gray-100';
 
               return (
                 <div key={profile.id}
-                  className={`card border-2 hover:shadow-lg transition-all cursor-pointer ${scoreColor}`}
-                  onClick={() => setSelectedProfile(profile)}
+                  role="link"
+                  tabIndex={0}
+                  className={`card border-2 hover:shadow-lg transition-all cursor-pointer flex flex-col ${scoreColor}`}
+                  onClick={() => open(profile)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') open(profile); }}
                 >
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow flex-shrink-0">
-                      {profile.avatar_url
-                        ? <img src={profile.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover" />
-                        : (user?.full_name?.[0] || '?')}
-                    </div>
+                    <Avatar name={user?.full_name} src={profile.avatar_url} size="lg" />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{user?.full_name}</h3>
+                      <h3 className="font-semibold text-gray-900 line-clamp-2 break-words">{user?.full_name}</h3>
                       <p className="text-xs text-primary-600 truncate">{profile.professional_title || 'Chưa cập nhật'}</p>
-                      {profile.address && <p className="text-xs text-gray-400 mt-0.5 truncate">📍 {profile.address}</p>}
+                      {profile.address && <p className="text-xs text-gray-400 mt-0.5 truncate"><Icon name="mapPin" className="w-3.5 h-3.5 mr-1" />{profile.address}</p>}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <ScoreBadge score={profile.competency_score} />
@@ -290,23 +181,36 @@ export default function SearchCandidatesPage() {
                   )}
 
                   {/* Skills */}
-                  {skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {skills.slice(0, 4).map(s => (
-                        <span key={s.id} className="badge bg-white text-gray-600 border border-gray-200 text-xs px-2 py-0.5">
-                          {s.name}
-                        </span>
-                      ))}
-                      {skills.length > 4 && (
+                  {cardSkills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {cardSkills.slice(0, 4).map(s => <VerifiedSkillTag key={s.id} name={s.name} evidence={s.evidence} />)}
+                      {cardSkills.length > 4 && (
                         <span className="badge bg-gray-50 text-gray-400 border border-gray-100 text-xs px-2 py-0.5">
-                          +{skills.length - 4}
+                          +{cardSkills.length - 4}
                         </span>
                       )}
                     </div>
                   )}
 
-                  <div className="flex justify-end mt-3">
-                    <span className="text-xs text-primary-600 font-medium hover:underline">Xem hồ sơ →</span>
+                  {/* Kinh nghiệm thực chiến trên DevHub */}
+                  <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      {projects > 0 ? (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 font-medium">
+                            <Icon name="folder" className="w-3.5 h-3.5" />{projects} dự án
+                          </span>
+                          {doneTasks > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+                              <Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} />{doneTasks} task hoàn thành
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-gray-400">Chưa có dự án trên DevHub</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-primary-600 font-medium whitespace-nowrap">Xem hồ sơ →</span>
                   </div>
                 </div>
               );
@@ -317,7 +221,7 @@ export default function SearchCandidatesPage() {
           {pagination && pagination.totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-4">
               <button
-                onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))}
+                onClick={() => setFilter({ page: filters.page - 1 }, { keepPage: true })}
                 disabled={filters.page === 1}
                 className="px-3 py-2 rounded-lg text-sm border border-gray-200 disabled:opacity-40 hover:bg-gray-50"
               >
@@ -327,14 +231,14 @@ export default function SearchCandidatesPage() {
                 .filter(p => Math.abs(p - filters.page) <= 2)
                 .map(p => (
                   <button key={p}
-                    onClick={() => setFilters(f => ({ ...f, page: p }))}
+                    onClick={() => setFilter({ page: p }, { keepPage: true })}
                     className={`w-9 h-9 rounded-lg text-sm font-medium ${p === filters.page ? 'bg-primary-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                   >
                     {p}
                   </button>
                 ))}
               <button
-                onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))}
+                onClick={() => setFilter({ page: filters.page + 1 }, { keepPage: true })}
                 disabled={filters.page === pagination.totalPages}
                 className="px-3 py-2 rounded-lg text-sm border border-gray-200 disabled:opacity-40 hover:bg-gray-50"
               >
@@ -343,14 +247,6 @@ export default function SearchCandidatesPage() {
             </div>
           )}
         </>
-      )}
-
-      {/* Detail Modal */}
-      {selectedProfile && (
-        <CandidateDetailModal
-          profile={selectedProfile}
-          onClose={() => setSelectedProfile(null)}
-        />
       )}
     </div>
   );

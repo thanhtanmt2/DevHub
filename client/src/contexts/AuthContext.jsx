@@ -82,6 +82,9 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Cập nhật một phần thông tin user đang đăng nhập (ví dụ vừa đổi ảnh đại diện)
+  const updateUser = (patch) => setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+
   const getUserRoles = () => user?.Roles?.map(r => r.name) || [];
   const hasRole = (role) => getUserRoles().includes(role);
   const isAdmin = () => hasRole('ADMIN');
@@ -96,6 +99,7 @@ export const AuthProvider = ({ children }) => {
         login,
         googleLogin,
         logout,
+        updateUser,
         getUserRoles,
         hasRole,
         isAdmin,
