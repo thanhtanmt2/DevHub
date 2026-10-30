@@ -15,6 +15,9 @@ export const adminApi = {
   getPayments: () => api.get('/admin/payments'),
   getPayableMembers: () => api.get('/admin/payments/members'),
   createPayment: (data) => api.post('/admin/payments', data),
+  createBatchProjectPayments: (workspace_id) => api.post('/admin/payments/batch-project', { workspace_id }),
+  updatePayment: (id, data) => api.put(`/admin/payments/${id}`, data),
+  deletePayment: (id) => api.delete(`/admin/payments/${id}`),
   processPayment: (id, data) => api.put(`/admin/payments/${id}/process`, data),
   
   // Evaluation

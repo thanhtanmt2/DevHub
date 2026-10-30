@@ -177,18 +177,26 @@ exports.updateProject = async (req, res, next) => {
       });
 
       for (const m of members) {
-        const hasValidPayment = (m.Payments || []).some((p) => ['PENDING', 'PROCESSING', 'PAID'].includes(p.status));
-        if (hasValidPayment) continue;
+        const existingPayment = (m.Payments || [])[0] || null;
+        if (existingPayment && ['PENDING', 'PROCESSING', 'PAID'].includes(existingPayment.status)) continue;
 
         const jobBudget = Number(m.ProjectJob?.budget) || 0;
         if (jobBudget < 1000) continue;
 
-        const payment = await Payment.create({
-          workspace_member_id: m.id,
-          amount: jobBudget,
-          payment_method: 'BANK_TRANSFER',
-          status: 'PENDING',
-        });
+        const payment = existingPayment
+          ? await existingPayment.update({
+              amount: jobBudget,
+              payment_method: 'VIETQR',
+              status: 'PENDING',
+              transaction_code: null,
+              paid_at: null,
+            })
+          : await Payment.create({
+              workspace_member_id: m.id,
+              amount: jobBudget,
+              payment_method: 'VIETQR',
+              status: 'PENDING',
+            });
         autoCreatedPayments += 1;
 
         const u = m.CandidateProfile?.User;

@@ -777,7 +777,7 @@ function PaymentTab({ paymentInfo, qc }) {
               <tbody className="divide-y divide-gray-100">
                 {myPayments.map((p) => {
                   const ws = p.WorkspaceMember?.Workspace;
-                  const projName = ws?.InternalProject?.name || ws?.name || 'Dự án DevHub';
+                  const projName = ws?.Project?.name || ws?.InternalProject?.name || ws?.name || 'Dự án DevHub';
                   const jobTitle = p.WorkspaceMember?.ProjectJob?.title || 'Thành viên';
                   const st = PAYMENT_STATUS_META[p.status] || {
                     label: p.status,
