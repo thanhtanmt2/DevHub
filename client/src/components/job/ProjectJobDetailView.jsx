@@ -43,7 +43,7 @@ export default function ProjectJobDetailView({ job, action, compact = false }) {
             <Icon name="sparkles" className="w-3.5 h-3.5" />Dự án thời vụ
           </span>
           {closed
-            ? <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Đã đóng</span>
+            ? <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Đã đóng</span>
             : <DeadlineChip deadline={job.deadline} />}
         </div>
         <h1 className={`${compact ? 'text-xl' : 'text-2xl sm:text-3xl'} font-extrabold text-slate-900 tracking-tight`}>{job.title}</h1>

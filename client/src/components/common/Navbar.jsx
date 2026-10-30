@@ -232,13 +232,16 @@ export default function Navbar() {
     <nav className="sticky top-0 z-30 bg-primary-600 text-white shadow-md shadow-primary-600/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <span className="w-9 h-9 rounded-xl bg-white text-primary-700 flex items-center justify-center font-extrabold text-lg shadow-md group-hover:scale-105 transition-transform">
-              D
-            </span>
-            <span className="text-xl font-bold text-white tracking-tight">
-              DevHub
-            </span>
+          <Link
+            to="/"
+            aria-label="DevHub — Trang chủ"
+            className="inline-flex items-center bg-white px-3 py-1.5 rounded-xl shadow-md hover:scale-[1.02] transition-transform shrink-0"
+          >
+            <img
+              src="/logo-devhub.png"
+              alt="DevHub Since 2026"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Chưa đăng nhập: luôn hiện 2 liên kết. Đã đăng nhập: điện thoại dùng menu thu gọn để không bị tràn ngang */}

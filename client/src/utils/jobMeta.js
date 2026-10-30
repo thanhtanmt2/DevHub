@@ -108,5 +108,5 @@ export const JOB_STATUS_META = {
   PENDING_APPROVAL: { label: 'Chờ Admin duyệt', cls: 'bg-amber-100 text-amber-800' },
   OPEN: { label: 'Đang tuyển', cls: 'bg-emerald-100 text-emerald-800' },
   HIDDEN: { label: 'Bị từ chối', cls: 'bg-rose-100 text-rose-700' },
-  CLOSED: { label: 'Đã đóng', cls: 'bg-slate-200 text-slate-600' },
+  CLOSED: { label: 'Đã đóng', cls: 'bg-red-100 text-red-700 ring-1 ring-inset ring-red-200' },
 };

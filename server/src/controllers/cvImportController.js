@@ -1,15 +1,62 @@
 const { Op } = require('sequelize');
 const { CandidateProfile, CandidateCv, Skill, CandidateSkill, Experience } = require('../models');
 const AppError = require('../utils/AppError');
-const { readCvPdf, extractSkillNames, extractExperiences, normalizeDate, normName } = require('../utils/cvParser');
+const {
+  readCvPdf,
+  extractCvSections,
+  normalizeDate,
+  normalizePhone,
+  normalizeUrl,
+  normName,
+} = require('../utils/cvParser');
 const { buildExperienceData } = require('./candidateController');
 
 const MAX_IMPORT_ITEMS = 30;
 const VALID_TYPES = ['COMPANY', 'PROJECT', 'FREELANCE', 'PERSONAL'];
+const VALID_MODES = ['info', 'skills', 'experience'];
+
+const INFO_FIELDS = [
+  {
+    field: 'professional_title',
+    label: 'Chức danh chuyên môn',
+    normalize: (v) => String(v || '').trim().slice(0, 150),
+    isSame: (a, b) => a.replace(/\s+/g, ' ').toLowerCase() === b.replace(/\s+/g, ' ').toLowerCase(),
+  },
+  {
+    field: 'phone',
+    label: 'Số điện thoại',
+    normalize: normalizePhone,
+    isSame: (a, b) => normalizePhone(a) === normalizePhone(b),
+  },
+  {
+    field: 'address',
+    label: 'Địa chỉ',
+    normalize: (v) => String(v || '').trim().slice(0, 255),
+    isSame: (a, b) => a.replace(/\s+/g, ' ').toLowerCase() === b.replace(/\s+/g, ' ').toLowerCase(),
+  },
+  {
+    field: 'github_url',
+    label: 'GitHub URL',
+    normalize: normalizeUrl,
+    isSame: (a, b) => a.replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase() === b.replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase(),
+  },
+  {
+    field: 'portfolio_url',
+    label: 'Portfolio URL',
+    normalize: normalizeUrl,
+    isSame: (a, b) => a.replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase() === b.replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase(),
+  },
+  {
+    field: 'introduction',
+    label: 'Giới thiệu bản thân',
+    normalize: (v) => String(v || '').trim().slice(0, 2000),
+    isSame: (a, b) => a.replace(/\s+/g, ' ').toLowerCase() === b.replace(/\s+/g, ' ').toLowerCase(),
+  },
+];
 
 async function getProfile(userId) {
-  const profile = await CandidateProfile.findOne({ where: { user_id: userId } });
-  if (!profile) throw new AppError('Chưa có hồ sơ ứng viên', 404);
+  let profile = await CandidateProfile.findOne({ where: { user_id: userId } });
+  if (!profile) profile = await CandidateProfile.create({ user_id: userId });
   return profile;
 }
 
@@ -23,87 +70,149 @@ function findDuplicate(existing, type, name) {
   })()) || null;
 }
 
-// POST /api/candidates/cvs/:id/parse  { mode: 'skills' | 'experience' }
+// POST /api/candidates/cvs/:id/parse  { mode: 'info' | 'skills' | 'experience' } hoặc { modes: ['info', 'skills', 'experience'] }
 // Đọc một CV đã tải lên bằng AI và TRẢ VỀ BẢN XEM TRƯỚC, chưa lưu gì vào hồ sơ.
 exports.parseCv = async (req, res, next) => {
   try {
-    const mode = req.body.mode;
-    if (!['skills', 'experience'].includes(mode)) throw new AppError('Chế độ nhập không hợp lệ', 400);
+    const rawModes = Array.isArray(req.body.modes)
+      ? req.body.modes
+      : req.body.mode
+        ? [req.body.mode]
+        : [];
+    const modes = [...new Set(rawModes.filter((m) => VALID_MODES.includes(m)))];
+    if (!modes.length) throw new AppError('Chế độ nhập không hợp lệ', 400);
+
     const profile = await getProfile(req.user.id);
     const cv = await CandidateCv.findOne({ where: { id: req.params.id, candidate_profile_id: profile.id } });
     if (!cv) throw new AppError('CV không tồn tại', 404);
     const buffer = readCvPdf(cv.file_url);
 
-    if (mode === 'skills') {
-      const allSkills = await Skill.findAll({ attributes: ['id', 'name'] });
-      if (!allSkills.length) return res.json({ success: true, data: { skills: [] } });
-      const names = await extractSkillNames(buffer, allSkills.map((s) => s.name));
-      const byName = new Map(allSkills.map((s) => [normName(s.name), s]));
-      const matched = [...new Set(names.map((n) => byName.get(normName(n))).filter(Boolean))];
-      const have = new Set((await CandidateSkill.findAll({ where: { candidate_profile_id: profile.id }, attributes: ['skill_id'] })).map((c) => c.skill_id));
-      return res.json({
-        success: true,
-        data: { skills: matched.map((s) => ({ skill_id: s.id, name: s.name, already: have.has(s.id) })) },
-      });
-    }
+    const allSkills = modes.includes('skills') ? await Skill.findAll({ attributes: ['id', 'name'] }) : [];
+    const extracted = await extractCvSections(buffer, modes, allSkills.map((s) => s.name));
 
-    // mode === 'experience'
-    const raw = (await extractExperiences(buffer)).slice(0, MAX_IMPORT_ITEMS);
-    const existing = await Experience.findAll({ where: { candidate_profile_id: profile.id } });
-    const existingCompanies = existing.filter((e) => (e.type || 'COMPANY') === 'COMPANY');
+    const data = { modes };
 
-    const items = raw.map((r, i) => ({
-      key: `cv-${i}`,
-      type: VALID_TYPES.includes(r.type) ? r.type : 'COMPANY',
-      company_name: String(r.name || '').trim().slice(0, 200),
-      job_title: String(r.role || '').trim().slice(0, 150),
-      start_date: normalizeDate(r.start_date),
-      end_date: normalizeDate(r.end_date),
-      description: r.description ? String(r.description).trim() : '',
-      tasks: Array.isArray(r.tasks) ? r.tasks.map((t) => String(t).trim()).filter(Boolean).slice(0, 20) : [],
-      technologies: Array.isArray(r.technologies) ? [...new Set(r.technologies.map((t) => String(t).trim()).filter(Boolean))].slice(0, 20) : [],
-      link_url: /^https?:\/\//i.test(r.link_url || '') ? String(r.link_url).trim().slice(0, 500) : '',
-      _parent: r.parent_company,
-    })).filter((it) => it.company_name);
-
-    // Gắn dự án vào công ty: ưu tiên công ty trong chính CV, sau đó công ty đã có trong hồ sơ
-    const companyItems = items.filter((it) => it.type === 'COMPANY');
-    for (const it of items) {
-      if (it.type === 'PROJECT') {
-        const pn = normName(it._parent);
-        const inCv = pn && companyItems.find((c) => normName(c.company_name) === pn);
-        const inDb = !inCv && pn && existingCompanies.find((c) => normName(c.company_name) === pn);
-        it.parent_ref = inCv ? `k:${inCv.key}` : inDb ? `e:${inDb.id}` : null;
-        // Không xác định được công ty cha thì xem như dự án cá nhân (ứng viên vẫn đổi lại được)
-        if (!it.parent_ref) it.type = 'PERSONAL';
-      } else {
-        it.parent_ref = null;
+    // 1. Thông tin cá nhân
+    if (modes.includes('info')) {
+      const rawInfo = extracted.personal_info || {};
+      const infoFields = [];
+      for (const meta of INFO_FIELDS) {
+        const cvVal = meta.normalize(rawInfo[meta.field]);
+        if (!cvVal) continue;
+        const curVal = String(profile[meta.field] || '').trim();
+        let status = 'new';
+        if (curVal) {
+          status = meta.isSame(curVal, cvVal) ? 'same' : 'conflict';
+        }
+        infoFields.push({
+          field: meta.field,
+          label: meta.label,
+          current_value: curVal,
+          cv_value: cvVal,
+          status, // 'new' (hồ sơ chưa có) | 'conflict' (cùng mục nhưng khác nhau) | 'same' (giống nhau)
+        });
       }
-      delete it._parent;
-      const dup = findDuplicate(existing, it.type, it.company_name);
-      it.duplicate = dup ? { id: dup.id, company_name: dup.company_name, job_title: dup.job_title, start_date: dup.start_date, end_date: dup.end_date } : null;
+      data.personal_info = infoFields;
     }
-    return res.json({
-      success: true,
-      data: {
-        experiences: items,
-        existing_companies: existingCompanies.map((c) => ({ id: c.id, company_name: c.company_name })),
-      },
-    });
+
+    // 2. Kỹ năng
+    if (modes.includes('skills')) {
+      if (!allSkills.length) {
+        data.skills = [];
+      } else {
+        const byName = new Map(allSkills.map((s) => [normName(s.name), s]));
+        const matched = [...new Set((extracted.skills || []).map((n) => byName.get(normName(n))).filter(Boolean))];
+        const have = new Set(
+          (await CandidateSkill.findAll({ where: { candidate_profile_id: profile.id }, attributes: ['skill_id'] })).map((c) => c.skill_id)
+        );
+        data.skills = matched.map((s) => ({ skill_id: s.id, name: s.name, already: have.has(s.id) }));
+      }
+    }
+
+    // 3. Kinh nghiệm & Dự án
+    if (modes.includes('experience')) {
+      const raw = (extracted.experiences || []).slice(0, MAX_IMPORT_ITEMS);
+      const existing = await Experience.findAll({ where: { candidate_profile_id: profile.id } });
+      const existingCompanies = existing.filter((e) => (e.type || 'COMPANY') === 'COMPANY');
+
+      const items = raw.map((r, i) => ({
+        key: `cv-${i}`,
+        type: VALID_TYPES.includes(r.type) ? r.type : 'COMPANY',
+        company_name: String(r.name || '').trim().slice(0, 200),
+        job_title: String(r.role || '').trim().slice(0, 150),
+        start_date: normalizeDate(r.start_date),
+        end_date: normalizeDate(r.end_date),
+        description: r.description ? String(r.description).trim() : '',
+        tasks: Array.isArray(r.tasks) ? r.tasks.map((t) => String(t).trim()).filter(Boolean).slice(0, 20) : [],
+        technologies: Array.isArray(r.technologies) ? [...new Set(r.technologies.map((t) => String(t).trim()).filter(Boolean))].slice(0, 20) : [],
+        link_url: /^https?:\/\//i.test(r.link_url || '') ? String(r.link_url).trim().slice(0, 500) : '',
+        _parent: r.parent_company,
+      })).filter((it) => it.company_name);
+
+      // Gắn dự án vào công ty: ưu tiên công ty trong chính CV, sau đó công ty đã có trong hồ sơ
+      const companyItems = items.filter((it) => it.type === 'COMPANY');
+      for (const it of items) {
+        if (it.type === 'PROJECT') {
+          const pn = normName(it._parent);
+          const inCv = pn && companyItems.find((c) => normName(c.company_name) === pn);
+          const inDb = !inCv && pn && existingCompanies.find((c) => normName(c.company_name) === pn);
+          it.parent_ref = inCv ? `k:${inCv.key}` : inDb ? `e:${inDb.id}` : null;
+          // Không xác định được công ty cha thì xem như dự án cá nhân (ứng viên vẫn đổi lại được)
+          if (!it.parent_ref) it.type = 'PERSONAL';
+        } else {
+          it.parent_ref = null;
+        }
+        delete it._parent;
+        const dup = findDuplicate(existing, it.type, it.company_name);
+        it.duplicate = dup ? { id: dup.id, company_name: dup.company_name, job_title: dup.job_title, start_date: dup.start_date, end_date: dup.end_date } : null;
+      }
+
+      data.experiences = items;
+      data.existing_companies = existingCompanies.map((c) => ({ id: c.id, company_name: c.company_name }));
+    }
+
+    return res.json({ success: true, data });
   } catch (error) { next(error); }
 };
 
-// POST /api/candidates/cvs/import  { skill_ids: [], experiences: [{ ..., action: 'create' | 'overwrite', overwrite_id }] }
+// POST /api/candidates/cvs/import  { personal_info: {...}, skill_ids: [], experiences: [{ ..., action: 'create' | 'overwrite', overwrite_id }] }
 // Lưu những gì ứng viên đã chọn trong bản xem trước.
 exports.importFromCv = async (req, res, next) => {
   try {
     const profile = await getProfile(req.user.id);
+    const personalInfoInput = req.body.personal_info && typeof req.body.personal_info === 'object' ? req.body.personal_info : null;
     const skillIds = Array.isArray(req.body.skill_ids) ? [...new Set(req.body.skill_ids)] : [];
     const items = Array.isArray(req.body.experiences) ? req.body.experiences : [];
     if (items.length > MAX_IMPORT_ITEMS) throw new AppError(`Chỉ nhập tối đa ${MAX_IMPORT_ITEMS} mục mỗi lần`, 400);
 
-    const result = { skills_added: 0, experiences_created: 0, experiences_updated: 0, errors: [] };
+    const result = { info_updated: 0, skills_added: 0, experiences_created: 0, experiences_updated: 0, errors: [] };
 
+    // 1. Cập nhật thông tin cá nhân đã chọn
+    if (personalInfoInput) {
+      const updateData = {};
+      const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
+      for (const meta of INFO_FIELDS) {
+        if (personalInfoInput[meta.field] === undefined) continue;
+        const val = meta.normalize(personalInfoInput[meta.field]);
+        if (!val) continue;
+        if (meta.field === 'phone' && !/(84|0[3|5|7|8|9])+([0-9]{8})\b/.test(val)) {
+          result.errors.push({ key: 'phone', name: meta.label, message: 'Số điện thoại không đúng định dạng VN' });
+          continue;
+        }
+        if ((meta.field === 'github_url' || meta.field === 'portfolio_url') && !urlRegex.test(val)) {
+          result.errors.push({ key: meta.field, name: meta.label, message: 'Đường dẫn URL không hợp lệ' });
+          continue;
+        }
+        updateData[meta.field] = val;
+      }
+      const updatedCount = Object.keys(updateData).length;
+      if (updatedCount > 0) {
+        await profile.update(updateData);
+        result.info_updated = updatedCount;
+      }
+    }
+
+    // 2. Thêm kỹ năng
     if (skillIds.length) {
       const valid = await Skill.findAll({ where: { id: { [Op.in]: skillIds.filter((x) => /^[0-9a-f-]{36}$/i.test(x)) } }, attributes: ['id'] });
       const have = new Set((await CandidateSkill.findAll({ where: { candidate_profile_id: profile.id }, attributes: ['skill_id'] })).map((c) => c.skill_id));
@@ -114,7 +223,7 @@ exports.importFromCv = async (req, res, next) => {
       }
     }
 
-    // Công ty trước, dự án sau để dự án luôn tìm được công ty cha
+    // 3. Thêm / cập nhật kinh nghiệm (Công ty trước, dự án sau để dự án luôn tìm được công ty cha)
     const keyToId = new Map();
     const ordered = [...items].sort((a, b) => (a.type === 'COMPANY' ? 0 : 1) - (b.type === 'COMPANY' ? 0 : 1));
     for (const it of ordered) {

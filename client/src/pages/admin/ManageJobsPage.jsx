@@ -11,7 +11,7 @@ const STATUS_LABELS = {
   PENDING_APPROVAL: { text: 'Chờ duyệt', cls: 'bg-yellow-100 text-yellow-700' },
   OPEN:             { text: 'Đã duyệt',  cls: 'bg-green-100 text-green-700'  },
   HIDDEN:           { text: 'Từ chối',   cls: 'bg-red-100 text-red-700'      },
-  CLOSED:           { text: 'Đã đóng',   cls: 'bg-gray-100 text-gray-600'    },
+  CLOSED:           { text: 'Đã đóng',   cls: 'bg-red-100 text-red-700'      },
   DRAFT:            { text: 'Nháp',      cls: 'bg-gray-100 text-gray-500'    },
 };
 

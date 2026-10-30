@@ -883,7 +883,7 @@ export default function InternalProjectsPage() {
                         <p className="text-xs text-green-700 font-semibold">
                           Thù lao: {formatCurrency(job.budget)} · Hạn nộp: {job.deadline ? formatDate(job.deadline) : 'Không giới hạn'}
                           {job.status !== 'OPEN'
-                            ? <span className="ml-2 text-slate-500">· Đã đóng</span>
+                            ? <span className="ml-2 text-red-600 font-semibold">· Đã đóng</span>
                             : deadlineInfo(job.deadline).expired && <span className="ml-2 text-red-600">· Đã hết hạn nộp</span>}
                         </p>
                         {job.Skills?.length > 0 && (

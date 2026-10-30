@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict g74e2Cq92epRM9wRTb3atOuHCwasziVCJ0P5gL6jNa1eOlMdSYIDIBCKYPUb6jZ
+\restrict KzeFxcsSL3wRSRF1Yup8Vecg23cYIYU7hzay9ZqVl8FsSaw9gZMawFQTTa72Bk3
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -67,6 +67,7 @@ ALTER TABLE IF EXISTS ONLY public.application_status_history DROP CONSTRAINT IF 
 ALTER TABLE IF EXISTS ONLY public.activity_logs DROP CONSTRAINT IF EXISTS activity_logs_user_id_fkey;
 DROP INDEX IF EXISTS public.uq_workspace_members_workspace_candidate;
 DROP INDEX IF EXISTS public.uq_project_applications_candidate_job;
+DROP INDEX IF EXISTS public.uq_payments_workspace_member;
 DROP INDEX IF EXISTS public.uq_applications_candidate_job;
 DROP INDEX IF EXISTS public.idx_task_attachments_task;
 DROP INDEX IF EXISTS public.idx_refresh_tokens_user;
@@ -108,6 +109,8 @@ ALTER TABLE IF EXISTS ONLY public.payment_information DROP CONSTRAINT IF EXISTS 
 ALTER TABLE IF EXISTS ONLY public.notifications DROP CONSTRAINT IF EXISTS notifications_pkey;
 ALTER TABLE IF EXISTS ONLY public.job_posts DROP CONSTRAINT IF EXISTS job_posts_pkey;
 ALTER TABLE IF EXISTS ONLY public.job_post_skills DROP CONSTRAINT IF EXISTS job_post_skills_pkey;
+ALTER TABLE IF EXISTS ONLY public.internal_projects DROP CONSTRAINT IF EXISTS internal_projects_pkey;
+ALTER TABLE IF EXISTS ONLY public.internal_projects DROP CONSTRAINT IF EXISTS internal_projects_job_post_id_key;
 ALTER TABLE IF EXISTS ONLY public.experiences DROP CONSTRAINT IF EXISTS experiences_pkey;
 ALTER TABLE IF EXISTS ONLY public.companies DROP CONSTRAINT IF EXISTS companies_user_id_key;
 ALTER TABLE IF EXISTS ONLY public.companies DROP CONSTRAINT IF EXISTS companies_tax_code_key;
@@ -146,6 +149,7 @@ DROP TABLE IF EXISTS public.payment_information;
 DROP TABLE IF EXISTS public.notifications;
 DROP TABLE IF EXISTS public.job_posts;
 DROP TABLE IF EXISTS public.job_post_skills;
+DROP TABLE IF EXISTS public.internal_projects;
 DROP TABLE IF EXISTS public.experiences;
 DROP TABLE IF EXISTS public.companies;
 DROP TABLE IF EXISTS public.candidate_skills;
@@ -173,6 +177,7 @@ DROP TYPE IF EXISTS public.enum_notifications_type;
 DROP TYPE IF EXISTS public.enum_job_posts_work_type;
 DROP TYPE IF EXISTS public.enum_job_posts_status;
 DROP TYPE IF EXISTS public.enum_job_posts_post_type;
+DROP TYPE IF EXISTS public.enum_internal_projects_status;
 DROP TYPE IF EXISTS public.enum_companies_verification_status;
 DROP TYPE IF EXISTS public.enum_candidate_skills_level;
 DROP TYPE IF EXISTS public.enum_applications_status;
@@ -255,6 +260,20 @@ CREATE TYPE public.enum_companies_verification_status AS ENUM (
 
 
 ALTER TYPE public.enum_companies_verification_status OWNER TO postgres;
+
+--
+-- Name: enum_internal_projects_status; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.enum_internal_projects_status AS ENUM (
+    'PLANNING',
+    'IN_PROGRESS',
+    'COMPLETED',
+    'CANCELLED'
+);
+
+
+ALTER TYPE public.enum_internal_projects_status OWNER TO postgres;
 
 --
 -- Name: enum_job_posts_post_type; Type: TYPE; Schema: public; Owner: postgres
@@ -689,6 +708,28 @@ CREATE TABLE public.experiences (
 
 
 ALTER TABLE public.experiences OWNER TO postgres;
+
+--
+-- Name: internal_projects; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.internal_projects (
+    id uuid NOT NULL,
+    job_post_id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    budget numeric(15,2),
+    start_date date,
+    expected_end_date date,
+    actual_end_date date,
+    status public.enum_internal_projects_status DEFAULT 'PLANNING'::public.enum_internal_projects_status,
+    completion_rate numeric(5,2) DEFAULT 0,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.internal_projects OWNER TO postgres;
 
 --
 -- Name: job_post_skills; Type: TABLE; Schema: public; Owner: postgres
@@ -1400,6 +1441,7 @@ INSERT INTO public.activity_logs VALUES ('74f88013-0815-4aad-944e-3de6ed8c0e3d',
 INSERT INTO public.activity_logs VALUES ('e72724c9-dbde-482c-a997-f8990e3727ff', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', 'EMPLOYER', 'USER_LOGIN', 'user', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', NULL, NULL, 'Trần Nhà Tuyển Dụng đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0', '2026-10-22 23:11:03.65+07');
 INSERT INTO public.activity_logs VALUES ('29d0d178-4176-4536-9b78-c0d32062c21f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36', '2026-10-22 23:11:10.886+07');
 INSERT INTO public.activity_logs VALUES ('8acb452e-9f65-4fc0-9599-7409090f86f1', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGIN', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0', '2026-10-22 23:11:15.397+07');
+INSERT INTO public.activity_logs VALUES ('277e91d8-3611-4ed6-b0a7-7008ae2bfe9d', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGIN', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 23:00:08.54+07');
 INSERT INTO public.activity_logs VALUES ('ec6dea65-9758-4819-be8c-898c29893598', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGIN', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0', '2026-10-22 23:11:25.381+07');
 INSERT INTO public.activity_logs VALUES ('f6ebd7ee-4d37-4537-adfe-0a4a253b4618', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGOUT', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36', '2026-10-22 23:11:27.995+07');
 INSERT INTO public.activity_logs VALUES ('b36345e7-e64e-4318-937d-dc6740a8855c', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', 'CANDIDATE', 'USER_LOGIN', 'user', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', NULL, NULL, 'Lê Thị Code đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0', '2026-10-22 23:11:38.229+07');
@@ -1629,6 +1671,28 @@ INSERT INTO public.activity_logs VALUES ('5d307322-e854-4a02-b085-d073c7bbe6bc',
 INSERT INTO public.activity_logs VALUES ('77f4c454-0cff-4737-af10-98ff8d7b4911', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGOUT', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 18:47:39.567+07');
 INSERT INTO public.activity_logs VALUES ('c30e5109-a990-4ffd-be59-54725306d8ec', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', 'CANDIDATE', 'USER_LOGIN', 'user', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', NULL, NULL, 'Lê Thị Code đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 18:47:54.964+07');
 INSERT INTO public.activity_logs VALUES ('5699272a-1d75-4df2-9d09-27041838a9db', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGOUT', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 19:57:19.375+07');
+INSERT INTO public.activity_logs VALUES ('e870b7cf-1b6b-491c-87a1-50c57add6682', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', '0286dbc7-1d27-4f89-9cd4-a37259b0c193', 'Thanh toán 2.000đ cho Nguyễn Văn Dev', NULL, NULL, 'Tạo yêu cầu thanh toán 2.000 VND cho Nguyễn Văn Dev (WS - Kiểm thử phần mềm )', '{"workspace_id": "681f19d2-32f7-4280-9698-2db0eaa0a031", "workspace_member_id": "0efad0be-7734-4d6d-8a03-8f4194dd133f"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 22:53:18.567+07');
+INSERT INTO public.activity_logs VALUES ('b3c65655-dbde-4d1a-8393-2001389a99b5', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', 'bb5f6261-7270-454b-922d-4da3b0f5fc53', 'Thanh toán 12.000.000đ cho Lê Thị Code', NULL, NULL, 'Tạo yêu cầu thanh toán 12.000.000 VND cho Lê Thị Code (WS - Logistics Dashboard)', '{"workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66", "workspace_member_id": "7143368a-c50f-4f6b-84a4-a4c8569f78ae"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 22:54:07.503+07');
+INSERT INTO public.activity_logs VALUES ('cd5761ef-b4ed-4428-adc8-1b5cb9edf14c', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', 'CANDIDATE', 'USER_LOGIN', 'user', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', NULL, NULL, 'Lê Thị Code đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 22:55:37.914+07');
+INSERT INTO public.activity_logs VALUES ('f0de159d-4648-4c8a-8051-6a820ce3f7b5', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', 'bb5f6261-7270-454b-922d-4da3b0f5fc53', 'Thanh toán 12.000.000đ cho Lê Thị Code', NULL, 'PROCESSING', 'Cập nhật trạng thái thanh toán của Lê Thị Code thành PROCESSING', '{"workspace_member_id": "7143368a-c50f-4f6b-84a4-a4c8569f78ae"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 23:00:55.33+07');
+INSERT INTO public.activity_logs VALUES ('2185163d-a2f4-485d-b874-e707f9737842', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', 'bb5f6261-7270-454b-922d-4da3b0f5fc53', 'Thanh toán 12.000.000đ cho Lê Thị Code', NULL, 'FAILED', 'Cập nhật trạng thái thanh toán của Lê Thị Code thành FAILED', '{"workspace_member_id": "7143368a-c50f-4f6b-84a4-a4c8569f78ae"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 23:00:58.986+07');
+INSERT INTO public.activity_logs VALUES ('43a288ca-b9d3-4785-b471-c1cf15c8f39e', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', '866aab87-ab20-42d5-9456-786e9d223dfd', 'Thanh toán 18.000.000đ cho Nguyễn Văn Dev', NULL, NULL, 'Tạo yêu cầu thanh toán 18.000.000 VND cho Nguyễn Văn Dev (WS - Logistics Dashboard)', '{"workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66", "workspace_member_id": "b10c0e2f-c1df-4be6-bca7-35532929ee24"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 23:05:59.739+07');
+INSERT INTO public.activity_logs VALUES ('63a5e883-8ef8-4f6e-86b4-43bfa9f0e44a', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', 'CANDIDATE', 'USER_LOGOUT', 'user', '4e332674-295d-444c-a507-2d60b50f1be1', 'Lê Thị Code', NULL, NULL, 'Lê Thị Code đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 23:14:21.741+07');
+INSERT INTO public.activity_logs VALUES ('82e972c3-ca4d-4551-84bb-16e1660d55b4', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 23:14:31.543+07');
+INSERT INTO public.activity_logs VALUES ('5dffd42f-0df5-4e8d-aa60-16c51c8d8c33', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', '47707465-9dfe-4af3-a789-23abb8f6573b', 'Thanh toán 2.000đ cho Nguyễn Văn Dev', NULL, NULL, 'Tạo yêu cầu thanh toán 2.000 VND cho Nguyễn Văn Dev (WS - Kiểm thử phần mềm )', '{"workspace_id": "681f19d2-32f7-4280-9698-2db0eaa0a031", "workspace_member_id": "0efad0be-7734-4d6d-8a03-8f4194dd133f"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-29 23:15:45.647+07');
+INSERT INTO public.activity_logs VALUES ('37d2fb56-67d7-4bad-8c3d-5279e7e6c693', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', '866aab87-ab20-42d5-9456-786e9d223dfd', 'Hủy yêu cầu thanh toán của Nguyễn Văn Dev', NULL, NULL, 'Đã hủy yêu cầu thanh toán 18.000.000đ của Nguyễn Văn Dev', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 15:08:58.653+07');
+INSERT INTO public.activity_logs VALUES ('6feebf4c-010d-46bc-8201-348daf4951c8', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', '0286dbc7-1d27-4f89-9cd4-a37259b0c193', 'Thanh toán 2.000đ cho Nguyễn Văn Dev', NULL, 'PROCESSING', 'Cập nhật trạng thái thanh toán của Nguyễn Văn Dev thành PROCESSING', '{"workspace_member_id": "0efad0be-7734-4d6d-8a03-8f4194dd133f"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 15:09:22.695+07');
+INSERT INTO public.activity_logs VALUES ('c3755db5-43b8-49e7-a8d3-f86a3777ac0a', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', '0286dbc7-1d27-4f89-9cd4-a37259b0c193', 'Thanh toán 2.000đ cho Nguyễn Văn Dev', NULL, 'PAID', 'Cập nhật trạng thái thanh toán của Nguyễn Văn Dev thành PAID (Mã GD: jguvt)', '{"workspace_member_id": "0efad0be-7734-4d6d-8a03-8f4194dd133f"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 15:09:43.227+07');
+INSERT INTO public.activity_logs VALUES ('26634c25-79bc-401e-a635-d52af3c0d6ff', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', '0636f15a-3028-4e8c-bc04-2cb7f524a2e0', 'Thanh toán 18.000.000đ cho Nguyễn Văn Dev', NULL, NULL, 'Tạo yêu cầu thanh toán 18.000.000 VND cho Nguyễn Văn Dev (Hệ thống Quản lý kho Logistics (DevHub Client))', '{"workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66", "workspace_member_id": "b10c0e2f-c1df-4be6-bca7-35532929ee24"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:02:28.606+07');
+INSERT INTO public.activity_logs VALUES ('ac60fdbe-42a2-48a5-b8ca-1bc35f4294a2', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', '0636f15a-3028-4e8c-bc04-2cb7f524a2e0', 'Hủy yêu cầu thanh toán của Nguyễn Văn Dev', NULL, NULL, 'Đã hủy yêu cầu thanh toán 18.000.000đ của Nguyễn Văn Dev', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:04:01.735+07');
+INSERT INTO public.activity_logs VALUES ('255a1fca-cbfc-4f13-82a6-c754f2f4fffe', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', '30dcb470-3381-49ab-9029-738d1ca93876', 'Thanh toán 18.000.000đ cho Nguyễn Văn Dev', NULL, NULL, 'Tạo yêu cầu thanh toán 18.000.000 VND cho Nguyễn Văn Dev (Hệ thống Quản lý kho Logistics (DevHub Client))', '{"workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66", "workspace_member_id": "b10c0e2f-c1df-4be6-bca7-35532929ee24"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:04:06.896+07');
+INSERT INTO public.activity_logs VALUES ('4e8d0c81-ff86-4643-a6fc-a90d0d620004', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', '30dcb470-3381-49ab-9029-738d1ca93876', 'Hủy yêu cầu thanh toán của Nguyễn Văn Dev', NULL, NULL, 'Đã hủy yêu cầu thanh toán 18.000.000đ của Nguyễn Văn Dev', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:04:35.468+07');
+INSERT INTO public.activity_logs VALUES ('adf40c35-b2db-4499-8246-a25fdd1ce3ca', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', '2d8ea097-4828-43a4-8565-dd0f63a9c3e4', 'Thanh toán 2.000đ cho Nguyễn Văn Dev', NULL, NULL, 'Tạo yêu cầu thanh toán 2.000 VND cho Nguyễn Văn Dev (Hệ thống Quản lý kho Logistics (DevHub Client))', '{"workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66", "workspace_member_id": "b10c0e2f-c1df-4be6-bca7-35532929ee24"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:04:48.722+07');
+INSERT INTO public.activity_logs VALUES ('d98d405e-cd02-49fa-a5ca-1da9c0d3e236', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_PROCESSED', 'payment', '2d8ea097-4828-43a4-8565-dd0f63a9c3e4', 'Hủy yêu cầu thanh toán của Nguyễn Văn Dev', NULL, NULL, 'Đã hủy yêu cầu thanh toán 2.000đ của Nguyễn Văn Dev', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:05:37.862+07');
+INSERT INTO public.activity_logs VALUES ('14d8515e-9efa-4991-84b2-0541ad52a421', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'PAYMENT_CREATED', 'payment', '43088efd-1732-49f6-9fd5-e66e783e269d', 'Thanh toán 18.000.000đ cho Nguyễn Văn Dev', NULL, NULL, 'Tạo yêu cầu thanh toán 18.000.000 VND cho Nguyễn Văn Dev (Hệ thống Quản lý kho Logistics (DevHub Client))', '{"workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66", "workspace_member_id": "b10c0e2f-c1df-4be6-bca7-35532929ee24"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:05:47.707+07');
+INSERT INTO public.activity_logs VALUES ('a4d3c337-9a61-4208-b63b-eebd0d0a4b16', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'TASK_STATUS_CHANGED', 'task', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', 'DW-1431: Test Login', 'IN_PROGRESS', 'REVIEW', 'Nộp sản phẩm lần 1, chuyển trạng thái: Đang làm → Chờ duyệt (task "DW-1431: Test Login")', '{"workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 19:48:36.964+07');
+INSERT INTO public.activity_logs VALUES ('1ba71844-f18e-4b9d-a418-d96e09829c02', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGOUT', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 22:07:06.617+07');
+INSERT INTO public.activity_logs VALUES ('8db5b6ea-3d4f-423c-b715-bb3effd63b25', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', 'EMPLOYER', 'USER_LOGIN', 'user', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'Trần Nhà Tuyển Dụng', NULL, NULL, 'Trần Nhà Tuyển Dụng đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-30 22:07:41.035+07');
 
 
 --
@@ -1642,6 +1706,9 @@ INSERT INTO public.application_status_history VALUES ('84f0214a-d596-42ac-a765-c
 INSERT INTO public.application_status_history VALUES ('3d2893d3-a2af-451b-b009-45a41324f46f', '66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'HIRED', NULL, '2026-10-23 21:35:16.649+07');
 INSERT INTO public.application_status_history VALUES ('723231fa-23f2-4166-9434-287545569920', '66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'REJECTED', NULL, '2026-10-23 21:35:27.977+07');
 INSERT INTO public.application_status_history VALUES ('6d6072ae-66d0-418b-a17a-3943cc5c1a1d', '66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'VIEWED', NULL, '2026-10-24 17:03:36.135+07');
+INSERT INTO public.application_status_history VALUES ('682da749-3396-4459-ae61-bc0ba3bae9b7', '66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'INTERVIEW', NULL, '2026-10-30 22:18:04.818+07');
+INSERT INTO public.application_status_history VALUES ('c27a0f27-7425-4423-8fdb-dc10bb106f17', '66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'REJECTED', NULL, '2026-10-30 22:20:38.834+07');
+INSERT INTO public.application_status_history VALUES ('32c28ec6-582f-40f9-a54b-fb6ae30790dd', '66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'HIRED', NULL, '2026-10-30 22:21:43.147+07');
 
 
 --
@@ -1649,16 +1716,19 @@ INSERT INTO public.application_status_history VALUES ('6d6072ae-66d0-418b-a17a-3
 --
 
 INSERT INTO public.applications VALUES ('5d562f3d-64d8-414b-a102-38ad03b3f4ad', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '0e526c0e-86d8-4579-ba90-150c5d7b58f7', 'Tôi rất thích môi trường chuyên nghiệp tại FPT Software và mong muốn được cống hiến lâu dài.', NULL, 'VIEWED', '2026-09-26 17:32:17.255+07', '2026-09-26 17:32:17.255+07');
-INSERT INTO public.applications VALUES ('66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '9146785e-fd1e-476c-a82d-3546251da74d', 'helo ', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1791299067388-161565902.pdf', 'VIEWED', '2026-10-23 20:45:11.32+07', '2026-10-24 17:03:36.133+07');
+INSERT INTO public.applications VALUES ('66c1e7a9-fc34-4867-a2e6-2daa651bdff2', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '9146785e-fd1e-476c-a82d-3546251da74d', 'helo ', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1791299067388-161565902.pdf', 'HIRED', '2026-10-23 20:45:11.32+07', '2026-10-30 22:21:43.132+07');
 
 
 --
 -- Data for Name: candidate_cvs; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.candidate_cvs VALUES ('fcd04d9d-ae15-4285-84ae-c42c9c51a503', 'f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', 'CV_Le_Thi_Code_React.pdf', 'https://example.com/cvs/CV_Le_Thi_Code_React.pdf', 'CV_Le_Thi_Code_React.pdf', NULL, true, '2026-10-22 19:37:01.411+07', '2026-10-22 19:37:01.411+07');
-INSERT INTO public.candidate_cvs VALUES ('ed691ebb-ef5e-4816-be10-147f5589ea53', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'CV tester intern', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1790586398555-46155785.pdf', 'CV_Software_Tester_Intern_DaoMinhNhut.pdf', 158570, false, '2026-09-28 16:06:38.591+07', '2026-10-23 20:35:35.207+07');
-INSERT INTO public.candidate_cvs VALUES ('fa4e3cc1-1bd8-4e0d-9c55-7cca33eed904', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'CV_Software_Tester_Intern_DaoMinhNhut', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1791299067388-161565902.pdf', 'CV_Software_Tester_Intern_DaoMinhNhut.pdf', 158570, true, '2026-10-06 22:04:27.418+07', '2026-10-23 20:35:35.21+07');
+INSERT INTO public.candidate_cvs VALUES ('fcd04d9d-ae15-4285-84ae-c42c9c51a503', 'f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', 'CV_Le_Thi_Code_React.pdf', 'https://example.com/cvs/CV_Le_Thi_Code_React.pdf', 'CV_Le_Thi_Code_React.pdf', NULL, false, '2026-10-22 19:37:01.411+07', '2026-10-29 22:56:50.276+07');
+INSERT INTO public.candidate_cvs VALUES ('e9293bc5-36dc-4593-ba3e-85935db0b861', 'f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', 'CV-internship_full_stack_Developer-Le_Thanh_Tan', '/uploads/cvs/CV-internship_full_stack_Developer-Le_Thanh_Tan-1793289410257-997249093.pdf', 'CV-internship_full_stack_Developer-Le_Thanh_Tan.pdf', 126218, true, '2026-10-29 22:56:50.281+07', '2026-10-29 22:56:50.281+07');
+INSERT INTO public.candidate_cvs VALUES ('ed691ebb-ef5e-4816-be10-147f5589ea53', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'CV tester intern', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1790586398555-46155785.pdf', 'CV_Software_Tester_Intern_DaoMinhNhut.pdf', 158570, false, '2026-09-28 16:06:38.591+07', '2026-10-30 19:22:05.621+07');
+INSERT INTO public.candidate_cvs VALUES ('fa4e3cc1-1bd8-4e0d-9c55-7cca33eed904', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'CV_Software_Tester_Intern_DaoMinhNhut', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1791299067388-161565902.pdf', 'CV_Software_Tester_Intern_DaoMinhNhut.pdf', 158570, false, '2026-10-06 22:04:27.418+07', '2026-10-30 19:22:05.621+07');
+INSERT INTO public.candidate_cvs VALUES ('9248a1bd-35a2-401b-aac5-b7ca8dfc6a56', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'CV-internship_full_stack_Developer-Le_Thanh_Tan', '/uploads/cvs/CV-internship_full_stack_Developer-Le_Thanh_Tan-1793359714946-53709929.pdf', 'CV-internship_full_stack_Developer-Le_Thanh_Tan.pdf', 126218, false, '2026-10-30 18:28:34.979+07', '2026-10-30 19:22:05.621+07');
+INSERT INTO public.candidate_cvs VALUES ('9d0c000c-2367-4640-8af4-ded95f8fa42d', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'CV-internship_full_stack_Developer-Le_Thanh_Tan', '/uploads/cvs/CV-internship_full_stack_Developer-Le_Thanh_Tan-1793362925595-507647246.pdf', 'CV-internship_full_stack_Developer-Le_Thanh_Tan.pdf', 76889, true, '2026-10-30 19:22:05.627+07', '2026-10-30 19:22:05.627+07');
 
 
 --
@@ -1671,9 +1741,9 @@ INSERT INTO public.candidate_cvs VALUES ('fa4e3cc1-1bd8-4e0d-9c55-7cca33eed904',
 -- Data for Name: candidate_profiles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.candidate_profiles VALUES ('f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', '4e332674-295d-444c-a507-2d60b50f1be1', 'Frontend Developer', 'Chuyên gia React, UI/UX, thích viết code sạch.', NULL, NULL, 'https://github.com/lethicode', NULL, NULL, 'https://example.com/cvs/CV_Le_Thi_Code_React.pdf', 'CV_Le_Thi_Code_React.pdf', 9.00, '2026-09-26 17:32:17.237+07', '2026-09-26 17:32:17.237+07');
 INSERT INTO public.candidate_profiles VALUES ('2c5056d1-7578-4c20-b657-483d737cc3c9', '36fe63da-2f81-4530-96a7-4bd67ea88a2d', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, '2026-09-26 17:55:23.246+07', '2026-09-26 17:55:23.246+07');
-INSERT INTO public.candidate_profiles VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Fullstack Web Developer', 'Đam mê lập trình web với React và Node.js, có 2 năm kinh nghiệm.', '0345595206 ', 'TPHCM ', 'https://github.com/nguyenvandev', '', '/uploads/images/img-1792763769537-996254265.jpg', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1791299067388-161565902.pdf', 'CV_Software_Tester_Intern_DaoMinhNhut', 8.50, '2026-09-26 17:32:17.237+07', '2026-10-29 20:36:46.457+07');
+INSERT INTO public.candidate_profiles VALUES ('f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', '4e332674-295d-444c-a507-2d60b50f1be1', 'Frontend Developer', 'Chuyên gia React, UI/UX, thích viết code sạch.', NULL, NULL, 'https://github.com/lethicode', NULL, NULL, '/uploads/cvs/CV-internship_full_stack_Developer-Le_Thanh_Tan-1793289410257-997249093.pdf', 'CV-internship_full_stack_Developer-Le_Thanh_Tan', 9.00, '2026-09-26 17:32:17.237+07', '2026-10-29 22:56:50.279+07');
+INSERT INTO public.candidate_profiles VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Internship fullstack Developer', 'Final-year Software Engineering student with a strong foundation in Full-Stack Web Development (Spring Boot, Node.js, ReactJS) and Mobile Development (Android/Kotlin). Experienced in integrating AI services into production-grade applications. Seeking a Full-Stack Developer Internship position to contribute to scalable corporate software projects and further refine development skills.', '0372688572', 'Kha Van Can, Thu Duc, HCM', 'https://github.com/thanhtanmt', '', NULL, '/uploads/cvs/CV-internship_full_stack_Developer-Le_Thanh_Tan-1793362925595-507647246.pdf', 'CV-internship_full_stack_Developer-Le_Thanh_Tan', 8.50, '2026-09-26 17:32:17.237+07', '2026-10-30 21:24:03.251+07');
 
 
 --
@@ -1684,6 +1754,17 @@ INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8
 INSERT INTO public.candidate_skills VALUES ('f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', 'd1009b02-93eb-4707-8468-62345af8c63a', 'EXPERT', 3.0, 'MANUAL');
 INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'b6dbabb9-e952-40b0-a17a-4f3d449c0af2', 'ADVANCED', 1.0, 'MANUAL');
 INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'd1009b02-93eb-4707-8468-62345af8c63a', 'INTERMEDIATE', 1.0, 'MANUAL');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'e09f2d9c-8aff-46c0-a5be-1ea3b84bd7d7', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'b01896aa-61aa-4788-bbbd-0978659a6555', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '3d92719c-ec11-4fc3-a21f-b8f14243d2aa', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '8e148701-765b-4d4a-b873-d8b4a4c24b27', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'f91422af-8a3b-4ed3-b64f-45dbadb323e3', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '84850e2a-78b7-4e07-92f9-8492c3e21b27', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '215a36b5-d7ee-40ad-825f-c1a7a852b5d4', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '5417399f-e1e2-4434-a2d8-7c4a6a5552f5', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'f7832dad-28de-4c0a-b576-c2589d07c90f', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '58448363-6c20-4fc8-a15b-e8dc514fb065', 'BEGINNER', 0.0, 'CV');
+INSERT INTO public.candidate_skills VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', '400acb28-69ab-48f1-8d45-d51a9b408c61', 'BEGINNER', 0.0, 'CV');
 
 
 --
@@ -1698,30 +1779,38 @@ INSERT INTO public.companies VALUES ('70ea000b-37fd-428f-b400-d22be6184df2', '9c
 --
 
 INSERT INTO public.experiences VALUES ('798a0f19-c23a-4766-9c69-98a26e2dd9df', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Tester Intern ', 'FPT Softwave', '2026-01-01', NULL, 'Thực hiện kiểm thử web, thiết kế testcase, phối hợp vs team phát triển ', '2026-09-28 16:34:16.942+07', '2026-09-28 16:34:54.429+07', 'COMPANY', NULL, '[]', '[]', NULL);
+INSERT INTO public.experiences VALUES ('42cce94e-3d3f-47ae-a718-37ade348794b', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Developer', 'Website shop bán quần áo', '2025-12-01', '2025-12-01', 'Xây dựng ứng dụng web bán quần áo trực tuyến với 4 vai trò (Admin, Seller, Shipper, User). Tích hợp đầy đủ luồng mua hàng (giỏ hàng, thanh toán, theo dõi đơn), quản lý sản phẩm có biến thể (size, màu sắc) và đăng nhập qua Google OAuth2.', '2026-10-30 18:29:57.137+07', '2026-10-30 18:29:57.137+07', 'PERSONAL', NULL, '["Xây dựng ứng dụng web bán quần áo trực tuyến với 4 vai trò (Admin, Seller, Shipper, User).", "Tích hợp đầy đủ luồng mua hàng (giỏ hàng, thanh toán, theo dõi đơn), quản lý sản phẩm có biến thể (size, màu sắc) và đăng nhập qua Google OAuth2.", "Triển khai kiến trúc MVC, lưu trữ ảnh Cloudinary và bảo mật hệ thống toàn diện với Spring Security."]', '["Java 17", "Spring Boot 3", "Spring Data JPA", "Spring Security", "Thymeleaf", "SQL Server", "Cloudinary", "Google OAuth2"]', 'https://github.com/thanhtanmt/doanLtw');
+INSERT INTO public.experiences VALUES ('f81014a1-2b5b-4c18-b331-931c0bcb9217', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Developer', 'Website Quản lý nhân sự IT', '2026-03-01', '2026-06-01', 'Nền tảng quản trị nhân sự toàn diện hỗ trợ phân quyền đa vai trò (Admin, HR, Manager, Kế toán). Tự động hóa chấm công, tính lương và số hóa quy trình tuyển dụng.', '2026-10-30 18:29:57.149+07', '2026-10-30 18:29:57.149+07', 'PERSONAL', NULL, '["Xây dựng nền tảng quản trị nhân sự toàn diện hỗ trợ phân quyền đa vai trò (Admin, HR, Manager, Kế toán), tự động hóa chấm công, tính lương và số hóa quy trình tuyển dụng.", "Tích hợp AI (Google Gemini API) để tự động đọc, trích xuất dữ liệu CV và xây dựng HR Chatbot.", "Phát triển tính năng chấm công bằng công nghệ nhận diện khuôn mặt (face-api.js)."]', '["ReactJS", "Redux", "TailwindCSS", "Node.js", "Express", "MySQL", "Sequelize ORM", "Google Gemini API", "face-api.js"]', 'https://github.com/minhnhutZzz/WebsiteQuanLyNhanSuIT');
+INSERT INTO public.experiences VALUES ('e2447aa9-42c8-4286-8bb0-add324d71568', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Developer', 'Ứng dụng học tiếng anh', '2026-03-01', '2026-06-01', NULL, '2026-10-30 18:29:57.15+07', '2026-10-30 18:29:57.15+07', 'PERSONAL', NULL, '["Xây dựng ứng dụng Android học tiếng Anh theo chuẩn kiến trúc MVVM và Clean Architecture, kết hợp Backend Node.js.", "Ứng dụng thuật toán lặp lại ngắt quãng (Spaced Repetition - SM-2) để tối ưu việc ghi nhớ từ vựng, hỗ trợ học offline và tự động đồng bộ (sync) dữ liệu khi có mạng.", "Tích hợp Google Gemini AI để tự động sinh từ vựng theo chủ đề, cùng hệ thống nhắc nhở thông minh (Background Workers) và theo dõi tiến độ học tập chi tiết (Streak, Accuracy)."]', '["Android", "Kotlin", "Jetpack Compose", "Hilt", "Room", "Retrofit", "Node.js", "MySQL", "Google Generative AI", "SM-2 Algorithm"]', 'https://github.com/thanhtanmt2/English-learning-app');
+INSERT INTO public.experiences VALUES ('e59d6c79-9b6e-451b-90e9-c867cf985afb', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Developer', 'tool & extenision autofill google form', '2026-08-01', '2026-08-01', NULL, '2026-10-30 18:29:57.153+07', '2026-10-30 18:29:57.153+07', 'PERSONAL', NULL, '["Xây dựng công cụ web tự động điền Google Form thông qua trình duyệt Chromium thật (headful browser), kiến trúc Client–Server với Express backend và WebSocket realtime.", "Ứng dụng thuật toán Levenshtein Distance để tự động khớp câu hỏi với câu trả lời mà không cần tên chính xác 100%, hỗ trợ 8 loại câu hỏi (text, radio, checkbox, dropdown, linear scale, date/time, file upload) và form nhiều trang.", "Thiết kế cơ chế Pause/Resume (Human-in-the-loop) — tự động tạm dừng khi gặp lỗi (CAPTCHA, validation) để người dùng can thiệp thủ công, kết hợp Live Preview (WebSocket screenshot streaming) và hệ thống quản lý Chrome Profile riêng biệt, tự động xử lý orphaned processes và stale lock files."]', '["Node.js", "Express.js", "Puppeteer (Chromium Headful)", "WebSocket", "HTML/CSS/JavaScript", "REST API", "Levenshtein Distance Algorithm"]', 'https://github.com/thanhtanmt/autofill-gg-form');
+INSERT INTO public.experiences VALUES ('527e90ba-2c56-4ca4-8432-f3e8178ec1a7', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'hehe', 'hehe', '2026-01-01', NULL, 'hehe', '2026-10-30 18:40:39.6+07', '2026-10-30 18:40:39.6+07', 'PROJECT', '798a0f19-c23a-4766-9c69-98a26e2dd9df', '["hehe"]', '["hehe"]', 'https://hehe.com');
+INSERT INTO public.experiences VALUES ('78af4520-7fda-4482-a45d-01a4a6026ee3', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Backend Developer & Frontend Developer', 'E-Commerce Clothing Website', '2025-12-01', '2025-12-01', 'Team Project', '2026-10-30 19:23:21.929+07', '2026-10-30 19:23:21.929+07', 'PERSONAL', NULL, '["Developed a full-stack e-commerce web app supporting 4 roles (Admin, Seller, Shipper, Customer) with complete purchase, cart, and order tracking workflows.", "Implemented variant product management (size, color), Google OAuth2 authentication, Spring Security authorization, and Cloudinary cloud storage."]', '["Java 17", "Spring Boot 3", "Spring Data JPA", "Spring Security", "Thymeleaf", "SQL Server", "Cloudinary API", "Google OAuth2"]', 'https://github.com/thanhtanmt/doanLtw');
+INSERT INTO public.experiences VALUES ('a0d0aa11-41c4-4b71-8292-4cc2035c6559', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Backend Developer', 'IT Human Resource Management System', '2026-03-01', '2026-06-01', 'Team Project', '2026-10-30 19:23:21.933+07', '2026-10-30 19:23:21.933+07', 'PERSONAL', NULL, '["Built a comprehensive multi-role HR platform automating time tracking, payroll calculation, and digitized recruitment workflows.", "Integrated Google Gemini AI for automated CV data parsing and HR Chatbot, along with facial recognition (face-api.js) for attendance tracking."]', '["ReactJS", "Redux", "Tailwind CSS", "Node.js", "Express.js", "MySQL", "Sequelize ORM", "Google Gemini API", "Face-api.js"]', 'https://github.com/thanhtanmt2/IT-Human-Resource-Management-System');
+INSERT INTO public.experiences VALUES ('5a0f746b-2c45-40aa-bf1f-5fac1c9618b8', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Frontend Developer & Chatbot Developer', 'AI-Powered English Learning Mobile App', '2026-03-01', '2026-06-01', 'Team Project', '2026-10-30 19:23:21.936+07', '2026-10-30 19:23:21.936+07', 'PERSONAL', NULL, '["Developed a mobile application using MVVM and Clean Architecture with Spaced Repetition (SM-2) for vocabulary retention and offline data sync.", "Integrated Google Gemini AI for dynamic topic vocabulary generation, intelligent background study reminders, and progress tracking (Streak, Accuracy)."]', '["Android (Kotlin", "Jetpack Compose", "Hilt", "Room", "Retrofit)", "Node.js", "MySQL", "Google Generative AI", "SM-2 Algorithm"]', 'https://github.com/thanhtanmt2/English-learning-app');
+INSERT INTO public.experiences VALUES ('325c82d4-5599-4f5a-8174-9984882ac7f5', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Developer', 'Automated Google Form Filling Tool', '2026-08-01', '2026-08-01', 'Personal Project', '2026-10-30 19:23:21.939+07', '2026-10-30 19:23:21.939+07', 'PERSONAL', NULL, '["Built a web tool utilizing Puppeteer and WebSockets for real-time automated Google Form filling across 8 question types and multi-page forms.", "Applied Levenshtein Distance for fuzzy question-answer matching and engineered a Human-in-the-Loop mechanism to pause on CAPTCHA/validation errors."]', '["Node.js", "Express.js", "Puppeteer (Headful Chromium)", "WebSockets", "REST API", "Levenshtein Distance Algorithm"]', 'https://github.com/thanhtanmt/autofill-gg-form');
+INSERT INTO public.experiences VALUES ('71537612-f152-49db-b575-4b12d6502eea', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'dddđ', 'ddddd', '2023-01-30', NULL, 'jeje', '2026-10-30 21:34:42.97+07', '2026-10-30 21:34:42.97+07', 'PERSONAL', NULL, '["jejej"]', '["jeje"]', 'https://hehe.com');
+
+
+--
+-- Data for Name: internal_projects; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.internal_projects VALUES ('ad390df8-7a23-43b8-8bb1-e429adc855a2', 'c2dde144-6a41-4472-9e1a-34156fe34968', 'Hệ thống Quản lý kho Logistics', 'Xây dựng dashboard và API quản lý nhập xuất tồn.', 15000000.00, '2026-09-20', '2026-10-20', NULL, 'IN_PROGRESS', 35.00, '2026-09-20 22:55:27.607+07', '2026-09-20 22:55:27.607+07');
 
 
 --
 -- Data for Name: job_post_skills; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.job_post_skills VALUES ('0e526c0e-86d8-4579-ba90-150c5d7b58f7', 'd1009b02-93eb-4707-8468-62345af8c63a');
 INSERT INTO public.job_post_skills VALUES ('9146785e-fd1e-476c-a82d-3546251da74d', 'c68921a4-bd99-456e-9582-44e1f367028a');
+INSERT INTO public.job_post_skills VALUES ('0e526c0e-86d8-4579-ba90-150c5d7b58f7', 'd1009b02-93eb-4707-8468-62345af8c63a');
 
 
 --
 -- Data for Name: job_posts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.job_posts VALUES ('9146785e-fd1e-476c-a82d-3546251da74d', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Backend Node.js Engineer (Remote)', 'Tuyển kỹ sư Backend thành thạo Node.js, Express, PostgreSQL. Làm việc từ xa linh hoạt, đánh giá theo hiệu quả công việc.', 'PARTNER', 'REMOTE', 'Toàn quốc', 20000000.00, 35000000.00, 3, '2026-09-26 17:32:17.248+07', NULL, 'OPEN', 13, '2026-09-26 17:32:17.248+07', '2026-10-29 20:45:47.001+07', '- Từ 2 năm kinh nghiệm với Node.js (Express/NestJS)
-- Thành thạo PostgreSQL, thiết kế RESTful API
-- Biết Docker, Redis; ưu tiên có kinh nghiệm AWS
-- Có tư duy bảo mật và tối ưu truy vấn
-- Giao tiếp tốt, chủ động trong công việc từ xa', '- Làm việc 100% từ xa, giờ giấc linh hoạt
-- Hỗ trợ thiết bị và chi phí internet hằng tháng
-- Thưởng dự án, xét tăng lương 2 lần/năm
-- Bảo hiểm đầy đủ theo quy định, nghỉ phép 14 ngày/năm
-- Cơ hội tham gia các dự án quốc tế', 'Y2_5', 'MIDDLE', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)');
-INSERT INTO public.job_posts VALUES ('0e526c0e-86d8-4579-ba90-150c5d7b58f7', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Senior React Developer (Toàn thời gian)', 'FPT Software tuyển dụng Senior React Developer tham gia dự án thương mại điện tử quốc tế. Cơ hội thăng tiến và chế độ đãi ngộ hấp dẫn.', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 40000000.00, 2, '2026-09-26 17:32:17.248+07', NULL, 'CLOSED', 3, '2026-09-26 17:32:17.248+07', '2026-10-24 17:03:07.599+07', '- Tối thiểu 4 năm kinh nghiệm phát triển web với ReactJS/TypeScript
+INSERT INTO public.job_posts VALUES ('0e526c0e-86d8-4579-ba90-150c5d7b58f7', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Senior React Developer (Toàn thời gian)', 'FPT Software tuyển dụng Senior React Developer tham gia dự án thương mại điện tử quốc tế. Cơ hội thăng tiến và chế độ đãi ngộ hấp dẫn.', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 40000000.00, 2, '2026-09-26 17:32:17.248+07', NULL, 'CLOSED', 4, '2026-09-26 17:32:17.248+07', '2026-10-30 22:24:39.884+07', '- Tối thiểu 4 năm kinh nghiệm phát triển web với ReactJS/TypeScript
 - Thành thạo Redux/React Query, Tailwind CSS hoặc Styled-components
 - Có kinh nghiệm tối ưu hiệu năng, viết unit test (Jest, React Testing Library)
 - Hiểu quy trình CI/CD, làm việc tốt với Git
@@ -1730,6 +1819,15 @@ INSERT INTO public.job_posts VALUES ('0e526c0e-86d8-4579-ba90-150c5d7b58f7', '9c
 - Du lịch công ty hằng năm, team building hằng quý
 - Ngân sách đào tạo, chứng chỉ quốc tế lên tới 20 triệu/năm
 - Môi trường làm việc quốc tế, cơ hội onsite', 'Y2_5', 'SENIOR', 'F-Town 3, Quận 9, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30), linh hoạt giờ vào');
+INSERT INTO public.job_posts VALUES ('9146785e-fd1e-476c-a82d-3546251da74d', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Backend Node.js Engineer (Remote)', 'Tuyển kỹ sư Backend thành thạo Node.js, Express, PostgreSQL. Làm việc từ xa linh hoạt, đánh giá theo hiệu quả công việc.', 'PARTNER', 'REMOTE', 'Toàn quốc', 20000000.00, 35000000.00, 3, '2026-09-26 17:32:17.248+07', NULL, 'CLOSED', 17, '2026-09-26 17:32:17.248+07', '2026-10-30 22:27:02.894+07', '- Từ 2 năm kinh nghiệm với Node.js (Express/NestJS)
+- Thành thạo PostgreSQL, thiết kế RESTful API
+- Biết Docker, Redis; ưu tiên có kinh nghiệm AWS
+- Có tư duy bảo mật và tối ưu truy vấn
+- Giao tiếp tốt, chủ động trong công việc từ xa', '- Làm việc 100% từ xa, giờ giấc linh hoạt
+- Hỗ trợ thiết bị và chi phí internet hằng tháng
+- Thưởng dự án, xét tăng lương 2 lần/năm
+- Bảo hiểm đầy đủ theo quy định, nghỉ phép 14 ngày/năm
+- Cơ hội tham gia các dự án quốc tế', 'Y2_5', 'MIDDLE', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)');
 
 
 --
@@ -1762,13 +1860,30 @@ INSERT INTO public.notifications VALUES ('edb0795e-f752-4459-810f-41925bd4f790',
 INSERT INTO public.notifications VALUES ('5e6fc94b-9c6b-4b62-892c-737ca5b5351d', '4e332674-295d-444c-a507-2d60b50f1be1', 'TASK_ASSIGNED', '📌 Task mới được tạo', 'Tạo task "Thiết kế màn hình login " trong workspace', '/candidate/workspaces/5308bacc-baeb-4e27-a2ae-a7d777efdb66', true, '{"log_id": "66baabde-4889-4e3f-961d-5ab57a058886", "workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66"}', '2026-10-10 19:07:41.882+07');
 INSERT INTO public.notifications VALUES ('098a6346-7b23-476f-85d5-8a8e2292ed02', '4e332674-295d-444c-a507-2d60b50f1be1', 'TASK_APPROVED', '✅ Task được duyệt', 'Task "Tích hợp bảng quét mã vạch sản phẩm" đã được duyệt ✅: tốt', '/candidate/workspaces/5308bacc-baeb-4e27-a2ae-a7d777efdb66', true, '{"log_id": "775a9eaf-f19f-4f83-ac92-d4bce5310804", "workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66"}', '2026-10-10 20:39:59.632+07');
 INSERT INTO public.notifications VALUES ('6ec16cea-751e-4696-98ce-3d86c3e68f50', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', 'Hồ sơ của bạn đã được xem', 'FPT Software đã xem hồ sơ ứng tuyển vị trí "Backend Node.js Engineer (Remote)" của bạn.', '/candidate/applications', false, '{"status": "VIEWED", "application_id": "66c1e7a9-fc34-4867-a2e6-2daa651bdff2"}', '2026-10-24 17:03:36.139+07');
+INSERT INTO public.notifications VALUES ('f994c5b2-a349-4a12-a026-81abb2ec5105', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 2.000đ cho bạn tại WS - Kiểm thử phần mềm . Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "0286dbc7-1d27-4f89-9cd4-a37259b0c193"}', '2026-10-29 22:53:18.571+07');
+INSERT INTO public.notifications VALUES ('51bb4c57-2448-4cb5-8180-b344141dbcb5', '4e332674-295d-444c-a507-2d60b50f1be1', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 12.000.000đ cho bạn tại WS - Logistics Dashboard. Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "bb5f6261-7270-454b-922d-4da3b0f5fc53"}', '2026-10-29 22:54:07.506+07');
+INSERT INTO public.notifications VALUES ('62e83aa0-5dcb-4d1b-9329-7ef2bf8a7b3a', '4e332674-295d-444c-a507-2d60b50f1be1', 'PAYMENT_UPDATE', 'Khoản thanh toán đang được xử lý', 'Khoản thanh toán 12.000.000đ của bạn (WS - Logistics Dashboard) đang được xử lý.', '/candidate/profile?tab=payment', false, '{"status": "PROCESSING", "payment_id": "bb5f6261-7270-454b-922d-4da3b0f5fc53"}', '2026-10-29 23:00:55.333+07');
+INSERT INTO public.notifications VALUES ('0fb44dbf-1a99-4363-a5a2-b3c8e7a0262c', '4e332674-295d-444c-a507-2d60b50f1be1', 'PAYMENT_UPDATE', 'Thanh toán không thành công', 'Khoản thanh toán 12.000.000đ của bạn (WS - Logistics Dashboard) chưa thanh toán được, vui lòng kiểm tra lại thông tin tài khoản ngân hàng trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"status": "FAILED", "payment_id": "bb5f6261-7270-454b-922d-4da3b0f5fc53"}', '2026-10-29 23:00:58.992+07');
+INSERT INTO public.notifications VALUES ('2a613216-2978-45c1-b6da-f1675180ff59', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 18.000.000đ cho bạn tại WS - Logistics Dashboard. Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "866aab87-ab20-42d5-9456-786e9d223dfd"}', '2026-10-29 23:05:59.742+07');
+INSERT INTO public.notifications VALUES ('27229f81-6355-472b-9715-259561eb9474', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 2.000đ cho bạn tại WS - Kiểm thử phần mềm . Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "47707465-9dfe-4af3-a789-23abb8f6573b"}', '2026-10-29 23:15:45.649+07');
+INSERT INTO public.notifications VALUES ('c193c183-9c21-4574-934d-072c05916030', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Khoản thanh toán đang được xử lý', 'Khoản thanh toán 2.000đ của bạn (Kiểm thử phần mềm ) đang được xử lý.', '/candidate/profile?tab=payment', false, '{"status": "PROCESSING", "payment_id": "0286dbc7-1d27-4f89-9cd4-a37259b0c193"}', '2026-10-30 15:09:22.698+07');
+INSERT INTO public.notifications VALUES ('ab86c09b-73df-460d-b1e4-df97c57747a2', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Bạn đã được thanh toán thù lao', 'Khoản thanh toán 2.000đ của bạn (Kiểm thử phần mềm ) đã được chuyển khoản thành công. Mã giao dịch: jguvt.', '/candidate/profile?tab=payment', true, '{"status": "PAID", "payment_id": "0286dbc7-1d27-4f89-9cd4-a37259b0c193"}', '2026-10-30 15:09:43.23+07');
+INSERT INTO public.notifications VALUES ('5294303c-202c-4c8f-9778-57d0435427e3', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 18.000.000đ cho bạn tại dự án "Hệ thống Quản lý kho Logistics (DevHub Client)". Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "0636f15a-3028-4e8c-bc04-2cb7f524a2e0"}', '2026-10-30 19:02:28.617+07');
+INSERT INTO public.notifications VALUES ('4b5a04df-23dd-4951-8b2f-1ac19af6ed37', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 18.000.000đ cho bạn tại dự án "Hệ thống Quản lý kho Logistics (DevHub Client)". Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "30dcb470-3381-49ab-9029-738d1ca93876"}', '2026-10-30 19:04:06.901+07');
+INSERT INTO public.notifications VALUES ('22f5801c-3099-424a-a48e-2256fdf2bcf7', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 2.000đ cho bạn tại dự án "Hệ thống Quản lý kho Logistics (DevHub Client)". Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "2d8ea097-4828-43a4-8565-dd0f63a9c3e4"}', '2026-10-30 19:04:48.725+07');
+INSERT INTO public.notifications VALUES ('c4fec617-1796-4279-8d32-6eda2a6aed73', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'PAYMENT_UPDATE', 'Có khoản thanh toán mới cho bạn', 'Admin vừa tạo khoản thanh toán 18.000.000đ cho bạn tại dự án "Hệ thống Quản lý kho Logistics (DevHub Client)". Hãy kiểm tra thông tin nhận tiền trong hồ sơ.', '/candidate/profile?tab=payment', false, '{"payment_id": "43088efd-1732-49f6-9fd5-e66e783e269d"}', '2026-10-30 19:05:47.711+07');
+INSERT INTO public.notifications VALUES ('677b399b-425e-427e-9c23-d8a4e203f306', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'TASK_STATUS_CHANGED', '⏳ Task chờ duyệt', 'Task "DW-1431: Test Login" đã được nộp sản phẩm (lần 1) và đang chờ duyệt', '/admin/workspaces/5308bacc-baeb-4e27-a2ae-a7d777efdb66?task=1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', false, '{"task_id": "1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4", "workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66"}', '2026-10-30 19:48:36.971+07');
+INSERT INTO public.notifications VALUES ('9b5f2f0a-80c5-4cac-a516-7b427f96662b', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', 'Bạn được mời phỏng vấn', 'FPT Software mời bạn vào vòng phỏng vấn cho vị trí "Backend Node.js Engineer (Remote)". Hãy chú ý email và điện thoại để nhận lịch.', '/candidate/applications', false, '{"status": "INTERVIEW", "application_id": "66c1e7a9-fc34-4867-a2e6-2daa651bdff2"}', '2026-10-30 22:18:04.823+07');
+INSERT INTO public.notifications VALUES ('a6d9db0d-90f6-4ffd-b7a9-f3b2dd02480c', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', 'Kết quả ứng tuyển', 'FPT Software chưa thể tiếp nhận hồ sơ vị trí "Backend Node.js Engineer (Remote)" của bạn lần này. Cảm ơn bạn đã quan tâm, hãy tiếp tục ứng tuyển các vị trí khác.', '/candidate/applications', false, '{"status": "REJECTED", "application_id": "66c1e7a9-fc34-4867-a2e6-2daa651bdff2"}', '2026-10-30 22:20:38.836+07');
+INSERT INTO public.notifications VALUES ('f94dfb92-ce2d-484c-849a-c13a0bca4b6f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', 'Chúc mừng, bạn đã trúng tuyển!', 'FPT Software đã nhận bạn vào vị trí "Backend Node.js Engineer (Remote)". Bộ phận nhân sự sẽ sớm liên hệ để trao đổi chi tiết.', '/candidate/applications', true, '{"status": "HIRED", "application_id": "66c1e7a9-fc34-4867-a2e6-2daa651bdff2"}', '2026-10-30 22:21:43.159+07');
 
 
 --
 -- Data for Name: payment_information; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.payment_information VALUES ('8399b9a3-fc5f-4f69-866c-34632eb40c20', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'DAO MINH NHUT ', 'Vietcombank (VCB)', '1040432283 ', 'ACTIVE', '2026-09-28 16:32:38.141+07', '2026-09-28 17:05:52.308+07');
+INSERT INTO public.payment_information VALUES ('0317517e-2b21-45c9-89d0-8118a71cffb5', 'f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', 'LE THANH TAN', 'BIDV', '5820179540', 'ACTIVE', '2026-10-29 22:52:26.728+07', '2026-10-29 22:52:26.728+07');
+INSERT INTO public.payment_information VALUES ('8399b9a3-fc5f-4f69-866c-34632eb40c20', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'LE THANH TAN', 'BIDV', '5820179540', 'ACTIVE', '2026-09-28 16:32:38.141+07', '2026-10-30 19:39:58.142+07');
 
 
 --
@@ -1776,6 +1891,8 @@ INSERT INTO public.payment_information VALUES ('8399b9a3-fc5f-4f69-866c-34632eb4
 --
 
 INSERT INTO public.payments VALUES ('e3974730-24e1-4d18-9978-d94634d754da', '7143368a-c50f-4f6b-84a4-a4c8569f78ae', 4000000.00, NULL, NULL, 'PAID', '2026-09-26 17:32:17.289+07', '2026-09-26 17:32:17.289+07');
+INSERT INTO public.payments VALUES ('0286dbc7-1d27-4f89-9cd4-a37259b0c193', '0efad0be-7734-4d6d-8a03-8f4194dd133f', 2000.00, 'VIETQR', 'jguvt', 'PAID', '2026-10-30 15:09:43.186+07', '2026-10-29 22:53:18.549+07');
+INSERT INTO public.payments VALUES ('43088efd-1732-49f6-9fd5-e66e783e269d', 'b10c0e2f-c1df-4be6-bca7-35532929ee24', 18000000.00, 'VIETQR', NULL, 'PENDING', NULL, '2026-10-30 19:05:47.693+07');
 
 
 --
@@ -1891,8 +2008,8 @@ INSERT INTO public.skills VALUES ('94c14711-6783-4048-a43a-21a84bbbb24c', 'Angul
 -- Data for Name: sub_tasks; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.sub_tasks VALUES ('99d17dbe-e377-4f78-846a-fa5a5bf93b95', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', '1. Viết Testcase', false, 0, '2026-10-16 18:54:42.229+07', '2026-10-16 18:54:42.229+07');
-INSERT INTO public.sub_tasks VALUES ('912359f8-835c-4bc4-ac06-5fbeb26b06ea', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', '2. Test màn hình login', false, 1, '2026-10-16 18:54:42.229+07', '2026-10-16 18:54:42.229+07');
+INSERT INTO public.sub_tasks VALUES ('99d17dbe-e377-4f78-846a-fa5a5bf93b95', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', '1. Viết Testcase', true, 0, '2026-10-16 18:54:42.229+07', '2026-10-30 19:48:09.8+07');
+INSERT INTO public.sub_tasks VALUES ('912359f8-835c-4bc4-ac06-5fbeb26b06ea', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', '2. Test màn hình login', true, 1, '2026-10-16 18:54:42.229+07', '2026-10-30 19:48:10.85+07');
 
 
 --
@@ -1918,6 +2035,7 @@ INSERT INTO public.task_activities VALUES ('e4a84e17-1c72-406f-91ff-8dbf49785a11
 INSERT INTO public.task_activities VALUES ('5a2e3120-f827-481f-b63b-5a0be8e6381a', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', 'b10c0e2f-c1df-4be6-bca7-35532929ee24', 'STATUS_CHANGED', 'TODO', 'IN_PROGRESS', 'Chuyển trạng thái: Cần làm → Đang làm', '2026-10-23 20:43:08.268+07');
 INSERT INTO public.task_activities VALUES ('814398ba-3af5-4a2f-8d6b-c04c9aa2e174', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', 'b10c0e2f-c1df-4be6-bca7-35532929ee24', 'STATUS_CHANGED', 'IN_PROGRESS', 'TODO', 'Chuyển trạng thái: Đang làm → Cần làm', '2026-10-23 20:43:12.272+07');
 INSERT INTO public.task_activities VALUES ('054f18e3-fb34-4917-a366-c84bede5c2fc', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', 'b10c0e2f-c1df-4be6-bca7-35532929ee24', 'STATUS_CHANGED', 'TODO', 'IN_PROGRESS', 'Chuyển trạng thái: Cần làm → Đang làm', '2026-10-23 20:43:13.807+07');
+INSERT INTO public.task_activities VALUES ('bb3352c9-0de3-4d6a-a26e-9d0c20266c85', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', 'b10c0e2f-c1df-4be6-bca7-35532929ee24', 'SUBMITTED', NULL, '1', 'Nộp sản phẩm lần 1 và gửi duyệt', '2026-10-30 19:48:36.961+07');
 
 
 --
@@ -1951,6 +2069,7 @@ INSERT INTO public.task_comments VALUES ('08532024-9a82-4649-a3df-0f03cc58d90b',
 
 INSERT INTO public.task_submissions VALUES ('79bcfea8-f986-4a50-b6e5-6177f1c7f484', 'be7df978-8cac-4793-99b4-bc0638db5a99', NULL, '/uploads/tasks/Bao_cao_tuan_6-1792156677651-79192182.docx?name=B%C3%A1o%20c%C3%A1o%20tu%E1%BA%A7n%206.docx', 'em đã làm xong', 1, 'ACCEPTED', '2026-10-16 20:18:05.025+07');
 INSERT INTO public.task_submissions VALUES ('cb00693c-6f9b-48ea-b98c-2010d1658cea', 'fb021814-8742-4569-bb9c-310db0f6ccbc', NULL, '/uploads/tasks/TC_Tieng_Anh_12-1792156941747-925798414.xlsx?name=TC_Ti%E1%BA%BFng%20Anh%2012.xlsx', NULL, 1, 'REVISION_REQUIRED', '2026-10-16 20:22:24.063+07');
+INSERT INTO public.task_submissions VALUES ('703dc1f6-59c2-4d6a-bd76-119dd43c6b6c', '1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', 'https://hehe.com', NULL, NULL, 1, 'PENDING_REVIEW', '2026-10-30 19:48:36.952+07');
 
 
 --
@@ -1960,8 +2079,8 @@ INSERT INTO public.task_submissions VALUES ('cb00693c-6f9b-48ea-b98c-2010d1658ce
 INSERT INTO public.tasks VALUES ('da791a3f-2797-49e5-b109-fcc450cea6d1', '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'Thiết kế giao diện Dashboard kho', 'Tạo layout thống kê số lượng hàng nhập xuất tồn theo tuần.', 'MEDIUM', 'DONE', '{}', NULL, NULL, NULL, 100, 0, NULL, NULL, NULL, 'PENDING', '2026-09-26 17:32:17.278+07', '2026-09-26 17:32:17.278+07');
 INSERT INTO public.tasks VALUES ('e8aa6cb6-fc74-441f-adc1-b18300d45426', '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'Tích hợp bảng quét mã vạch sản phẩm', 'Xây dựng component quét và nhập liệu tức thời.', 'MEDIUM', 'DONE', '{}', NULL, NULL, NULL, 100, 1, 'tốt', NULL, '2026-10-10 20:39:59.587+07', 'APPROVED', '2026-09-26 17:32:17.278+07', '2026-10-10 20:39:59.597+07');
 INSERT INTO public.tasks VALUES ('be7df978-8cac-4793-99b4-bc0638db5a99', '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'Thiết kế màn hình login ', 'Thiết kế màn hình login đơn giản, dễ sử dụng', 'HIGH', 'DONE', '{Frontend,Backend,Design}', '2026-10-15 07:00:00+07', 2.00, NULL, 100, 2, 'ok', NULL, '2026-10-16 20:20:09.456+07', 'APPROVED', '2026-10-10 19:07:41.814+07', '2026-10-16 20:20:09.459+07');
-INSERT INTO public.tasks VALUES ('1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'DW-1431: Test Login', 'Viết Testcase và tiến hành kiểm thử màn hình login ', 'HIGH', 'IN_PROGRESS', '{Testing}', '2026-10-24 07:00:00+07', NULL, NULL, 0, 1, NULL, NULL, NULL, 'PENDING', '2026-10-16 18:54:42.218+07', '2026-10-23 20:43:13.805+07');
 INSERT INTO public.tasks VALUES ('fb021814-8742-4569-bb9c-310db0f6ccbc', '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'Tối ưu Responsive trên máy tính bảng', 'Kiểm thử hiển thị trên màn hình iPad và tablet công nghiệp.', 'MEDIUM', 'IN_PROGRESS', '{Feature}', '2026-10-30 07:00:00+07', NULL, NULL, 70, 0, 'chưa ổn, đang lỗi khi tối ưu', NULL, '2026-10-16 20:27:38.416+07', 'REVISION_REQUIRED', '2026-09-26 17:32:17.278+07', '2026-10-23 23:48:56.834+07');
+INSERT INTO public.tasks VALUES ('1a7acb0e-c2c0-4571-9eb1-9bb16ed60da4', '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'DW-1431: Test Login', 'Viết Testcase và tiến hành kiểm thử màn hình login ', 'HIGH', 'REVIEW', '{Testing}', '2026-10-24 07:00:00+07', NULL, NULL, 0, 0, NULL, NULL, NULL, 'PENDING', '2026-10-16 18:54:42.218+07', '2026-10-30 19:48:36.959+07');
 
 
 --
@@ -1981,11 +2100,11 @@ INSERT INTO public.user_roles VALUES ('36fe63da-2f81-4530-96a7-4bd67ea88a2d', '6
 --
 
 INSERT INTO public.users VALUES ('36fe63da-2f81-4530-96a7-4bd67ea88a2d', '23110282@student.hcmute.edu.vn', '$2a$12$8X7PXXymdwebWo2Z.FKfLOxdNcbjHMFeDS7.qoMrEHYxeS7LkWPDS', 'Đào Minh Nhựt ', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:50:39.239+07', '2026-10-09 21:15:25.801+07', NULL, NULL);
-INSERT INTO public.users VALUES ('aa1af617-5227-4f42-a47b-7c4dd00250dd', 'dev1@gmail.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Nguyễn Văn Dev', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-10-29 18:47:39.561+07', '/uploads/images/img-1792763769537-996254265.jpg', NULL);
 INSERT INTO public.users VALUES ('4e332674-295d-444c-a507-2d60b50f1be1', 'dev2@gmail.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Lê Thị Code', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-10-29 19:44:56.726+07', NULL, NULL);
 INSERT INTO public.users VALUES ('db7c670f-1493-4391-8c34-722b0e3a487e', 'admin@devhub.vn', '$2a$12$eH0DtaDA8561du8X4fItiu5aNrwHsaC8VpcvBtkFhePftmj2Y6Lju', 'DevHub Admin', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:16.774+07', '2026-10-29 19:57:19.369+07', NULL, NULL);
 INSERT INTO public.users VALUES ('f676e1a5-3807-4995-b14c-310100cd183a', 'daominhnhut2017@gmail.com', '$2a$12$6TAJnajRVlI.3XN80IUe/.RnotRxg2br2s2v9/YdTh.m7m.xMbgxi', 'Đào Minh Nhựt ', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:37:03.079+07', '2026-10-06 21:47:39.897+07', NULL, NULL);
 INSERT INTO public.users VALUES ('9c17353a-74e0-4f9c-af7e-616a4ea7da36', 'employer@fpt.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Trần Nhà Tuyển Dụng', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-10-29 20:46:11.105+07', '/uploads/images/img-1792765262952-195781710.jpg', NULL);
+INSERT INTO public.users VALUES ('aa1af617-5227-4f42-a47b-7c4dd00250dd', 'dev1@gmail.com', '$2a$12$dbttXWm6g2VzIWvIyNqSFe2BmBAhERQtl/QegGEikCiZ/IMVyZ132', 'Nguyễn Văn Dev', 'ACTIVE', true, NULL, NULL, NULL, NULL, '2026-09-26 17:32:17.228+07', '2026-10-30 21:24:03.243+07', NULL, NULL);
 
 
 --
@@ -2107,6 +2226,22 @@ ALTER TABLE ONLY public.companies
 
 ALTER TABLE ONLY public.experiences
     ADD CONSTRAINT experiences_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: internal_projects internal_projects_job_post_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.internal_projects
+    ADD CONSTRAINT internal_projects_job_post_id_key UNIQUE (job_post_id);
+
+
+--
+-- Name: internal_projects internal_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.internal_projects
+    ADD CONSTRAINT internal_projects_pkey PRIMARY KEY (id);
 
 
 --
@@ -2427,6 +2562,13 @@ CREATE INDEX idx_task_attachments_task ON public.task_attachments USING btree (t
 --
 
 CREATE UNIQUE INDEX uq_applications_candidate_job ON public.applications USING btree (candidate_profile_id, job_post_id);
+
+
+--
+-- Name: uq_payments_workspace_member; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_payments_workspace_member ON public.payments USING btree (workspace_member_id);
 
 
 --
@@ -2815,5 +2957,5 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
-\unrestrict g74e2Cq92epRM9wRTb3atOuHCwasziVCJ0P5gL6jNa1eOlMdSYIDIBCKYPUb6jZ
+\unrestrict KzeFxcsSL3wRSRF1Yup8Vecg23cYIYU7hzay9ZqVl8FsSaw9gZMawFQTTa72Bk3
 

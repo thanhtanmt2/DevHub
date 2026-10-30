@@ -27,9 +27,16 @@ export default function PublicLayout() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
             {/* Thương hiệu */}
             <div>
-              <Link to="/" className="inline-flex items-center gap-2.5">
-                <span className="w-10 h-10 rounded-xl bg-white text-primary-700 flex items-center justify-center font-extrabold text-xl shadow-md">D</span>
-                <span className="text-2xl font-bold text-white tracking-tight">DevHub</span>
+              <Link
+                to="/"
+                aria-label="DevHub — Trang chủ"
+                className="inline-flex items-center bg-white px-3.5 py-2 rounded-xl shadow-md"
+              >
+                <img
+                  src="/logo-devhub.png"
+                  alt="DevHub Since 2026"
+                  className="h-9 w-auto object-contain"
+                />
               </Link>
               <p className="mt-4 text-sm leading-relaxed text-white max-w-xs">
                 Nền tảng kết nối nhân sự IT với việc làm và dự án thực tế — làm việc, nghiệm thu và được đánh giá năng lực ngay trên một nơi.

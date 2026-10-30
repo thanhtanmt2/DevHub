@@ -85,6 +85,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
   const items = useMemo(() => buildItems(experiences, devhubProjects), [experiences, devhubProjects]);
   const [filter, setFilter] = useState('ALL');
   const [selectedKey, setSelectedKey] = useState(null);
+  const [hoveredKey, setHoveredKey] = useState(null);
 
   const typesPresent = LANE_ORDER.filter((t) => items.some((i) => i.type === t));
   const visible = filter === 'ALL' ? items : items.filter((i) => i.type === filter);
@@ -146,7 +147,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
             </div>
           </div>
           {lanes.length === 0 && <p className="text-sm text-slate-400 py-6 text-center">Không có mục nào thuộc loại này.</p>}
-          {lanes.map((lane) => (
+          {lanes.map((lane, laneIdx) => (
             <div key={lane.type} className="flex border-t border-slate-100">
               <div className="w-28 shrink-0 pr-2 py-2 text-xs font-semibold text-slate-600 flex items-start">{EXP_TYPES[lane.type].lane}</div>
               <div className="relative flex-1" style={{ height: lane.rowCount * 34 + 8 }}>
@@ -156,13 +157,52 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
                 ))}
                 {lane.placed.map(({ it, row }) => {
                   const isSel = selected?.key === it.key;
+                  const isHovered = hoveredKey === it.key;
+                  const leftPct = pct(it.start);
+                  const widthPct = Math.max(pct(it.endT) - leftPct, 1.5);
+                  const rightEdgePct = Math.min(100, leftPct + widthPct);
+                  const isNearRight = leftPct > 60;
+                  const showTooltipBelow = laneIdx === 0 && row === 0;
+
+                  const posStyle = isHovered
+                    ? (isNearRight
+                      ? { right: `${100 - rightEdgePct}%`, minWidth: `${widthPct}%`, maxWidth: `${rightEdgePct}%`, width: 'auto', top: row * 34 + 4 }
+                      : { left: `${leftPct}%`, minWidth: `${widthPct}%`, maxWidth: `${100 - leftPct}%`, width: 'auto', top: row * 34 + 4 })
+                    : { left: `${leftPct}%`, width: `${widthPct}%`, top: row * 34 + 4 };
+
                   return (
-                    <button key={it.key} type="button" onClick={() => setSelectedKey(it.key)}
-                      title={`${it.name} — ${it.role}\n${monthYear(it.start)} – ${it.ongoing ? 'Hiện tại' : monthYear(it.endT)} (${durationText(it.start, it.endT)})`}
-                      className={`absolute h-7 rounded-md text-left text-[11px] font-semibold text-white px-2 truncate transition ${EXP_TYPES[it.type].bar} ${isSel ? 'ring-2 ring-offset-1 ring-slate-900' : ''}`}
-                      style={{ left: `${pct(it.start)}%`, width: `${Math.max(pct(it.endT) - pct(it.start), 1.5)}%`, top: row * 34 + 4 }}>
-                      {it.name}
-                    </button>
+                    <div
+                      key={it.key}
+                      style={posStyle}
+                      onMouseEnter={() => setHoveredKey(it.key)}
+                      onMouseLeave={() => setHoveredKey((prev) => (prev === it.key ? null : prev))}
+                      className={`absolute h-7 ${isHovered ? 'z-30' : isSel ? 'z-10' : 'z-0'}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedKey(it.key)}
+                        onFocus={() => setHoveredKey(it.key)}
+                        onBlur={() => setHoveredKey((prev) => (prev === it.key ? null : prev))}
+                        className={`w-full h-full rounded-md text-left text-[11px] font-semibold text-white px-2 transition ${EXP_TYPES[it.type].bar} ${
+                          isHovered ? 'whitespace-nowrap shadow-lg ring-2 ring-slate-900/80 px-2.5' : 'truncate'
+                        } ${isSel && !isHovered ? 'ring-2 ring-offset-1 ring-slate-900' : ''}`}
+                      >
+                        {it.name}
+                      </button>
+
+                      {isHovered && (
+                        <div
+                          className={`pointer-events-none absolute ${
+                            showTooltipBelow ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                          } ${isNearRight ? 'right-0' : 'left-0'} z-40 w-max max-w-xs rounded-lg bg-slate-900 px-3 py-2 text-white shadow-xl`}
+                        >
+                          <p className="text-xs font-bold leading-snug break-words">{it.name}</p>
+                          <p className="text-[11px] text-slate-300 mt-0.5">
+                            {it.role} · {monthYear(it.start)} – {it.ongoing ? 'Hiện tại' : monthYear(it.endT)} ({durationText(it.start, it.endT)})
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

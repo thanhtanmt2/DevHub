@@ -28,7 +28,7 @@ export const candidateApi = {
   addCv: (data) => api.post('/candidates/cvs', data),
   setDefaultCv: (id) => api.put(`/candidates/cvs/${id}/default`),
   // Nhập từ CV: parse = AI đọc và trả bản xem trước (mode: 'skills' | 'experience'), import = lưu phần đã chọn
-  parseCv: (id, mode) => api.post(`/candidates/cvs/${id}/parse`, { mode }, { timeout: 120000 }),
+  parseCv: (id, modeOrModes) => api.post(`/candidates/cvs/${id}/parse`, Array.isArray(modeOrModes) ? { modes: modeOrModes } : { mode: modeOrModes }, { timeout: 120000 }),
   importFromCv: (data) => api.post('/candidates/cvs/import', data),
   deleteCv: (id) => api.delete(`/candidates/cvs/${id}`),
   

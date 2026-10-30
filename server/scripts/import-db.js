@@ -72,6 +72,7 @@ const migrations = [
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_applications_candidate_job ON applications (candidate_profile_id, job_post_id)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_project_applications_candidate_job ON project_applications (candidate_profile_id, project_job_id)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_workspace_members_workspace_candidate ON workspace_members (workspace_id, candidate_profile_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_payments_workspace_member ON payments (workspace_member_id)`,
 ];
 
 console.log('Đang chạy migration patch...');

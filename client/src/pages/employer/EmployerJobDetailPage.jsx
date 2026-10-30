@@ -15,7 +15,7 @@ import { JOB_STATUS_META } from '@/utils/jobMeta';
 const STATUS_NOTE = {
   PENDING_APPROVAL: { cls: 'bg-amber-50 border-amber-200 text-amber-800', text: 'Tin đang chờ Admin duyệt nên chưa hiển thị cho ứng viên. Bạn sẽ nhận thông báo ngay khi có kết quả.' },
   HIDDEN: { cls: 'bg-rose-50 border-rose-200 text-rose-800', text: 'Tin đã bị Admin từ chối. Bấm "Sửa tin" để chỉnh sửa — khi lưu, tin sẽ tự được gửi lại để Admin duyệt.' },
-  CLOSED: { cls: 'bg-slate-100 border-slate-200 text-slate-600', text: 'Tin đã đóng: ứng viên không còn thấy và không nộp thêm hồ sơ được. Các hồ sơ đã nhận vẫn xem được ở tab "Hồ sơ ứng tuyển".' },
+  CLOSED: { cls: 'bg-red-50 border-red-200 text-red-700', text: 'Tin đã đóng: ứng viên không còn thấy và không nộp thêm hồ sơ được. Các hồ sơ đã nhận vẫn xem được ở tab "Hồ sơ ứng tuyển".' },
   DRAFT: { cls: 'bg-slate-100 border-slate-200 text-slate-600', text: 'Đây là bản nháp, chưa được đăng.' },
 };
 

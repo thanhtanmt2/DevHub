@@ -435,7 +435,7 @@ exports.addCv = async (req, res, next) => {
     });
 
     // CV mặc định mới: lọc kỹ năng từ CV và tự thêm vào hồ sơ
-    const addedSkills = shouldBeDefault ? await extractSkillsFromCv(profile.id, file_url) : [];
+    const addedSkills = (shouldBeDefault && !req.body.skip_auto_extract) ? await extractSkillsFromCv(profile.id, file_url) : [];
 
     res.status(201).json({ success: true, data: newCv, added_skills: addedSkills });
   } catch (error) { next(error); }
