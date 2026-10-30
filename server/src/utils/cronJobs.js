@@ -34,7 +34,7 @@ const cleanupFolder = (folder, used) => {
   if (!fs.existsSync(dir)) return 0;
   let deleted = 0;
   fs.readdirSync(dir).forEach(file => {
-    if (file.startsWith('.')) return; // Bỏ qua các file hệ thống (như .DS_Store)
+    if (file.startsWith('.') || file.startsWith('demo-')) return; // Bỏ qua file hệ thống (.DS_Store) và file dữ liệu mẫu (demo-*)
     const filePath = path.join(dir, file);
     const stats = fs.statSync(filePath);
     if (!stats.isFile()) return;
