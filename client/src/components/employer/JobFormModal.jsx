@@ -26,28 +26,35 @@ const INITIAL_FORM = {
   skill_ids: [],
 };
 
-const formFromJob = (job) => (job ? {
-  title: job.title,
-  description: job.description,
-  requirements: job.requirements || '',
-  benefits: job.benefits || '',
-  work_type: job.work_type,
-  experience: job.experience || '',
-  position_level: job.position_level || '',
-  location: job.location || '',
-  work_address: job.work_address || '',
-  working_time: job.working_time || '',
-  salary_min: job.salary_min || '',
-  salary_max: job.salary_max || '',
-  quantity: job.quantity,
-  deadline: job.deadline ? job.deadline.slice(0, 16) : '',
-  skill_ids: job.Skills?.map((s) => s.id) || [],
-} : INITIAL_FORM);
+const formFromJob = (job, isDuplicate = false) => {
+  if (!job) return INITIAL_FORM;
+  const rawDeadline = job.deadline ? job.deadline.slice(0, 16) : '';
+  const validDeadline = isDuplicate && rawDeadline && new Date(rawDeadline) < new Date() ? '' : rawDeadline;
+  return {
+    title: isDuplicate ? `${job.title} (Bản sao)` : job.title,
+    description: job.description,
+    requirements: job.requirements || '',
+    benefits: job.benefits || '',
+    work_type: job.work_type,
+    experience: job.experience || '',
+    position_level: job.position_level || '',
+    location: job.location || '',
+    work_address: job.work_address || '',
+    working_time: job.working_time || '',
+    salary_min: job.salary_min || '',
+    salary_max: job.salary_max || '',
+    quantity: job.quantity,
+    deadline: validDeadline,
+    skill_ids: job.Skills?.map((s) => s.id) || [],
+  };
+};
 
-// Form đăng tin mới / sửa tin tuyển dụng (dùng ở danh sách tin và trang chi tiết tin)
-export default function JobFormModal({ job = null, onClose }) {
+// Form đăng tin mới / sửa tin / nhân bản tin tuyển dụng (dùng ở danh sách tin và trang chi tiết tin)
+export default function JobFormModal({ job = null, mode = job ? 'edit' : 'create', onClose }) {
   const qc = useQueryClient();
-  const [formData, setFormData] = useState(() => formFromJob(job));
+  const isDuplicate = mode === 'duplicate';
+  const isEditingExisting = Boolean(job) && !isDuplicate;
+  const [formData, setFormData] = useState(() => formFromJob(job, isDuplicate));
   useEscapeKey(onClose);
 
   const { data: skillsData } = useQuery({ queryKey: ['public-skills'], queryFn: skillApi.getPublicSkills });
@@ -55,13 +62,13 @@ export default function JobFormModal({ job = null, onClose }) {
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['employer-jobs'] });
-    if (job) qc.invalidateQueries({ queryKey: ['employer-job', job.id] });
+    if (job?.id) qc.invalidateQueries({ queryKey: ['employer-job', job.id] });
     qc.invalidateQueries({ queryKey: ['notifications'] });
   };
 
   const createMut = useMutation({
     mutationFn: (data) => jobApi.createJob(data),
-    onSuccess: () => { refresh(); toast.success('Đã tạo tin tuyển dụng'); onClose(); },
+    onSuccess: (res) => { refresh(); toast.success(res.data?.message || 'Đã tạo tin tuyển dụng'); onClose(); },
     onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra'),
   });
   const updateMut = useMutation({
@@ -70,15 +77,15 @@ export default function JobFormModal({ job = null, onClose }) {
     onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật'),
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
+  const submitForm = (isDraft = false) => {
     // Validate thủ công — tránh HTML required bị khuất trong modal
     if (!formData.title.trim()) return toast.error('Vui lòng nhập tiêu đề công việc');
     if (!formData.description.trim()) return toast.error('Vui lòng nhập mô tả công việc');
-    if (!formData.work_type) return toast.error('Vui lòng chọn hình thức làm việc');
-    if (!formData.location) return toast.error('Vui lòng chọn tỉnh/thành phố làm việc');
-    const oldDeadline = job?.deadline?.slice(0, 16) || '';
+    if (!isDraft) {
+      if (!formData.work_type) return toast.error('Vui lòng chọn hình thức làm việc');
+      if (!formData.location) return toast.error('Vui lòng chọn tỉnh/thành phố làm việc');
+    }
+    const oldDeadline = isEditingExisting ? (job?.deadline?.slice(0, 16) || '') : '';
     if (formData.deadline && formData.deadline !== oldDeadline && new Date(formData.deadline) < new Date()) {
       return toast.error('Hạn nộp hồ sơ phải sau thời điểm hiện tại');
     }
@@ -93,10 +100,16 @@ export default function JobFormModal({ job = null, onClose }) {
       salary_max: formData.salary_max ? parseFloat(formData.salary_max) : null,
       quantity: parseInt(formData.quantity) || 1,
       deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
+      is_draft: isDraft,
     };
 
-    if (job) updateMut.mutate({ id: job.id, data: payload });
+    if (isEditingExisting) updateMut.mutate({ id: job.id, data: payload });
     else createMut.mutate(payload);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    submitForm(false);
   };
 
   const toggleSkill = (skillId) => {
@@ -114,11 +127,22 @@ export default function JobFormModal({ job = null, onClose }) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 py-8 overflow-y-auto">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl">
         <div className="px-6 py-4 border-b flex justify-between items-center bg-white rounded-t-xl">
-          <h3 className="font-bold text-lg">{job ? 'Sửa tin tuyển dụng' : 'Đăng tin tuyển dụng mới'}</h3>
+          <h3 className="font-bold text-lg">
+            {isDuplicate
+              ? 'Nhân bản tin tuyển dụng'
+              : isEditingExisting
+              ? 'Sửa tin tuyển dụng'
+              : 'Đăng tin tuyển dụng mới'}
+          </h3>
           <button type="button" onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {job?.status === 'HIDDEN' && (
+          {isDuplicate && (
+            <p className="text-sm text-primary-800 bg-primary-50 border border-primary-200 rounded-lg px-3 py-2">
+              Toàn bộ nội dung và kỹ năng đã được sao chép từ tin gốc. Bạn có thể chỉnh sửa lại rồi chọn <strong>Lưu nháp</strong> hoặc <strong>Đăng tin</strong>.
+            </p>
+          )}
+          {isEditingExisting && job?.status === 'HIDDEN' && (
             <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
               Tin này đã bị Admin từ chối. Sau khi bạn lưu chỉnh sửa, tin sẽ được <strong>gửi lại để Admin duyệt</strong>.
             </p>
@@ -256,10 +280,24 @@ export default function JobFormModal({ job = null, onClose }) {
             ></textarea>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t">
             <button type="button" onClick={onClose} className="btn-secondary">Hủy</button>
+            {(!isEditingExisting || job?.status === 'DRAFT') && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => submitForm(true)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold border border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Đang lưu...' : 'Lưu nháp'}
+              </button>
+            )}
             <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? 'Đang lưu...' : 'Lưu tin tuyển dụng'}
+              {saving
+                ? 'Đang xử lý...'
+                : !isEditingExisting || job?.status === 'DRAFT'
+                ? 'Đăng tin (Gửi duyệt)'
+                : 'Lưu thay đổi'}
             </button>
           </div>
         </form>

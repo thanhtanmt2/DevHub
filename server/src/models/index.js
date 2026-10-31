@@ -20,6 +20,7 @@ const JobPost = require('./JobPost')(sequelize, DataTypes);
 const JobPostSkill = require('./JobPostSkill')(sequelize, DataTypes);
 const Application = require('./Application')(sequelize, DataTypes);
 const ApplicationStatusHistory = require('./ApplicationStatusHistory')(sequelize, DataTypes);
+const SavedCandidate = require('./SavedCandidate')(sequelize, DataTypes);
 
 // Project models (Freelance / Thời vụ)
 const Project = require('./Project')(sequelize, DataTypes);
@@ -100,6 +101,12 @@ Application.belongsTo(JobPost, { foreignKey: 'job_post_id' });
 // ApplicationStatusHistory
 Application.hasMany(ApplicationStatusHistory, { foreignKey: 'application_id' });
 ApplicationStatusHistory.belongsTo(Application, { foreignKey: 'application_id' });
+
+// SavedCandidate (Employer saves candidate profiles)
+User.hasMany(SavedCandidate, { foreignKey: 'user_id' });
+SavedCandidate.belongsTo(User, { foreignKey: 'user_id' });
+CandidateProfile.hasMany(SavedCandidate, { foreignKey: 'candidate_profile_id' });
+SavedCandidate.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
 
 // ── Project & ProjectJob (Freelance / Thời vụ) ────────────────────
 User.hasMany(Project, { foreignKey: 'created_by_user_id' });
@@ -192,6 +199,7 @@ module.exports = {
   Company,
   JobPost, JobPostSkill,
   Application, ApplicationStatusHistory,
+  SavedCandidate,
   Project, ProjectJob, ProjectJobSkill, ProjectApplication,
   InternalProject, // alias
   Workspace, WorkspaceMember,

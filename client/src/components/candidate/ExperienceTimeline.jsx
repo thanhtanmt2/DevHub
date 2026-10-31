@@ -196,7 +196,14 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
                             showTooltipBelow ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
                           } ${isNearRight ? 'right-0' : 'left-0'} z-40 w-max max-w-xs rounded-lg bg-slate-900 px-3 py-2 text-white shadow-xl`}
                         >
-                          <p className="text-xs font-bold leading-snug break-words">{it.name}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-bold leading-snug break-words">{it.name}</p>
+                            {it.evaluation?.score !== undefined && it.evaluation?.score !== null && (
+                              <span className="shrink-0 inline-flex items-center gap-0.5 rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                                ★ {Number(it.evaluation.score).toFixed(1)}/10
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[11px] text-slate-300 mt-0.5">
                             {it.role} · {monthYear(it.start)} – {it.ongoing ? 'Hiện tại' : monthYear(it.endT)} ({durationText(it.start, it.endT)})
                           </p>

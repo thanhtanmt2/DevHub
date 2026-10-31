@@ -10,6 +10,7 @@ export const companyApi = {
   // Candidate search (Employer)
   searchCandidates: (params) => api.get('/employer/candidates', { params }),
   getCandidateProfile: (id) => api.get(`/employer/candidates/${id}`),
+  toggleSaveCandidate: (id) => api.post(`/employer/candidates/${id}/save`),
   // Admin
   getAllCompanies: (params) => api.get('/admin/companies', { params }),
   verifyCompany: (id, data) => api.put(`/admin/companies/${id}/verify`, data),

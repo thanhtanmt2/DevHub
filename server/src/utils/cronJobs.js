@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Op } = require('sequelize');
 const {
-  Company, CandidateProfile, CandidateCv, Application, ProjectApplication, TaskSubmission, TaskAttachment, User, RefreshToken
+  Company, CandidateProfile, CandidateCv, Application, ProjectApplication, TaskSubmission, TaskAttachment, User, RefreshToken, JobPost, ProjectJob
 } = require('../models');
 
 // File mới upload được giữ 1 giờ (người dùng up file mà chưa kịp bấm Lưu form thì không bị xóa nhầm)
@@ -87,12 +87,42 @@ const cleanupExpiredSessions = async () => {
   }
 };
 
+// Tự động đóng các tin tuyển dụng / vị trí dự án đã quá hạn nộp hồ sơ
+const autoCloseExpiredJobs = async () => {
+  try {
+    const now = new Date();
+    await JobPost.update(
+      { status: 'CLOSED' },
+      {
+        where: {
+          status: { [Op.in]: ['OPEN', 'PENDING_APPROVAL'] },
+          deadline: { [Op.ne]: null, [Op.lt]: now },
+        },
+      },
+    );
+    await ProjectJob.update(
+      { status: 'CLOSED' },
+      {
+        where: {
+          status: 'OPEN',
+          deadline: { [Op.ne]: null, [Op.lt]: now },
+        },
+      },
+    );
+  } catch (error) {
+    console.error('[CRON] ❌ Lỗi khi tự động đóng tin hết hạn:', error);
+  }
+};
+
 // Khởi chạy lập lịch (Cron)
 const startCronJobs = () => {
   // Cú pháp cron: 'Phút Giờ Ngày Tháng Thứ'
   // '0 2 * * *' = Chạy vào đúng 2:00 AM (sáng sớm) mỗi ngày.
   cron.schedule('0 2 * * *', cleanupOrphanFiles);
   cron.schedule('0 2 * * *', cleanupExpiredSessions);
+  // Kiểm tra và tự đóng tin hết hạn mỗi 5 phút + ngay khi khởi động
+  cron.schedule('*/5 * * * *', autoCloseExpiredJobs);
+  autoCloseExpiredJobs();
 };
 
-module.exports = { startCronJobs, cleanupOrphanFiles };
+module.exports = { startCronJobs, cleanupOrphanFiles, autoCloseExpiredJobs };

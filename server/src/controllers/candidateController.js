@@ -1,10 +1,34 @@
 // nạp các bảng liên quan đến ứng viên trong model 
-const { sequelize, CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject, Task, SubTask, ProjectJob, Company, Application, JobPost } = require('../models');
+const { sequelize, CandidateProfile, CandidateCv, Experience, Skill, CandidateSkill, PaymentInformation, User, CandidateEvaluation, WorkspaceMember, Workspace, InternalProject, Task, SubTask, ProjectJob, Company, Application, JobPost, SavedCandidate } = require('../models');
 const { Op } = require('sequelize');
 // nạp class AppError để hiển thị lỗi 
 const AppError = require('../utils/AppError');
 const { getEvidenceForProfiles, syncProjectSkills } = require('../utils/skillEvidence');
 const { extractSkillsFromCv } = require('../utils/cvSkillExtractor');
+
+const DEFAULT_PRIVACY = CandidateProfile.DEFAULT_PRIVACY_SETTINGS || {
+  is_searchable: true,
+  show_email: true,
+  show_phone: true,
+  show_address: true,
+  show_links: true,
+  show_introduction: true,
+  show_cv: true,
+  show_experiences: true,
+  show_devhub_projects: true,
+};
+
+function normalizePrivacySettings(input, base = {}) {
+  const merged = { ...DEFAULT_PRIVACY, ...(base && typeof base === 'object' ? base : {}) };
+  if (input && typeof input === 'object') {
+    for (const key of Object.keys(DEFAULT_PRIVACY)) {
+      if (input[key] !== undefined) {
+        merged[key] = Boolean(input[key]);
+      }
+    }
+  }
+  return merged;
+}
 
 // GET /api/candidates/profile
 // Lấy thông tin hồ sơ của ứng viên
@@ -22,7 +46,9 @@ exports.getMyProfile = async (req, res, next) => {
       // tạo profile rỗng nếu chưa có 
       profile = await CandidateProfile.create({ user_id: req.user.id });
     }
-    res.json({ success: true, data: profile });
+    const data = profile.toJSON();
+    data.privacy_settings = normalizePrivacySettings(data.privacy_settings);
+    res.json({ success: true, data });
   } catch (error) { next(error); }
 };
 
@@ -30,7 +56,7 @@ exports.getMyProfile = async (req, res, next) => {
 // Cập nhật thông tin hồ sơ của ứng viên 
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { professional_title, introduction, phone, address, github_url, portfolio_url, cv_url, cv_name } = req.body;
+    const { professional_title, introduction, phone, address, github_url, portfolio_url, cv_url, cv_name, privacy_settings } = req.body;
     let profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
     if (!profile) profile = await CandidateProfile.create({ user_id: req.user.id });
 
@@ -43,9 +69,14 @@ exports.updateProfile = async (req, res, next) => {
     if (portfolio_url !== undefined) updateData.portfolio_url = portfolio_url;
     if (cv_url !== undefined) updateData.cv_url = cv_url;
     if (cv_name !== undefined) updateData.cv_name = cv_name;
+    if (privacy_settings !== undefined && typeof privacy_settings === 'object') {
+      updateData.privacy_settings = normalizePrivacySettings(privacy_settings, profile.privacy_settings);
+    }
 
     await profile.update(updateData);
-    res.json({ success: true, data: profile });
+    const data = profile.toJSON();
+    data.privacy_settings = normalizePrivacySettings(data.privacy_settings);
+    res.json({ success: true, data });
   } catch (error) { next(error); }
 };
 
@@ -497,13 +528,65 @@ exports.deleteCv = async (req, res, next) => {
 // GET /api/employer/candidates — Employer searches for candidates
 exports.searchCandidates = async (req, res, next) => {
   try {
-    const { keyword, skill_id, score_min, score_max, address, page = 1, limit = 12 } = req.query;
+    const {
+      keyword,
+      skill_id,
+      score_min,
+      score_max,
+      project_min,
+      project_max,
+      saved_only,
+      address,
+      page = 1,
+      limit = 12,
+    } = req.query;
     const where = {};
-    if (address) where.address = { [Op.iLike]: `%${address}%` };
+    const andConditions = [
+      sequelize.literal(`COALESCE(("CandidateProfile"."privacy_settings"->>'is_searchable')::boolean, true) = true`),
+    ];
+    if (address) {
+      where.address = { [Op.iLike]: `%${address}%` };
+      andConditions.push(
+        sequelize.literal(`COALESCE(("CandidateProfile"."privacy_settings"->>'show_address')::boolean, true) = true`),
+      );
+    }
     if (score_min || score_max) {
       where.competency_score = {};
       if (score_min) where.competency_score[Op.gte] = parseFloat(score_min);
       if (score_max) where.competency_score[Op.lte] = parseFloat(score_max);
+    }
+
+    // Lọc theo số dự án đã tham gia trên DevHub (chỉ tính ứng viên đang cho phép hiển thị dự án DevHub)
+    const hasProjectMin = project_min !== undefined && project_min !== '';
+    const hasProjectMax = project_max !== undefined && project_max !== '';
+    if (hasProjectMin || hasProjectMax) {
+      andConditions.push(
+        sequelize.literal(`COALESCE(("CandidateProfile"."privacy_settings"->>'show_devhub_projects')::boolean, true) = true`),
+      );
+      if (hasProjectMin) {
+        const pMin = Math.max(0, parseInt(project_min, 10) || 0);
+        andConditions.push(
+          sequelize.literal(`(SELECT COUNT(*) FROM workspace_members AS wm WHERE wm.candidate_profile_id = "CandidateProfile"."id") >= ${pMin}`),
+        );
+      }
+      if (hasProjectMax) {
+        const pMax = Math.max(0, parseInt(project_max, 10));
+        if (!Number.isNaN(pMax)) {
+          andConditions.push(
+            sequelize.literal(`(SELECT COUNT(*) FROM workspace_members AS wm WHERE wm.candidate_profile_id = "CandidateProfile"."id") <= ${pMax}`),
+          );
+        }
+      }
+    }
+
+    // Danh sách ứng viên đã lưu của nhà tuyển dụng hiện tại
+    const savedRows = await SavedCandidate.findAll({
+      where: { user_id: req.user.id },
+      attributes: ['candidate_profile_id'],
+    });
+    const savedSet = new Set(savedRows.map((s) => s.candidate_profile_id));
+    if (saved_only === '1' || saved_only === 'true') {
+      where.id = { [Op.in]: [...savedSet] };
     }
 
     const include = [
@@ -519,10 +602,16 @@ exports.searchCandidates = async (req, res, next) => {
     if (keyword) {
       where[Op.or] = [
         { professional_title: { [Op.iLike]: `%${keyword}%` } },
-        { introduction: { [Op.iLike]: `%${keyword}%` } },
         { '$User.full_name$': { [Op.iLike]: `%${keyword}%` } },
+        {
+          [Op.and]: [
+            { introduction: { [Op.iLike]: `%${keyword}%` } },
+            sequelize.literal(`COALESCE(("CandidateProfile"."privacy_settings"->>'show_introduction')::boolean, true) = true`),
+          ],
+        },
       ];
     }
+    where[Op.and] = andConditions;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const { count, rows } = await CandidateProfile.findAndCountAll({
@@ -545,14 +634,73 @@ exports.searchCandidates = async (req, res, next) => {
       subQuery: false,
     });
 
-    // Gắn minh chứng dự án cho từng kỹ năng để thẻ ứng viên highlight được
-    const evidenceByProfile = await getEvidenceForProfiles(rows.map((r) => r.id));
+    const profileIds = rows.map((r) => r.id);
+    // Gắn minh chứng dự án cho từng kỹ năng + điểm đánh giá từng dự án để thẻ ứng viên hiển thị trực tiếp
+    const [evidenceByProfile, memberRows] = await Promise.all([
+      getEvidenceForProfiles(profileIds),
+      profileIds.length
+        ? WorkspaceMember.findAll({
+            where: { candidate_profile_id: { [Op.in]: profileIds } },
+            include: [
+              {
+                model: Workspace,
+                attributes: ['id', 'name'],
+                include: [{ model: InternalProject, attributes: ['id', 'name', 'status'] }],
+              },
+              { model: ProjectJob, attributes: ['id', 'title'] },
+              { model: CandidateEvaluation, attributes: ['score', 'comment', 'evaluated_at'] },
+            ],
+            order: [['joined_at', 'DESC']],
+          })
+        : [],
+    ]);
+
+    const projectEvalsByProfile = new Map();
+    for (const m of memberRows) {
+      const mj = m.toJSON();
+      const proj = mj.Workspace?.Project || mj.Workspace?.InternalProject || null;
+      const ev = mj.CandidateEvaluation || null;
+      const list = projectEvalsByProfile.get(mj.candidate_profile_id) || [];
+      list.push({
+        member_id: mj.id,
+        project_id: proj?.id || null,
+        project_name: proj?.name || mj.Workspace?.name || 'Dự án DevHub',
+        project_status: proj?.status || null,
+        position: mj.ProjectJob?.title || null,
+        score: ev && ev.score !== null && ev.score !== undefined ? parseFloat(ev.score) : null,
+        comment: ev?.comment || null,
+        evaluated_at: ev?.evaluated_at || null,
+      });
+      projectEvalsByProfile.set(mj.candidate_profile_id, list);
+    }
+
     const data = rows.map((r) => {
       const j = r.toJSON();
+      const privacy = normalizePrivacySettings(j.privacy_settings);
       const ev = evidenceByProfile.get(r.id) || new Map();
+      if (!privacy.show_address) j.address = null;
+      if (!privacy.show_introduction) j.introduction = null;
+      if (!privacy.show_links) {
+        j.github_url = null;
+        j.portfolio_url = null;
+      }
+      if (!privacy.show_cv) {
+        j.cv_url = null;
+        j.cv_name = null;
+      }
+      if (!privacy.show_devhub_projects) {
+        j.project_count = 0;
+        j.done_task_count = 0;
+        j.devhub_projects_hidden = true;
+        j.project_evaluations = [];
+      } else {
+        j.project_evaluations = projectEvalsByProfile.get(r.id) || [];
+      }
+      j.is_saved = savedSet.has(r.id);
       j.Skills = (j.Skills || [])
-        .map((sk) => ({ ...sk, evidence: ev.get(sk.id) || [] }))
+        .map((sk) => ({ ...sk, evidence: privacy.show_devhub_projects ? (ev.get(sk.id) || []) : [] }))
         .sort((a, b) => (b.evidence.length > 0) - (a.evidence.length > 0));
+      delete j.privacy_settings;
       return j;
     });
     res.json({
@@ -563,6 +711,7 @@ exports.searchCandidates = async (req, res, next) => {
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / parseInt(limit)),
+        saved_count: savedSet.size,
       },
     });
   } catch (error) { next(error); }
@@ -598,7 +747,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
     const contactAllowed = company?.verification_status === 'VERIFIED';
 
     const profile = await CandidateProfile.findByPk(req.params.id, {
-      attributes: ['id', 'professional_title', 'introduction', 'phone', 'address', 'github_url', 'portfolio_url', 'avatar_url', 'cv_url', 'cv_name', 'competency_score'],
+      attributes: ['id', 'professional_title', 'introduction', 'phone', 'address', 'github_url', 'portfolio_url', 'avatar_url', 'cv_url', 'cv_name', 'competency_score', 'privacy_settings'],
       include: [
         { model: User, attributes: ['full_name', 'email'] },
         { model: Skill, through: { attributes: ['source'] }, attributes: ['id', 'name'] },
@@ -607,6 +756,36 @@ exports.getCandidateForEmployer = async (req, res, next) => {
       ],
     });
     if (!profile) throw new AppError('Không tìm thấy ứng viên', 404);
+
+    // Hồ sơ của ứng viên này đã nộp vào các tin của chính doanh nghiệp (để nhà tuyển dụng quay lại xử lý)
+    const applications = company ? (await Application.findAll({
+      where: { candidate_profile_id: profile.id },
+      attributes: ['id', 'status', 'applied_at'],
+      include: [{ model: JobPost, where: { company_id: company.id }, attributes: ['id', 'title'] }],
+      order: [['applied_at', 'DESC']],
+    })).map((a) => ({ id: a.id, status: a.status, applied_at: a.applied_at, job_id: a.JobPost.id, job_title: a.JobPost.title })) : [];
+
+    const hasAppliedToCompany = applications.length > 0;
+    const rawPrivacy = normalizePrivacySettings(profile.privacy_settings);
+    if (!rawPrivacy.is_searchable && !hasAppliedToCompany) {
+      throw new AppError('Ứng viên đang tắt chế độ cho phép tìm kiếm hồ sơ', 403);
+    }
+
+    // Nếu ứng viên đã chủ động nộp đơn vào tin của công ty này thì công ty được xem đầy đủ hồ sơ & CV
+    const effectivePrivacy = hasAppliedToCompany
+      ? normalizePrivacySettings({}, DEFAULT_PRIVACY)
+      : rawPrivacy;
+
+    const hiddenSections = {
+      email: !effectivePrivacy.show_email,
+      phone: !effectivePrivacy.show_phone,
+      address: !effectivePrivacy.show_address,
+      links: !effectivePrivacy.show_links,
+      introduction: !effectivePrivacy.show_introduction,
+      cv: !effectivePrivacy.show_cv,
+      experiences: !effectivePrivacy.show_experiences,
+      devhub_projects: !effectivePrivacy.show_devhub_projects,
+    };
 
     // Các dự án đã tham gia trong Workspace của DevHub
     const members = await WorkspaceMember.findAll({
@@ -661,48 +840,91 @@ exports.getCandidateForEmployer = async (req, res, next) => {
       total: acc.total + p.tasks.total, done: acc.done + p.tasks.done, on_time: acc.on_time + p.tasks.on_time,
     }), { total: 0, done: 0, on_time: 0 });
 
-    // Hồ sơ của ứng viên này đã nộp vào các tin của chính doanh nghiệp (để nhà tuyển dụng quay lại xử lý)
-    const applications = company ? (await Application.findAll({
-      where: { candidate_profile_id: profile.id },
-      attributes: ['id', 'status', 'applied_at'],
-      include: [{ model: JobPost, where: { company_id: company.id }, attributes: ['id', 'title'] }],
-      order: [['applied_at', 'DESC']],
-    })).map((a) => ({ id: a.id, status: a.status, applied_at: a.applied_at, job_id: a.JobPost.id, job_title: a.JobPost.title })) : [];
-
     const p = profile.toJSON();
-    const evidenceMap = (await getEvidenceForProfiles([profile.id])).get(profile.id) || new Map();
+    const [evidenceByProfile, savedRecord] = await Promise.all([
+      getEvidenceForProfiles([profile.id]),
+      SavedCandidate.findOne({
+        where: { user_id: req.user.id, candidate_profile_id: profile.id },
+        attributes: ['id'],
+      }),
+    ]);
+    const evidenceMap = evidenceByProfile.get(profile.id) || new Map();
+    const visibleExperiences = effectivePrivacy.show_experiences ? (p.Experiences || []) : [];
+    const visibleProjects = effectivePrivacy.show_devhub_projects ? projects : [];
+
     res.json({
       success: true,
       data: {
         id: p.id,
+        is_saved: Boolean(savedRecord),
         full_name: p.User?.full_name,
         avatar_url: p.avatar_url,
         professional_title: p.professional_title,
-        introduction: p.introduction,
-        address: p.address,
-        github_url: p.github_url,
-        portfolio_url: p.portfolio_url,
-        cv_url: p.cv_url,
-        cv_name: p.cv_name,
+        introduction: effectivePrivacy.show_introduction ? p.introduction : null,
+        address: effectivePrivacy.show_address ? p.address : null,
+        github_url: effectivePrivacy.show_links ? p.github_url : null,
+        portfolio_url: effectivePrivacy.show_links ? p.portfolio_url : null,
+        cv_url: effectivePrivacy.show_cv ? p.cv_url : null,
+        cv_name: effectivePrivacy.show_cv ? p.cv_name : null,
         competency_score: p.competency_score,
         contact_locked: !contactAllowed,
-        email: contactAllowed ? p.User?.email : null,
-        phone: contactAllowed ? p.phone : null,
-        skills: (p.Skills || []).map((s) => ({ id: s.id, name: s.name, source: s.CandidateSkill?.source, evidence: evidenceMap.get(s.id) || [] })),
-        experiences: p.Experiences || [],
-        cvs: p.cvs || [],
-        projects,
+        email: (contactAllowed && effectivePrivacy.show_email) ? p.User?.email : null,
+        phone: (contactAllowed && effectivePrivacy.show_phone) ? p.phone : null,
+        skills: (p.Skills || []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          source: s.CandidateSkill?.source,
+          evidence: effectivePrivacy.show_devhub_projects ? (evidenceMap.get(s.id) || []) : [],
+        })),
+        experiences: visibleExperiences,
+        cvs: effectivePrivacy.show_cv ? (p.cvs || []) : [],
+        projects: visibleProjects,
         applications,
+        full_access_by_application: hasAppliedToCompany,
+        hidden_sections: hiddenSections,
         summary: {
-          project_count: projects.length,
-          completed_projects: projects.filter((x) => x.project?.status === 'COMPLETED' || x.member_status === 'COMPLETED').length,
-          evaluation_count: projects.filter((x) => x.evaluation).length,
-          tasks_total: totals.total,
-          tasks_done: totals.done,
-          tasks_on_time: totals.on_time,
-          experience_months: totalExperienceMonths((p.Experiences || []).filter((e) => e.type === 'COMPANY' || e.type === 'FREELANCE')),
+          project_count: effectivePrivacy.show_devhub_projects ? projects.length : 0,
+          completed_projects: effectivePrivacy.show_devhub_projects ? projects.filter((x) => x.project?.status === 'COMPLETED' || x.member_status === 'COMPLETED').length : 0,
+          evaluation_count: effectivePrivacy.show_devhub_projects ? projects.filter((x) => x.evaluation).length : 0,
+          tasks_total: effectivePrivacy.show_devhub_projects ? totals.total : 0,
+          tasks_done: effectivePrivacy.show_devhub_projects ? totals.done : 0,
+          tasks_on_time: effectivePrivacy.show_devhub_projects ? totals.on_time : 0,
+          experience_months: effectivePrivacy.show_experiences
+            ? totalExperienceMonths(visibleExperiences.filter((e) => e.type === 'COMPANY' || e.type === 'FREELANCE'))
+            : 0,
         },
       },
+    });
+  } catch (error) { next(error); }
+};
+
+// POST /api/employer/candidates/:id/save — Lưu hoặc bỏ lưu ứng viên (dành cho Nhà tuyển dụng)
+exports.toggleSaveCandidate = async (req, res, next) => {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new AppError('Không tìm thấy ứng viên', 404);
+    const profile = await CandidateProfile.findByPk(req.params.id, { attributes: ['id'] });
+    if (!profile) throw new AppError('Không tìm thấy ứng viên', 404);
+
+    const existing = await SavedCandidate.findOne({
+      where: { user_id: req.user.id, candidate_profile_id: profile.id },
+    });
+    if (existing) {
+      await existing.destroy();
+      return res.json({
+        success: true,
+        data: { saved: false, candidate_profile_id: profile.id },
+        message: 'Đã bỏ lưu ứng viên',
+      });
+    }
+
+    await SavedCandidate.create({
+      user_id: req.user.id,
+      candidate_profile_id: profile.id,
+    });
+    res.json({
+      success: true,
+      data: { saved: true, candidate_profile_id: profile.id },
+      message: 'Đã lưu hồ sơ ứng viên',
     });
   } catch (error) { next(error); }
 };
