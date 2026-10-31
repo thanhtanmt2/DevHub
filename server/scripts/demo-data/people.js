@@ -92,11 +92,11 @@ const ARCHETYPES = {
   },
 };
 
-// Công ty ứng viên từng làm (hư cấu, một phần là các doanh nghiệp mẫu trong hệ thống)
+// Công ty ứng viên từng làm (hư cấu, không dùng tên công ty thật)
 const PAST_COMPANIES = [
   'Công ty TNHH Phần mềm Hưng Thịnh', 'Công ty Cổ phần Giải pháp Số Nam Phát', 'Công ty TNHH Outsourcing Đại Nam',
   'Công ty TNHH Công nghệ An Bình', 'Startup Mây Tre', 'Công ty Cổ phần Phần mềm Tam Giác',
-  'Công ty TNHH Giải pháp Phần mềm Sao Việt', 'Công ty TNHH Mobile Studio Hồng Hạc', 'Công ty Cổ phần Công nghệ Cẩm Tú',
+  'Công ty TNHH Giải pháp Phần mềm Đông Phương', 'Công ty TNHH Mobile Studio Hải Âu', 'Công ty Cổ phần Công nghệ Thiên Long Số',
 ];
 
 const PERSONAL_PROJECTS = [

@@ -33,7 +33,7 @@ const formatCurrency = (amount) => {
 
 const STATUS_LABELS = {
   PENDING: { label: 'Chờ duyệt', color: 'bg-yellow-100 text-yellow-700' },
-  REVIEWING: { label: 'Đang xét duyệt', color: 'bg-blue-100 text-blue-700' },
+  REVIEWING: { label: 'Đang xét duyệt', color: 'bg-primary-100 text-primary-700' },
   INTERVIEW: { label: 'Mời phỏng vấn', color: 'bg-sky-100 text-sky-700' },
   ACCEPTED: { label: 'Trúng tuyển', color: 'bg-green-100 text-green-700' },
   REJECTED: { label: 'Từ chối', color: 'bg-red-100 text-red-700' },
@@ -41,7 +41,7 @@ const STATUS_LABELS = {
 
 const PROJECT_STATUS_META = {
   PLANNING:    { label: 'Lập kế hoạch', color: 'bg-gray-100 text-gray-700' },
-  RECRUITING:  { label: 'Đang tuyển dụng', color: 'bg-blue-100 text-blue-700' },
+  RECRUITING:  { label: 'Đang tuyển dụng', color: 'bg-primary-100 text-primary-700' },
   IN_PROGRESS: { label: 'Đang triển khai', color: 'bg-amber-100 text-amber-700' },
   COMPLETED:   { label: 'Đã nghiệm thu', color: 'bg-emerald-100 text-emerald-700' },
   CANCELLED:   { label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
@@ -76,7 +76,7 @@ function CandidateDetailPanel({ app, onClose }) {
           <div className="flex flex-wrap gap-2">
             {app.cv_url && (
               <a href={app.cv_url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium border border-blue-200 transition-colors">
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg text-sm font-medium border border-primary-200 transition-colors">
                 <Icon name="document" className="w-4 h-4" />Xem CV đính kèm
               </a>
             )}
@@ -176,12 +176,12 @@ function CandidateDetailPanel({ app, onClose }) {
               </p>
               {app.meet_url && (
                 <a href={app.meet_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-1 text-sm text-primary-600 hover:text-primary-800 underline">
+                  className="inline-flex items-center gap-1 mt-1 text-sm text-primary-700 hover:text-primary-800 underline">
                   <Icon name="video" className="w-4 h-4" />{app.meet_url}
                 </a>
               )}
               {app.interview_note && (
-                <p className="text-xs text-primary-600 mt-1 italic">{app.interview_note}</p>
+                <p className="text-xs text-primary-700 mt-1 italic">{app.interview_note}</p>
               )}
             </div>
           )}
@@ -276,7 +276,7 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Link Google Meet *
               <a href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer"
-                className="ml-2 text-primary-600 hover:text-primary-800 text-xs underline">
+                className="ml-2 text-primary-700 hover:text-primary-800 text-xs underline">
                 Tạo phòng Meet mới ↗
               </a>
             </label>
@@ -303,9 +303,9 @@ function ScheduleInterviewModal({ app, onClose, onSuccess }) {
 
           {/* Preview */}
           {form.interview_date && form.interview_time && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-              <p className="font-medium text-blue-800 mb-1"><Icon name="mail" className="w-4 h-4 mr-1" />Preview email sẽ gửi:</p>
-              <p className="text-blue-700">
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm">
+              <p className="font-medium text-primary-800 mb-1"><Icon name="mail" className="w-4 h-4 mr-1" />Preview email sẽ gửi:</p>
+              <p className="text-primary-700">
                 Kính gửi <strong>{user?.full_name}</strong>, bạn được mời phỏng vấn vào lúc{' '}
                 <strong>{form.interview_time}</strong> ngày{' '}
                 <strong>{new Date(form.interview_date).toLocaleDateString('vi-VN')}</strong> qua Google Meet.
@@ -607,7 +607,7 @@ export default function InternalProjectsPage() {
         )}
 
         {projects.map((project) => {
-          const pStatus = PROJECT_STATUS_META[project.status] || { label: project.status, color: 'bg-blue-100 text-blue-700' };
+          const pStatus = PROJECT_STATUS_META[project.status] || { label: project.status, color: 'bg-primary-100 text-primary-700' };
           return (
           <div key={project.id} className="card hover:shadow-md transition-shadow flex flex-col justify-between">
             <div>
@@ -714,7 +714,7 @@ export default function InternalProjectsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[60] p-4 py-8 overflow-y-auto">
           <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl animate-fade-in">
             <h2 className="text-xl font-bold mb-1">{editingJob ? 'Sửa vị trí tuyển dụng' : 'Thêm vị trí tuyển dụng'}</h2>
-            <p className="text-xs text-primary-600 font-medium mb-4">Dự án: {activeProjectForJob.name} · Làm việc từ xa</p>
+            <p className="text-xs text-primary-700 font-medium mb-4">Dự án: {activeProjectForJob.name} · Làm việc từ xa</p>
 
             <div className="space-y-4">
               <div>
@@ -857,7 +857,7 @@ export default function InternalProjectsPage() {
             <div className="flex justify-between items-center pb-3 border-b mb-4">
               <div>
                 <h2 className="text-xl font-bold">Vị trí & Ứng viên Dự án</h2>
-                <p className="text-xs text-primary-600">{viewJobsProject.name}</p>
+                <p className="text-xs text-primary-700">{viewJobsProject.name}</p>
               </div>
               <button
                 onClick={() => setViewJobsProject(null)}
@@ -899,7 +899,7 @@ export default function InternalProjectsPage() {
                           {job.ProjectApplications?.length || 0} ứng viên nộp
                         </span>
                         <div className="flex items-center gap-3 text-xs font-medium">
-                          <button onClick={() => openEditJob(viewJobsProject, job)} className="text-primary-600 hover:underline">Sửa / Gia hạn</button>
+                          <button onClick={() => openEditJob(viewJobsProject, job)} className="text-primary-700 hover:underline">Sửa / Gia hạn</button>
                           <button onClick={() => toggleJobStatus(job)} className={job.status === 'OPEN' ? 'text-red-500 hover:underline' : 'text-emerald-600 hover:underline'}>
                             {job.status === 'OPEN' ? 'Đóng vị trí' : 'Mở lại'}
                           </button>
@@ -936,7 +936,7 @@ export default function InternalProjectsPage() {
                                     <p className="font-semibold text-sm text-gray-900">{user?.full_name}</p>
                                     <p className="text-xs text-gray-500">{user?.email}</p>
                                     {profile?.professional_title && (
-                                      <p className="text-xs text-primary-600">{profile.professional_title}</p>
+                                      <p className="text-xs text-primary-700">{profile.professional_title}</p>
                                     )}
                                   </div>
                                   <span className={`badge text-xs flex-shrink-0 ${statusInfo.color}`}>
@@ -1001,7 +1001,7 @@ export default function InternalProjectsPage() {
                                       href={app.cv_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-medium border border-blue-100"
+                                      className="px-2.5 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium border border-primary-100"
                                     >
                                       <Icon name="document" className="w-3.5 h-3.5 mr-1" />CV
                                     </a>
@@ -1106,7 +1106,7 @@ export default function InternalProjectsPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900"><Icon name="star" className="w-5 h-5 mr-1.5" />Đánh giá năng lực</h3>
-                <p className="text-sm text-primary-600 font-medium">{evaluateTarget.candidateName}</p>
+                <p className="text-sm text-primary-700 font-medium">{evaluateTarget.candidateName}</p>
               </div>
               <button onClick={() => setEvaluateTarget(null)} aria-label="Đóng" className="text-gray-400 hover:text-gray-600"><Icon name="x" className="w-5 h-5" /></button>
             </div>

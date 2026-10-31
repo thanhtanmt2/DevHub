@@ -102,7 +102,7 @@ export default function ProjectJobDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <Link to="/projects" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-4">
+      <Link to="/projects" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-700 mb-4">
         <Icon name="chevronRight" className="w-4 h-4 rotate-180" />Quay lại danh sách dự án
       </Link>
       <ProjectJobDetailView job={job} action={action} />
@@ -115,7 +115,7 @@ export default function ProjectJobDetailPage() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Ứng tuyển vị trí dự án</h2>
-                  <p className="text-sm font-semibold text-primary-600 mt-0.5">{job.title}</p>
+                  <p className="text-sm font-semibold text-primary-700 mt-0.5">{job.title}</p>
                   <p className="text-xs text-gray-500"><Icon name="folder" className="w-3.5 h-3.5 mr-1" />Dự án: {job.Project?.name}</p>
                 </div>
                 <button

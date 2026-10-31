@@ -91,7 +91,7 @@ export function WorkTypeBadge({ type, className = '' }) {
   if (!t) return null;
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset bg-slate-50 text-slate-700 ring-slate-200 ${className}`}>
-      <Icon name={t.icon} className="w-3.5 h-3.5 text-primary-600" />{t.label}
+      <Icon name={t.icon} className="w-3.5 h-3.5 text-primary-700" />{t.label}
     </span>
   );
 }

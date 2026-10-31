@@ -189,7 +189,7 @@ export default function ManageJobsPage() {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kỹ năng yêu cầu</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedJob.Skills.map(s => (
-                      <span key={s.id} className="badge bg-blue-100 text-blue-700">{s.name}</span>
+                      <span key={s.id} className="badge bg-primary-100 text-primary-700">{s.name}</span>
                     ))}
                   </div>
                 </div>

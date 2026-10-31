@@ -27,6 +27,8 @@ const assertValidSalary = ({ salary_min, salary_max }) => {
 };
 
 // Một số tỉnh/thành hay được nhập theo nhiều cách khác nhau → lọc theo mọi cách viết
+const { getCandidateSignals, scoreJobs, loadJobSkills } = require('../utils/jobMatch');
+
 const LOCATION_ALIASES = {
   'TP. Hồ Chí Minh': ['Hồ Chí Minh', 'HCM', 'Sài Gòn', 'Ho Chi Minh'],
   'Hà Nội': ['Hà Nội', 'Hanoi', 'Ha Noi'],
@@ -78,6 +80,10 @@ exports.getJobs = async (req, res, next) => {
     if (salary_to) and.push({ [Op.or]: [{ salary_min: null }, { salary_min: { [Op.lte]: parseFloat(salary_to) } }] });
     if (and.length) where[Op.and] = and;
 
+    // Ứng viên có hồ sơ (kỹ năng / kinh nghiệm / dự án): chấm độ phù hợp từng tin và cho phép xếp theo sort=match ("Phù hợp với bạn")
+    const sig = await getCandidateSignals(req);
+    const personalized = !!sig;
+
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const include = [
       { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
@@ -89,22 +95,50 @@ exports.getJobs = async (req, res, next) => {
       include[0].required = true;
     }
 
-    const { count, rows } = await JobPost.findAndCountAll({
-      where,
-      include,
-      limit: parseInt(limit),
-      offset,
-      order: [
-        ...(sort === 'deadline' ? [[sequelize.literal('"JobPost"."deadline" ASC NULLS LAST')]]
-          : sort === 'salary' ? [[sequelize.literal('"JobPost"."salary_max" DESC NULLS LAST')]] : []),
-        ['posted_at', 'DESC'],
-      ],
-      distinct: true,
-    });
+    let count; let rows; let matches = null;
+    if (sort === 'match' && personalized) {
+      // Chấm điểm toàn bộ tin thỏa bộ lọc rồi phân trang theo điểm (xếp hạng đúng trên mọi trang)
+      const pool = await JobPost.findAll({
+        where: skill_id
+          ? { ...where, [Op.and]: [...(where[Op.and] || []), { id: { [Op.in]: sequelize.literal(`(SELECT job_post_id FROM job_post_skills WHERE skill_id = ${sequelize.escape(skill_id)})`) } }] }
+          : where,
+        attributes: ['id', 'title', 'experience', 'position_level', 'posted_at'],
+        raw: true,
+      });
+      const skillsMap = await loadJobSkills(pool.map((j) => j.id));
+      const all = scoreJobs(pool, skillsMap, sig);
+      const ranked = pool.sort((a, b) => (all.get(b.id).percent - all.get(a.id).percent) || (new Date(b.posted_at) - new Date(a.posted_at)));
+      count = ranked.length;
+      const pageIds = ranked.slice(offset, offset + parseInt(limit)).map((j) => j.id);
+      const pageRows = await JobPost.findAll({ where: { id: pageIds }, include: [include[0] && { ...include[0], where: undefined, required: false }, include[1]].filter(Boolean) });
+      const byId = new Map(pageRows.map((r) => [r.id, r]));
+      rows = pageIds.map((id) => byId.get(id)).filter(Boolean);
+      matches = all;
+    } else {
+      ({ count, rows } = await JobPost.findAndCountAll({
+        where,
+        include,
+        limit: parseInt(limit),
+        offset,
+        order: [
+          ...(sort === 'deadline' ? [[sequelize.literal('"JobPost"."deadline" ASC NULLS LAST')]]
+            : sort === 'salary' ? [[sequelize.literal('"JobPost"."salary_max" DESC NULLS LAST')]] : []),
+          ['posted_at', 'DESC'],
+        ],
+        distinct: true,
+      }));
+      if (personalized) {
+        const ids = rows.map((r) => r.id);
+        matches = scoreJobs(rows.map((r) => r.toJSON()), await loadJobSkills(ids), sig);
+      }
+    }
+
+    const data = matches ? rows.map((r) => ({ ...r.toJSON(), match: matches.get(r.id) })) : rows;
 
     res.json({
       success: true,
-      data: rows,
+      data,
+      personalized,
       pagination: {
         total: count,
         page: parseInt(page),

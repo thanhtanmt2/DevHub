@@ -7,8 +7,10 @@ import { notificationApi } from '@/api/notificationApi';
 import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
+import Logo from '@/components/common/Logo';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { stripEmoji } from '@/utils/stripEmoji';
+import { SUPPORT, telHref, mailHref } from '@/config/support';
 
 // ─── Notification Bell ────────────────────────────────────────────────────────
 function NotificationBell() {
@@ -82,7 +84,7 @@ function NotificationBell() {
     <div className="sm:relative" ref={ref}>
       <button
         onClick={() => { setOpen(o => !o); if (!open) refetch(); }}
-        className="relative p-2 rounded-full text-white hover:bg-white/15 transition-colors"
+        className="relative p-2 rounded-full text-slate-600 hover:bg-slate-100 hover:text-primary-700 transition-colors"
         aria-label="Thông báo"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,9 +102,9 @@ function NotificationBell() {
         <div className="absolute inset-x-3 sm:inset-x-auto sm:right-0 top-full mt-2 sm:w-80 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
-            <p className="font-bold text-gray-800 text-sm">Thông báo {unread > 0 && <span className="text-primary-600">({unread} mới)</span>}</p>
+            <p className="font-bold text-gray-800 text-sm">Thông báo {unread > 0 && <span className="text-primary-700">({unread} mới)</span>}</p>
             {unread > 0 && (
-              <button onClick={() => markAllMut.mutate()} className="text-xs text-primary-600 hover:underline">
+              <button onClick={() => markAllMut.mutate()} className="text-xs text-primary-700 hover:underline">
                 Đọc tất cả
               </button>
             )}
@@ -118,7 +120,7 @@ function NotificationBell() {
             ) : notifications.map(n => (
               <div
                 key={n.id}
-                className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${!n.is_read ? 'bg-blue-50/50' : ''}`}
+                className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${!n.is_read ? 'bg-primary-50/50' : ''}`}
                 onClick={() => { 
                   if (!n.is_read) markReadMut.mutate(n.id); 
                   setSelectedNotif(n);
@@ -133,7 +135,7 @@ function NotificationBell() {
                     {new Date(n.createdAt || n.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
                   </p>
                 </div>
-                {!n.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />}
+                {!n.is_read && <div className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-1.5" />}
               </div>
             ))}
           </div>
@@ -148,7 +150,7 @@ function NotificationBell() {
               {notifIcon(selectedNotif.type, 'md')}
               <div className="flex-1">
                 <h3 className="font-bold text-primary-900 leading-tight">{cleanTitle(selectedNotif.title)}</h3>
-                <p className="text-xs text-primary-600 mt-1">
+                <p className="text-xs text-primary-700 mt-1">
                   {new Date(selectedNotif.createdAt || selectedNotif.created_at).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -187,23 +189,195 @@ function NotificationBell() {
   );
 }
 
+// ─── Menu tài khoản (ảnh đại diện) ────────────────────────────────────────────
+// Chỉ liên kết tới các trang đã có. Mỗi vai trò có nhóm mục riêng + nhóm "Tài khoản & bảo mật" dùng chung.
+const CANDIDATE_MENU = [
+  { label: 'Hồ sơ & tìm việc', items: [
+    { to: '/candidate', icon: 'home', text: 'Tổng quan', end: true },
+    { to: '/candidate/profile', icon: 'user', text: 'Hồ sơ năng lực' },
+    { to: '/candidate/profile?tab=cv', icon: 'document', text: 'CV của tôi' },
+    { to: '/candidate/profile?tab=skills', icon: 'skills', text: 'Kỹ năng & kinh nghiệm' },
+    { to: '/candidate/applications', icon: 'clipboard', text: 'Hồ sơ ứng tuyển' },
+    { to: '/candidate/saved', icon: 'heart', text: 'Việc làm đã lưu' },
+    { to: '/candidate/workspaces', icon: 'workspace', text: 'Dự án của tôi' },
+    { to: '/jobs', icon: 'sparkles', text: 'Việc làm phù hợp với bạn' },
+    { to: '/candidate/profile?tab=payment', icon: 'cash', text: 'Nhận thù lao' },
+  ] },
+];
+const EMPLOYER_MENU = [
+  { label: 'Tuyển dụng', items: [
+    { to: '/employer', icon: 'home', text: 'Tổng quan', end: true },
+    { to: '/employer/company', icon: 'building', text: 'Hồ sơ công ty' },
+    { to: '/employer/jobs', icon: 'briefcase', text: 'Tin tuyển dụng' },
+    { to: '/employer/candidates', icon: 'search', text: 'Tìm ứng viên' },
+  ] },
+];
+const ADMIN_MENU = [
+  { label: 'Quản trị hệ thống', items: [
+    { to: '/admin', icon: 'home', text: 'Tổng quan', end: true },
+    { to: '/admin/users', icon: 'users', text: 'Người dùng' },
+    { to: '/admin/jobs', icon: 'briefcase', text: 'Duyệt tin tuyển dụng' },
+    { to: '/admin/payments', icon: 'card', text: 'Thanh toán' },
+    { to: '/admin/stats', icon: 'chart', text: 'Thống kê' },
+    { to: '/admin/logs', icon: 'history', text: 'Nhật ký hệ thống' },
+  ] },
+];
+// Nhóm "Tài khoản & bảo mật" dùng chung; mỗi mục mở đúng tab trong trang /account
+const accountMenu = (user, candidate) => ({
+  label: 'Tài khoản & bảo mật',
+  items: [
+    { to: '/account', icon: 'user', text: 'Thông tin cá nhân' },
+    { to: '/account?tab=password', icon: 'lock', text: 'Đổi mật khẩu' },
+    { to: '/account?tab=twofa', icon: 'shield', text: 'Xác minh 2 bước', hint: user?.two_factor_enabled ? 'Đã bật' : 'Chưa kích hoạt' },
+    { to: '/account?tab=devices', icon: 'laptop', text: 'Thiết bị đăng nhập' },
+    ...(candidate ? [{ to: '/account?tab=privacy', icon: 'eye', text: 'Quyền riêng tư' }] : []),
+    { href: mailHref(SUPPORT.email), icon: 'headset', text: 'Trợ giúp & hỗ trợ' },
+  ],
+});
+
+function UserMenu({ user, roleLabel, groups, candidate, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const closeTimer = useRef(null);
+  const lastPointer = useRef('mouse');
+  const { pathname, search } = useLocation();
+  const displayName = user?.full_name || user?.email || '';
+
+  const cancelClose = () => { clearTimeout(closeTimer.current); };
+  const scheduleClose = () => { cancelClose(); closeTimer.current = setTimeout(() => setOpen(false), 160); };
+
+  // Đổi trang thì đóng; bấm ra ngoài hoặc Esc cũng đóng
+  useEffect(() => { setOpen(false); }, [pathname, search]);
+  useEffect(() => {
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); clearTimeout(closeTimer.current); };
+  }, []);
+
+  const itemCls = 'group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-primary-50 hover:text-primary-700 transition-colors';
+  const renderItem = (it) => {
+    const inner = (
+      <>
+        <Icon name={it.icon} className="w-[18px] h-[18px] text-slate-400 group-hover:text-primary-600 flex-shrink-0" />
+        <span className="flex-1 min-w-0">
+          <span className="block truncate">{it.text}</span>
+          {it.hint && <span className="block text-[11px] font-normal text-slate-400 truncate">{it.hint}</span>}
+        </span>
+      </>
+    );
+    return it.href
+      ? <a key={it.text} href={it.href} className={itemCls} role="menuitem">{inner}</a>
+      : <Link key={it.text} to={it.to} className={itemCls} role="menuitem">{inner}</Link>;
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onPointerEnter={(e) => { lastPointer.current = e.pointerType; if (e.pointerType === 'mouse') { cancelClose(); setOpen(true); } }}
+      onPointerLeave={(e) => { if (e.pointerType === 'mouse') scheduleClose(); }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => (lastPointer.current === 'mouse' ? true : !o))}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Menu tài khoản"
+        className="flex items-center gap-1 rounded-full p-0.5 pr-1 hover:bg-slate-50 transition-colors"
+      >
+        <Avatar name={displayName} src={user?.avatar_url} size="sm" className="ring-2 ring-primary-200" />
+        <Icon name="chevronDown" className={`hidden sm:block w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        // pt-2 (không dùng margin) để con trỏ đi từ ảnh xuống menu không bị "hở" làm menu đóng giữa chừng
+        <div className="absolute right-0 top-full pt-2 z-50 animate-fade-in">
+          <div role="menu" className="w-80 max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-8rem)] overflow-y-auto overscroll-contain bg-white rounded-2xl border border-slate-200 shadow-xl">
+            {/* Thông tin tài khoản */}
+            <Link to="/account" className="flex items-center gap-3 px-4 py-4 bg-primary-50/70 border-b border-primary-100 rounded-t-2xl hover:bg-primary-50 transition-colors">
+              <Avatar name={displayName} src={user?.avatar_url} size="xl" className="ring-2 ring-white" />
+              <span className="min-w-0 flex-1">
+                {/* Tên hiện đầy đủ (dài thì xuống dòng); nhãn vai trò đi liền sau tên, hết chỗ mới xuống dòng dưới */}
+                <span className="block font-bold text-slate-900 leading-snug break-words">
+                  {displayName}
+                  <span className="inline-block align-middle ml-2 px-2.5 py-0.5 rounded-full bg-primary-600 text-white text-[11px] font-bold leading-4">{roleLabel}</span>
+                </span>
+                <span className="mt-1 flex items-center gap-1 text-xs text-slate-500 min-w-0">
+                  <span className="truncate">{user?.email}</span>
+                  {user?.email_verified && <span title="Email đã xác thực" className="flex-shrink-0"><Icon name="verified" className="w-3.5 h-3.5 text-emerald-600" /></span>}
+                </span>
+              </span>
+            </Link>
+
+            <div className="p-2">
+              {[...groups, accountMenu(user, candidate)].map((g, i) => (
+                <div key={g.label} className={i > 0 ? 'mt-1 pt-1 border-t border-slate-100' : ''}>
+                  <p className="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">{g.label}</p>
+                  {g.items.map(renderItem)}
+                </div>
+              ))}
+              <div className="mt-1 pt-1 border-t border-slate-100">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setOpen(false); onLogout(); }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Icon name="logout" className="w-[18px] h-[18px] flex-shrink-0" />Đăng xuất
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Navbar ───────────────────────────────────────────────────────────────────
+// Thanh liên hệ (nền màu thương hiệu, chỉ trang công khai, từ md trở lên) + header trắng cố định phía trên.
+function TopBar() {
+  return (
+    <div className="hidden md:block bg-primary-600 text-white text-[13px]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-between gap-6">
+        <div className="flex items-center gap-6 min-w-0">
+          <a href={mailHref(SUPPORT.email)} className="inline-flex items-center gap-2 min-w-0 hover:underline">
+            <Icon name="mail" className="w-4 h-4" /><span className="truncate">{SUPPORT.email}</span>
+          </a>
+          <a href={telHref(SUPPORT.hotline)} className="inline-flex items-center gap-2 whitespace-nowrap hover:underline">
+            <Icon name="phone" className="w-4 h-4" />Hotline: {SUPPORT.hotline}
+          </a>
+        </div>
+        <p className="hidden lg:inline-flex items-center gap-2 whitespace-nowrap">
+          <Icon name="clock" className="w-4 h-4" />{SUPPORT.hours}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Liên kết chính: chữ đậm, mục đang mở có gạch chân màu thương hiệu sát mép dưới header
 const navLinkClass = ({ isActive }) =>
-  `px-2 sm:px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
-    isActive ? 'bg-white/20 text-white' : 'text-white hover:text-white hover:bg-white/10'
+  `relative inline-flex items-center h-full px-3.5 text-[15px] font-semibold whitespace-nowrap transition-colors ${
+    isActive
+      ? "text-primary-700 after:content-[''] after:absolute after:left-3.5 after:right-3.5 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-primary-600"
+      : 'text-slate-700 hover:text-primary-700'
   }`;
 
 const mobileLinkClass = ({ isActive }) =>
-  `block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-    isActive ? 'bg-white/20 text-white' : 'text-white hover:bg-white/10'
+  `block w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+    isActive ? 'bg-primary-50 text-primary-700' : 'text-slate-700 hover:bg-slate-50'
   }`;
 
-export default function Navbar() {
-  const { user, logout, isAdmin, isCandidate, isEmployer, openLoginModal } = useAuth();
+// topBar: hiện thanh liên hệ phía trên header (dùng ở các trang công khai; trang quản trị / dashboard để gọn thì tắt)
+export default function Navbar({ topBar = false }) {
+  const { user, logout, isAdmin, isCandidate, isEmployer, openLoginModal, openRegisterModal } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const confirm = useConfirm();
-  const [menuOpen, setMenuOpen] = useState(false); // menu thu gọn trên điện thoại (khi đã đăng nhập)
+  const [menuOpen, setMenuOpen] = useState(false); // menu thu gọn trên điện thoại
 
   // Đổi trang thì đóng menu
   useEffect(() => { setMenuOpen(false); }, [pathname]);
@@ -228,91 +402,125 @@ export default function Navbar() {
   // Ứng viên có trang hồ sơ năng lực riêng; Nhà tuyển dụng / Admin dùng trang tài khoản chung
   const profileLink = isCandidate() ? '/candidate/profile' : '/account';
 
+  const burger = (
+    <button
+      type="button"
+      onClick={() => setMenuOpen((o) => !o)}
+      className="md:hidden p-2 -mr-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+      aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
+      aria-expanded={menuOpen}
+    >
+      <Icon name={menuOpen ? 'x' : 'menu'} />
+    </button>
+  );
+
   return (
-    <nav className="sticky top-0 z-30 bg-primary-600 text-white shadow-md shadow-primary-600/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link
-            to="/"
-            aria-label="DevHub — Trang chủ"
-            className="inline-flex items-center bg-white px-3 py-1.5 rounded-xl shadow-md hover:scale-[1.02] transition-transform shrink-0"
-          >
-            <img
-              src="/logo-devhub.png"
-              alt="DevHub Since 2026"
-              className="h-8 sm:h-9 w-auto object-contain"
-            />
-          </Link>
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Chưa đăng nhập: luôn hiện 2 liên kết. Đã đăng nhập: điện thoại dùng menu thu gọn để không bị tràn ngang */}
-            <div className={`${user ? 'hidden sm:flex' : 'flex'} items-center gap-1 sm:gap-2`}>
-              <NavLink to="/projects" className={navLinkClass}>
-                <span className="hidden sm:inline">Dự án thời vụ</span>
-                <span className="sm:hidden">Dự án</span>
-              </NavLink>
-              <NavLink to="/jobs" className={navLinkClass}>
-                <span className="hidden sm:inline">Tuyển dụng công ty</span>
-                <span className="sm:hidden">Việc làm</span>
-              </NavLink>
+    <>
+      {topBar && <TopBar />}
+      <nav className="sticky top-0 z-30 bg-white border-b border-slate-100 shadow-[0_2px_14px_rgba(8,71,79,0.07)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-[72px]">
+            <div className="flex items-center gap-4 lg:gap-10 min-w-0 h-full">
+              <Logo variant="dark" />
+              {/* Điều hướng chính nằm cạnh logo (từ màn hình vừa trở lên) */}
+              <div className="hidden md:flex items-center h-full">
+                <NavLink to="/" end className={navLinkClass}>Trang chủ</NavLink>
+                <NavLink to="/jobs" className={navLinkClass}>Việc làm</NavLink>
+                <NavLink to="/projects" className={navLinkClass}>Dự án thời vụ</NavLink>
+              </div>
             </div>
-            {user ? (
-              <>
-                <Link
-                  to={getDashboardLink()}
-                  className="hidden sm:inline px-3 py-2 rounded-lg text-sm font-semibold text-white hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  Dashboard
-                </Link>
-                {/* Notification Bell */}
-                <NotificationBell />
-                <div className="flex items-center gap-2 pl-2 ml-1 border-l border-white/25">
-                  <Link to={profileLink} title={`${displayName} — Hồ sơ cá nhân`} aria-label="Hồ sơ cá nhân" className="rounded-full hover:opacity-90 transition-opacity">
-                    <Avatar name={displayName} src={user?.avatar_url} size="sm" className="ring-2 ring-white/70" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              {user ? (
+                <>
+                  <Link
+                    to={getDashboardLink()}
+                    className="hidden md:inline px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:text-primary-700 hover:bg-slate-50 transition-colors"
+                  >
+                    Dashboard
                   </Link>
-                  <button onClick={handleLogout} className="hidden sm:inline-flex btn-glass text-sm !py-1.5">
-                    Đăng xuất
+                  <NotificationBell />
+                  <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-200">
+                    <UserMenu
+                      user={user}
+                      roleLabel={isAdmin() ? 'Quản trị viên' : isEmployer() ? 'Nhà tuyển dụng' : 'Ứng viên'}
+                      groups={isAdmin() ? ADMIN_MENU : isEmployer() ? EMPLOYER_MENU : CANDIDATE_MENU}
+                      candidate={isCandidate()}
+                      onLogout={handleLogout}
+                    />
+                    {burger}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openRegisterModal('EMPLOYER')}
+                    className="hidden lg:inline-flex px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:text-primary-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
+                  >
+                    Dành cho nhà tuyển dụng
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMenuOpen((o) => !o)}
-                    className="sm:hidden p-2 -mr-2 rounded-lg text-white hover:bg-white/15 transition-colors"
-                    aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
-                    aria-expanded={menuOpen}
+                    onClick={openLoginModal}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap text-primary-700 border border-primary-600 hover:bg-primary-50 transition-colors"
                   >
-                    <Icon name={menuOpen ? 'x' : 'menu'} />
+                    Đăng nhập
                   </button>
-                </div>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={openLoginModal}
-                className="btn-light text-sm ml-1 sm:ml-2 whitespace-nowrap"
-              >
-                Đăng nhập
-              </button>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => openRegisterModal()}
+                    className="hidden sm:inline-flex btn-primary text-sm whitespace-nowrap"
+                  >
+                    Đăng ký
+                  </button>
+                  {burger}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Menu thu gọn (chỉ điện thoại, khi đã đăng nhập) */}
-      {user && menuOpen && (
-        <div className="sm:hidden border-t border-white/15 bg-primary-600 px-4 py-3 space-y-1 animate-fade-in">
-          <p className="px-3 pb-2 text-xs text-white truncate">{displayName}</p>
-          <NavLink to={profileLink} className={mobileLinkClass}>Hồ sơ cá nhân</NavLink>
-          <NavLink to="/projects" className={mobileLinkClass}>Dự án thời vụ</NavLink>
-          <NavLink to="/jobs" className={mobileLinkClass}>Tuyển dụng công ty</NavLink>
-          <NavLink to={getDashboardLink()} end className={mobileLinkClass}>Dashboard</NavLink>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-red-200 hover:bg-white/10 transition-colors"
-          >
-            Đăng xuất
-          </button>
-        </div>
-      )}
-    </nav>
+        {/* Menu thu gọn (chỉ điện thoại) */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-1 animate-fade-in">
+            {user && <p className="px-3 pb-2 text-xs text-slate-500 truncate">{displayName}</p>}
+            <NavLink to="/" end className={mobileLinkClass}>Trang chủ</NavLink>
+            <NavLink to="/jobs" className={mobileLinkClass}>Việc làm</NavLink>
+            <NavLink to="/projects" className={mobileLinkClass}>Dự án thời vụ</NavLink>
+            {user ? (
+              <>
+                <NavLink to={profileLink} className={mobileLinkClass}>Hồ sơ cá nhân</NavLink>
+                {isCandidate() && <NavLink to="/candidate/saved" className={mobileLinkClass}>Việc làm đã lưu</NavLink>}
+                <NavLink to={getDashboardLink()} end className={mobileLinkClass}>Dashboard</NavLink>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); openRegisterModal(); }}
+                  className={mobileLinkClass({ isActive: false })}
+                >
+                  Đăng ký tài khoản
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); openRegisterModal('EMPLOYER'); }}
+                  className={mobileLinkClass({ isActive: false })}
+                >
+                  Dành cho nhà tuyển dụng
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </nav>
+    </>
   );
 }

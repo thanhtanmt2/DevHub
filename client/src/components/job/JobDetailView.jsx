@@ -1,3 +1,4 @@
+import SaveJobButton from '@/components/job/SaveJobButton';
 import Icon from '@/components/common/Icon';
 import { WorkTypeBadge } from '@/components/common/Badges';
 import {
@@ -63,6 +64,7 @@ export default function JobDetailView({ job, action, compact = false, showTitle 
         {action && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
             {action}
+            <SaveJobButton type="job" id={job.id} variant="full" closed={expired || job.status !== 'OPEN'} />
             {expired && <span className="text-sm text-red-600 font-medium">Tin đã hết hạn nộp hồ sơ</span>}
           </div>
         )}
@@ -84,7 +86,7 @@ export default function JobDetailView({ job, action, compact = false, showTitle 
           )}
           <JobSection title="Địa điểm làm việc">
             {address && (
-              <span className="flex items-start gap-2"><Icon name="mapPin" className="w-4 h-4 mt-0.5 text-primary-600 flex-shrink-0" />{address}</span>
+              <span className="flex items-start gap-2"><Icon name="mapPin" className="w-4 h-4 mt-0.5 text-primary-700 flex-shrink-0" />{address}</span>
             )}
           </JobSection>
           <JobSection title="Thời gian làm việc">{job.working_time}</JobSection>

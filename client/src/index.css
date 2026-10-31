@@ -3,6 +3,20 @@
 @tailwind utilities;
 
 @layer base {
+  /* Bảng màu thương hiệu: xanh dương (kênh R G B). 600 = #376ee6 là màu của thanh trên cùng / footer / banner.
+     Sửa các giá trị này để đổi màu chủ đạo toàn site — tự cập nhật, không cần khởi động lại Vite. */
+  :root {
+    --primary-50: 239 246 255;  /* #eff6ff */
+    --primary-100: 219 234 254;  /* #dbeafe */
+    --primary-200: 191 219 254;  /* #bfdbfe */
+    --primary-300: 147 197 253;  /* #93c5fd */
+    --primary-400: 96 165 250;  /* #60a5fa */
+    --primary-500: 59 130 246;  /* #3b82f6 */
+    --primary-600: 55 110 230;  /* #376ee6 */
+    --primary-700: 37 85 208;  /* #2555d0 */
+    --primary-800: 30 66 165;  /* #1e42a5 */
+    --primary-900: 30 58 95;  /* #1e3a5f */
+  }
   body {
     @apply bg-slate-50 text-slate-900 font-sans antialiased;
   }
@@ -37,6 +51,47 @@
   50% { transform: translateY(-10px); }
 }
 
+/* ───── Trang chủ: hiệu ứng xuất hiện, chạy chữ, vòng điểm... (đều tắt khi người dùng chọn giảm chuyển động) ───── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes ring-draw {
+  from { stroke-dashoffset: var(--ring-len, 163); }
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 theme('colors.primary.500 / 50%'); }
+  50% { box-shadow: 0 0 0 6px theme('colors.primary.500 / 0%'); }
+}
+@keyframes pulse-dot-light {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+}
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+}
+/* Nút hỗ trợ nổi: vòng sóng lan ra + bảng thông tin bật lên từ góc phải dưới */
+@keyframes fab-ring {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+/* Mạch điện ở hero: một vệt sáng chạy dọc đường mạch (đường dài quy về 100 nhờ pathLength) */
+@keyframes circuit-pulse {
+  from { stroke-dashoffset: 8; }
+  to { stroke-dashoffset: -192; }
+}
+
 @layer utilities {
   .shadow-soft {
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
@@ -53,6 +108,59 @@
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
+  .animate-float-slow {
+    animation: float 8s ease-in-out infinite;
+  }
+  .animate-marquee {
+    animation: marquee 45s linear infinite;
+  }
+  .marquee:hover .animate-marquee { animation-play-state: paused; }
+  .animate-ring { animation: ring-draw 1.4s 0.5s cubic-bezier(.3,.7,.2,1) both; }
+  .animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+  .animate-pulse-dot-light { animation: pulse-dot-light 2s ease-in-out infinite; }
+  .animate-hero-in { animation: hero-in 0.8s cubic-bezier(.2,.7,.2,1) both; }
+  .animate-fab-ring { animation: fab-ring 2.6s cubic-bezier(.2,.6,.3,1) infinite; }
+  .animate-panel-in { transform-origin: bottom right; animation: panel-in 0.25s cubic-bezier(.2,.7,.2,1) both; }
+  .circuit-pulse {
+    stroke-dasharray: 8 192;
+    animation: circuit-pulse 4.4s linear infinite;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.95));
+  }
+  /* Thanh tiến độ chạy từ trái sang phải một lần */
+  .animate-grow-x { transform-origin: left; animation: grow-x 1.2s cubic-bezier(.3,.7,.2,1) both; }
+  /* Ẩn thanh cuộn của dải cuộn ngang (tab lĩnh vực trên điện thoại) */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  /* Xuất hiện dần khi cuộn tới (xem components/home/Reveal.jsx) */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.65s ease, transform 0.65s cubic-bezier(.2,.7,.2,1);
+  }
+  .reveal.is-visible { opacity: 1; transform: none; }
+  /* Khung chờ tải (skeleton) có vệt sáng chạy ngang */
+  .skeleton { position: relative; overflow: hidden; background-color: #eef2f7; }
+  .skeleton::after {
+    content: '';
+    position: absolute; inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+    animation: shimmer 1.4s infinite;
+  }
+  /* Mờ dần hai mép của dải chạy ngang */
+  .fade-edges {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .animate-float, .animate-float-slow, .animate-marquee, .animate-ring, .animate-pulse-dot, .animate-hero-in, .animate-grow-x,
+  .animate-fab-ring, .animate-panel-in, .animate-pulse-dot-light, .skeleton::after {
+    animation: none !important;
+  }
+  .circuit-pulse { animation: none !important; opacity: 0; }
 }
 
 @layer components {
@@ -61,8 +169,8 @@
     @apply bg-gradient-to-r from-primary-600 to-primary-500;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg font-medium shadow-md shadow-primary-500/25
-      hover:from-primary-600 hover:to-primary-700 hover:shadow-lg hover:shadow-primary-600/30 active:scale-[0.98]
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-medium shadow-md shadow-primary-600/25
+      hover:from-primary-700 hover:to-primary-800 hover:shadow-lg hover:shadow-primary-700/30 active:scale-[0.98]
       focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
       disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100
       transition-all duration-200;
@@ -110,7 +218,7 @@
     @apply transition-all duration-200 hover:shadow-lift hover:-translate-y-0.5 hover:border-primary-200;
   }
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent;
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;

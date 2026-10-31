@@ -176,7 +176,7 @@ export default function CvSelector({ profile, value, onChange }) {
                         name="selected_cv_radio"
                         checked={isSelected}
                         onChange={() => handleSelectExistingCv(cv)}
-                        className="text-primary-600 focus:ring-primary-500 w-4 h-4"
+                        className="text-primary-700 focus:ring-primary-500 w-4 h-4"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export default function CvSelector({ profile, value, onChange }) {
             className="border-2 border-dashed border-gray-300 hover:border-primary-500 bg-white p-4 rounded-xl text-center cursor-pointer transition-colors"
           >
             {uploading ? (
-              <div className="flex items-center justify-center gap-2 text-xs text-primary-600 font-medium">
+              <div className="flex items-center justify-center gap-2 text-xs text-primary-700 font-medium">
                 <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                 <span>Đang tải file lên...</span>
               </div>
@@ -263,7 +263,7 @@ export default function CvSelector({ profile, value, onChange }) {
                   >
                     <Icon name="eye" className="w-3.5 h-3.5 mr-1" />Xem trước
                   </a>
-                  <span className="text-gray-400 underline hover:text-primary-600">
+                  <span className="text-gray-400 underline hover:text-primary-700">
                     Chọn file khác
                   </span>
                 </div>
@@ -287,7 +287,7 @@ export default function CvSelector({ profile, value, onChange }) {
                 type="checkbox"
                 checked={saveToProfile}
                 onChange={(e) => setSaveToProfile(e.target.checked)}
-                className="rounded text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                className="rounded text-primary-700 focus:ring-primary-500 w-3.5 h-3.5"
               />
               Lưu CV này vào danh sách hồ sơ để dùng cho các lần sau
             </label>
@@ -298,7 +298,7 @@ export default function CvSelector({ profile, value, onChange }) {
                   type="checkbox"
                   checked={makeDefault}
                   onChange={(e) => setMakeDefault(e.target.checked)}
-                  className="rounded text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                  className="rounded text-primary-700 focus:ring-primary-500 w-3.5 h-3.5"
                 />
                 Đồng thời đặt làm CV mặc định
               </label>

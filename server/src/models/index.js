@@ -26,6 +26,7 @@ const Project = require('./Project')(sequelize, DataTypes);
 const ProjectJob = require('./ProjectJob')(sequelize, DataTypes);
 const ProjectJobSkill = require('./ProjectJobSkill')(sequelize, DataTypes);
 const ProjectApplication = require('./ProjectApplication')(sequelize, DataTypes);
+const SavedJob = require('./SavedJob')(sequelize, DataTypes);
 
 // Workspace models
 const Workspace = require('./Workspace')(sequelize, DataTypes);
@@ -118,6 +119,14 @@ ProjectApplication.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 CandidateProfile.hasMany(ProjectApplication, { foreignKey: 'candidate_profile_id' });
 ProjectApplication.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
 
+// Việc làm đã lưu
+CandidateProfile.hasMany(SavedJob, { foreignKey: 'candidate_profile_id', onDelete: 'CASCADE' });
+SavedJob.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
+JobPost.hasMany(SavedJob, { foreignKey: 'job_post_id', onDelete: 'CASCADE' });
+SavedJob.belongsTo(JobPost, { foreignKey: 'job_post_id' });
+ProjectJob.hasMany(SavedJob, { foreignKey: 'project_job_id', onDelete: 'CASCADE' });
+SavedJob.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
+
 // Project <-> Workspace (1-1)
 Project.hasOne(Workspace, { foreignKey: 'project_id' });
 Workspace.belongsTo(Project, { foreignKey: 'project_id' });
@@ -192,7 +201,7 @@ module.exports = {
   Company,
   JobPost, JobPostSkill,
   Application, ApplicationStatusHistory,
-  Project, ProjectJob, ProjectJobSkill, ProjectApplication,
+  Project, ProjectJob, ProjectJobSkill, ProjectApplication, SavedJob,
   InternalProject, // alias
   Workspace, WorkspaceMember,
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,

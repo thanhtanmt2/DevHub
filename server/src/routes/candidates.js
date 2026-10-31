@@ -74,6 +74,14 @@ router.post('/cvs/import', cvImportCtrl.importFromCv);
 router.post('/cvs/:id/parse', cvImportCtrl.parseCv);
 router.delete('/cvs/:id', ctrl.deleteCv);
 
+// Việc làm đã lưu (yêu thích): tin tuyển dụng và vị trí dự án thời vụ
+const savedCtrl = require('../controllers/savedJobController');
+router.get('/saved-jobs/ids', savedCtrl.getSavedIds);
+router.get('/saved-jobs', savedCtrl.getSavedJobs);
+router.post('/saved-jobs', savedCtrl.saveJob);
+router.delete('/saved-jobs/expired', savedCtrl.removeExpired);
+router.delete('/saved-jobs/:type/:id', savedCtrl.unsaveJob);
+
 // Project Applications
 const projectJobCtrl = require('../controllers/projectJobController');
 router.get('/project-applications', projectJobCtrl.getMyProjectApplications);

@@ -422,7 +422,7 @@ function CvTab({ profile, qc }) {
                     }`}
                 >
                   <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-primary-100/70 border border-primary-200 flex items-center justify-center text-primary-600 shrink-0">
+                    <div className="w-11 h-11 rounded-xl bg-primary-100/70 border border-primary-200 flex items-center justify-center text-primary-700 shrink-0">
                       <Icon name="document" className="w-6 h-6" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -528,7 +528,7 @@ function CvTab({ profile, qc }) {
                   type="checkbox"
                   checked={makeDefault}
                   onChange={(e) => setMakeDefault(e.target.checked)}
-                  className="rounded text-primary-600 focus:ring-primary-500 w-4 h-4"
+                  className="rounded text-primary-700 focus:ring-primary-500 w-4 h-4"
                 />
                 Đặt làm CV mặc định khi ứng tuyển
               </label>
@@ -563,7 +563,7 @@ function CvTab({ profile, qc }) {
                     type="checkbox"
                     checked={extractOptions[opt.key]}
                     onChange={() => toggleExtractOption(opt.key)}
-                    className="rounded text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                    className="rounded text-primary-700 focus:ring-primary-500 w-3.5 h-3.5"
                   />
                   {opt.label}
                 </label>
@@ -595,7 +595,7 @@ function CvTab({ profile, qc }) {
           ) : (
             <div className="border border-primary-200 bg-primary-50/50 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white border border-primary-100 flex items-center justify-center text-primary-600 shrink-0 shadow-sm">
+                <div className="w-10 h-10 rounded-lg bg-white border border-primary-100 flex items-center justify-center text-primary-700 shrink-0 shadow-sm">
                   <Icon name="document" className="w-5 h-5" />
                 </div>
                 <div>
@@ -636,11 +636,11 @@ function CvTab({ profile, qc }) {
       </div>
 
       {/* Guide Card */}
-      <div className="card bg-blue-50/40 border border-blue-100 p-5 rounded-xl">
-        <h4 className="text-sm font-bold text-blue-950 flex items-center gap-2 mb-2">
+      <div className="card bg-primary-50/40 border border-primary-100 p-5 rounded-xl">
+        <h4 className="text-sm font-bold text-primary-900 flex items-center gap-2 mb-2">
           <Icon name="lightbulb" className="w-4 h-4" /> Mẹo sử dụng nhiều CV hiệu quả
         </h4>
-        <ul className="text-xs text-blue-900/80 space-y-1.5 list-disc list-inside">
+        <ul className="text-xs text-primary-900/80 space-y-1.5 list-disc list-inside">
           <li>Bạn có thể tạo các bản CV chuyên biệt: <strong>CV Frontend</strong> (tập trung React, UI/UX), <strong>CV Backend</strong> (tập trung Node.js, Database, Docker) hoặc <strong>CV Tiếng Anh</strong> cho các vị trí yêu cầu ngoại ngữ.</li>
           <li>CV được gắn nhãn <strong>CV Mặc định</strong> sẽ được tự động chọn đầu tiên khi bạn bấm nút ứng tuyển.</li>
           <li>Định dạng khuyên dùng tốt nhất là <strong>PDF</strong> để giữ nguyên định dạng thẩm mỹ và hỗ trợ AI lọc tự động.</li>
@@ -744,7 +744,7 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
 // ── Payment Tab ───────────────────────────────────────
 const PAYMENT_STATUS_META = {
   PENDING:    { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
-  PROCESSING: { label: 'Đang xử lý', color: 'bg-blue-100 text-blue-700' },
+  PROCESSING: { label: 'Đang xử lý', color: 'bg-primary-100 text-primary-700' },
   PAID:       { label: 'Đã nhận tiền', color: 'bg-emerald-100 text-emerald-700' },
   FAILED:     { label: 'Thất bại', color: 'bg-red-100 text-red-700' },
 };
@@ -892,7 +892,7 @@ function PaymentTab({ paymentInfo, user, qc }) {
         </div>
         <div className="card bg-primary-50 border border-primary-100 py-4 text-center">
           <p className="text-xl font-bold text-primary-700">{myPayments.length}</p>
-          <p className="text-xs text-primary-600 mt-0.5">Tổng số giao dịch</p>
+          <p className="text-xs text-primary-700 mt-0.5">Tổng số giao dịch</p>
         </div>
       </div>
 
@@ -1025,7 +1025,7 @@ function PaymentTab({ paymentInfo, user, qc }) {
                 <button
                   type="button"
                   onClick={() => setManualUnlocked(true)}
-                  className="text-xs text-slate-500 hover:text-primary-600 underline"
+                  className="text-xs text-slate-500 hover:text-primary-700 underline"
                 >
                   Mở khóa để sửa thủ công (không khuyến khích)
                 </button>

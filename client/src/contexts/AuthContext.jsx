@@ -41,12 +41,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, [searchParams]);
 
-  const openAuthModal = (view = 'login') => {
-    setAuthModal({ isOpen: true, view });
+  // role (tùy chọn): chọn sẵn vai trò trong form đăng ký ('CANDIDATE' | 'EMPLOYER')
+  const openAuthModal = (view = 'login', role) => {
+    setAuthModal({ isOpen: true, view, role });
   };
 
   const openLoginModal = () => openAuthModal('login');
-  const openRegisterModal = () => openAuthModal('register');
+  // Có thể gắn thẳng vào onClick (tham số là sự kiện) nên chỉ nhận role khi là chuỗi
+  const openRegisterModal = (role) => openAuthModal('register', typeof role === 'string' ? role : undefined);
   const openForgotPasswordModal = () => openAuthModal('forgot');
 
   const closeAuthModal = () => {
@@ -64,6 +66,16 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const { data } = await authApi.login(credentials);
+    // Tài khoản bật xác minh 2 bước: chưa đăng nhập, trả về challenge để nhập mã gửi qua email
+    if (data.data.requires_2fa) return { requires2fa: true, challenge: data.data.challenge, email: data.data.email };
+    localStorage.setItem('accessToken', data.data.accessToken);
+    setUser(data.data.user);
+    return data.data.user;
+  };
+
+  // Bước 2 của đăng nhập có xác minh 2 bước
+  const loginWithTwoFactor = async (challenge, code) => {
+    const { data } = await authApi.loginTwoFactor(challenge, code);
     localStorage.setItem('accessToken', data.data.accessToken);
     setUser(data.data.user);
     return data.data.user;
@@ -97,6 +109,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
+        loginWithTwoFactor,
         googleLogin,
         logout,
         updateUser,

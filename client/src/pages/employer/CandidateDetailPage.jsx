@@ -14,7 +14,7 @@ import { formatFileSize } from '@/utils/fileHelper';
 import { timeAgo } from '@/utils/timeAgo';
 
 // Với nhà tuyển dụng chỉ cần biết dự án đã xong, đang làm hay đã hủy (giai đoạn "lên kế hoạch / tuyển người" vẫn là đang triển khai)
-const ONGOING = { label: 'Đang thực hiện', cls: 'bg-blue-50 text-blue-700' };
+const ONGOING = { label: 'Đang thực hiện', cls: 'bg-primary-50 text-primary-700' };
 const PROJECT_STATUS = {
   PLANNING: ONGOING,
   RECRUITING: ONGOING,
@@ -54,7 +54,7 @@ function Section({ icon, title, hint, count, children }) {
   return (
     <section className="card !p-6">
       <div className="flex items-start gap-3 mb-4">
-        <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+        <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0">
           <Icon name={icon} className="w-5 h-5" />
         </span>
         <div className="min-w-0">
@@ -88,7 +88,7 @@ function ProjectCard({ p }) {
             <h3 className="font-bold text-slate-900 leading-snug">{proj.name || 'Dự án'}</h3>
             <p className="text-sm text-primary-700 font-medium mt-0.5">
               {p.position || 'Thành viên dự án'}
-              {p.role === 'LEAD' && <span className="ml-2 text-[11px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 align-middle">Lead</span>}
+              {p.role === 'LEAD' && <span className="ml-2 text-[11px] font-semibold px-1.5 py-0.5 rounded bg-primary-50 text-primary-700 align-middle">Lead</span>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -111,7 +111,7 @@ function ProjectCard({ p }) {
           <div className="mt-3">
             <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-line ${open ? '' : 'line-clamp-3'}`}>{proj.description}</p>
             {longDesc && (
-              <button onClick={() => setOpen((v) => !v)} className="text-xs text-primary-600 font-medium hover:underline mt-1">
+              <button onClick={() => setOpen((v) => !v)} className="text-xs text-primary-700 font-medium hover:underline mt-1">
                 {open ? 'Thu gọn' : 'Xem thêm'}
               </button>
             )}
@@ -131,12 +131,12 @@ function ProjectCard({ p }) {
         {t.total > 0 ? (
           <>
             <span className="inline-flex items-center gap-1.5 text-slate-700">
-              <Icon name="clipboardCheck" className="w-4 h-4 text-primary-600" />
+              <Icon name="clipboardCheck" className="w-4 h-4 text-primary-700" />
               <strong>{t.done}/{t.total}</strong> task đã được nghiệm thu
             </span>
             {t.done > 0 && (
               <span className="inline-flex items-center gap-1.5 text-slate-700">
-                <Icon name="clock" className="w-4 h-4 text-primary-600" />
+                <Icon name="clock" className="w-4 h-4 text-primary-700" />
                 <strong>{t.on_time}/{t.done}</strong> task nộp đúng hạn
               </span>
             )}
@@ -177,12 +177,12 @@ function ContactRow({ icon, label, value, href }) {
   };
   return (
     <div className="flex items-start gap-3">
-      <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0"><Icon name={icon} className="w-[18px] h-[18px]" /></span>
+      <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0"><Icon name={icon} className="w-[18px] h-[18px]" /></span>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-slate-500">{label}</p>
         <a href={href} className="text-sm font-semibold text-slate-900 hover:text-primary-700 break-all">{value}</a>
       </div>
-      <button onClick={copy} className="text-xs text-primary-600 font-medium hover:underline flex-shrink-0 mt-1">Sao chép</button>
+      <button onClick={copy} className="text-xs text-primary-700 font-medium hover:underline flex-shrink-0 mt-1">Sao chép</button>
     </div>
   );
 }
@@ -218,7 +218,7 @@ export default function CandidateDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button onClick={back} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600">
+      <button onClick={back} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-700">
         <Icon name="chevronRight" className="w-4 h-4 rotate-180" />Quay lại
       </button>
 
@@ -330,7 +330,7 @@ export default function CandidateDetailPage() {
                 {c.cvs.map((cv) => (
                   <a key={cv.id} href={cv.file_url} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 hover:border-primary-300 hover:bg-primary-50/40 transition-colors">
-                    <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0"><Icon name="document" className="w-5 h-5" /></span>
+                    <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0"><Icon name="document" className="w-5 h-5" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-slate-900 truncate">{cv.name}</span>
                       <span className="block text-[11px] text-slate-400 truncate">{cv.file_name}{cv.file_size ? ` · ${formatFileSize(cv.file_size)}` : ''}</span>

@@ -19,6 +19,13 @@ export const candidateApi = {
   // Dự án thật đã tham gia trên DevHub (hiện tự động trên sơ đồ kinh nghiệm)
   getDevhubProjects: () => api.get('/candidates/devhub-projects'),
   
+  // Việc làm đã lưu (yêu thích). type: 'job' (tin tuyển dụng) | 'project' (vị trí dự án thời vụ)
+  getSavedIds: () => api.get('/candidates/saved-jobs/ids'),
+  getSavedJobs: () => api.get('/candidates/saved-jobs'),
+  saveJob: (type, jobId) => api.post('/candidates/saved-jobs', { type, job_id: jobId }),
+  unsaveJob: (type, jobId) => api.delete(`/candidates/saved-jobs/${type}/${jobId}`),
+  removeExpiredSaved: () => api.delete('/candidates/saved-jobs/expired'),
+
   // Payment info
   getPaymentInfo: () => api.get('/candidates/payment-info'),
   upsertPaymentInfo: (data) => api.post('/candidates/payment-info', data),

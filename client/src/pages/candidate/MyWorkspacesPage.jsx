@@ -8,7 +8,7 @@ import PageBanner from '@/components/common/PageBanner';
 
 const TASK_STATUS = {
   TODO:        { label: 'Cần làm',    color: 'bg-gray-100 text-gray-600' },
-  IN_PROGRESS: { label: 'Đang làm',   color: 'bg-blue-100 text-blue-700' },
+  IN_PROGRESS: { label: 'Đang làm',   color: 'bg-primary-100 text-primary-700' },
   REVIEW:      { label: 'Chờ duyệt',  color: 'bg-amber-100 text-amber-700' },
   DONE:        { label: 'Hoàn thành', color: 'bg-green-100 text-green-700' },
 };
@@ -21,7 +21,7 @@ const PRIORITY = {
 const PROJECT_STATUS = {
   PLANNING:    { label: 'Lên kế hoạch',   color: 'bg-gray-100 text-gray-600' },
   RECRUITING:  { label: 'Đang tuyển',     color: 'bg-sky-100 text-sky-700' },
-  IN_PROGRESS: { label: 'Đang thực hiện', color: 'bg-blue-100 text-blue-700' },
+  IN_PROGRESS: { label: 'Đang thực hiện', color: 'bg-primary-100 text-primary-700' },
   COMPLETED:   { label: 'Hoàn thành',     color: 'bg-green-100 text-green-700' },
   CANCELLED:   { label: 'Đã hủy',         color: 'bg-red-100 text-red-600' },
 };
@@ -39,7 +39,7 @@ const daysLeft = (deadline) => {
 // Viền trên của ô tổng quan theo màu số liệu
 const SUMMARY_BORDER = {
   'text-gray-700': 'border-t-slate-400',
-  'text-blue-600': 'border-t-blue-500',
+  'text-primary-700': 'border-t-primary-500',
   'text-amber-600': 'border-t-amber-400',
   'text-orange-600': 'border-t-orange-400',
   'text-red-600': 'border-t-red-500',
@@ -84,7 +84,7 @@ export default function MyWorkspacesPage() {
 
   const summary = [
     { label: 'Cần làm',       value: tasks.filter(t => t.status === 'TODO').length,        color: 'text-gray-700' },
-    { label: 'Đang làm',      value: tasks.filter(t => t.status === 'IN_PROGRESS').length, color: 'text-blue-600' },
+    { label: 'Đang làm',      value: tasks.filter(t => t.status === 'IN_PROGRESS').length, color: 'text-primary-700' },
     { label: 'Chờ duyệt',     value: tasks.filter(t => t.status === 'REVIEW').length,      color: 'text-amber-600' },
     { label: 'Cần chỉnh sửa', value: tasks.filter(t => t.status === 'IN_PROGRESS' && t.review_status === 'REVISION_REQUIRED').length, color: 'text-orange-600' },
     { label: 'Quá hạn',       value: tasks.filter(t => t.is_overdue).length,               color: 'text-red-600' },
@@ -127,11 +127,11 @@ export default function MyWorkspacesPage() {
           <h2 className="font-semibold">Công việc của tôi</h2>
           <div className="flex bg-gray-100 p-1 rounded-lg">
             <button onClick={() => setTaskTab('open')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${taskTab === 'open' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600'}`}>
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${taskTab === 'open' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600'}`}>
               Đang thực hiện ({openTasks.length})
             </button>
             <button onClick={() => setTaskTab('done')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${taskTab === 'done' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600'}`}>
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${taskTab === 'done' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600'}`}>
               Đã hoàn thành ({doneTasks.length})
             </button>
           </div>

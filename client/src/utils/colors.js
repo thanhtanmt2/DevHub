@@ -1,7 +1,7 @@
-// Màu dùng chung theo MỘT màu thương hiệu (xanh). Màu khác chỉ dùng cho trạng thái có ý nghĩa
+// Màu dùng chung theo MỘT màu thương hiệu (xanh dương). Màu khác chỉ dùng cho trạng thái có ý nghĩa
 // (thành công / cảnh báo / lỗi), không dùng để trang trí.
 //
-// Thẻ kỹ năng luôn cùng một tông xanh nhạt; ảnh đại diện mỗi người một sắc độ xanh khác nhau
+// Thẻ kỹ năng luôn cùng một tông xanh nhạt; ảnh đại diện mỗi người một sắc độ khác nhau
 // (cố định theo tên) để vẫn phân biệt được mà không bị "nhiều màu".
 export const CHIP = 'bg-primary-50 text-primary-700 ring-primary-200';
 

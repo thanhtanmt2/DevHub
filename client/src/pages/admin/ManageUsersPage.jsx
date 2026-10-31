@@ -9,7 +9,7 @@ import PageBanner from '@/components/common/PageBanner';
 import Avatar from '@/components/common/Avatar';
 
 const ROLE_LABELS = { CANDIDATE: 'Ứng viên', EMPLOYER: 'Nhà tuyển dụng', ADMIN: 'Quản trị viên' };
-const ROLE_COLORS = { CANDIDATE: 'bg-blue-100 text-blue-700', EMPLOYER: 'bg-sky-100 text-sky-700', ADMIN: 'bg-red-100 text-red-700' };
+const ROLE_COLORS = { CANDIDATE: 'bg-primary-100 text-primary-700', EMPLOYER: 'bg-sky-100 text-sky-700', ADMIN: 'bg-red-100 text-red-700' };
 
 export default function ManageUsersPage() {
   const qc = useQueryClient();
@@ -121,7 +121,7 @@ export default function ManageUsersPage() {
                         {!isSelf && (
                           <button
                             onClick={() => setAssigningRole({ userId: u.id })}
-                            className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
+                            className="text-xs text-gray-400 hover:text-primary-700 transition-colors"
                             title="Đổi vai trò"
                           ><Icon name="pencil" className="w-4 h-4" /></button>
                         )}
@@ -144,7 +144,7 @@ export default function ManageUsersPage() {
                       <button
                         disabled={activateMutation.isPending}
                         onClick={() => activateMutation.mutate(u.id)}
-                        className="text-xs text-primary-600 hover:underline font-medium"
+                        className="text-xs text-primary-700 hover:underline font-medium"
                       >
                         Kích hoạt
                       </button>

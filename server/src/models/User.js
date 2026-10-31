@@ -11,6 +11,11 @@ module.exports = (sequelize, DataTypes) => {
     email_verify_expires: { type: DataTypes.DATE }, // hạn dùng link xác thực (24 giờ); NULL = link cũ chưa có hạn
     reset_password_token: { type: DataTypes.STRING(255) },
     reset_password_expires: { type: DataTypes.DATE },
+    phone: { type: DataTypes.STRING(20) },
+    date_of_birth: { type: DataTypes.DATEONLY },
+    gender: { type: DataTypes.STRING(10) }, // MALE | FEMALE | OTHER
+    address: { type: DataTypes.STRING(255) },
+    two_factor_enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }, // đăng nhập bằng email + mật khẩu phải nhập thêm mã gửi qua email
     refresh_token: { type: DataTypes.TEXT }, // không còn dùng: các phiên đăng nhập nằm ở bảng refresh_tokens
   }, { tableName: 'users', underscored: true });
 };

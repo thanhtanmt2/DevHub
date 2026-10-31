@@ -15,7 +15,7 @@ const STATUS_COLORS = APPLICATION_STATUS_COLORS;
 // Viền trái của thẻ theo trạng thái hồ sơ
 const STATUS_BORDER = {
   PENDING: 'border-l-amber-400',
-  VIEWED: 'border-l-blue-400',
+  VIEWED: 'border-l-primary-400',
   INTERVIEW: 'border-l-sky-500',
   HIRED: 'border-l-emerald-500',
   ACCEPTED: 'border-l-emerald-500',
@@ -113,7 +113,7 @@ export default function MyApplicationsPage() {
             <button
               onClick={() => { setActiveTab('projects'); setStatusFilter(''); }}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'projects' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                activeTab === 'projects' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Dự án thời vụ ({projectApps.length})
@@ -121,7 +121,7 @@ export default function MyApplicationsPage() {
             <button
               onClick={() => { setActiveTab('companies'); setStatusFilter(''); }}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'companies' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                activeTab === 'companies' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Việc làm doanh nghiệp ({companyApps.length})
@@ -199,7 +199,7 @@ export default function MyApplicationsPage() {
                         <span><Icon name="calendar" className="w-4 h-4 mr-1" />Ngày nộp: {new Date(app.applied_at).toLocaleDateString('vi-VN')}</span>
                         {app.cv_url && (
                           <a href={app.cv_url} target="_blank" rel="noopener noreferrer"
-                            className="font-medium text-primary-600 hover:underline flex items-center gap-1">
+                            className="font-medium text-primary-700 hover:underline flex items-center gap-1">
                             <Icon name="document" className="w-3.5 h-3.5" />Xem CV đã nộp
                           </a>
                         )}
@@ -288,7 +288,7 @@ export default function MyApplicationsPage() {
                       <Link
                         to={`/jobs/${app.job_post_id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="font-semibold text-lg text-gray-900 hover:text-primary-600"
+                        className="font-semibold text-lg text-gray-900 hover:text-primary-700"
                       >
                         {app.JobPost?.title}
                       </Link>
@@ -305,7 +305,7 @@ export default function MyApplicationsPage() {
                         {app.cv_url && (
                           <a href={app.cv_url} target="_blank" rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-medium text-primary-600 hover:underline flex items-center gap-1">
+                            className="text-xs font-medium text-primary-700 hover:underline flex items-center gap-1">
                             <Icon name="document" className="w-3.5 h-3.5" />Xem CV đã nộp
                           </a>
                         )}

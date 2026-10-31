@@ -1,4 +1,6 @@
+import SaveJobButton from '@/components/job/SaveJobButton';
 import Icon from '@/components/common/Icon';
+import CompanyLogo, { DEVHUB_COMPANY } from '@/components/common/CompanyLogo';
 import {
   EXPERIENCE_LABELS, formatMoney, formatDate, deadlineInfo, postedText,
 } from '@/utils/jobMeta';
@@ -46,12 +48,18 @@ export default function ProjectJobDetailView({ job, action, compact = false }) {
             ? <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Đã đóng</span>
             : <DeadlineChip deadline={job.deadline} />}
         </div>
-        <h1 className={`${compact ? 'text-xl' : 'text-2xl sm:text-3xl'} font-extrabold text-slate-900 tracking-tight`}>{job.title}</h1>
-        {project && (
-          <p className="mt-1 text-primary-700 font-semibold flex items-center gap-1.5">
-            <Icon name="folder" className="w-4 h-4" />Dự án: {project.name}
-          </p>
-        )}
+        <div className="flex items-start gap-3.5">
+          <CompanyLogo company={DEVHUB_COMPANY} className={compact ? 'w-12 h-12' : 'w-14 h-14'} />
+          <div className="min-w-0">
+            <h1 className={`${compact ? 'text-xl' : 'text-2xl sm:text-3xl'} font-extrabold text-slate-900 tracking-tight`}>{job.title}</h1>
+            <p className="mt-0.5 text-sm text-slate-500 uppercase tracking-wide">DevHub</p>
+            {project && (
+              <p className="mt-0.5 text-primary-700 font-semibold flex items-center gap-1.5">
+                <Icon name="folder" className="w-4 h-4" />Dự án: {project.name}
+              </p>
+            )}
+          </div>
+        </div>
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
@@ -74,6 +82,7 @@ export default function ProjectJobDetailView({ job, action, compact = false }) {
         {action && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
             {action}
+            <SaveJobButton type="project" id={job.id} variant="full" closed={expired || closed} />
             {expired && !closed && <span className="text-sm text-red-600 font-medium">Vị trí đã hết hạn nộp hồ sơ</span>}
           </div>
         )}

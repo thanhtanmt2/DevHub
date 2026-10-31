@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
             {loading ? 'Đang gửi...' : 'Gửi link đặt lại'}
           </button>
         </form>
-        <p className="text-center mt-4 text-sm"><Link to="/login" className="text-primary-600 hover:underline">← Quay lại đăng nhập</Link></p>
+        <p className="text-center mt-4 text-sm"><Link to="/login" className="text-primary-700 hover:underline">← Quay lại đăng nhập</Link></p>
       </div>
     </AuthPageShell>
   );

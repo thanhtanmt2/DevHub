@@ -11,6 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     avatar_url: { type: DataTypes.STRING(500) },
     cv_url: { type: DataTypes.STRING(500) },
     cv_name: { type: DataTypes.STRING(255) },
+    is_searchable: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }, // false: không hiện trong mục Tìm ứng viên của nhà tuyển dụng
     competency_score: { type: DataTypes.DECIMAL(4, 2), defaultValue: 0, validate: { min: 0, max: 10 } },
   }, { tableName: 'candidate_profiles', underscored: true });
 };

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 // Loại mục trên sơ đồ. DEVHUB là dự án thật trên nền tảng (tự động, có xác thực).
 export const EXP_TYPES = {
-  COMPANY: { label: 'Công ty', lane: 'Công ty', bar: 'bg-blue-500 hover:bg-blue-600', soft: 'bg-blue-50 text-blue-700 ring-blue-200', nameLabel: 'Tên công ty', roleLabel: 'Chức danh' },
+  COMPANY: { label: 'Công ty', lane: 'Công ty', bar: 'bg-primary-500 hover:bg-primary-600', soft: 'bg-primary-50 text-primary-700 ring-primary-200', nameLabel: 'Tên công ty', roleLabel: 'Chức danh' },
   PROJECT: { label: 'Dự án trong công ty', lane: 'Dự án trong công ty', bar: 'bg-sky-400 hover:bg-sky-500', soft: 'bg-sky-50 text-sky-700 ring-sky-200', nameLabel: 'Tên dự án', roleLabel: 'Vai trò trong dự án' },
   DEVHUB: { label: 'Dự án trên DevHub', lane: 'Dự án DevHub', bar: 'bg-emerald-500 hover:bg-emerald-600', soft: 'bg-emerald-50 text-emerald-700 ring-emerald-200', nameLabel: 'Tên dự án', roleLabel: 'Vị trí' },
   FREELANCE: { label: 'Freelance', lane: 'Freelance', bar: 'bg-amber-500 hover:bg-amber-600', soft: 'bg-amber-50 text-amber-700 ring-amber-200', nameLabel: 'Khách hàng / dự án', roleLabel: 'Vai trò' },
@@ -220,13 +220,13 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ring-1 ring-inset ${meta.soft}`}>{meta.label}</span>
                 {selected.verified && <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-600 text-white">Đã xác thực bởi DevHub</span>}
-                {selected.ongoing && <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">Đang diễn ra</span>}
+                {selected.ongoing && <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-primary-50 text-primary-700">Đang diễn ra</span>}
               </div>
               <h4 className="font-bold text-slate-900 text-lg">{selected.name}</h4>
               <p className="text-sm font-medium text-slate-600">{selected.role}</p>
               <p className="text-xs text-slate-500 mt-1">
                 {monthYear(selected.start)} – {selected.ongoing ? 'Hiện tại' : monthYear(selected.endT)} · {durationText(selected.start, selected.endT)}
-                {parent && <> · thuộc <button type="button" className="text-primary-600 hover:underline" onClick={() => setSelectedKey(parent.key)}>{parent.name}</button></>}
+                {parent && <> · thuộc <button type="button" className="text-primary-700 hover:underline" onClick={() => setSelectedKey(parent.key)}>{parent.name}</button></>}
               </p>
             </div>
             {editable && !selected.verified && (
@@ -234,7 +234,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
                 {selected.type === 'COMPANY' && onAddProject && (
                   <button type="button" onClick={() => onAddProject(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg">+ Dự án trong công ty</button>
                 )}
-                <button type="button" onClick={() => onEdit?.(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">Sửa</button>
+                <button type="button" onClick={() => onEdit?.(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg">Sửa</button>
                 <button type="button" onClick={() => onDelete?.(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg">Xóa</button>
               </div>
             )}
@@ -256,7 +256,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
               <div className="flex flex-wrap gap-1.5">{selected.technologies.map((t) => <Chip key={t}>{t}</Chip>)}</div>
             </div>
           )}
-          {selected.link && <p className="mt-3 text-sm"><a href={selected.link} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline break-all">{selected.link}</a></p>}
+          {selected.link && <p className="mt-3 text-sm"><a href={selected.link} target="_blank" rel="noopener noreferrer" className="text-primary-700 hover:underline break-all">{selected.link}</a></p>}
 
           {children.length > 0 && (
             <div className="mt-4">

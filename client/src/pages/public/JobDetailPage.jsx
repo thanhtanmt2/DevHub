@@ -104,7 +104,7 @@ export default function JobDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <Link to="/jobs" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-4">
+      <Link to="/jobs" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-700 mb-4">
         <Icon name="chevronRight" className="w-4 h-4 rotate-180" />Quay lại danh sách việc làm
       </Link>
       <JobDetailView job={job} action={action} />
@@ -117,7 +117,7 @@ export default function JobDetailPage() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Ứng tuyển công việc</h2>
-                  <p className="text-sm font-semibold text-primary-600 mt-0.5">{job.title}</p>
+                  <p className="text-sm font-semibold text-primary-700 mt-0.5">{job.title}</p>
                   {job.Company && <p className="text-xs text-gray-500">Doanh nghiệp: {job.Company.name}</p>}
                 </div>
                 <button

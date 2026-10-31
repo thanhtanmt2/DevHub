@@ -45,6 +45,7 @@ app.use('/api/workspaces', require('./src/routes/workspaces'));
 app.use('/api/tasks', require('./src/routes/tasks'));
 app.use('/api/skills', require('./src/routes/skills'));
 app.use('/api/notifications', require('./src/routes/notifications'));
+app.use('/api/home', require('./src/routes/home'));
 
 // 404
 app.use((req, res) => {

@@ -72,7 +72,7 @@ export default function VerifyEmailPage() {
           </form>
           <p className="text-sm text-gray-500 mt-4">
             Đã xác thực rồi?{' '}
-            <Link to="/login" className="text-primary-600 font-medium hover:underline">Đăng nhập</Link>
+            <Link to="/login" className="text-primary-700 font-medium hover:underline">Đăng nhập</Link>
           </p>
         </>)}
       </div>

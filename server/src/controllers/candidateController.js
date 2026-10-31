@@ -498,7 +498,7 @@ exports.deleteCv = async (req, res, next) => {
 exports.searchCandidates = async (req, res, next) => {
   try {
     const { keyword, skill_id, score_min, score_max, address, page = 1, limit = 12 } = req.query;
-    const where = {};
+    const where = { is_searchable: true }; // ứng viên tắt "cho phép nhà tuyển dụng tìm thấy" thì không hiện ở đây
     if (address) where.address = { [Op.iLike]: `%${address}%` };
     if (score_min || score_max) {
       where.competency_score = {};

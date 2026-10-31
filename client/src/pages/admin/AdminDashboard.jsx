@@ -22,9 +22,9 @@ const TODO_CARDS = [
 // Màu số đếm / viền khi thẻ có việc cần xử lý (class viết đầy đủ để Tailwind nhận diện)
 const ACTIVE_STYLE = {
   amber: { num: 'text-amber-600', border: 'border-amber-200' },
-  blue: { num: 'text-blue-600', border: 'border-blue-200' },
-  purple: { num: 'text-primary-600', border: 'border-primary-200' },
-  indigo: { num: 'text-primary-600', border: 'border-primary-200' },
+  blue: { num: 'text-primary-700', border: 'border-primary-200' },
+  purple: { num: 'text-primary-700', border: 'border-primary-200' },
+  indigo: { num: 'text-primary-700', border: 'border-primary-200' },
   emerald: { num: 'text-emerald-600', border: 'border-emerald-200' },
   red: { num: 'text-red-600', border: 'border-red-200' },
 };
@@ -43,6 +43,14 @@ function activityIcon(action = '') {
 }
 
 // "Chờ 2 giờ" / "Vừa nộp" cho task đang chờ nghiệm thu
+// 94.000.000 → "94 triệu", 1.250.000.000 → "1,25 tỷ"; dưới 1 triệu giữ nguyên số đầy đủ
+function compactVnd(n) {
+  const v = Number(n) || 0;
+  if (v >= 1e9) return `${String(+(v / 1e9).toFixed(2)).replace('.', ',')} tỷ`;
+  if (v >= 1e6) return `${String(+(v / 1e6).toFixed(1)).replace('.', ',')} triệu`;
+  return `${new Intl.NumberFormat('vi-VN').format(v)}đ`;
+}
+
 function waitingLabel(updatedAt) {
   const ago = timeAgo(updatedAt);
   return ago === 'Vừa xong' ? 'Vừa nộp' : `Chờ ${ago.replace(' trước', '')}`;
@@ -101,7 +109,8 @@ export default function AdminDashboard() {
     { label: 'Tổng người dùng', value: stats?.total_users ?? '—', icon: 'users', tone: 'blue' },
     { label: 'Tin tuyển dụng', value: stats?.total_jobs ?? '—', icon: 'briefcase', tone: 'violet' },
     { label: 'Dự án nội bộ', value: stats?.total_projects ?? '—', icon: 'folder', tone: 'emerald' },
-    { label: 'Đã thanh toán', value: `${new Intl.NumberFormat('vi-VN').format(stats?.total_payout || 0)}đ`, icon: 'cash', tone: 'amber' },
+    // Số tiền lớn hiển thị rút gọn ("94 triệu") cho vừa ô, số đầy đủ nằm ở dòng phụ
+    { label: 'Đã thanh toán', value: compactVnd(stats?.total_payout), sub: (stats?.total_payout || 0) >= 1e6 ? `${new Intl.NumberFormat('vi-VN').format(stats.total_payout)}đ` : undefined, icon: 'cash', tone: 'amber' },
   ];
 
   return (
@@ -129,7 +138,7 @@ export default function AdminDashboard() {
         <section className="card !p-0 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-slate-900">Task chờ nghiệm thu</h2>
-            <Link to="/admin/projects" className="text-sm text-primary-600 hover:underline">Dự án nội bộ →</Link>
+            <Link to="/admin/projects" className="text-sm text-primary-700 hover:underline">Dự án nội bộ →</Link>
           </div>
           {reviewTasks.length === 0 ? (
             <div className="text-center py-10 px-5">
@@ -165,7 +174,7 @@ export default function AdminDashboard() {
         <section className="card !p-0 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-slate-900">Hoạt động gần đây</h2>
-            <Link to="/admin/logs" className="text-sm text-primary-600 hover:underline">Nhật ký hệ thống →</Link>
+            <Link to="/admin/logs" className="text-sm text-primary-700 hover:underline">Nhật ký hệ thống →</Link>
           </div>
           {recent.length === 0 ? (
             <div className="text-center py-10 px-5 text-sm text-slate-400">Chưa có hoạt động nào</div>
@@ -189,7 +198,7 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Số liệu hệ thống</h2>
-          <Link to="/admin/stats" className="text-sm text-primary-600 hover:underline">Thống kê chi tiết →</Link>
+          <Link to="/admin/stats" className="text-sm text-primary-700 hover:underline">Thống kê chi tiết →</Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {kpis.map((k) => <StatTile key={k.label} {...k} />)}

@@ -168,7 +168,7 @@ export default function SearchCandidatesPage() {
                     <Avatar name={user?.full_name} src={profile.avatar_url} size="lg" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 line-clamp-2 break-words">{user?.full_name}</h3>
-                      <p className="text-xs text-primary-600 truncate">{profile.professional_title || 'Chưa cập nhật'}</p>
+                      <p className="text-xs text-primary-700 truncate">{profile.professional_title || 'Chưa cập nhật'}</p>
                       {profile.address && <p className="text-xs text-gray-400 mt-0.5 truncate"><Icon name="mapPin" className="w-3.5 h-3.5 mr-1" />{profile.address}</p>}
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -210,7 +210,7 @@ export default function SearchCandidatesPage() {
                         <span className="text-gray-400">Chưa có dự án trên DevHub</span>
                       )}
                     </div>
-                    <span className="text-xs text-primary-600 font-medium whitespace-nowrap">Xem hồ sơ →</span>
+                    <span className="text-xs text-primary-700 font-medium whitespace-nowrap">Xem hồ sơ →</span>
                   </div>
                 </div>
               );

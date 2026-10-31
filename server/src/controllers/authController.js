@@ -10,6 +10,7 @@ const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const { logActivity } = require('../utils/activityLogger');
 const { escapeHtml } = require('../utils/escapeHtml');
+const { issueChallenge, verifyChallenge, readChallengeUser, maskEmail } = require('../utils/twoFactor');
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -180,6 +181,50 @@ exports.resendVerification = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// Hoàn tất đăng nhập: cấp access token (15p, gắn vào request headers), mở phiên mới cho thiết bị này (refresh token 7 ngày, lưu cookie),
+// ghi nhật ký và trả thông tin user (kèm role) về trình duyệt
+async function finishLogin(user, req, res) {
+  const accessToken = generateAccessToken(user.id);
+  await startSession(user, req, res);
+
+  const userWithRoles = await User.findByPk(user.id, {
+    attributes: { exclude: ['password_hash', 'refresh_token', 'email_verify_token', 'reset_password_token'] },
+    include: [{ association: 'Roles', attributes: ['name'] }],
+  });
+
+  await logActivity({ ip: req.ip, headers: req.headers, user: { id: user.id, role: userWithRoles.Roles?.[0]?.name } }, {
+    action: 'USER_LOGIN',
+    entity_type: 'user',
+    entity_id: user.id,
+    entity_name: user.full_name,
+    description: `${user.full_name} đã đăng nhập vào hệ thống`,
+  });
+
+  res.json({ success: true, data: { user: userWithRoles, accessToken } });
+}
+
+// POST /api/auth/login/2fa
+// Bước 2 khi tài khoản bật xác minh 2 bước: nhập mã 6 số đã gửi qua email
+exports.loginTwoFactor = async (req, res, next) => {
+  try {
+    const userId = verifyChallenge(req.body.challenge, req.body.code, 'login');
+    const user = await User.findByPk(userId);
+    if (!user || user.status === 'LOCKED') throw new AppError('Tài khoản không thể đăng nhập', 403);
+    await finishLogin(user, req, res);
+  } catch (error) { next(error); }
+};
+
+// POST /api/auth/login/2fa/resend
+// Gửi lại mã (cách nhau tối thiểu 1 phút) và cấp challenge mới
+exports.resendTwoFactor = async (req, res, next) => {
+  try {
+    const user = await User.findByPk(readChallengeUser(req.body.challenge, 'login'));
+    if (!user || user.status === 'LOCKED' || !user.two_factor_enabled) throw new AppError('Yêu cầu xác minh không hợp lệ', 400);
+    const challenge = await issueChallenge(user, 'login');
+    res.json({ success: true, message: 'Đã gửi lại mã xác minh', data: { challenge, email: maskEmail(user.email) } });
+  } catch (error) { next(error); }
+};
+
 // POST /api/auth/login
 // Đăng nhập
 exports.login = async (req, res, next) => {
@@ -197,30 +242,12 @@ exports.login = async (req, res, next) => {
       throw new AppError('Tài khoản chưa xác thực email. Hãy kiểm tra hộp thư hoặc gửi lại email xác thực', 403, 'EMAIL_NOT_VERIFIED');
     }
 
-    // tạo access token (15p, dùng gắn vào request headers) và mở phiên mới cho thiết bị này (refresh token 7 ngày, lưu cookie)
-    const accessToken = generateAccessToken(user.id);
-    await startSession(user, req, res);
-
-    // lấy thông tin user vừa đăng nhập bao gồm cả role
-    const userWithRoles = await User.findByPk(user.id, {
-      attributes: { exclude: ['password_hash', 'refresh_token', 'email_verify_token', 'reset_password_token'] },
-      include: [{ association: 'Roles', attributes: ['name'] }],
-    });
-
-    // ghi nhật ký đăng nhập
-    await logActivity({ ip: req.ip, headers: req.headers, user: { id: user.id, role: userWithRoles.Roles?.[0]?.name } }, {
-      action: 'USER_LOGIN',
-      entity_type: 'user',
-      entity_id: user.id,
-      entity_name: user.full_name,
-      description: `${user.full_name} đã đăng nhập vào hệ thống`,
-    });
-
-    // trả thông tin về cho trình duyệt
-    res.json({
-      success: true,
-      data: { user: userWithRoles, accessToken },
-    });
+    // bật xác minh 2 bước: chưa cấp phiên, gửi mã qua email rồi chờ người dùng nhập (POST /auth/login/2fa)
+    if (user.two_factor_enabled) {
+      const challenge = await issueChallenge(user, 'login', { cooldown: false });
+      return res.json({ success: true, data: { requires_2fa: true, challenge, email: maskEmail(user.email) } });
+    }
+    await finishLogin(user, req, res);
   } catch (error) { next(error); }
 };
 
@@ -432,6 +459,10 @@ exports.getMe = async (req, res, next) => {
       attributes: { exclude: ['password_hash', 'refresh_token', 'email_verify_token', 'reset_password_token'] },
       include: [{ association: 'Roles', attributes: ['name'] }],
     });
-    res.json({ success: true, data: user });
+    const data = user.toJSON();
+    // Ứng viên: số điện thoại / địa chỉ lấy từ hồ sơ năng lực (nơi họ vẫn sửa), kèm cài đặt quyền riêng tư
+    const profile = await CandidateProfile.findOne({ where: { user_id: user.id }, attributes: ['phone', 'address', 'is_searchable'] });
+    if (profile) Object.assign(data, { phone: profile.phone, address: profile.address, is_searchable: profile.is_searchable });
+    res.json({ success: true, data });
   } catch (error) { next(error); }
 };

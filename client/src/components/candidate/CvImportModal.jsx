@@ -285,7 +285,7 @@ export default function CvImportModal({
                             type="checkbox"
                             checked={active}
                             onChange={() => toggleMode(m)}
-                            className="rounded text-primary-600"
+                            className="rounded text-primary-700"
                           />
                           {MODE_LABELS[m]}
                         </label>

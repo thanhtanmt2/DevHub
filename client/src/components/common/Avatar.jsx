@@ -9,6 +9,7 @@ const SIZES = {
   md: 'w-10 h-10 text-sm',
   lg: 'w-12 h-12 text-base',
   xl: 'w-16 h-16 text-xl',
+  '2xl': 'w-28 h-28 text-4xl',
 };
 
 // Ảnh đại diện: có ảnh thì hiện ảnh, không thì chữ cái đầu trên nền gradient riêng của từng người.

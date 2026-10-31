@@ -75,7 +75,7 @@ export default function EmployerJobDetailPage() {
   return (
     <div className="space-y-5">
       <div>
-        <button onClick={() => navigate('/employer/jobs')} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-3">
+        <button onClick={() => navigate('/employer/jobs')} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-700 mb-3">
           <Icon name="chevronRight" className="w-4 h-4 rotate-180" />Tin tuyển dụng
         </button>
         <div className="flex flex-wrap items-start justify-between gap-3">

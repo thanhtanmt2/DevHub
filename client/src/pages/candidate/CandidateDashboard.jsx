@@ -6,6 +6,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import PageBanner from '@/components/common/PageBanner';
 import StatTile from '@/components/common/StatTile';
 import Icon from '@/components/common/Icon';
+import RecommendedForYou from '@/components/candidate/RecommendedForYou';
 
 const STATUS_LABELS = { 
   PENDING: 'Chờ xem xét', 
@@ -19,7 +20,7 @@ const STATUS_LABELS = {
 
 const STATUS_COLORS = { 
   PENDING: 'bg-yellow-100 text-yellow-700', 
-  VIEWED: 'bg-blue-100 text-blue-700', 
+  VIEWED: 'bg-primary-100 text-primary-700', 
   INTERVIEW: 'bg-sky-100 text-sky-700', 
   HIRED: 'bg-green-100 text-green-700', 
   REJECTED: 'bg-red-100 text-red-700',
@@ -29,7 +30,7 @@ const STATUS_COLORS = {
 
 const TASK_STATUS = {
   TODO:        { label: 'Cần làm',   color: 'bg-gray-100 text-gray-600' },
-  IN_PROGRESS: { label: 'Đang làm',  color: 'bg-blue-100 text-blue-700' },
+  IN_PROGRESS: { label: 'Đang làm',  color: 'bg-primary-100 text-primary-700' },
   REVIEW:      { label: 'Chờ duyệt', color: 'bg-amber-100 text-amber-700' },
 };
 
@@ -112,15 +113,18 @@ export default function CandidateDashboard() {
         {stats.map((s) => <StatTile key={s.label} {...s} />)}
       </div>
 
+      {/* Việc làm đề xuất theo kỹ năng trong hồ sơ */}
+      <RecommendedForYou />
+
       {/* Công việc dự án đang thực hiện */}
       {openTasks.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold">Công việc dự án của tôi</h2>
-            <Link to="/candidate/workspaces" className="text-sm text-primary-600 hover:underline">Xem tất cả ({openTasks.length})</Link>
+            <Link to="/candidate/workspaces" className="text-sm text-primary-700 hover:underline">Xem tất cả ({openTasks.length})</Link>
           </div>
           <div className="flex flex-wrap gap-2 mb-3 text-xs">
-            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
+            <span className="px-2 py-1 rounded-full bg-primary-50 text-primary-700 font-medium">
               <Icon name="bolt" className="w-3.5 h-3.5 mr-0.5" />{openTasks.filter(t => t.status === 'IN_PROGRESS').length} đang làm
             </span>
             <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
@@ -167,12 +171,12 @@ export default function CandidateDashboard() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">Hồ sơ ứng tuyển gần đây</h2>
-          <Link to="/candidate/applications" className="text-sm text-primary-600 hover:underline">Xem tất cả ({totalAppsCount})</Link>
+          <Link to="/candidate/applications" className="text-sm text-primary-700 hover:underline">Xem tất cả ({totalAppsCount})</Link>
         </div>
         {isLoading ? <LoadingSpinner size="sm" /> : (
           recentCombined.length === 0 ? (
             <div className="text-center py-6 text-gray-400">
-              <p>Chưa có hồ sơ nào. <Link to="/projects" className="text-primary-600 underline">Khám phá dự án</Link> hoặc <Link to="/jobs" className="text-primary-600 underline">Tìm việc công ty</Link></p>
+              <p>Chưa có hồ sơ nào. <Link to="/projects" className="text-primary-700 underline">Khám phá dự án</Link> hoặc <Link to="/jobs" className="text-primary-700 underline">Tìm việc công ty</Link></p>
             </div>
           ) : (
             <div className="space-y-3">

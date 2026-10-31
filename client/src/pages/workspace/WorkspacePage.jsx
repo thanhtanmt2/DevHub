@@ -20,7 +20,7 @@ import { stripEmoji } from '@/utils/stripEmoji';
 const STATUS_COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
 const STATUS_META = {
   TODO:        { label: 'Cần làm',      color: 'bg-gray-100',   dot: 'bg-gray-400',   text: 'text-gray-600' },
-  IN_PROGRESS: { label: 'Đang làm',     color: 'bg-blue-50',    dot: 'bg-blue-500',   text: 'text-blue-700' },
+  IN_PROGRESS: { label: 'Đang làm',     color: 'bg-primary-50',    dot: 'bg-primary-500',   text: 'text-primary-700' },
   REVIEW:      { label: 'Chờ duyệt',    color: 'bg-amber-50',   dot: 'bg-amber-500',  text: 'text-amber-700' },
   DONE:        { label: 'Hoàn thành',   color: 'bg-green-50',   dot: 'bg-green-500',  text: 'text-green-700' },
 };
@@ -42,7 +42,7 @@ const ACTIVITY_ICONS = {
   UPDATED: 'pencil',
 };
 const LABEL_COLORS = {
-  Frontend:  'bg-blue-100 text-blue-700',
+  Frontend:  'bg-primary-100 text-primary-700',
   Backend:   'bg-sky-100 text-sky-700',
   Bug:       'bg-red-100 text-red-700',
   Feature:   'bg-green-100 text-green-700',
@@ -215,13 +215,13 @@ function SubmissionCard({ submission: s, highlight = false }) {
       </div>
       {s.product_url && (
         <a href={s.product_url} target="_blank" rel="noopener noreferrer"
-          className="flex items-start gap-1.5 text-sm text-primary-600 hover:underline break-all">
+          className="flex items-start gap-1.5 text-sm text-primary-700 hover:underline break-all">
           <Icon name="link" className="w-4 h-4 mt-0.5" /><span>{s.product_url}</span>
         </a>
       )}
       {s.attachment_url && (
         <a href={s.attachment_url} target="_blank" rel="noopener noreferrer" download={fileName}
-          className="flex items-start gap-1.5 text-sm text-primary-600 hover:underline break-all">
+          className="flex items-start gap-1.5 text-sm text-primary-700 hover:underline break-all">
           <Icon name="paperclip" className="w-4 h-4 mt-0.5" /><span>{fileName}</span>
         </a>
       )}
@@ -306,7 +306,7 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">File đính kèm</label>
             {attachment ? (
               <div className="flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2">
-                <Icon name="paperclip" className="w-4 h-4 text-primary-600" />
+                <Icon name="paperclip" className="w-4 h-4 text-primary-700" />
                 <span className="text-sm text-gray-800 truncate flex-1">{attachment.filename}</span>
                 <span className="text-xs text-gray-400 flex-shrink-0">{formatFileSize(attachment.size)}</span>
                 <button onClick={() => setAttachment(null)} title="Bỏ file"
@@ -356,7 +356,7 @@ function Linkified({ text, className = '' }) {
   return (
     <p className={`whitespace-pre-wrap ${className}`}>
       {parts.map((part, i) => (i % 2 === 1
-        ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline break-all">{part}</a>
+        ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary-700 hover:underline break-all">{part}</a>
         : part))}
     </p>
   );
@@ -607,7 +607,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
   const topBar = (
     <div className="flex items-center gap-3 px-5 py-3 border-b bg-white flex-shrink-0">
       <div className="min-w-0 flex items-center gap-2 text-sm text-gray-500">
-        <Icon name="clipboard" className="w-4 h-4 text-primary-600 flex-shrink-0" />
+        <Icon name="clipboard" className="w-4 h-4 text-primary-700 flex-shrink-0" />
         <span className="truncate">{workspaceName || 'Workspace'}</span>
         <span className="text-gray-300">/</span>
         <span className="font-semibold text-gray-700">{taskKey}</span>
@@ -739,7 +739,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-bold text-gray-900">Mô tả</h3>
               {canEditContent && !descEditing && (
-                <button onClick={startDescEdit} className="text-xs text-primary-600 font-medium hover:underline inline-flex items-center gap-1">
+                <button onClick={startDescEdit} className="text-xs text-primary-700 font-medium hover:underline inline-flex items-center gap-1">
                   <Icon name="pencil" className="w-3.5 h-3.5" />{task.description ? 'Chỉnh sửa' : 'Thêm mô tả'}
                 </button>
               )}
@@ -834,7 +834,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                           <img src={a.url} alt="" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
                         </a>
                       ) : (
-                        <span className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+                        <span className="w-10 h-10 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0">
                           <Icon name={a.kind === 'LINK' ? 'link' : 'paperclip'} className="w-5 h-5" />
                         </span>
                       )}
@@ -1119,7 +1119,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                       <div key={a.id} className="flex items-center gap-2">
                         <Avatar name={a.CandidateProfile?.User?.full_name} size="sm" />
                         <span className="flex-1 min-w-0 break-words">{a.CandidateProfile?.User?.full_name}</span>
-                        {a.role === 'LEAD' && <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">Lead</span>}
+                        {a.role === 'LEAD' && <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded flex-shrink-0">Lead</span>}
                       </div>
                     ))}
                   </div>
@@ -1135,7 +1135,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                   </div>
                 )}
                 {canManage && !isDone && (
-                  <button onClick={() => setIsAssigning(v => !v)} className="mt-2 text-xs text-primary-600 font-medium hover:underline">
+                  <button onClick={() => setIsAssigning(v => !v)} className="mt-2 text-xs text-primary-700 font-medium hover:underline">
                     {isAssigning ? 'Đóng' : '+ Giao việc'}
                   </button>
                 )}
@@ -1193,7 +1193,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                   </div>
                 ) : <span className="text-gray-400">Không có</span>}
                 {canEditContent && (
-                  <button onClick={() => setShowLabelPicker(v => !v)} className="mt-1.5 text-xs text-primary-600 font-medium hover:underline">
+                  <button onClick={() => setShowLabelPicker(v => !v)} className="mt-1.5 text-xs text-primary-700 font-medium hover:underline">
                     {showLabelPicker ? 'Xong' : 'Sửa nhãn'}
                   </button>
                 )}
@@ -1615,7 +1615,7 @@ export default function WorkspacePage() {
       <div className="bg-white border-b px-5 pt-3 flex flex-col gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="mr-2">
-            <Link to={backLink.to} className="text-[11px] text-gray-400 hover:text-primary-600">← {backLink.label}</Link>
+            <Link to={backLink.to} className="text-[11px] text-gray-400 hover:text-primary-700">← {backLink.label}</Link>
             <h1 className="text-lg font-bold text-gray-900 leading-tight">{workspace?.name}</h1>
             <p className="text-xs text-gray-500">{workspace?.Project?.name}</p>
           </div>
@@ -1625,7 +1625,7 @@ export default function WorkspacePage() {
             <div className="text-xs bg-gray-100 px-2.5 py-1 rounded-full text-gray-600">
               <Icon name="clipboard" className="w-3.5 h-3.5 mr-1" />{stats.total} tasks
             </div>
-            <div className="text-xs bg-blue-50 px-2.5 py-1 rounded-full text-blue-700">
+            <div className="text-xs bg-primary-50 px-2.5 py-1 rounded-full text-primary-700">
               <Icon name="bolt" className="w-3.5 h-3.5 mr-1" />{stats.inProgress} đang làm
             </div>
             <div className="text-xs bg-green-50 px-2.5 py-1 rounded-full text-green-700">
@@ -1754,7 +1754,7 @@ export default function WorkspacePage() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
                   { label: 'Cần làm', value: wsStats.by_status?.TODO, color: 'bg-gray-50 text-gray-600', icon: 'clock' },
-                  { label: 'Đang làm', value: wsStats.by_status?.IN_PROGRESS, color: 'bg-blue-50 text-blue-700', icon: 'bolt' },
+                  { label: 'Đang làm', value: wsStats.by_status?.IN_PROGRESS, color: 'bg-primary-50 text-primary-700', icon: 'bolt' },
                   { label: 'Chờ duyệt', value: wsStats.by_status?.REVIEW, color: 'bg-amber-50 text-amber-700', icon: 'inbox' },
                   { label: 'Hoàn thành', value: wsStats.by_status?.DONE, color: 'bg-green-50 text-green-700', icon: 'verified' },
                   { label: 'Quá hạn', value: wsStats.overdue, color: 'bg-red-50 text-red-600', icon: 'alert' },
@@ -1814,11 +1814,11 @@ export default function WorkspacePage() {
                           <span className="flex items-center gap-2">
                             <Avatar name={m.name} size="sm" />
                             <span className="font-medium text-gray-800">{m.name}</span>
-                            {m.role === 'LEAD' && <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Lead</span>}
+                            {m.role === 'LEAD' && <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded">Lead</span>}
                           </span>
                         </td>
                         <td className="text-center px-2 py-2.5 text-gray-600">{m.todo}</td>
-                        <td className="text-center px-2 py-2.5 text-blue-700 font-semibold">{m.in_progress}</td>
+                        <td className="text-center px-2 py-2.5 text-primary-700 font-semibold">{m.in_progress}</td>
                         <td className="text-center px-2 py-2.5 text-amber-700">{m.review}</td>
                         <td className="text-center px-2 py-2.5 text-green-700">{m.done}</td>
                         <td className={`text-center px-2 py-2.5 ${m.overdue ? 'text-red-600 font-bold' : 'text-gray-300'}`}>{m.overdue || '–'}</td>
@@ -1874,7 +1874,7 @@ export default function WorkspacePage() {
                           <button
                             onClick={() => addMemberMut.mutate(c)}
                             disabled={addMemberMut.isPending}
-                            className="text-xs text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50 transition-colors disabled:opacity-50"
+                            className="text-xs text-primary-700 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50 transition-colors disabled:opacity-50"
                           >
                             Thêm
                           </button>
@@ -1890,7 +1890,7 @@ export default function WorkspacePage() {
               {/* Giải thích vai trò trong Workspace */}
               <div className="px-5 py-3 border-b bg-white text-xs text-gray-600 space-y-1">
                 <p><span className="font-semibold text-primary-700">Admin (chủ dự án)</span>: toàn quyền — thêm/xóa thành viên, cử Lead, tạo và giao việc, nghiệm thu, bình luận.</p>
-                <p><span className="font-semibold text-blue-700">Lead</span>: do Admin cử — phân chia công việc như Jira: tạo task, giao việc cho thành viên, sửa task, nghiệm thu và bình luận.</p>
+                <p><span className="font-semibold text-primary-700">Lead</span>: do Admin cử — phân chia công việc như Jira: tạo task, giao việc cho thành viên, sửa task, nghiệm thu và bình luận.</p>
                 <p><span className="font-semibold text-gray-700">Thành viên</span>: làm các task được giao, nộp sản phẩm và phản hồi bình luận trong task của mình (task người khác chỉ đọc).</p>
               </div>
 
@@ -1904,7 +1904,7 @@ export default function WorkspacePage() {
                     <div key={m.id} className="flex items-center gap-3 px-5 py-3">
                       <Avatar name={name} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{name} {isMe && <span className="text-xs text-primary-600">(bạn)</span>}</p>
+                        <p className="text-sm font-medium text-gray-900">{name} {isMe && <span className="text-xs text-primary-700">(bạn)</span>}</p>
                         <p className="text-xs text-gray-400 truncate">{email}</p>
                       </div>
                       {/* Khối lượng việc hiện tại → để Lead/Admin chia việc đều */}
@@ -1915,7 +1915,7 @@ export default function WorkspacePage() {
                       {canModify && m.role === 'MEMBER' && (
                         <button onClick={() => updateRoleMut.mutate({ memberId: m.id, role: 'LEAD' })} disabled={updateRoleMut.isPending}
                           title="Cử làm Lead: được tạo task, giao việc và nghiệm thu"
-                          className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition-colors disabled:opacity-50">
+                          className="text-xs text-primary-700 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50 transition-colors disabled:opacity-50">
                           <Icon name="star" className="w-3.5 h-3.5 mr-1" />Cử làm Lead
                         </button>
                       )}

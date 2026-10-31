@@ -254,7 +254,7 @@ async function seed(t) {
     companies[c.key] = { ...c, id: id('company', c.key), userId: uid };
     companyRows.push({
       id: companies[c.key].id, user_id: uid, name: c.name, tax_code: c.tax, address: c.address, email: `tuyendung@${c.key}.vn`,
-      website: `https://${c.key}.vn`, logo_url: logo, description: c.description, verification_status: c.verification,
+      website: c.website || `https://${c.key}.vn`, logo_url: logo, description: c.description, verification_status: c.verification,
       company_email_verified: c.verification === 'VERIFIED', created_at: created, updated_at: created,
     });
     addLog(uid, c.hr, 'EMPLOYER', 'USER_REGISTER', 'user', uid, c.hr, `${c.hr} (${email}) đã đăng ký tài khoản mới với vai trò EMPLOYER`, {}, created);

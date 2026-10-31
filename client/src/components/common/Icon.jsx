@@ -56,6 +56,7 @@ const PATHS = {
   info: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   ban: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636',
   lock: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+  heart: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
   star: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
   bolt: 'M13 10V3L4 14h7v7l9-11h-7z',
   play: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -64,13 +65,20 @@ const PATHS = {
   badge: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
   list: 'M4 6h16M4 10h16M4 14h16M4 18h16',
   board: 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2',
+  arrowRight: 'M5 12h14m-6-6l6 6-6 6',
+  chevronDown: 'M19 9l-7 7-7-7',
+  chevronLeft: 'M15 19l-7-7 7-7',
+  shield: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+  laptop: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
   history: 'M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8m0-5v5h5m4-1v5l4 2',
+  headset: 'M4 14v-2a8 8 0 0116 0v2M4 14h2.5a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM20 14h-2.5a1 1 0 00-1 1v3a1 1 0 001 1H19a1 1 0 001-1v-4zM19 19.5a2.5 2.5 0 01-2.5 2.5H13',
+  globeAlt: 'M12 3a9 9 0 100 18 9 9 0 000-18zM3.6 9h16.8M3.6 15h16.8M12 3c2.3 2.4 3.5 5.4 3.5 9s-1.2 6.6-3.5 9M12 3C9.7 5.4 8.5 8.4 8.5 12s1.2 6.6 3.5 9',
 };
 
 // Icon nằm cùng dòng chữ (inline) hoặc trong flex đều được; kích thước chỉnh qua className (mặc định w-5 h-5)
-export default function Icon({ name, className = 'w-5 h-5', strokeWidth = 1.8 }) {
+export default function Icon({ name, className = 'w-5 h-5', strokeWidth = 1.8, filled = false }) {
   return (
-    <svg className={`${className} inline-block align-[-0.2em] flex-shrink-0`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className={`${className} inline-block align-[-0.2em] flex-shrink-0`} fill={filled ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d={PATHS[name] || PATHS.info} />
     </svg>
   );
@@ -79,9 +87,9 @@ export default function Icon({ name, className = 'w-5 h-5', strokeWidth = 1.8 })
 const TONES = {
   slate: 'bg-slate-100 text-slate-400',
   gray: 'bg-gray-100 text-gray-500',
-  blue: 'bg-blue-50 text-blue-600',
-  indigo: 'bg-primary-50 text-primary-600',
-  purple: 'bg-primary-50 text-primary-600',
+  blue: 'bg-primary-50 text-primary-700',
+  indigo: 'bg-primary-50 text-primary-700',
+  purple: 'bg-primary-50 text-primary-700',
   green: 'bg-green-50 text-green-600',
   emerald: 'bg-emerald-50 text-emerald-600',
   amber: 'bg-amber-50 text-amber-600',

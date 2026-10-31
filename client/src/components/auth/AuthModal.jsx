@@ -29,7 +29,7 @@ function UnverifiedNotice({ email, loading, onResend }) {
         type="button"
         disabled={loading}
         onClick={() => onResend(email)}
-        className="mt-2 font-semibold text-primary-600 hover:underline disabled:opacity-60"
+        className="mt-2 font-semibold text-primary-700 hover:underline disabled:opacity-60"
       >
         {loading ? 'Đang gửi...' : 'Gửi lại email xác thực'}
       </button>
@@ -38,7 +38,7 @@ function UnverifiedNotice({ email, loading, onResend }) {
 }
 
 export default function AuthModal() {
-  const { authModal, closeAuthModal, setAuthModalView, login, googleLogin } = useAuth();
+  const { authModal, closeAuthModal, setAuthModalView, login, loginWithTwoFactor, googleLogin } = useAuth();
   const navigate = useNavigate();
 
   // Đăng nhập xong luôn vào Dashboard của đúng vai trò
@@ -50,6 +50,12 @@ export default function AuthModal() {
   const [loginForm, setLoginForm] = useState(emptyLoginForm);
   const [loginLoading, setLoginLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+
+  // Xác minh 2 bước: sau khi đúng mật khẩu, nhập mã 6 số gửi qua email ({ challenge, email } hoặc null)
+  const [twoFa, setTwoFa] = useState(null);
+  const [twoFaCode, setTwoFaCode] = useState('');
+  const [twoFaLoading, setTwoFaLoading] = useState(false);
+  const [twoFaCooldown, setTwoFaCooldown] = useState(0);
 
   // Register form visibility state
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
@@ -118,11 +124,27 @@ export default function AuthModal() {
       setShowRegisterConfirmPassword(false);
       setUnverifiedEmail('');
       setRegisterEmailSent(true);
+      setTwoFa(null);
+      setTwoFaCode('');
     }
   }, [authModal.isOpen]);
 
+  // Đếm ngược để cho phép gửi lại mã
+  useEffect(() => {
+    if (twoFaCooldown <= 0) return undefined;
+    const t = setTimeout(() => setTwoFaCooldown((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [twoFaCooldown]);
+
   // Chuyển giữa Đăng nhập / Đăng ký / Quên mật khẩu thì bỏ thông báo "chưa xác thực" cũ
-  useEffect(() => { setUnverifiedEmail(''); }, [authModal.view]);
+  useEffect(() => { setUnverifiedEmail(''); setTwoFa(null); setTwoFaCode(''); }, [authModal.view]);
+
+  // Mở form đăng ký từ nút "Đăng ký doanh nghiệp / ứng viên" thì chọn sẵn vai trò tương ứng
+  useEffect(() => {
+    if (authModal.isOpen && authModal.view === 'register' && authModal.role) {
+      setRegisterForm((f) => ({ ...f, role: authModal.role }));
+    }
+  }, [authModal.isOpen, authModal.view, authModal.role]);
 
   if (!authModal.isOpen) return null;
 
@@ -133,16 +155,13 @@ export default function AuthModal() {
     try {
       // Chỉ gửi email + mật khẩu lên server (rememberMe là thiết lập phía trình duyệt)
       const user = await login({ email: loginForm.email, password: loginForm.password });
-      try {
-        if (loginForm.rememberMe) localStorage.setItem(REMEMBER_EMAIL_KEY, loginForm.email.trim());
-        else localStorage.removeItem(REMEMBER_EMAIL_KEY);
-      } catch { /* trình duyệt chặn lưu trữ: bỏ qua */ }
-      // gán vai trò của user vào biến roles
-      const roles = user.Roles?.map((r) => r.name) || [];
-      toast.success(`Chào mừng trở lại, ${user.full_name}!`);
-      closeAuthModal();
-
-      goToDashboard(roles);
+      if (user.requires2fa) {
+        setTwoFa({ challenge: user.challenge, email: user.email });
+        setTwoFaCode('');
+        setTwoFaCooldown(60);
+        return;
+      }
+      completeLogin(user);
     } catch (err) {
       // Đúng mật khẩu nhưng chưa xác thực email: báo ngay trong form kèm nút gửi lại, không cần toast
       if (err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
@@ -153,6 +172,49 @@ export default function AuthModal() {
       }
     } finally {
       setLoginLoading(false);
+    }
+  };
+
+  // Đăng nhập thành công (sau mật khẩu, hoặc sau mã xác minh 2 bước)
+  const completeLogin = (user) => {
+    try {
+      if (loginForm.rememberMe) localStorage.setItem(REMEMBER_EMAIL_KEY, loginForm.email.trim());
+      else localStorage.removeItem(REMEMBER_EMAIL_KEY);
+    } catch { /* trình duyệt chặn lưu trữ: bỏ qua */ }
+    // gán vai trò của user vào biến roles
+    const roles = user.Roles?.map((r) => r.name) || [];
+    toast.success(`Chào mừng trở lại, ${user.full_name}!`);
+    closeAuthModal();
+
+    goToDashboard(roles);
+  };
+
+  const handleTwoFaSubmit = async (e) => {
+    e.preventDefault();
+    setTwoFaLoading(true);
+    try {
+      const user = await loginWithTwoFactor(twoFa.challenge, twoFaCode);
+      completeLogin(user);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Xác minh thất bại');
+      setTwoFaCode('');
+    } finally {
+      setTwoFaLoading(false);
+    }
+  };
+
+  const handleTwoFaResend = async () => {
+    setTwoFaLoading(true);
+    try {
+      const { data } = await authApi.resendTwoFactor(twoFa.challenge);
+      setTwoFa({ challenge: data.data.challenge, email: data.data.email });
+      setTwoFaCode('');
+      setTwoFaCooldown(60);
+      toast.success('Đã gửi lại mã xác minh');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Chưa gửi lại được mã');
+    } finally {
+      setTwoFaLoading(false);
     }
   };
 
@@ -244,7 +306,7 @@ export default function AuthModal() {
         )}
 
         {/* Tabs: Login / Register (Only shown when not in forgot view) */}
-        {authModal.view !== 'forgot' && (
+        {authModal.view !== 'forgot' && !twoFa && (
           <div className="flex border-b border-gray-200 mb-6">
             <button
               type="button"
@@ -253,7 +315,7 @@ export default function AuthModal() {
                 setRegisterSuccess(false);
               }}
               className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors relative ${authModal.view === 'login'
-                ? 'text-primary-600 border-b-2 border-primary-600 -mb-[1px]'
+                ? 'text-primary-700 border-b-2 border-primary-600 -mb-[1px]'
                 : 'text-gray-500 hover:text-gray-800'
                 }`}
             >
@@ -266,7 +328,7 @@ export default function AuthModal() {
                 setRegisterSuccess(false);
               }}
               className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors relative ${authModal.view === 'register'
-                ? 'text-primary-600 border-b-2 border-primary-600 -mb-[1px]'
+                ? 'text-primary-700 border-b-2 border-primary-600 -mb-[1px]'
                 : 'text-gray-500 hover:text-gray-800'
                 }`}
             >
@@ -276,7 +338,7 @@ export default function AuthModal() {
         )}
 
         {/* --- VIEW: LOGIN --- */}
-        {authModal.view === 'login' && (
+        {authModal.view === 'login' && !twoFa && (
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -330,7 +392,7 @@ export default function AuthModal() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+                  className="h-4 w-4 text-primary-700 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
                   checked={loginForm.rememberMe || false}
                   onChange={(e) => setLoginForm({ ...loginForm, rememberMe: e.target.checked })}
                 />
@@ -341,7 +403,7 @@ export default function AuthModal() {
               <button
                 type="button"
                 onClick={() => setAuthModalView('forgot')}
-                className="text-sm text-primary-600 hover:underline"
+                className="text-sm text-primary-700 hover:underline"
               >
                 Quên mật khẩu?
               </button>
@@ -370,11 +432,53 @@ export default function AuthModal() {
               <button
                 type="button"
                 onClick={() => setAuthModalView('register')}
-                className="text-primary-600 hover:underline font-medium"
+                className="text-primary-700 hover:underline font-medium"
               >
                 Đăng ký ngay
               </button>
             </p>
+          </form>
+        )}
+
+        {/* --- VIEW: XÁC MINH 2 BƯỚC --- */}
+        {authModal.view === 'login' && twoFa && (
+          <form onSubmit={handleTwoFaSubmit} className="space-y-4">
+            <div className="text-center">
+              <IconBadge name="shield" size="lg" tone="blue" className="mx-auto mb-3" />
+              <h2 className="text-xl font-bold text-gray-900">Xác minh 2 bước</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Nhập mã 6 số DevHub vừa gửi tới <strong className="break-all">{twoFa.email}</strong>. Mã có hiệu lực trong 10 phút.
+              </p>
+            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              required
+              maxLength={6}
+              aria-label="Mã xác minh"
+              className="input-field text-center text-2xl font-bold tracking-[0.5em]"
+              placeholder="······"
+              value={twoFaCode}
+              onChange={(e) => setTwoFaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            />
+            <button type="submit" disabled={twoFaLoading || twoFaCode.length !== 6} className="btn-primary w-full">
+              {twoFaLoading ? 'Đang xác minh...' : 'Xác minh và đăng nhập'}
+            </button>
+            <div className="flex items-center justify-between text-sm">
+              <button type="button" onClick={() => { setTwoFa(null); setTwoFaCode(''); }} className="text-gray-500 hover:text-gray-800">
+                ← Quay lại
+              </button>
+              <button
+                type="button"
+                disabled={twoFaCooldown > 0 || twoFaLoading}
+                onClick={handleTwoFaResend}
+                className="font-semibold text-primary-700 hover:underline disabled:opacity-50 disabled:no-underline"
+              >
+                {twoFaCooldown > 0 ? `Gửi lại mã (${twoFaCooldown}s)` : 'Gửi lại mã'}
+              </button>
+            </div>
           </form>
         )}
 
@@ -397,7 +501,7 @@ export default function AuthModal() {
                   type="button"
                   disabled={resendLoading}
                   onClick={() => handleResend(registerForm.email.trim())}
-                  className="font-semibold text-primary-600 hover:underline disabled:opacity-60"
+                  className="font-semibold text-primary-700 hover:underline disabled:opacity-60"
                 >
                   {resendLoading ? 'Đang gửi...' : registerEmailSent ? 'gửi lại email xác thực' : 'Gửi lại email xác thực'}
                 </button>
@@ -531,7 +635,7 @@ export default function AuthModal() {
                 <button
                   type="button"
                   onClick={() => setAuthModalView('login')}
-                  className="text-primary-600 hover:underline font-medium"
+                  className="text-primary-700 hover:underline font-medium"
                 >
                   Đăng nhập
                 </button>
@@ -581,7 +685,7 @@ export default function AuthModal() {
                   <button
                     type="button"
                     onClick={() => setAuthModalView('login')}
-                    className="text-sm text-primary-600 hover:underline font-medium"
+                    className="text-sm text-primary-700 hover:underline font-medium"
                   >
                     ← Quay lại đăng nhập
                   </button>

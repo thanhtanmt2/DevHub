@@ -18,7 +18,7 @@ const STATUS_LABELS = {
 
 const STATUS_COLORS = {
   PENDING: 'bg-yellow-100 text-yellow-700',
-  PROCESSING: 'bg-blue-100 text-blue-700',
+  PROCESSING: 'bg-primary-100 text-primary-700',
   PAID: 'bg-emerald-100 text-emerald-700',
   FAILED: 'bg-red-100 text-red-700',
 };
@@ -328,9 +328,9 @@ export default function PaymentsPage() {
           <p className="text-xl font-bold text-yellow-700">{unpaidMembersCount}</p>
           <p className="text-xs text-yellow-600 mt-0.5">Thành viên chưa khởi tạo TT</p>
         </div>
-        <div className="card bg-blue-50 border-blue-100 border text-center py-3">
-          <p className="text-xl font-bold text-blue-700">{payableMembers.length}</p>
-          <p className="text-xs text-blue-600 mt-0.5">Tổng thành viên các dự án</p>
+        <div className="card bg-primary-50 border-primary-100 border text-center py-3">
+          <p className="text-xl font-bold text-primary-700">{payableMembers.length}</p>
+          <p className="text-xs text-primary-700 mt-0.5">Tổng thành viên các dự án</p>
         </div>
       </div>
 
@@ -509,7 +509,7 @@ export default function PaymentsPage() {
                             <button
                               type="button"
                               onClick={() => copyText(bankInfo.account_number, 'số tài khoản')}
-                              className="text-[10px] text-primary-600 hover:underline"
+                              className="text-[10px] text-primary-700 hover:underline"
                             >
                               Copy
                             </button>
@@ -525,7 +525,7 @@ export default function PaymentsPage() {
                     <td className="p-3">
                       <p className="font-medium text-gray-800 text-xs">{projectName}</p>
                       {job?.title && (
-                        <p className="text-xs text-primary-600 mt-0.5">
+                        <p className="text-xs text-primary-700 mt-0.5">
                           {job.title}
                           {job.budget ? ` (${formatCurrency(job.budget)})` : ''}
                         </p>
@@ -549,7 +549,7 @@ export default function PaymentsPage() {
                               setEditAmount(String(Math.round(Number(p.amount || 0))));
                             }}
                             title="Điều chỉnh số tiền"
-                            className="text-gray-400 hover:text-primary-600 p-1 rounded hover:bg-gray-100"
+                            className="text-gray-400 hover:text-primary-700 p-1 rounded hover:bg-gray-100"
                           >
                             <Icon name="pencil" className="w-3.5 h-3.5" />
                           </button>
@@ -619,7 +619,7 @@ export default function PaymentsPage() {
                             <button
                               onClick={() => processMutation.mutate({ id: p.id, status: 'PROCESSING' })}
                               disabled={processMutation.isPending}
-                              className="text-xs px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg font-medium transition-colors"
+                              className="text-xs px-2.5 py-1.5 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg font-medium transition-colors"
                             >
                               Đang xử lý
                             </button>
@@ -728,7 +728,7 @@ export default function PaymentsPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-primary-600 mt-0.5">{job?.title || 'Thành viên'}</p>
+                        <p className="text-xs text-primary-700 mt-0.5">{job?.title || 'Thành viên'}</p>
                       </td>
                       <td className="p-3 text-xs">
                         {ts.total_tasks > 0 ? (
@@ -850,7 +850,7 @@ export default function PaymentsPage() {
                 onChange={(e) => setEditAmount(e.target.value)}
               />
               {editAmount && (
-                <p className="text-xs font-semibold text-primary-600 mt-1">
+                <p className="text-xs font-semibold text-primary-700 mt-1">
                   = {formatCurrency(editAmount)}
                 </p>
               )}
@@ -1043,7 +1043,7 @@ export default function PaymentsPage() {
                               .toUpperCase()}`
                           )
                         }
-                        className="text-[11px] text-primary-600 hover:underline font-medium"
+                        className="text-[11px] text-primary-700 hover:underline font-medium"
                       >
                         + Điền mã tham chiếu tự động
                       </button>
@@ -1292,7 +1292,7 @@ export default function PaymentsPage() {
                             amount: String(Math.round(Number(selectedMember.ProjectJob.budget))),
                           }))
                         }
-                        className="text-xs text-primary-600 hover:underline font-medium"
+                        className="text-xs text-primary-700 hover:underline font-medium"
                       >
                         Điền theo thù lao vị trí ({formatCurrency(selectedMember.ProjectJob.budget)})
                       </button>
@@ -1308,7 +1308,7 @@ export default function PaymentsPage() {
                     onChange={(e) => setCreateForm((p) => ({ ...p, amount: e.target.value }))}
                   />
                   {createForm.amount && (
-                    <p className="text-xs font-semibold text-primary-600 mt-1">
+                    <p className="text-xs font-semibold text-primary-700 mt-1">
                       = {formatCurrency(createForm.amount)}
                     </p>
                   )}
