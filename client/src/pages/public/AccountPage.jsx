@@ -24,22 +24,6 @@ function describeDevice(ua = '') {
   return { name: `${browser} trên ${os}`, icon: mobile ? 'phone' : 'laptop' };
 }
 
-function Switch({ checked, onChange, disabled, label }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${checked ? 'bg-primary-600' : 'bg-slate-300'}`}
-    >
-      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
-    </button>
-  );
-}
-
 function PasswordInput({ id, value, onChange, autoComplete, placeholder }) {
   const [show, setShow] = useState(false);
   return (
@@ -371,36 +355,6 @@ function DevicesPanel() {
   );
 }
 
-// ─── Quyền riêng tư (ứng viên) ────────────────────────────────────────────────
-function PrivacyPanel({ me }) {
-  const { updateUser } = useAuth();
-  const qc = useQueryClient();
-  const [value, setValue] = useState(true);
-  useEffect(() => { if (me) setValue(me.is_searchable !== false); }, [me]);
-
-  const save = useMutation({
-    mutationFn: (v) => authApi.updatePrivacy({ is_searchable: v }),
-    onMutate: (v) => setValue(v),
-    onSuccess: ({ data }) => { toast.success(data.message); updateUser({ is_searchable: data.data.is_searchable }); qc.invalidateQueries({ queryKey: ['me'] }); },
-    onError: (err) => { toast.error(apiError(err, 'Chưa lưu được cài đặt')); setValue((v) => !v); },
-  });
-
-  return (
-    <div>
-      <PanelHeader title="Quyền riêng tư" desc="Chọn ai có thể tìm thấy hồ sơ của bạn." />
-      <div className="max-w-xl flex items-start gap-4 rounded-xl border border-slate-200 p-4">
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-slate-900">Cho phép nhà tuyển dụng tìm thấy hồ sơ của tôi</p>
-          <p className="text-sm text-slate-500 mt-1">
-            Khi bật, hồ sơ năng lực của bạn hiện trong mục Tìm ứng viên của nhà tuyển dụng. Khi tắt, bạn vẫn ứng tuyển bình thường và nhà tuyển dụng nhận hồ sơ của bạn vẫn xem được hồ sơ ứng tuyển đó.
-          </p>
-        </div>
-        <Switch checked={value} disabled={save.isPending} label="Cho phép nhà tuyển dụng tìm thấy hồ sơ" onChange={(v) => save.mutate(v)} />
-      </div>
-    </div>
-  );
-}
-
 // ─── Trang tài khoản ──────────────────────────────────────────────────────────
 export default function AccountPage() {
   const { user, getUserRoles, isEmployer, isAdmin, isCandidate } = useAuth();
@@ -417,7 +371,6 @@ export default function AccountPage() {
     { key: 'password', label: 'Đổi mật khẩu', icon: 'lock' },
     { key: 'twofa', label: 'Xác minh 2 bước', icon: 'shield', badge: me ? (me.two_factor_enabled ? 'Đã bật' : 'Chưa bật') : null },
     { key: 'devices', label: 'Thiết bị đăng nhập', icon: 'laptop' },
-    ...(candidate ? [{ key: 'privacy', label: 'Quyền riêng tư', icon: 'eye' }] : []),
   ];
   const requested = params.get('tab');
   const active = tabs.some((t) => t.key === requested) ? requested : 'info';
@@ -467,7 +420,6 @@ export default function AccountPage() {
         {active === 'password' && <PasswordPanel />}
         {active === 'twofa' && <TwoFactorPanel me={me} />}
         {active === 'devices' && <DevicesPanel />}
-        {active === 'privacy' && candidate && <PrivacyPanel me={me} />}
       </section>
     </div>
   );

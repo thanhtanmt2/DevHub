@@ -94,6 +94,17 @@ export default function ProfilePage() {
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-sm font-medium">
                 <Icon name="skills" className="w-4 h-4" />{mySkills.length} kỹ năng
               </span>
+              {profile?.privacy_settings?.is_searchable === false ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/30 border border-rose-200/40 text-sm font-medium text-white">
+                  <span className="w-2 h-2 rounded-full bg-rose-300" />
+                  Đang ẩn khỏi tìm kiếm
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/25 border border-emerald-200/40 text-sm font-medium text-white">
+                  <span className="w-2 h-2 rounded-full bg-emerald-300" />
+                  Đang cho phép tìm kiếm hồ sơ
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -122,6 +133,61 @@ export default function ProfilePage() {
   );
 }
 
+const DEFAULT_PRIVACY_SETTINGS = {
+  is_searchable: true,
+  show_email: true,
+  show_phone: true,
+  show_address: true,
+  show_links: true,
+  show_introduction: true,
+  show_cv: true,
+  show_experiences: true,
+  show_devhub_projects: true,
+};
+
+const PRIVACY_ITEMS = [
+  {
+    key: 'show_email',
+    label: 'Địa chỉ Email',
+    desc: 'Cho phép doanh nghiệp đã xác thực xem email liên hệ của bạn.',
+  },
+  {
+    key: 'show_phone',
+    label: 'Số điện thoại',
+    desc: 'Cho phép doanh nghiệp đã xác thực xem số điện thoại liên hệ.',
+  },
+  {
+    key: 'show_address',
+    label: 'Địa chỉ / Khu vực',
+    desc: 'Hiển thị địa chỉ nơi ở trên thẻ tìm kiếm và trang chi tiết ứng viên.',
+  },
+  {
+    key: 'show_introduction',
+    label: 'Giới thiệu bản thân',
+    desc: 'Hiển thị đoạn giới thiệu mục tiêu nghề nghiệp và tóm tắt bản thân.',
+  },
+  {
+    key: 'show_links',
+    label: 'Liên kết GitHub & Portfolio',
+    desc: 'Hiển thị đường dẫn tới mã nguồn GitHub và website cá nhân.',
+  },
+  {
+    key: 'show_cv',
+    label: 'Danh sách CV tải lên',
+    desc: 'Cho phép nhà tuyển dụng xem trước và tải xuống các bản CV của bạn.',
+  },
+  {
+    key: 'show_experiences',
+    label: 'Sơ đồ kinh nghiệm làm việc',
+    desc: 'Hiển thị lịch sử làm việc tại công ty, freelance và dự án cá nhân.',
+  },
+  {
+    key: 'show_devhub_projects',
+    label: 'Dự án đã tham gia trên DevHub',
+    desc: 'Hiển thị các dự án thực chiến trên DevHub, số task hoàn thành và đánh giá.',
+  },
+];
+
 // ── Profile Info Tab ──────────────────────────────────
 function ProfileInfoTab({ profile, qc }) {
   const [showImport, setShowImport] = useState(false);
@@ -133,6 +199,10 @@ function ProfileInfoTab({ profile, qc }) {
     github_url: profile?.github_url || '',
     portfolio_url: profile?.portfolio_url || '',
   });
+  const [privacy, setPrivacy] = useState(() => ({
+    ...DEFAULT_PRIVACY_SETTINGS,
+    ...(profile?.privacy_settings || {}),
+  }));
 
   // Đồng bộ lại form khi profile được cập nhật (ví dụ sau khi lọc từ CV)
   useEffect(() => {
@@ -153,6 +223,13 @@ function ProfileInfoTab({ profile, qc }) {
     profile?.portfolio_url,
   ]);
 
+  useEffect(() => {
+    setPrivacy({
+      ...DEFAULT_PRIVACY_SETTINGS,
+      ...(profile?.privacy_settings || {}),
+    });
+  }, [profile?.privacy_settings]);
+
   const mutation = useMutation({
     mutationFn: (data) => candidateApi.updateProfile(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['candidate-profile'] }); toast.success('Cập nhật hồ sơ thành công!'); },
@@ -166,6 +243,33 @@ function ProfileInfoTab({ profile, qc }) {
       }
     },
   });
+
+  const privacyMutation = useMutation({
+    mutationFn: (nextPrivacy) => candidateApi.updateProfile({ privacy_settings: nextPrivacy }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['candidate-profile'] });
+      toast.success('Đã lưu tùy chỉnh quyền riêng tư');
+    },
+    onError: (err) => {
+      setPrivacy({
+        ...DEFAULT_PRIVACY_SETTINGS,
+        ...(profile?.privacy_settings || {}),
+      });
+      toast.error(err.response?.data?.message || 'Không thể lưu quyền riêng tư');
+    },
+  });
+
+  const handleTogglePrivacy = (key) => {
+    const next = { ...privacy, [key]: !privacy[key] };
+    setPrivacy(next);
+    privacyMutation.mutate(next);
+  };
+
+  const handlePresetPrivacy = (nextPartial) => {
+    const next = { ...privacy, ...nextPartial };
+    setPrivacy(next);
+    privacyMutation.mutate(next);
+  };
 
   const handleSave = () => {
     // 1. Kiểm tra số điện thoại (nếu có nhập thì phải hợp lệ)
@@ -192,60 +296,191 @@ function ProfileInfoTab({ profile, qc }) {
   };
 
   return (
-    <div className="card">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div>
-          <h2 className="text-lg font-semibold">Thông tin cá nhân</h2>
-          <p className="text-xs text-gray-500">
-            Cập nhật thông tin liên hệ và giới thiệu chuyên môn hoặc lọc tự động từ CV của bạn.
-          </p>
+    <div className="space-y-6">
+      <div className="card">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div>
+            <h2 className="text-lg font-semibold">Thông tin cá nhân</h2>
+            <p className="text-xs text-gray-500">
+              Cập nhật thông tin liên hệ và giới thiệu chuyên môn hoặc lọc tự động từ CV của bạn.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="btn-secondary text-sm"
+          >
+            Nhập từ CV
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowImport(true)}
-          className="btn-secondary text-sm"
-        >
-          Nhập từ CV
-        </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Chức danh chuyên môn</label>
+            <input className="input-field" placeholder="VD: Senior Frontend Developer"
+              value={form.professional_title} onChange={e => setForm({ ...form, professional_title: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+            <input className="input-field" placeholder="0901234567"
+              value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+            <input className="input-field" placeholder="Quận 7, TP. Hồ Chí Minh"
+              value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">GitHub URL</label>
+            <input className="input-field" placeholder="https://github.com/username"
+              value={form.github_url} onChange={e => setForm({ ...form, github_url: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio URL</label>
+            <input className="input-field" placeholder="https://portfolio.com"
+              value={form.portfolio_url} onChange={e => setForm({ ...form, portfolio_url: e.target.value })} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Giới thiệu bản thân</label>
+            <textarea className="input-field resize-none" rows={4}
+              placeholder="Mô tả ngắn về bản thân, kinh nghiệm và mục tiêu nghề nghiệp..."
+              value={form.introduction} onChange={e => setForm({ ...form, introduction: e.target.value })} />
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button onClick={handleSave} disabled={mutation.isPending} className="btn-primary">
+            {mutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+          </button>
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Chức danh chuyên môn</label>
-          <input className="input-field" placeholder="VD: Senior Frontend Developer"
-            value={form.professional_title} onChange={e => setForm({ ...form, professional_title: e.target.value })} />
+
+      {/* Quyền riêng tư & Hiển thị với Nhà tuyển dụng */}
+      <div className="card border border-primary-100">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Icon name="shield" className="w-5 h-5 text-primary-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Quyền riêng tư & Hiển thị với Nhà tuyển dụng</h2>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Kiểm soát những thông tin Nhà tuyển dụng được phép xem khi tìm kiếm ứng viên trên hệ thống.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={privacyMutation.isPending}
+              onClick={() => handlePresetPrivacy(DEFAULT_PRIVACY_SETTINGS)}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Hiển thị tất cả
+            </button>
+            <button
+              type="button"
+              disabled={privacyMutation.isPending}
+              onClick={() => handlePresetPrivacy({
+                is_searchable: true,
+                show_email: false,
+                show_phone: false,
+                show_address: false,
+                show_cv: false,
+              })}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors"
+            >
+              Ẩn liên hệ & CV
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-          <input className="input-field" placeholder="0901234567"
-            value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+
+        {/* Công tắc tổng: Cho phép tìm kiếm hồ sơ */}
+        <div className={`p-4 rounded-xl border transition-colors mb-4 flex items-center justify-between gap-4 ${
+          privacy.is_searchable
+            ? 'bg-emerald-50/60 border-emerald-200'
+            : 'bg-rose-50/60 border-rose-200'
+        }`}>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm text-gray-900">
+                Cho phép Nhà tuyển dụng tìm thấy hồ sơ của tôi
+              </span>
+              <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full ${
+                privacy.is_searchable ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              }`}>
+                {privacy.is_searchable ? 'Đang bật' : 'Đang tắt'}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600 mt-0.5">
+              {privacy.is_searchable
+                ? 'Hồ sơ của bạn sẽ xuất hiện trong trang Tìm kiếm ứng viên của Nhà tuyển dụng theo các mục được bật bên dưới.'
+                : 'Hồ sơ của bạn đã được ẩn hoàn toàn khỏi trang Tìm kiếm ứng viên của Nhà tuyển dụng.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={privacy.is_searchable}
+            disabled={privacyMutation.isPending}
+            onClick={() => handleTogglePrivacy('is_searchable')}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              privacy.is_searchable ? 'bg-emerald-600' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                privacy.is_searchable ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
         </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
-          <input className="input-field" placeholder="Quận 7, TP. Hồ Chí Minh"
-            value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+
+        {/* Danh sách công tắc từng phần */}
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${!privacy.is_searchable ? 'opacity-60' : ''}`}>
+          {PRIVACY_ITEMS.map((item) => {
+            const enabled = Boolean(privacy[item.key]);
+            return (
+              <div
+                key={item.key}
+                className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition-colors"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                    <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium ${
+                      enabled ? 'bg-primary-50 text-primary-700' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {enabled ? 'Hiển thị' : 'Đã ẩn'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enabled}
+                  disabled={privacyMutation.isPending}
+                  onClick={() => handleTogglePrivacy(item.key)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    enabled ? 'bg-primary-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      enabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            );
+          })}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">GitHub URL</label>
-          <input className="input-field" placeholder="https://github.com/username"
-            value={form.github_url} onChange={e => setForm({ ...form, github_url: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio URL</label>
-          <input className="input-field" placeholder="https://portfolio.com"
-            value={form.portfolio_url} onChange={e => setForm({ ...form, portfolio_url: e.target.value })} />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Giới thiệu bản thân</label>
-          <textarea className="input-field resize-none" rows={4}
-            placeholder="Mô tả ngắn về bản thân, kinh nghiệm và mục tiêu nghề nghiệp..."
-            value={form.introduction} onChange={e => setForm({ ...form, introduction: e.target.value })} />
+
+        <div className="mt-4 p-3 rounded-lg bg-blue-50/70 border border-blue-100 flex items-start gap-2 text-xs text-blue-800">
+          <Icon name="info" className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <span>
+            <strong>Lưu ý khi ứng tuyển:</strong> Đối với những công ty mà bạn đã <strong>chủ động nộp đơn ứng tuyển</strong> vào tin tuyển dụng của họ, công ty đó sẽ được phép xem đầy đủ hồ sơ và CV bạn đã nộp để phục vụ quá trình xét duyệt. Các công ty khác tìm kiếm trên hệ thống sẽ chỉ thấy những mục bạn bật cho phép ở trên.
+          </span>
         </div>
       </div>
-      <div className="mt-4 flex justify-end">
-        <button onClick={handleSave} disabled={mutation.isPending} className="btn-primary">
-          {mutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
-        </button>
-      </div>
+
       {showImport && (
         <CvImportModal
           mode="info"

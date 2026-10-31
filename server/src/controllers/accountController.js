@@ -152,17 +152,3 @@ exports.disableTwoFactor = async (req, res, next) => {
     res.json({ success: true, message: 'Đã tắt xác minh 2 bước', data: { two_factor_enabled: false } });
   } catch (error) { next(error); }
 };
-
-// PUT /api/auth/me/privacy { is_searchable } — chỉ ứng viên
-exports.updatePrivacy = async (req, res, next) => {
-  try {
-    if (typeof req.body.is_searchable !== 'boolean') throw new AppError('Dữ liệu không hợp lệ', 400);
-    const [n] = await CandidateProfile.update({ is_searchable: req.body.is_searchable }, { where: { user_id: req.user.id } });
-    if (!n) throw new AppError('Chỉ tài khoản ứng viên có cài đặt này', 400);
-    res.json({
-      success: true,
-      message: req.body.is_searchable ? 'Nhà tuyển dụng có thể tìm thấy hồ sơ của bạn' : 'Hồ sơ của bạn đã được ẩn khỏi mục Tìm ứng viên',
-      data: { is_searchable: req.body.is_searchable },
-    });
-  } catch (error) { next(error); }
-};

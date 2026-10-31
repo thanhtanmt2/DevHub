@@ -13,7 +13,6 @@ export const authApi = {
   sendTwoFactorCode: () => api.post('/auth/me/2fa/send-code'),
   enableTwoFactor: (challenge, code) => api.post('/auth/me/2fa/enable', { challenge, code }),
   disableTwoFactor: (password) => api.post('/auth/me/2fa/disable', { password }),
-  updatePrivacy: (data) => api.put('/auth/me/privacy', data),
   googleLogin: (token) => api.post('/auth/google', { token }),
   logout: () => api.post('/auth/logout'),
   refresh: () => api.post('/auth/refresh'),

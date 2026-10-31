@@ -44,6 +44,5 @@ router.delete('/me/sessions/:id', protect, account.revokeSessions);
 router.post('/me/2fa/send-code', protect, account.sendEnableCode);
 router.post('/me/2fa/enable', protect, account.enableTwoFactor);
 router.post('/me/2fa/disable', protect, account.disableTwoFactor);
-router.put('/me/privacy', protect, account.updatePrivacy);
 
 module.exports = router;

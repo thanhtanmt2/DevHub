@@ -230,7 +230,7 @@ const accountMenu = (user, candidate) => ({
     { to: '/account?tab=password', icon: 'lock', text: 'Đổi mật khẩu' },
     { to: '/account?tab=twofa', icon: 'shield', text: 'Xác minh 2 bước', hint: user?.two_factor_enabled ? 'Đã bật' : 'Chưa kích hoạt' },
     { to: '/account?tab=devices', icon: 'laptop', text: 'Thiết bị đăng nhập' },
-    ...(candidate ? [{ to: '/account?tab=privacy', icon: 'eye', text: 'Quyền riêng tư' }] : []),
+    ...(candidate ? [{ to: '/candidate/profile', icon: 'eye', text: 'Quyền riêng tư hồ sơ', hint: 'Chọn thông tin nhà tuyển dụng được xem' }] : []),
     { href: mailHref(SUPPORT.email), icon: 'headset', text: 'Trợ giúp & hỗ trợ' },
   ],
 });

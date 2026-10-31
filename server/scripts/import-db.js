@@ -73,6 +73,18 @@ const migrations = [
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_project_applications_candidate_job ON project_applications (candidate_profile_id, project_job_id)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_workspace_members_workspace_candidate ON workspace_members (workspace_id, candidate_profile_id)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_payments_workspace_member ON payments (workspace_member_id)`,
+  `ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS privacy_settings JSONB NOT NULL DEFAULT '{"is_searchable":true,"show_email":true,"show_phone":true,"show_address":true,"show_links":true,"show_introduction":true,"show_cv":true,"show_experiences":true,"show_devhub_projects":true}'::jsonb`,
+  `CREATE TABLE IF NOT EXISTS saved_candidates (id UUID PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, candidate_profile_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_candidates_user_profile ON saved_candidates (user_id, candidate_profile_id)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR(255)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE`,
+  `CREATE TABLE IF NOT EXISTS saved_jobs (id UUID PRIMARY KEY, candidate_profile_id UUID NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE, job_post_id UUID REFERENCES job_posts(id) ON DELETE CASCADE, project_job_id UUID REFERENCES project_jobs(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CONSTRAINT chk_saved_jobs_one_target CHECK ((job_post_id IS NOT NULL)::int + (project_job_id IS NOT NULL)::int = 1))`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_jobs_candidate_job ON saved_jobs (candidate_profile_id, job_post_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_jobs_candidate_project_job ON saved_jobs (candidate_profile_id, project_job_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_saved_jobs_candidate ON saved_jobs (candidate_profile_id)`,
 ];
 
 console.log('Đang chạy migration patch...');

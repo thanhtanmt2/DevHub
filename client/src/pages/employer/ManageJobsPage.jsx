@@ -9,6 +9,7 @@ import PageBanner from '@/components/common/PageBanner';
 import { SkillTag, WorkTypeBadge } from '@/components/common/Badges';
 import { DeadlineChip, MetaItem } from '@/components/job/JobParts';
 import JobFormModal from '@/components/employer/JobFormModal';
+import ReopenJobModal from '@/components/employer/ReopenJobModal';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { timeAgo } from '@/utils/timeAgo';
 import {
@@ -19,7 +20,8 @@ import {
 const FILTERS = [
   { key: 'ALL', label: 'Tất cả', match: () => true },
   { key: 'OPEN', label: 'Đang tuyển', match: (j) => j.status === 'OPEN' },
-  { key: 'PENDING', label: 'Chờ duyệt', match: (j) => ['PENDING_APPROVAL', 'DRAFT'].includes(j.status) },
+  { key: 'PENDING', label: 'Chờ duyệt', match: (j) => j.status === 'PENDING_APPROVAL' },
+  { key: 'DRAFT', label: 'Bản nháp', match: (j) => j.status === 'DRAFT' },
   { key: 'CLOSED', label: 'Đã đóng / từ chối', match: (j) => ['CLOSED', 'HIDDEN'].includes(j.status) },
 ];
 
@@ -27,7 +29,8 @@ export default function ManageJobsPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const navigate = useNavigate();
-  const [form, setForm] = useState(null); // null = đóng; { job } = mở form (job = null là đăng mới)
+  const [form, setForm] = useState(null); // null = đóng; { job, mode } = mở form
+  const [reopenJob, setReopenJob] = useState(null);
   const [filter, setFilter] = useState('ALL');
 
   const { data: jobsData, isLoading } = useQuery({
@@ -45,6 +48,16 @@ export default function ManageJobsPage() {
       toast.success('Đã đóng tin tuyển dụng');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Không thể đóng tin'),
+  });
+
+  const publishDraftMut = useMutation({
+    mutationFn: (id) => jobApi.updateJob(id, { is_draft: false }),
+    onSuccess: (res, id) => {
+      qc.invalidateQueries({ queryKey: ['employer-jobs'] });
+      qc.invalidateQueries({ queryKey: ['employer-job', id] });
+      toast.success(res.data?.message || 'Đã gửi bản nháp để Admin duyệt');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không thể đăng bản nháp'),
   });
 
   const askClose = async (job) => {
@@ -144,12 +157,40 @@ export default function ManageJobsPage() {
                     <DeadlineChip deadline={job.deadline} />
                     {job.posted_at && <span className="text-xs text-slate-400">Đăng {timeAgo(job.posted_at)}</span>}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={stop(() => setForm({ job }))} className="text-sm font-medium text-slate-600 hover:text-primary-700 px-3 py-1.5 rounded-lg hover:bg-slate-100">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {job.status === 'DRAFT' && (
+                      <button
+                        onClick={stop(() => publishDraftMut.mutate(job.id))}
+                        disabled={publishDraftMut.isPending}
+                        className="text-sm font-semibold text-primary-600 hover:text-primary-800 px-3 py-1.5 rounded-lg hover:bg-primary-50"
+                      >
+                        <Icon name="upload" className="w-4 h-4 mr-1" />Đăng tin
+                      </button>
+                    )}
+                    <button
+                      onClick={stop(() => setForm({ job, mode: 'duplicate' }))}
+                      className="text-sm font-medium text-slate-600 hover:text-primary-700 px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                    >
+                      <Icon name="copy" className="w-4 h-4 mr-1" />Nhân bản
+                    </button>
+                    <button
+                      onClick={stop(() => setForm({ job, mode: 'edit' }))}
+                      className="text-sm font-medium text-slate-600 hover:text-primary-700 px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                    >
                       <Icon name="pencil" className="w-4 h-4 mr-1" />Sửa
                     </button>
-                    {job.status !== 'CLOSED' && (
-                      <button onClick={stop(() => askClose(job))} className="text-sm font-medium text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50">
+                    {job.status === 'CLOSED' ? (
+                      <button
+                        onClick={stop(() => setReopenJob(job))}
+                        className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-50"
+                      >
+                        <Icon name="refresh" className="w-4 h-4 mr-1" />Mở lại tin
+                      </button>
+                    ) : (
+                      <button
+                        onClick={stop(() => askClose(job))}
+                        className="text-sm font-medium text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50"
+                      >
                         <Icon name="lock" className="w-4 h-4 mr-1" />Đóng tin
                       </button>
                     )}
@@ -162,7 +203,8 @@ export default function ManageJobsPage() {
         </div>
       )}
 
-      {form && <JobFormModal job={form.job} onClose={() => setForm(null)} />}
+      {form && <JobFormModal job={form.job} mode={form.mode || (form.job ? 'edit' : 'create')} onClose={() => setForm(null)} />}
+      {reopenJob && <ReopenJobModal job={reopenJob} onClose={() => setReopenJob(null)} />}
     </div>
   );
 }

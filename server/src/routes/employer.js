@@ -24,6 +24,8 @@ router.get('/jobs', jobCtrl.getEmployerJobs);
 router.get('/jobs/:id', jobCtrl.getEmployerJobById);
 router.post('/jobs', [body('title').notEmpty(), body('description').notEmpty()], validate, jobCtrl.createEmployerJob);
 router.put('/jobs/:id', jobCtrl.updateEmployerJob);
+router.put('/jobs/:id/reopen', jobCtrl.reopenEmployerJob);
+router.post('/jobs/:id/duplicate', jobCtrl.duplicateEmployerJob);
 router.delete('/jobs/:id', jobCtrl.closeEmployerJob);
 
 // Applications
@@ -35,5 +37,6 @@ router.put('/applications/:id/status', [body('status').isIn(['VIEWED', 'INTERVIE
 const candidateCtrl = require('../controllers/candidateController');
 router.get('/candidates', candidateCtrl.searchCandidates);
 router.get('/candidates/:id', candidateCtrl.getCandidateForEmployer);
+router.post('/candidates/:id/save', candidateCtrl.toggleSaveCandidate);
 
 module.exports = router;

@@ -26,6 +26,20 @@ const assertValidSalary = ({ salary_min, salary_max }) => {
   }
 };
 
+// Tự động chuyển các tin đã quá hạn nộp hồ sơ sang trạng thái CLOSED (Đã đóng)
+const closeExpiredJobs = async () => {
+  await JobPost.update(
+    { status: 'CLOSED' },
+    {
+      where: {
+        status: { [Op.in]: ['OPEN', 'PENDING_APPROVAL'] },
+        deadline: { [Op.ne]: null, [Op.lt]: new Date() },
+      },
+    },
+  );
+};
+exports.closeExpiredJobs = closeExpiredJobs;
+
 // Một số tỉnh/thành hay được nhập theo nhiều cách khác nhau → lọc theo mọi cách viết
 const { getCandidateSignals, scoreJobs, loadJobSkills } = require('../utils/jobMatch');
 
@@ -39,6 +53,7 @@ const ANYWHERE = 'REMOTE_ANY'; // lựa chọn "Toàn quốc / Remote"
 // GET /api/jobs — public job listing with filters
 exports.getJobs = async (req, res, next) => {
   try {
+    await closeExpiredJobs();
     const {
       keyword, skill_id, work_type, post_type, salary_min, salary_max,
       location, experience, position_level, salary_from, salary_to, sort = 'newest',
@@ -152,6 +167,7 @@ exports.getJobs = async (req, res, next) => {
 // GET /api/jobs/:id — job detail
 exports.getJobById = async (req, res, next) => {
   try {
+    await closeExpiredJobs();
     const job = await JobPost.findByPk(req.params.id, {
       include: [
         { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
@@ -166,25 +182,30 @@ exports.getJobById = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// POST /api/employer/jobs — employer creates job post
+// POST /api/employer/jobs — employer creates job post (hoặc lưu nháp khi is_draft = true)
 exports.createEmployerJob = async (req, res, next) => {
   try {
-    const { skill_ids } = req.body;
+    const { skill_ids, is_draft } = req.body;
+    const saveAsDraft = Boolean(is_draft);
     const fields = pickJobFields(req.body);
-    assertValidDeadline(fields.deadline);
+    if (!saveAsDraft || fields.deadline) {
+      assertValidDeadline(fields.deadline);
+    }
     assertValidSalary(fields);
     // Find company of this employer
     const company = await Company.findOne({ where: { user_id: req.user.id } });
     if (!company) throw new AppError('Vui lòng hoàn thiện hồ sơ doanh nghiệp trước', 400);
-    if (company.verification_status !== 'VERIFIED') throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể đăng tin', 403);
+    if (!saveAsDraft && company.verification_status !== 'VERIFIED') {
+      throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể đăng tin (bạn có thể Lưu nháp trước)', 403);
+    }
 
     const job = await JobPost.create({
       ...fields,
       post_type: 'PARTNER',
       created_by_user_id: req.user.id,
       company_id: company.id,
-      status: 'PENDING_APPROVAL',
-      posted_at: new Date(),
+      status: saveAsDraft ? 'DRAFT' : 'PENDING_APPROVAL',
+      posted_at: saveAsDraft ? null : new Date(),
     });
 
     if (skill_ids && skill_ids.length > 0) {
@@ -192,24 +213,31 @@ exports.createEmployerJob = async (req, res, next) => {
       await JobPostSkill.bulkCreate(jobSkills, { ignoreDuplicates: true });
     }
 
-    // Admin cần duyệt tin; nhà tuyển dụng nhận xác nhận đã gửi duyệt
-    await notifyAdmins({
-      type: 'JOB_PENDING',
-      title: 'Tin tuyển dụng mới chờ duyệt',
-      message: `${company.name} vừa đăng tin "${job.title}" và đang chờ bạn duyệt.`,
-      link: '/admin/jobs',
-      metadata: { job_post_id: job.id },
+    if (!saveAsDraft) {
+      // Admin cần duyệt tin; nhà tuyển dụng nhận xác nhận đã gửi duyệt
+      await notifyAdmins({
+        type: 'JOB_PENDING',
+        title: 'Tin tuyển dụng mới chờ duyệt',
+        message: `${company.name} vừa đăng tin "${job.title}" và đang chờ bạn duyệt.`,
+        link: '/admin/jobs',
+        metadata: { job_post_id: job.id },
+      });
+      await createNotification({
+        user_id: req.user.id,
+        type: 'JOB_PENDING',
+        title: 'Tin đã được gửi duyệt',
+        message: `Tin "${job.title}" đang chờ Admin duyệt. Bạn sẽ nhận thông báo ngay khi có kết quả.`,
+        link: '/employer/jobs',
+        email: false,
+        metadata: { job_post_id: job.id },
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: job,
+      message: saveAsDraft ? 'Đã lưu tin tuyển dụng vào bản nháp' : 'Đã tạo tin tuyển dụng và gửi duyệt',
     });
-    await createNotification({
-      user_id: req.user.id,
-      type: 'JOB_PENDING',
-      title: 'Tin đã được gửi duyệt',
-      message: `Tin "${job.title}" đang chờ Admin duyệt. Bạn sẽ nhận thông báo ngay khi có kết quả.`,
-      link: '/employer/jobs',
-      email: false,
-      metadata: { job_post_id: job.id },
-    });
-    res.status(201).json({ success: true, data: job });
   } catch (error) { next(error); }
 };
 
@@ -220,13 +248,31 @@ exports.updateEmployerJob = async (req, res, next) => {
     if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
     const job = await JobPost.findOne({ where: { id: req.params.id, company_id: company.id } });
     if (!job) throw new AppError('Không tìm thấy tin tuyển dụng của bạn', 404);
-    const { skill_ids } = req.body;
+    const { skill_ids, is_draft } = req.body;
     const updateData = pickJobFields(req.body);
     const oldDeadline = job.deadline ? job.deadline.toISOString() : '';
-    if (updateData.deadline !== undefined && String(updateData.deadline ? new Date(updateData.deadline).toISOString() : '') !== oldDeadline) {
-      assertValidDeadline(updateData.deadline);
+    const nextDeadline = updateData.deadline !== undefined ? updateData.deadline : job.deadline;
+
+    // Kiểm tra hạn nộp nếu thay đổi hạn hoặc chuyển từ bản nháp sang đăng chính thức
+    const publishingDraft = job.status === 'DRAFT' && is_draft === false;
+    if (
+      (updateData.deadline !== undefined && String(updateData.deadline ? new Date(updateData.deadline).toISOString() : '') !== oldDeadline)
+      || publishingDraft
+    ) {
+      assertValidDeadline(nextDeadline);
     }
     assertValidSalary({ salary_min: updateData.salary_min ?? job.salary_min, salary_max: updateData.salary_max ?? job.salary_max });
+
+    if (is_draft === true) {
+      updateData.status = 'DRAFT';
+    } else if (publishingDraft) {
+      if (company.verification_status !== 'VERIFIED') {
+        throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể đăng tin', 403);
+      }
+      updateData.status = 'PENDING_APPROVAL';
+      updateData.posted_at = new Date();
+    }
+
     await job.update(updateData);
     if (skill_ids) {
       await JobPostSkill.destroy({ where: { job_post_id: job.id } });
@@ -235,9 +281,20 @@ exports.updateEmployerJob = async (req, res, next) => {
       }
     }
 
-    // Tin đã bị Admin từ chối (HIDDEN) mà được chỉnh sửa → tự gửi duyệt lại
+    if (publishingDraft) {
+      await notifyAdmins({
+        type: 'JOB_PENDING',
+        title: 'Tin tuyển dụng mới chờ duyệt',
+        message: `${company.name} vừa gửi duyệt tin "${job.title}".`,
+        link: '/admin/jobs',
+        metadata: { job_post_id: job.id },
+      });
+      return res.json({ success: true, data: job, message: 'Đã gửi bản nháp để Admin duyệt' });
+    }
+
+    // Tin đã bị Admin từ chối (HIDDEN) mà được chỉnh sửa (không phải lưu nháp) → tự gửi duyệt lại
     let resubmitted = false;
-    if (job.status === 'HIDDEN') {
+    if (job.status === 'HIDDEN' && is_draft !== true) {
       await job.update({ status: 'PENDING_APPROVAL' });
       resubmitted = true;
       await notifyAdmins({
@@ -248,7 +305,15 @@ exports.updateEmployerJob = async (req, res, next) => {
         metadata: { job_post_id: job.id },
       });
     }
-    res.json({ success: true, data: job, ...(resubmitted && { message: 'Đã gửi lại tin để Admin duyệt' }) });
+    res.json({
+      success: true,
+      data: job,
+      message: is_draft === true
+        ? 'Đã lưu vào bản nháp'
+        : resubmitted
+        ? 'Đã gửi lại tin để Admin duyệt'
+        : 'Đã cập nhật tin tuyển dụng',
+    });
   } catch (error) { next(error); }
 };
 
@@ -260,6 +325,100 @@ exports.closeEmployerJob = async (req, res, next) => {
     if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
     await job.update({ status: 'CLOSED' });
     res.json({ success: true, message: 'Đã đóng tin tuyển dụng' });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/employer/jobs/:id/reopen — Mở lại tin tuyển dụng đã đóng
+exports.reopenEmployerJob = async (req, res, next) => {
+  try {
+    const company = await Company.findOne({ where: { user_id: req.user.id } });
+    if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
+    if (company.verification_status !== 'VERIFIED') {
+      throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể mở lại tin', 403);
+    }
+
+    const job = await JobPost.findOne({ where: { id: req.params.id, company_id: company.id } });
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    if (job.status !== 'CLOSED') {
+      throw new AppError('Chỉ có thể mở lại các tin đang ở trạng thái Đã đóng', 400);
+    }
+
+    let nextDeadline = job.deadline;
+    if (req.body.deadline !== undefined) {
+      const raw = req.body.deadline;
+      nextDeadline = raw && String(raw).trim() !== '' ? new Date(raw) : null;
+    }
+
+    if (nextDeadline && new Date(nextDeadline) < new Date()) {
+      throw new AppError('Hạn nộp hồ sơ mới phải sau thời điểm hiện tại (hoặc chọn Không giới hạn)', 400);
+    }
+
+    await job.update({
+      status: 'OPEN',
+      deadline: nextDeadline,
+      posted_at: job.posted_at || new Date(),
+    });
+
+    res.json({
+      success: true,
+      data: job,
+      message: 'Đã mở lại tin tuyển dụng thành công',
+    });
+  } catch (error) { next(error); }
+};
+
+// POST /api/employer/jobs/:id/duplicate — Nhân bản nhanh một tin tuyển dụng
+exports.duplicateEmployerJob = async (req, res, next) => {
+  try {
+    const company = await Company.findOne({ where: { user_id: req.user.id } });
+    if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
+    const source = await JobPost.findOne({
+      where: { id: req.params.id, company_id: company.id },
+      include: [{ model: Skill, through: { attributes: [] }, attributes: ['id'] }],
+    });
+    if (!source) throw new AppError('Không tìm thấy tin tuyển dụng gốc', 404);
+
+    const saveAsDraft = req.body.is_draft !== undefined ? Boolean(req.body.is_draft) : true;
+    if (!saveAsDraft && company.verification_status !== 'VERIFIED') {
+      throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể đăng tin', 403);
+    }
+
+    const validFutureDeadline = source.deadline && new Date(source.deadline) > new Date() ? source.deadline : null;
+    const cloned = await JobPost.create({
+      title: req.body.title?.trim() || `${source.title} (Bản sao)`,
+      description: source.description,
+      requirements: source.requirements,
+      benefits: source.benefits,
+      work_type: source.work_type,
+      location: source.location,
+      work_address: source.work_address,
+      working_time: source.working_time,
+      experience: source.experience,
+      position_level: source.position_level,
+      salary_min: source.salary_min,
+      salary_max: source.salary_max,
+      quantity: source.quantity || 1,
+      deadline: validFutureDeadline,
+      post_type: 'PARTNER',
+      created_by_user_id: req.user.id,
+      company_id: company.id,
+      status: saveAsDraft ? 'DRAFT' : 'PENDING_APPROVAL',
+      posted_at: saveAsDraft ? null : new Date(),
+    });
+
+    const skillIds = (source.Skills || []).map((s) => s.id);
+    if (skillIds.length > 0) {
+      await JobPostSkill.bulkCreate(
+        skillIds.map((skill_id) => ({ job_post_id: cloned.id, skill_id })),
+        { ignoreDuplicates: true },
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      data: cloned,
+      message: saveAsDraft ? 'Đã nhân bản tin vào Bản nháp' : 'Đã nhân bản tin và gửi duyệt',
+    });
   } catch (error) { next(error); }
 };
 
@@ -275,6 +434,7 @@ const COUNT_ATTRIBUTES = [
 // GET /api/employer/jobs — employer's own jobs
 exports.getEmployerJobs = async (req, res, next) => {
   try {
+    await closeExpiredJobs();
     const company = await Company.findOne({ where: { user_id: req.user.id } });
     if (!company) return res.json({ success: true, data: [] });
     const jobs = await JobPost.findAll({
@@ -291,6 +451,7 @@ exports.getEmployerJobs = async (req, res, next) => {
 exports.getEmployerJobById = async (req, res, next) => {
   try {
     if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    await closeExpiredJobs();
     const company = await Company.findOne({ where: { user_id: req.user.id } });
     if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
     const job = await JobPost.findOne({
@@ -330,6 +491,7 @@ exports.createAdminJob = async (req, res, next) => {
 // GET /api/admin/jobs — all jobs (admin)
 exports.getAdminJobs = async (req, res, next) => {
   try {
+    await closeExpiredJobs();
     const { post_type, status } = req.query;
     const where = {};
     if (post_type) where.post_type = post_type;

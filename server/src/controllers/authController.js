@@ -460,9 +460,9 @@ exports.getMe = async (req, res, next) => {
       include: [{ association: 'Roles', attributes: ['name'] }],
     });
     const data = user.toJSON();
-    // Ứng viên: số điện thoại / địa chỉ lấy từ hồ sơ năng lực (nơi họ vẫn sửa), kèm cài đặt quyền riêng tư
-    const profile = await CandidateProfile.findOne({ where: { user_id: user.id }, attributes: ['phone', 'address', 'is_searchable'] });
-    if (profile) Object.assign(data, { phone: profile.phone, address: profile.address, is_searchable: profile.is_searchable });
+    // Ứng viên: số điện thoại / địa chỉ lấy từ hồ sơ năng lực (nơi họ vẫn sửa)
+    const profile = await CandidateProfile.findOne({ where: { user_id: user.id }, attributes: ['phone', 'address'] });
+    if (profile) Object.assign(data, { phone: profile.phone, address: profile.address });
     res.json({ success: true, data });
   } catch (error) { next(error); }
 };
