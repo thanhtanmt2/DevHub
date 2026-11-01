@@ -52,7 +52,7 @@ export function InfoList({ items }) {
     <dl className="space-y-3.5">
       {rows.map((i) => (
         <div key={i.label} className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+          <span className="w-9 h-9 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0">
             <Icon name={i.icon} className="w-[18px] h-[18px]" />
           </span>
           <div className="min-w-0">
@@ -79,7 +79,7 @@ export function CompanyCard({ company }) {
           </p>
         )}
         {company.website && (
-          <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline mt-1 inline-flex items-center gap-1.5">
+          <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-700 hover:underline mt-1 inline-flex items-center gap-1.5">
             <Icon name="globe" className="w-3.5 h-3.5" />{company.website}
           </a>
         )}

@@ -1,0 +1,313 @@
+// Mẫu nội dung tin tuyển dụng: mỗi "vị trí" (role) có kỹ năng, mô tả công việc, yêu cầu; mỗi cấp bậc (level) có lương & kinh nghiệm.
+
+const ROLES = {
+  frontend: {
+    title: 'Frontend Developer', stack: 'React',
+    skills: ['React', 'JavaScript', 'TypeScript', 'HTML/CSS', 'Tailwind CSS', 'Redux', 'Git'],
+    duties: [
+      'Xây dựng và duy trì giao diện web responsive bằng React/TypeScript theo thiết kế Figma',
+      'Phối hợp với đội backend để tích hợp REST API và quản lý trạng thái ứng dụng',
+      'Tối ưu hiệu năng tải trang, khả năng truy cập và trải nghiệm trên thiết bị di động',
+      'Viết component dùng lại được, kiểm thử đơn vị và tham gia code review',
+      'Đề xuất cải tiến giao diện cùng đội sản phẩm và thiết kế',
+    ],
+    reqs: [
+      'Thành thạo JavaScript/TypeScript, HTML5, CSS3 và ít nhất một framework hiện đại (ưu tiên React)',
+      'Hiểu cách hoạt động của REST API, xử lý bất đồng bộ và quản lý state',
+      'Sử dụng thành thạo Git và quy trình pull request',
+      'Chú ý chi tiết giao diện, có tư duy về trải nghiệm người dùng',
+      'Ưu tiên: Next.js, Tailwind CSS, có kinh nghiệm viết unit test',
+    ],
+  },
+  backend_node: {
+    title: 'Backend Node.js Developer', stack: 'Node.js',
+    skills: ['Node.js', 'Express.js', 'PostgreSQL', 'MongoDB', 'Redis', 'Docker', 'REST API', 'TypeScript'],
+    duties: [
+      'Thiết kế và phát triển RESTful API bằng Node.js (Express/NestJS) cho web và mobile',
+      'Thiết kế cơ sở dữ liệu, viết truy vấn tối ưu và quản lý migration',
+      'Xây dựng cơ chế xác thực JWT, phân quyền theo vai trò và ghi log hệ thống',
+      'Tích hợp dịch vụ bên thứ ba (thanh toán, email, lưu trữ) và xử lý tác vụ nền',
+      'Viết tài liệu API, kiểm thử và tham gia code review',
+    ],
+    reqs: [
+      'Thành thạo Node.js, Express hoặc NestJS và TypeScript',
+      'Làm việc tốt với PostgreSQL hoặc MongoDB, hiểu index và tối ưu truy vấn',
+      'Hiểu xác thực JWT, bảo mật API cơ bản (CORS, rate limit, validate dữ liệu)',
+      'Biết Docker; ưu tiên có kinh nghiệm Redis, hàng đợi tác vụ hoặc AWS',
+      'Viết code sạch, có kiểm thử và biết đọc hiểu code của người khác',
+    ],
+  },
+  java: {
+    title: 'Java Backend Developer', stack: 'Java Spring Boot',
+    skills: ['Java', 'Spring Boot', 'MySQL', 'PostgreSQL', 'Microservices', 'Docker', 'REST API', 'Git'],
+    duties: [
+      'Phát triển các dịch vụ backend bằng Java Spring Boot theo kiến trúc microservices',
+      'Thiết kế API, mô hình dữ liệu và tối ưu hiệu năng truy vấn MySQL/PostgreSQL',
+      'Viết unit test, integration test và duy trì chất lượng mã nguồn',
+      'Phân tích yêu cầu cùng BA, ước lượng và chia nhỏ công việc theo sprint',
+      'Hỗ trợ triển khai, giám sát và xử lý sự cố trên môi trường vận hành',
+    ],
+    reqs: [
+      'Nắm vững Java (OOP, Collections, Stream) và Spring Boot/Spring Data JPA',
+      'Hiểu thiết kế RESTful API, transaction và xử lý đồng thời',
+      'Có kinh nghiệm với MySQL hoặc PostgreSQL, biết tối ưu câu truy vấn',
+      'Biết Docker, Git; ưu tiên có kinh nghiệm message queue (RabbitMQ/Kafka)',
+      'Tư duy hệ thống tốt, chủ động trao đổi và báo cáo tiến độ',
+    ],
+  },
+  php: {
+    title: 'PHP Laravel Developer', stack: 'Laravel',
+    skills: ['PHP', 'Laravel', 'MySQL', 'Redis', 'REST API', 'Vue.js', 'Git'],
+    duties: [
+      'Phát triển và bảo trì hệ thống web bằng PHP Laravel',
+      'Xây dựng API cho ứng dụng web và mobile, tích hợp cổng thanh toán và vận chuyển',
+      'Tối ưu truy vấn MySQL, sử dụng cache (Redis) và hàng đợi để tăng tốc hệ thống',
+      'Sửa lỗi, nâng cấp tính năng theo phản hồi của bộ phận vận hành',
+      'Viết tài liệu kỹ thuật và hướng dẫn thành viên mới',
+    ],
+    reqs: [
+      'Nắm vững PHP 8, Laravel (Eloquent, Queue, Middleware) và MySQL',
+      'Hiểu mô hình MVC, RESTful API và các nguyên tắc bảo mật web phổ biến',
+      'Biết sử dụng Git, Composer; ưu tiên có kinh nghiệm Vue.js hoặc Livewire',
+      'Có khả năng đọc và cải tiến code có sẵn',
+      'Chủ động, trung thực và sẵn sàng học công nghệ mới',
+    ],
+  },
+  python: {
+    title: 'Python Backend Developer', stack: 'Python Django',
+    skills: ['Python', 'Django', 'PostgreSQL', 'REST API', 'Docker', 'Redis', 'AWS'],
+    duties: [
+      'Phát triển API và dịch vụ xử lý dữ liệu bằng Python (Django/FastAPI)',
+      'Xây dựng pipeline thu thập, làm sạch dữ liệu và lập lịch tác vụ định kỳ',
+      'Tích hợp mô hình học máy vào hệ thống thông qua API nội bộ',
+      'Thiết kế cơ sở dữ liệu PostgreSQL và tối ưu hiệu năng',
+      'Đóng gói, triển khai ứng dụng bằng Docker trên AWS',
+    ],
+    reqs: [
+      'Thành thạo Python, hiểu sâu một framework web (Django hoặc FastAPI)',
+      'Có kinh nghiệm với PostgreSQL và thiết kế RESTful API',
+      'Biết Docker, Git; ưu tiên có kinh nghiệm AWS hoặc Redis',
+      'Hiểu cơ bản về xử lý dữ liệu (Pandas) là một lợi thế',
+      'Kỹ năng giao tiếp tốt, làm việc độc lập khi làm từ xa',
+    ],
+  },
+  data_ai: {
+    title: 'Data / AI Engineer', stack: 'Python',
+    skills: ['Python', 'SQL', 'Pandas', 'Power BI', 'Machine Learning', 'TensorFlow'],
+    duties: [
+      'Thu thập, làm sạch và phân tích dữ liệu khách hàng để hỗ trợ ra quyết định kinh doanh',
+      'Xây dựng, huấn luyện và đánh giá mô hình học máy (phân loại, dự báo, gợi ý)',
+      'Thiết kế dashboard Power BI và báo cáo định kỳ cho các phòng ban',
+      'Phối hợp với đội backend để đưa mô hình vào vận hành',
+      'Theo dõi chất lượng mô hình và đề xuất cải tiến',
+    ],
+    reqs: [
+      'Thành thạo Python và SQL; quen với Pandas, NumPy, Scikit-learn',
+      'Hiểu nền tảng thống kê và các thuật toán học máy phổ biến',
+      'Biết trực quan hóa dữ liệu (Power BI, Tableau hoặc Matplotlib)',
+      'Ưu tiên: TensorFlow/PyTorch, kinh nghiệm xử lý ngôn ngữ tự nhiên',
+      'Tư duy logic, trình bày kết quả phân tích rõ ràng',
+    ],
+  },
+  qa: {
+    title: 'QA Engineer', stack: 'kiểm thử phần mềm',
+    skills: ['Manual Testing', 'Selenium', 'Cypress', 'Postman', 'Jira', 'SQL', 'Agile/Scrum'],
+    duties: [
+      'Phân tích yêu cầu, thiết kế test case và thực hiện kiểm thử chức năng, hồi quy',
+      'Báo cáo và theo dõi lỗi trên Jira, phối hợp với lập trình viên để xử lý',
+      'Kiểm thử API bằng Postman và viết kịch bản tự động hóa (Selenium/Cypress)',
+      'Tham gia sprint planning, review và đảm bảo tiêu chí hoàn thành (DoD)',
+      'Đề xuất cải tiến quy trình đảm bảo chất lượng',
+    ],
+    reqs: [
+      'Nắm vững quy trình kiểm thử phần mềm, kỹ thuật thiết kế test case',
+      'Biết sử dụng Jira (hoặc công cụ quản lý lỗi tương đương), Postman và SQL cơ bản',
+      'Ưu tiên: kiểm thử tự động với Selenium hoặc Cypress',
+      'Cẩn thận, tỉ mỉ, có khả năng phát hiện vấn đề từ góc nhìn người dùng',
+      'Đọc hiểu tài liệu tiếng Anh cơ bản',
+    ],
+  },
+  devops: {
+    title: 'DevOps Engineer', stack: 'AWS',
+    skills: ['Docker', 'Kubernetes', 'CI/CD', 'AWS', 'Linux', 'Git'],
+    duties: [
+      'Xây dựng và duy trì pipeline CI/CD cho các dự án web và mobile',
+      'Quản lý hạ tầng trên AWS (EC2, RDS, S3, ECS/EKS) bằng Infrastructure as Code',
+      'Thiết lập giám sát, cảnh báo và sao lưu dữ liệu, đảm bảo hệ thống ổn định',
+      'Tối ưu chi phí hạ tầng và bảo mật hệ thống (IAM, mạng, secret)',
+      'Hỗ trợ đội phát triển trong việc đóng gói và triển khai ứng dụng',
+    ],
+    reqs: [
+      'Có kinh nghiệm vận hành Linux và viết shell script',
+      'Hiểu và sử dụng Docker; ưu tiên Kubernetes',
+      'Đã làm việc với một nền tảng đám mây (AWS/Azure/GCP) và công cụ CI/CD (GitHub Actions, GitLab CI, Jenkins)',
+      'Hiểu về mạng, bảo mật và giám sát hệ thống (Prometheus, Grafana)',
+      'Sẵn sàng trực xử lý sự cố theo lịch luân phiên',
+    ],
+  },
+  mobile: {
+    title: 'Mobile Developer', stack: 'Flutter',
+    skills: ['Flutter', 'React Native', 'Kotlin', 'Swift', 'Firebase', 'REST API', 'Git'],
+    duties: [
+      'Phát triển ứng dụng di động đa nền tảng (Flutter hoặc React Native) cho iOS và Android',
+      'Tích hợp REST API, thông báo đẩy (push notification) và thanh toán trong ứng dụng',
+      'Tối ưu hiệu năng, dung lượng ứng dụng và trải nghiệm mượt trên nhiều thiết bị',
+      'Đưa ứng dụng lên App Store/Google Play và xử lý phản hồi từ người dùng',
+      'Viết kiểm thử và duy trì chất lượng mã nguồn',
+    ],
+    reqs: [
+      'Có kinh nghiệm phát triển ứng dụng di động với Flutter hoặc React Native',
+      'Hiểu vòng đời ứng dụng, quản lý state và điều hướng trong ứng dụng',
+      'Đã từng phát hành ít nhất một ứng dụng lên App Store hoặc Google Play',
+      'Biết Firebase (Auth, Firestore, FCM), Git; ưu tiên có kiến thức Kotlin/Swift',
+      'Có tinh thần trách nhiệm với sản phẩm cuối',
+    ],
+  },
+  uiux: {
+    title: 'UI/UX Designer', stack: 'Figma',
+    skills: ['Figma', 'UI/UX Design', 'HTML/CSS'],
+    duties: [
+      'Nghiên cứu người dùng, xây dựng user flow, wireframe và prototype trên Figma',
+      'Thiết kế giao diện web và mobile nhất quán theo design system của công ty',
+      'Phối hợp với lập trình viên để bàn giao thiết kế và kiểm tra chất lượng sau khi triển khai',
+      'Thực hiện kiểm thử khả năng sử dụng và cải tiến dựa trên dữ liệu',
+      'Duy trì và mở rộng thư viện component',
+    ],
+    reqs: [
+      'Thành thạo Figma, hiểu nguyên tắc thiết kế giao diện và trải nghiệm người dùng',
+      'Có portfolio thể hiện quy trình thiết kế từ nghiên cứu đến sản phẩm',
+      'Biết cơ bản về HTML/CSS để trao đổi với lập trình viên là một lợi thế',
+      'Nhạy với xu hướng thiết kế, có khả năng trình bày ý tưởng',
+      'Nhận phản hồi cởi mở và làm việc nhóm tốt',
+    ],
+  },
+  fullstack: {
+    title: 'Fullstack Developer', stack: 'React & Node.js',
+    skills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'Docker', 'Git', 'MongoDB'],
+    duties: [
+      'Phát triển tính năng end-to-end: giao diện React, API Node.js và cơ sở dữ liệu',
+      'Thiết kế schema, viết migration và tối ưu truy vấn PostgreSQL/MongoDB',
+      'Triển khai ứng dụng bằng Docker và theo dõi hoạt động trên môi trường thật',
+      'Viết kiểm thử, tài liệu và tham gia code review',
+      'Làm việc trực tiếp với bộ phận nghiệp vụ để làm rõ yêu cầu',
+    ],
+    reqs: [
+      'Thành thạo JavaScript/TypeScript, React ở phía client và Node.js ở phía server',
+      'Hiểu cơ sở dữ liệu quan hệ, thiết kế REST API và xác thực JWT',
+      'Biết Docker và Git; ưu tiên có kinh nghiệm CI/CD',
+      'Có khả năng tự tìm hiểu, tự chịu trách nhiệm một module từ đầu đến cuối',
+      'Giao tiếp rõ ràng, chủ động báo cáo vấn đề',
+    ],
+  },
+  dotnet: {
+    title: '.NET Developer', stack: 'C# / .NET Core',
+    skills: ['C#', '.NET Core', 'SQL', 'Azure', 'REST API', 'Git'],
+    duties: [
+      'Phát triển ứng dụng web API bằng C# và .NET Core',
+      'Thiết kế cơ sở dữ liệu SQL Server, viết stored procedure và tối ưu truy vấn',
+      'Tích hợp hệ thống nội bộ và dịch vụ bên ngoài qua REST API',
+      'Triển khai và vận hành ứng dụng trên Azure',
+      'Viết kiểm thử đơn vị và tài liệu kỹ thuật',
+    ],
+    reqs: [
+      'Nắm vững C#, .NET Core/ASP.NET Core và Entity Framework',
+      'Có kinh nghiệm với SQL Server, thiết kế REST API',
+      'Biết Git; ưu tiên kinh nghiệm Azure DevOps',
+      'Hiểu nguyên tắc SOLID và các mẫu thiết kế thông dụng',
+      'Cẩn thận, có trách nhiệm với chất lượng sản phẩm',
+    ],
+  },
+};
+
+// Lương (triệu VNĐ/tháng) và yêu cầu kinh nghiệm theo cấp bậc; exp khớp EXPERIENCE_LABELS ở client
+const LEVELS = {
+  INTERN: { label: 'Intern', exp: 'NONE', sal: [3, 6], years: 'Không yêu cầu kinh nghiệm, ưu tiên sinh viên năm cuối' },
+  FRESHER: { label: 'Fresher', exp: 'UNDER_1', sal: [8, 13], years: 'Dưới 1 năm kinh nghiệm hoặc vừa tốt nghiệp, có đồ án/dự án cá nhân' },
+  JUNIOR: { label: 'Junior', exp: 'Y1_2', sal: [13, 22], years: 'Từ 1 năm kinh nghiệm ở vị trí tương đương' },
+  MIDDLE: { label: 'Middle', exp: 'Y2_5', sal: [22, 35], years: 'Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh' },
+  SENIOR: { label: 'Senior', exp: 'OVER_5', sal: [35, 60], years: 'Từ 4 năm kinh nghiệm, từng dẫn dắt hoặc hướng dẫn thành viên khác' },
+};
+
+const BENEFITS = [
+  'Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm',
+  'Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)',
+  'Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định',
+  'Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm',
+  'Được cấp MacBook/laptop cấu hình cao và màn hình rời',
+  'Team building mỗi quý, du lịch công ty hằng năm',
+  'Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa',
+  'Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu',
+  'Tham gia tech talk nội bộ và các dự án có người dùng thật',
+  'Thưởng giới thiệu ứng viên lên đến 10 triệu đồng',
+];
+const BENEFITS_REMOTE = [
+  'Làm việc từ xa linh hoạt, hỗ trợ chi phí internet hằng tháng',
+  'Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết',
+  'Họp đồng bộ ngắn mỗi ngày, còn lại tự chủ sắp xếp thời gian',
+  'Thưởng dự án và đánh giá theo hiệu quả công việc',
+  'Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)',
+];
+
+const WORKING_TIME = {
+  FULL_TIME: ['Thứ 2 – Thứ 6 (8h30 – 17h30)', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)'],
+  PART_TIME: ['Part-time 4 giờ/ngày, tối thiểu 20 giờ/tuần, sắp xếp theo lịch học'],
+  REMOTE: ['Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)', 'Làm việc từ xa, họp đồng bộ 9h mỗi sáng'],
+  FREELANCE: ['Theo tiến độ dự án, họp đồng bộ 2 buổi/tuần'],
+};
+
+// [công ty, vị trí, cấp bậc, hình thức, nơi làm việc, trạng thái, đăng cách đây (ngày), hạn nộp còn (ngày; âm = đã qua; null = không giới hạn), số lượng]
+// nơi làm việc: HCM | HN | DN | HP | CT | ALL (toàn quốc / remote). Công ty 'fpt' là doanh nghiệp có sẵn của bạn (employer@fpt.com).
+const SPECS = [
+  ['saoviet', 'java', 'SENIOR', 'FULL_TIME', 'HCM', 'OPEN', 3, 40, 2],
+  ['saoviet', 'dotnet', 'MIDDLE', 'FULL_TIME', 'HCM', 'OPEN', 8, 35, 2],
+  ['saoviet', 'qa', 'JUNIOR', 'FULL_TIME', 'HCM', 'OPEN', 12, 28, 3],
+  ['saoviet', 'fullstack', 'MIDDLE', 'FULL_TIME', 'HCM', 'OPEN', 20, null, 1],
+  ['saoviet', 'frontend', 'FRESHER', 'FULL_TIME', 'HCM', 'CLOSED', 45, -5, 4],
+  ['camtu', 'backend_node', 'SENIOR', 'FULL_TIME', 'HN', 'OPEN', 2, 45, 2],
+  ['camtu', 'frontend', 'MIDDLE', 'FULL_TIME', 'HN', 'OPEN', 6, 30, 2],
+  ['camtu', 'devops', 'MIDDLE', 'FULL_TIME', 'HN', 'OPEN', 10, 25, 1],
+  ['camtu', 'java', 'MIDDLE', 'FULL_TIME', 'HN', 'OPEN', 15, 20, 3],
+  ['camtu', 'mobile', 'MIDDLE', 'REMOTE', 'ALL', 'PENDING_APPROVAL', 0, 40, 1],
+  ['tana', 'data_ai', 'JUNIOR', 'FULL_TIME', 'HCM', 'OPEN', 4, 38, 2],
+  ['tana', 'python', 'MIDDLE', 'REMOTE', 'ALL', 'OPEN', 9, 33, 2],
+  ['tana', 'data_ai', 'SENIOR', 'FULL_TIME', 'HCM', 'OPEN', 17, 27, 1],
+  ['tana', 'frontend', 'FRESHER', 'PART_TIME', 'HCM', 'OPEN', 5, 22, 2],
+  ['ronvang', 'java', 'SENIOR', 'FULL_TIME', 'HN', 'OPEN', 1, 50, 2],
+  ['ronvang', 'backend_node', 'MIDDLE', 'FULL_TIME', 'HN', 'OPEN', 7, 31, 2],
+  ['ronvang', 'qa', 'MIDDLE', 'FULL_TIME', 'HN', 'OPEN', 13, 26, 1],
+  ['ronvang', 'devops', 'SENIOR', 'FULL_TIME', 'HN', 'OPEN', 22, null, 1],
+  ['ronvang', 'dotnet', 'JUNIOR', 'FULL_TIME', 'HN', 'CLOSED', 50, -12, 2],
+  ['canhdieu', 'frontend', 'SENIOR', 'FULL_TIME', 'HCM', 'OPEN', 5, 42, 1],
+  ['canhdieu', 'php', 'MIDDLE', 'FULL_TIME', 'HCM', 'OPEN', 11, 29, 2],
+  ['canhdieu', 'mobile', 'MIDDLE', 'FULL_TIME', 'HCM', 'OPEN', 16, 24, 1],
+  ['canhdieu', 'uiux', 'JUNIOR', 'FULL_TIME', 'HCM', 'OPEN', 19, 21, 1],
+  ['canhdieu', 'backend_node', 'JUNIOR', 'FULL_TIME', 'HCM', 'PENDING_APPROVAL', 0, 35, 2],
+  ['bienxanh', 'java', 'MIDDLE', 'FULL_TIME', 'DN', 'OPEN', 6, 36, 3],
+  ['bienxanh', 'dotnet', 'JUNIOR', 'FULL_TIME', 'DN', 'OPEN', 14, 30, 2],
+  ['bienxanh', 'qa', 'FRESHER', 'FULL_TIME', 'DN', 'OPEN', 9, 23, 3],
+  ['bienxanh', 'frontend', 'JUNIOR', 'FULL_TIME', 'DN', 'OPEN', 25, 19, 1],
+  ['anhduong', 'frontend', 'JUNIOR', 'FULL_TIME', 'HN', 'OPEN', 3, 34, 2],
+  ['anhduong', 'backend_node', 'JUNIOR', 'REMOTE', 'ALL', 'OPEN', 8, 37, 1],
+  ['anhduong', 'uiux', 'MIDDLE', 'FULL_TIME', 'HN', 'OPEN', 18, 28, 1],
+  ['anhduong', 'qa', 'INTERN', 'PART_TIME', 'HN', 'OPEN', 12, 20, 4],
+  ['anhduong', 'frontend', 'MIDDLE', 'FREELANCE', 'ALL', 'HIDDEN', 30, null, 1],
+  ['giodong', 'fullstack', 'MIDDLE', 'FULL_TIME', 'HP', 'OPEN', 10, 32, 2],
+  ['giodong', 'php', 'JUNIOR', 'FULL_TIME', 'HP', 'OPEN', 21, 18, 2],
+  ['giodong', 'devops', 'JUNIOR', 'FULL_TIME', 'HP', 'DRAFT', 0, null, 1],
+  ['hongnac', 'mobile', 'SENIOR', 'FULL_TIME', 'HCM', 'OPEN', 4, 39, 1],
+  ['hongnac', 'mobile', 'JUNIOR', 'REMOTE', 'ALL', 'OPEN', 7, 30, 2],
+  ['hongnac', 'uiux', 'JUNIOR', 'PART_TIME', 'HCM', 'OPEN', 15, 26, 1],
+  ['hongnac', 'frontend', 'FRESHER', 'FULL_TIME', 'HCM', 'CLOSED', 40, -9, 2],
+  ['lachong', 'php', 'MIDDLE', 'FULL_TIME', 'CT', 'OPEN', 9, 34, 2],
+  ['lachong', 'fullstack', 'JUNIOR', 'FULL_TIME', 'CT', 'OPEN', 13, 28, 2],
+  ['lachong', 'qa', 'JUNIOR', 'FULL_TIME', 'CT', 'OPEN', 23, 17, 1],
+  ['lachong', 'python', 'JUNIOR', 'FREELANCE', 'ALL', 'PENDING_APPROVAL', 0, 30, 1],
+  ['fpt', 'java', 'MIDDLE', 'FULL_TIME', 'HCM', 'OPEN', 5, 40, 3],
+  ['fpt', 'qa', 'JUNIOR', 'FULL_TIME', 'HCM', 'OPEN', 9, 30, 2],
+  ['fpt', 'devops', 'MIDDLE', 'REMOTE', 'ALL', 'OPEN', 14, 35, 1],
+  ['fpt', 'data_ai', 'JUNIOR', 'FULL_TIME', 'HCM', 'CLOSED', 55, -8, 2],
+];
+
+const CITY = { HCM: 'TP. Hồ Chí Minh', HN: 'Hà Nội', DN: 'Đà Nẵng', HP: 'Hải Phòng', CT: 'Cần Thơ', ALL: 'Toàn quốc' };
+
+module.exports = { ROLES, LEVELS, BENEFITS, BENEFITS_REMOTE, WORKING_TIME, SPECS, CITY };

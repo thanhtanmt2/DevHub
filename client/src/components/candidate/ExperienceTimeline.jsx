@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 // Loại mục trên sơ đồ. DEVHUB là dự án thật trên nền tảng (tự động, có xác thực).
 export const EXP_TYPES = {
-  COMPANY: { label: 'Công ty', lane: 'Công ty', bar: 'bg-blue-500 hover:bg-blue-600', soft: 'bg-blue-50 text-blue-700 ring-blue-200', nameLabel: 'Tên công ty', roleLabel: 'Chức danh' },
+  COMPANY: { label: 'Công ty', lane: 'Công ty', bar: 'bg-primary-500 hover:bg-primary-600', soft: 'bg-primary-50 text-primary-700 ring-primary-200', nameLabel: 'Tên công ty', roleLabel: 'Chức danh' },
   PROJECT: { label: 'Dự án trong công ty', lane: 'Dự án trong công ty', bar: 'bg-sky-400 hover:bg-sky-500', soft: 'bg-sky-50 text-sky-700 ring-sky-200', nameLabel: 'Tên dự án', roleLabel: 'Vai trò trong dự án' },
   DEVHUB: { label: 'Dự án trên DevHub', lane: 'Dự án DevHub', bar: 'bg-emerald-500 hover:bg-emerald-600', soft: 'bg-emerald-50 text-emerald-700 ring-emerald-200', nameLabel: 'Tên dự án', roleLabel: 'Vị trí' },
   FREELANCE: { label: 'Freelance', lane: 'Freelance', bar: 'bg-amber-500 hover:bg-amber-600', soft: 'bg-amber-50 text-amber-700 ring-amber-200', nameLabel: 'Khách hàng / dự án', roleLabel: 'Vai trò' },
@@ -85,6 +85,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
   const items = useMemo(() => buildItems(experiences, devhubProjects), [experiences, devhubProjects]);
   const [filter, setFilter] = useState('ALL');
   const [selectedKey, setSelectedKey] = useState(null);
+  const [hoveredKey, setHoveredKey] = useState(null);
 
   const typesPresent = LANE_ORDER.filter((t) => items.some((i) => i.type === t));
   const visible = filter === 'ALL' ? items : items.filter((i) => i.type === filter);
@@ -146,7 +147,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
             </div>
           </div>
           {lanes.length === 0 && <p className="text-sm text-slate-400 py-6 text-center">Không có mục nào thuộc loại này.</p>}
-          {lanes.map((lane) => (
+          {lanes.map((lane, laneIdx) => (
             <div key={lane.type} className="flex border-t border-slate-100">
               <div className="w-28 shrink-0 pr-2 py-2 text-xs font-semibold text-slate-600 flex items-start">{EXP_TYPES[lane.type].lane}</div>
               <div className="relative flex-1" style={{ height: lane.rowCount * 34 + 8 }}>
@@ -156,13 +157,59 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
                 ))}
                 {lane.placed.map(({ it, row }) => {
                   const isSel = selected?.key === it.key;
+                  const isHovered = hoveredKey === it.key;
+                  const leftPct = pct(it.start);
+                  const widthPct = Math.max(pct(it.endT) - leftPct, 1.5);
+                  const rightEdgePct = Math.min(100, leftPct + widthPct);
+                  const isNearRight = leftPct > 60;
+                  const showTooltipBelow = laneIdx === 0 && row === 0;
+
+                  const posStyle = isHovered
+                    ? (isNearRight
+                      ? { right: `${100 - rightEdgePct}%`, minWidth: `${widthPct}%`, maxWidth: `${rightEdgePct}%`, width: 'auto', top: row * 34 + 4 }
+                      : { left: `${leftPct}%`, minWidth: `${widthPct}%`, maxWidth: `${100 - leftPct}%`, width: 'auto', top: row * 34 + 4 })
+                    : { left: `${leftPct}%`, width: `${widthPct}%`, top: row * 34 + 4 };
+
                   return (
-                    <button key={it.key} type="button" onClick={() => setSelectedKey(it.key)}
-                      title={`${it.name} — ${it.role}\n${monthYear(it.start)} – ${it.ongoing ? 'Hiện tại' : monthYear(it.endT)} (${durationText(it.start, it.endT)})`}
-                      className={`absolute h-7 rounded-md text-left text-[11px] font-semibold text-white px-2 truncate transition ${EXP_TYPES[it.type].bar} ${isSel ? 'ring-2 ring-offset-1 ring-slate-900' : ''}`}
-                      style={{ left: `${pct(it.start)}%`, width: `${Math.max(pct(it.endT) - pct(it.start), 1.5)}%`, top: row * 34 + 4 }}>
-                      {it.name}
-                    </button>
+                    <div
+                      key={it.key}
+                      style={posStyle}
+                      onMouseEnter={() => setHoveredKey(it.key)}
+                      onMouseLeave={() => setHoveredKey((prev) => (prev === it.key ? null : prev))}
+                      className={`absolute h-7 ${isHovered ? 'z-30' : isSel ? 'z-10' : 'z-0'}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedKey(it.key)}
+                        onFocus={() => setHoveredKey(it.key)}
+                        onBlur={() => setHoveredKey((prev) => (prev === it.key ? null : prev))}
+                        className={`w-full h-full rounded-md text-left text-[11px] font-semibold text-white px-2 transition ${EXP_TYPES[it.type].bar} ${
+                          isHovered ? 'whitespace-nowrap shadow-lg ring-2 ring-slate-900/80 px-2.5' : 'truncate'
+                        } ${isSel && !isHovered ? 'ring-2 ring-offset-1 ring-slate-900' : ''}`}
+                      >
+                        {it.name}
+                      </button>
+
+                      {isHovered && (
+                        <div
+                          className={`pointer-events-none absolute ${
+                            showTooltipBelow ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                          } ${isNearRight ? 'right-0' : 'left-0'} z-40 w-max max-w-xs rounded-lg bg-slate-900 px-3 py-2 text-white shadow-xl`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-bold leading-snug break-words">{it.name}</p>
+                            {it.evaluation?.score !== undefined && it.evaluation?.score !== null && (
+                              <span className="shrink-0 inline-flex items-center gap-0.5 rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                                ★ {Number(it.evaluation.score).toFixed(1)}/10
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-0.5">
+                            {it.role} · {monthYear(it.start)} – {it.ongoing ? 'Hiện tại' : monthYear(it.endT)} ({durationText(it.start, it.endT)})
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -180,13 +227,13 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ring-1 ring-inset ${meta.soft}`}>{meta.label}</span>
                 {selected.verified && <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-600 text-white">Đã xác thực bởi DevHub</span>}
-                {selected.ongoing && <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700">Đang diễn ra</span>}
+                {selected.ongoing && <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-primary-50 text-primary-700">Đang diễn ra</span>}
               </div>
               <h4 className="font-bold text-slate-900 text-lg">{selected.name}</h4>
               <p className="text-sm font-medium text-slate-600">{selected.role}</p>
               <p className="text-xs text-slate-500 mt-1">
                 {monthYear(selected.start)} – {selected.ongoing ? 'Hiện tại' : monthYear(selected.endT)} · {durationText(selected.start, selected.endT)}
-                {parent && <> · thuộc <button type="button" className="text-primary-600 hover:underline" onClick={() => setSelectedKey(parent.key)}>{parent.name}</button></>}
+                {parent && <> · thuộc <button type="button" className="text-primary-700 hover:underline" onClick={() => setSelectedKey(parent.key)}>{parent.name}</button></>}
               </p>
             </div>
             {editable && !selected.verified && (
@@ -194,7 +241,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
                 {selected.type === 'COMPANY' && onAddProject && (
                   <button type="button" onClick={() => onAddProject(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg">+ Dự án trong công ty</button>
                 )}
-                <button type="button" onClick={() => onEdit?.(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">Sửa</button>
+                <button type="button" onClick={() => onEdit?.(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg">Sửa</button>
                 <button type="button" onClick={() => onDelete?.(selected.raw)} className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg">Xóa</button>
               </div>
             )}
@@ -216,7 +263,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
               <div className="flex flex-wrap gap-1.5">{selected.technologies.map((t) => <Chip key={t}>{t}</Chip>)}</div>
             </div>
           )}
-          {selected.link && <p className="mt-3 text-sm"><a href={selected.link} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline break-all">{selected.link}</a></p>}
+          {selected.link && <p className="mt-3 text-sm"><a href={selected.link} target="_blank" rel="noopener noreferrer" className="text-primary-700 hover:underline break-all">{selected.link}</a></p>}
 
           {children.length > 0 && (
             <div className="mt-4">

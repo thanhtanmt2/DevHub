@@ -122,22 +122,22 @@ export default function ApplicantsPanel({ jobId }) {
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-slate-600">
                       {user?.email && (
-                        <a href={`mailto:${user.email}`} className="inline-flex items-center gap-1.5 hover:text-primary-600 hover:underline">
+                        <a href={`mailto:${user.email}`} className="inline-flex items-center gap-1.5 hover:text-primary-700 hover:underline">
                           <Icon name="mail" className="w-4 h-4 text-slate-400" />{user.email}
                         </a>
                       )}
                       {profile?.phone && (
-                        <a href={`tel:${profile.phone}`} className="inline-flex items-center gap-1.5 hover:text-primary-600">
+                        <a href={`tel:${profile.phone}`} className="inline-flex items-center gap-1.5 hover:text-primary-700">
                           <Icon name="phone" className="w-4 h-4 text-slate-400" />{profile.phone}
                         </a>
                       )}
                       {profile?.github_url && (
-                        <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-primary-600 hover:underline">
+                        <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-primary-700 hover:underline">
                           <Icon name="code" className="w-4 h-4 text-slate-400" />GitHub
                         </a>
                       )}
                       {profile?.portfolio_url && (
-                        <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-primary-600 hover:underline">
+                        <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-primary-700 hover:underline">
                           <Icon name="globe" className="w-4 h-4 text-slate-400" />Portfolio
                         </a>
                       )}
@@ -157,7 +157,7 @@ export default function ApplicantsPanel({ jobId }) {
                         <p className="text-xs font-semibold text-slate-500 mb-1">Thư giới thiệu</p>
                         <p className={`whitespace-pre-line ${isOpen ? '' : 'line-clamp-3'}`}>{app.cover_letter}</p>
                         {long && (
-                          <button onClick={() => setExpanded((e) => ({ ...e, [app.id]: !isOpen }))} className="text-xs text-primary-600 font-medium hover:underline mt-1">
+                          <button onClick={() => setExpanded((e) => ({ ...e, [app.id]: !isOpen }))} className="text-xs text-primary-700 font-medium hover:underline mt-1">
                             {isOpen ? 'Thu gọn' : 'Xem đầy đủ'}
                           </button>
                         )}

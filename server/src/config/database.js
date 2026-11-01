@@ -9,6 +9,8 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
+    // Rút gọn alias cột SQL (_0, _1...) để tránh bị PostgreSQL cắt ở giới hạn 63 ký tự khi join nhiều bảng
+    minifyAliases: true,
     // nếu là development thì hiện câu lệnh sql còn không thì không hiện 
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {

@@ -72,7 +72,7 @@ export default function AvatarUploader({ size = 'xl', className = '', light = fa
           disabled={busy}
           title="Đổi ảnh đại diện"
           aria-label="Đổi ảnh đại diện"
-          className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white text-primary-600 shadow-md ring-1 ring-slate-200 flex items-center justify-center hover:bg-primary-50 disabled:opacity-60 transition-colors"
+          className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white text-primary-700 shadow-md ring-1 ring-slate-200 flex items-center justify-center hover:bg-primary-50 disabled:opacity-60 transition-colors"
         >
           {busy
             ? <span className="w-4 h-4 rounded-full border-2 border-primary-200 border-t-primary-600 animate-spin" />

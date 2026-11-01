@@ -57,4 +57,25 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+// Đăng nhập tùy chọn: có token hợp lệ thì gắn req.user / req.userRoles, không có (hoặc token hỏng/hết hạn) thì coi là khách.
+// Dùng cho các API công khai nhưng cá nhân hóa nội dung khi đã đăng nhập (vd: việc làm đề xuất ở trang chủ).
+const optionalAuth = async (req, res, next) => {
+  try {
+    const header = req.headers.authorization;
+    const token = header && header.startsWith('Bearer') ? header.split(' ')[1] : req.cookies?.accessToken;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findByPk(decoded.id, {
+        attributes: { exclude: ['password_hash', 'refresh_token', 'email_verify_token', 'reset_password_token'] },
+        include: [{ association: 'Roles', attributes: ['name'] }],
+      });
+      if (user && user.status !== 'LOCKED') {
+        req.user = user;
+        req.userRoles = user.Roles ? user.Roles.map((r) => r.name) : [];
+      }
+    }
+  } catch { /* token không hợp lệ: bỏ qua, xử lý như khách */ }
+  next();
+};
+
+module.exports = { protect, authorize, optionalAuth };

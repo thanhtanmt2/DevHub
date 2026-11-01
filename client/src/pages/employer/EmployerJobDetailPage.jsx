@@ -7,7 +7,8 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import JobDetailView from '@/components/job/JobDetailView';
 import ApplicantsPanel from '@/components/employer/ApplicantsPanel';
-import JobFormModal from '@/components/employer/JobFormModal';
+import JobFormModal, { getMissingJobFields } from '@/components/employer/JobFormModal';
+import ReopenJobModal from '@/components/employer/ReopenJobModal';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { JOB_STATUS_META } from '@/utils/jobMeta';
 
@@ -15,8 +16,8 @@ import { JOB_STATUS_META } from '@/utils/jobMeta';
 const STATUS_NOTE = {
   PENDING_APPROVAL: { cls: 'bg-amber-50 border-amber-200 text-amber-800', text: 'Tin đang chờ Admin duyệt nên chưa hiển thị cho ứng viên. Bạn sẽ nhận thông báo ngay khi có kết quả.' },
   HIDDEN: { cls: 'bg-rose-50 border-rose-200 text-rose-800', text: 'Tin đã bị Admin từ chối. Bấm "Sửa tin" để chỉnh sửa — khi lưu, tin sẽ tự được gửi lại để Admin duyệt.' },
-  CLOSED: { cls: 'bg-slate-100 border-slate-200 text-slate-600', text: 'Tin đã đóng: ứng viên không còn thấy và không nộp thêm hồ sơ được. Các hồ sơ đã nhận vẫn xem được ở tab "Hồ sơ ứng tuyển".' },
-  DRAFT: { cls: 'bg-slate-100 border-slate-200 text-slate-600', text: 'Đây là bản nháp, chưa được đăng.' },
+  CLOSED: { cls: 'bg-red-50 border-red-200 text-red-700', text: 'Tin đã đóng: ứng viên không còn thấy và không nộp thêm hồ sơ được. Bạn có thể bấm "Mở lại tin" bất cứ lúc nào để tiếp tục tuyển dụng.' },
+  DRAFT: { cls: 'bg-slate-100 border-slate-200 text-slate-600', text: 'Đây là bản nháp, chưa được đăng. Bấm "Đăng tin (Gửi duyệt)" khi bạn đã sẵn sàng công bố.' },
 };
 
 // Chi tiết một tin tuyển dụng của nhà tuyển dụng: xem nội dung tin + xử lý hồ sơ ứng viên ngay trong tin
@@ -27,7 +28,8 @@ export default function EmployerJobDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const confirm = useConfirm();
-  const [editing, setEditing] = useState(false);
+  const [modalMode, setModalMode] = useState(null); // null | 'edit' | 'duplicate'
+  const [showReopen, setShowReopen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['employer-job', id],
@@ -46,6 +48,42 @@ export default function EmployerJobDetailPage() {
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Không thể đóng tin'),
   });
+
+  const deleteMut = useMutation({
+    mutationFn: () => jobApi.deleteJob(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employer-jobs'] });
+      qc.removeQueries({ queryKey: ['employer-job', id] });
+      toast.success('Đã xóa tin tuyển dụng');
+      navigate('/employer/jobs');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không thể xóa tin'),
+  });
+
+  const publishDraftMut = useMutation({
+    mutationFn: () => jobApi.updateJob(id, { is_draft: false }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['employer-job', id] });
+      qc.invalidateQueries({ queryKey: ['employer-jobs'] });
+      toast.success(res.data?.message || 'Đã gửi bản nháp để Admin duyệt');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không thể đăng bản nháp'),
+  });
+
+  const handlePublishDraft = () => {
+    const missing = getMissingJobFields(job);
+    if (missing.length > 0) {
+      toast.error(`Bản nháp còn thiếu ${missing.join(', ')}. Vui lòng bổ sung trước khi đăng tin.`);
+      setModalMode('edit');
+      return;
+    }
+    if (job.deadline && new Date(job.deadline) < new Date()) {
+      toast.error('Hạn nộp hồ sơ của bản nháp đã qua. Vui lòng cập nhật lại trước khi đăng tin.');
+      setModalMode('edit');
+      return;
+    }
+    publishDraftMut.mutate();
+  };
 
   const setTab = (t) => setParams(t === 'applications' ? { tab: 'applications' } : {}, { replace: true });
 
@@ -72,10 +110,19 @@ export default function EmployerJobDetailPage() {
     }
   };
 
+  const askDelete = async () => {
+    const message = total > 0
+      ? `Xóa vĩnh viễn tin "${job.title}" cùng ${total} hồ sơ ứng tuyển của tin này? Hành động này không thể hoàn tác.`
+      : `Xóa vĩnh viễn tin tuyển dụng "${job.title}"? Hành động này không thể hoàn tác.`;
+    if (await confirm({ title: 'Xóa tin tuyển dụng', message, confirmText: 'Xóa vĩnh viễn', tone: 'danger' })) {
+      deleteMut.mutate();
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div>
-        <button onClick={() => navigate('/employer/jobs')} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-3">
+        <button onClick={() => navigate('/employer/jobs')} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-700 mb-3">
           <Icon name="chevronRight" className="w-4 h-4 rotate-180" />Tin tuyển dụng
         </button>
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -95,12 +142,37 @@ export default function EmployerJobDetailPage() {
                 <Icon name="external" className="w-4 h-4" />Xem như ứng viên
               </Link>
             )}
-            <button onClick={() => setEditing(true)} className="btn-secondary text-sm"><Icon name="pencil" className="w-4 h-4" />Sửa tin</button>
-            {job.status !== 'CLOSED' && (
-              <button onClick={askClose} disabled={closeMut.isPending} className="text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors">
+            {job.status === 'DRAFT' && (
+              <button
+                onClick={handlePublishDraft}
+                disabled={publishDraftMut.isPending}
+                className="btn-primary text-sm"
+              >
+                <Icon name="upload" className="w-4 h-4" />Đăng tin (Gửi duyệt)
+              </button>
+            )}
+            <button onClick={() => setModalMode('duplicate')} className="btn-secondary text-sm">
+              <Icon name="copy" className="w-4 h-4" />Nhân bản
+            </button>
+            <button onClick={() => setModalMode('edit')} className="btn-secondary text-sm">
+              <Icon name="pencil" className="w-4 h-4" />Sửa tin
+            </button>
+            {job.status === 'CLOSED' && (
+              <button
+                onClick={() => setShowReopen(true)}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg transition-colors"
+              >
+                <Icon name="refresh" className="w-4 h-4" />Mở lại tin
+              </button>
+            )}
+            {['OPEN', 'PENDING_APPROVAL'].includes(job.status) && (
+              <button onClick={askClose} disabled={closeMut.isPending} className="text-sm font-medium text-amber-700 hover:text-amber-800 border border-amber-200 hover:bg-amber-50 px-4 py-2 rounded-lg transition-colors">
                 <Icon name="lock" className="w-4 h-4 mr-1" />Đóng tin
               </button>
             )}
+            <button onClick={askDelete} disabled={deleteMut.isPending} className="text-sm font-medium text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors">
+              <Icon name="trash" className="w-4 h-4 mr-1" />Xóa tin
+            </button>
           </div>
         </div>
       </div>
@@ -129,7 +201,8 @@ export default function EmployerJobDetailPage() {
 
       {tab === 'applications' ? <ApplicantsPanel jobId={job.id} /> : <JobDetailView job={job} showTitle={false} />}
 
-      {editing && <JobFormModal job={job} onClose={() => setEditing(false)} />}
+      {modalMode && <JobFormModal job={job} mode={modalMode} onClose={() => setModalMode(null)} />}
+      {showReopen && <ReopenJobModal job={job} onClose={() => setShowReopen(false)} />}
     </div>
   );
 }

@@ -11,7 +11,7 @@ const STATUS_LABELS = {
   PENDING_APPROVAL: { text: 'Chờ duyệt', cls: 'bg-yellow-100 text-yellow-700' },
   OPEN:             { text: 'Đã duyệt',  cls: 'bg-green-100 text-green-700'  },
   HIDDEN:           { text: 'Từ chối',   cls: 'bg-red-100 text-red-700'      },
-  CLOSED:           { text: 'Đã đóng',   cls: 'bg-gray-100 text-gray-600'    },
+  CLOSED:           { text: 'Đã đóng',   cls: 'bg-red-100 text-red-700'      },
   DRAFT:            { text: 'Nháp',      cls: 'bg-gray-100 text-gray-500'    },
 };
 
@@ -189,7 +189,7 @@ export default function ManageJobsPage() {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Kỹ năng yêu cầu</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedJob.Skills.map(s => (
-                      <span key={s.id} className="badge bg-blue-100 text-blue-700">{s.name}</span>
+                      <span key={s.id} className="badge bg-primary-100 text-primary-700">{s.name}</span>
                     ))}
                   </div>
                 </div>

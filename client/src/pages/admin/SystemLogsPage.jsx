@@ -10,17 +10,17 @@ import PageBanner from '@/components/common/PageBanner';
 const ACTION_LABELS = {
   // Auth
   USER_REGISTER: { text: 'Đăng ký mới', color: 'bg-green-100 text-green-700' },
-  USER_LOGIN: { text: 'Đăng nhập', color: 'bg-blue-100 text-blue-700' },
+  USER_LOGIN: { text: 'Đăng nhập', color: 'bg-primary-100 text-primary-700' },
   USER_LOGOUT: { text: 'Đăng xuất', color: 'bg-gray-100 text-gray-700' },
   
   // Task
   TASK_CREATED: { text: 'Tạo Task', color: 'bg-primary-100 text-primary-700' },
-  TASK_UPDATED: { text: 'Cập nhật Task', color: 'bg-primary-50 text-primary-600' },
+  TASK_UPDATED: { text: 'Cập nhật Task', color: 'bg-primary-50 text-primary-700' },
   TASK_STATUS_CHANGED: { text: 'Đổi TT Task', color: 'bg-sky-100 text-sky-700' },
   TASK_DELETED: { text: 'Xóa Task', color: 'bg-red-100 text-red-700' },
   TASK_APPROVED: { text: 'Duyệt Task', color: 'bg-emerald-100 text-emerald-700' },
   TASK_REVISION_REQUESTED: { text: 'Yêu cầu sửa', color: 'bg-orange-100 text-orange-700' },
-  TASK_COMMENTED: { text: 'Bình luận', color: 'bg-blue-50 text-blue-600' },
+  TASK_COMMENTED: { text: 'Bình luận', color: 'bg-primary-50 text-primary-700' },
   
   // Workspace
   WORKSPACE_MEMBER_ADDED: { text: 'Thêm Member', color: 'bg-emerald-50 text-emerald-600' },
@@ -28,8 +28,8 @@ const ACTION_LABELS = {
   WORKSPACE_MEMBER_ROLE_CHANGED: { text: 'Đổi Vai trò', color: 'bg-amber-100 text-amber-700' },
   
   // Project
-  PROJECT_CREATED: { text: 'Tạo Dự án', color: 'bg-blue-100 text-blue-700' },
-  PROJECT_UPDATED: { text: 'Cập nhật Dự án', color: 'bg-blue-50 text-blue-600' },
+  PROJECT_CREATED: { text: 'Tạo Dự án', color: 'bg-primary-100 text-primary-700' },
+  PROJECT_UPDATED: { text: 'Cập nhật Dự án', color: 'bg-primary-50 text-primary-700' },
   PROJECT_MANAGER_ASSIGNED: { text: 'Phân công PM', color: 'bg-sky-100 text-sky-700' },
   
   // Application
@@ -94,7 +94,7 @@ const UserSearchSelect = ({ users, value, onChange }) => {
           <div className="p-2 border-b">
             <input 
               type="text" 
-              className="w-full px-2 py-1.5 text-sm border rounded focus:outline-none focus:border-blue-500"
+              className="w-full px-2 py-1.5 text-sm border rounded focus:outline-none focus:border-primary-500"
               placeholder="Tìm tên hoặc email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -104,7 +104,7 @@ const UserSearchSelect = ({ users, value, onChange }) => {
           </div>
           <div className="overflow-y-auto flex-1 py-1">
             <div 
-              className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 ${!value ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+              className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 ${!value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
               onClick={() => { onChange(""); setIsOpen(false); setSearch(""); }}
             >
               Tất cả người thực hiện
@@ -112,7 +112,7 @@ const UserSearchSelect = ({ users, value, onChange }) => {
             {filteredUsers.map(u => (
               <div 
                 key={u.id}
-                className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 ${value === u.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+                className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 ${value === u.id ? 'bg-primary-50 text-primary-700' : 'text-gray-700'}`}
                 onClick={() => { onChange(u.id); setIsOpen(false); setSearch(""); }}
               >
                 <div className="font-medium">{u.full_name}</div>

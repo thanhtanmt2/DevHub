@@ -27,7 +27,7 @@ function StatCard({ label, value, icon, color = 'primary', sub }) {
     emerald: 'bg-emerald-50 border-emerald-100 text-emerald-700',
     amber: 'bg-amber-50 border-amber-100 text-amber-700',
     purple: 'bg-primary-50 border-primary-100 text-primary-700',
-    blue: 'bg-blue-50 border-blue-100 text-blue-700',
+    blue: 'bg-primary-50 border-primary-100 text-primary-700',
     red: 'bg-red-50 border-red-100 text-red-700',
   };
   return (
@@ -178,7 +178,7 @@ export default function StatsPage() {
           </div>
 
           {/* Applications report */}
-          <div className="card border-2 border-blue-100 hover:border-blue-300 transition-colors">
+          <div className="card border-2 border-primary-100 hover:border-primary-300 transition-colors">
             <div className="flex items-center gap-3 mb-3">
               <IconBadge name="mail" tone="blue" shape="square" />
               <div>
@@ -194,7 +194,7 @@ export default function StatsPage() {
             <button
               onClick={() => handleExport('applications')}
               disabled={!!exporting}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+              className="btn-primary w-full flex items-center justify-center gap-2 py-2 bg-primary-600 hover:bg-primary-700 focus:ring-primary-500"
             >
               {exporting === 'applications' ? (
                 <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Đang xuất...</>
@@ -207,9 +207,9 @@ export default function StatsPage() {
       </div>
 
       {/* Note */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-700">
+      <div className="bg-primary-50 border border-primary-100 rounded-xl p-4 text-sm text-primary-700">
         <p className="font-semibold mb-1"><Icon name="info" className="w-4 h-4 mr-1" />Hướng dẫn sử dụng</p>
-        <ul className="space-y-1 text-xs text-blue-600">
+        <ul className="space-y-1 text-xs text-primary-700">
           <li>• File Excel xuất ra tương thích với Microsoft Excel, Google Sheets và LibreOffice</li>
           <li>• Dữ liệu bao gồm toàn bộ lịch sử (không có giới hạn thời gian)</li>
           <li>• Các cột được đánh màu theo trạng thái (xanh = hoàn thành, vàng = đang xử lý, đỏ = thất bại)</li>

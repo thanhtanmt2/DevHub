@@ -10,7 +10,8 @@
     "db:seed": "npx sequelize-cli db:seed:all",
     "db:reset": "node sync.js --force && npx sequelize-cli db:seed:all",
     "db:export": "node scripts/export-db.js",
-    "db:import": "node scripts/import-db.js"
+    "db:import": "node scripts/import-db.js",
+    "db:seed-demo": "node scripts/seed-demo.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

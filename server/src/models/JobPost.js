@@ -20,6 +20,7 @@ module.exports = (sequelize, DataTypes) => {
     posted_at: { type: DataTypes.DATE },
     deadline: { type: DataTypes.DATE },
     status: { type: DataTypes.ENUM('DRAFT', 'PENDING_APPROVAL', 'OPEN', 'HIDDEN', 'CLOSED'), defaultValue: 'DRAFT' },
+    approved_at: { type: DataTypes.DATE }, // lần đầu Admin duyệt (hoặc Admin tự đăng); NULL = chưa từng được duyệt
     view_count: { type: DataTypes.INTEGER, defaultValue: 0 },
   }, { tableName: 'job_posts', underscored: true });
 };

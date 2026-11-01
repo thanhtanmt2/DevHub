@@ -27,6 +27,7 @@ import AccountPage from '@/pages/public/AccountPage';
 import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
 import ProfilePage from '@/pages/candidate/ProfilePage';
 import MyApplicationsPage from '@/pages/candidate/MyApplicationsPage';
+import SavedJobsPage from '@/pages/candidate/SavedJobsPage';
 import MyWorkspacesPage from '@/pages/candidate/MyWorkspacesPage';
 
 // Workspace (dùng chung cho Ứng viên và Admin, quyền được kiểm tra bên trong)
@@ -100,6 +101,7 @@ function AppRoutes() {
           <Route path="/candidate" element={<CandidateDashboard />} />
           <Route path="/candidate/profile" element={<ProfilePage />} />
           <Route path="/candidate/applications" element={<MyApplicationsPage />} />
+          <Route path="/candidate/saved" element={<SavedJobsPage />} />
           <Route path="/candidate/workspaces" element={<MyWorkspacesPage />} />
           <Route path="/candidate/workspaces/:id" element={<WorkspacePage />} />
         </Route>
