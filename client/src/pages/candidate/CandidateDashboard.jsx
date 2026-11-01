@@ -7,6 +7,7 @@ import PageBanner from '@/components/common/PageBanner';
 import StatTile from '@/components/common/StatTile';
 import Icon from '@/components/common/Icon';
 import RecommendedForYou from '@/components/candidate/RecommendedForYou';
+import RecommendedProjectsForYou from '@/components/candidate/RecommendedProjectsForYou';
 
 const STATUS_LABELS = { 
   PENDING: 'Chờ xem xét', 
@@ -115,6 +116,7 @@ export default function CandidateDashboard() {
 
       {/* Việc làm đề xuất theo kỹ năng trong hồ sơ */}
       <RecommendedForYou />
+      <RecommendedProjectsForYou />
 
       {/* Công việc dự án đang thực hiện */}
       {openTasks.length > 0 && (

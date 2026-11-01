@@ -85,6 +85,12 @@ const migrations = [
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_jobs_candidate_job ON saved_jobs (candidate_profile_id, job_post_id)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_jobs_candidate_project_job ON saved_jobs (candidate_profile_id, project_job_id)`,
   `CREATE INDEX IF NOT EXISTS idx_saved_jobs_candidate ON saved_jobs (candidate_profile_id)`,
+  `DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'job_posts' AND column_name = 'approved_at') THEN
+    ALTER TABLE job_posts ADD COLUMN approved_at TIMESTAMPTZ;
+    UPDATE job_posts SET approved_at = COALESCE(posted_at, created_at) WHERE status IN ('OPEN', 'CLOSED');
+  END IF;
+END $$`,
 ];
 
 console.log('Đang chạy migration patch...');

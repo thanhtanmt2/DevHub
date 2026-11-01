@@ -148,17 +148,18 @@ function scoreJob(job, sig) {
   return { percent: Math.max(0, Math.min(100, percent)), matched: hits, reasons: reasons.slice(0, 3) };
 }
 
-// Kỹ năng đầy đủ của một nhóm tin: Map(jobId → [{ id, name }])
-async function loadJobSkills(jobIds) {
+// Kỹ năng đầy đủ của một nhóm tin: Map(jobId → [{ id, name }]). kind: 'job' (tin tuyển dụng) | 'project' (vị trí dự án thời vụ)
+async function loadJobSkills(jobIds, kind = 'job') {
   const map = new Map();
   if (!jobIds.length) return map;
+  const [table, col] = kind === 'project' ? ['project_job_skills', 'project_job_id'] : ['job_post_skills', 'job_post_id'];
   const rows = await sequelize.query(
-    'SELECT js.job_post_id, s.id, s.name FROM job_post_skills js JOIN skills s ON s.id = js.skill_id WHERE js.job_post_id IN (:ids)',
+    `SELECT js.${col} AS job_id, s.id, s.name FROM ${table} js JOIN skills s ON s.id = js.skill_id WHERE js.${col} IN (:ids)`,
     { replacements: { ids: jobIds }, type: 'SELECT' }
   );
   for (const r of rows) {
-    if (!map.has(r.job_post_id)) map.set(r.job_post_id, []);
-    map.get(r.job_post_id).push({ id: r.id, name: r.name });
+    if (!map.has(r.job_id)) map.set(r.job_id, []);
+    map.get(r.job_id).push({ id: r.id, name: r.name });
   }
   return map;
 }

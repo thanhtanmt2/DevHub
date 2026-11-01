@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { projectJobApi } from '@/api/projectJobApi';
 import Icon, { IconBadge } from '@/components/common/Icon';
-import { SkillTag } from '@/components/common/Badges';
+import ProjectCard from '@/components/home/ProjectCard';
+import useRecommendedProjects from '@/components/home/useRecommendedProjects';
 import Reveal from '@/components/home/Reveal';
 import SectionHeader from '@/components/home/SectionHeader';
-import { deadlineInfo, formatMoney } from '@/utils/jobMeta';
 
 const POINTS = [
   'Freelance · Remote · Part-time linh hoạt',
@@ -118,45 +116,11 @@ function KanbanMock() {
   );
 }
 
-function ProjectCard({ job }) {
-  const due = deadlineInfo(job.deadline);
-  return (
-    <Link
-      to={`/projects/${job.id}`}
-      className="group flex flex-col h-full bg-white rounded-2xl border border-slate-200 p-5 shadow-soft transition-all duration-300 hover:shadow-lift hover:-translate-y-1 hover:border-primary-300"
-    >
-      <div className="flex items-start gap-3.5">
-        <IconBadge name="folder" tone="blue" size="lg" shape="square" className="!w-12 !h-12" />
-        <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-slate-900 leading-snug line-clamp-2 group-hover:text-primary-700 transition-colors">{job.title}</h3>
-          <p className="mt-1 text-sm text-slate-500 truncate">{job.Project?.name}</p>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-base font-bold text-primary-700">{formatMoney(job.budget)}</span>
-        {due.key !== 'none' && (
-          <span className={`inline-flex items-center gap-1 text-xs font-medium ${due.key === 'soon' ? 'text-amber-600' : 'text-slate-500'}`}>
-            <Icon name="clock" className="w-3.5 h-3.5" />{due.text}
-          </span>
-        )}
-      </div>
-      {job.Skills?.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {job.Skills.slice(0, 3).map((s) => <SkillTag key={s.id} name={s.name} />)}
-        </div>
-      )}
-    </Link>
-  );
-}
-
 // Giới thiệu mảng Dự án thời vụ: ảnh minh họa Workspace + các dự án đang tuyển
 export default function ProjectShowcase({ count = 0 }) {
-  const { data } = useQuery({
-    queryKey: ['home-projects'],
-    queryFn: () => projectJobApi.getProjectJobs({ page: 1, limit: 3 }),
-    staleTime: 60 * 1000,
-  });
-  const projects = data?.data?.data || [];
+  const { data } = useRecommendedProjects(3);
+  const projects = data?.data || [];
+  const personalized = !!data?.personalized; // ứng viên có hồ sơ: các dự án bên dưới được xếp theo mức phù hợp
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 lg:pt-24">
@@ -189,8 +153,15 @@ export default function ProjectShowcase({ count = 0 }) {
         </Reveal>
       </div>
 
+      {projects.length > 0 && personalized && (
+        <div className="mt-14">
+          <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700"><Icon name="sparkles" className="w-4 h-4" />Đề xuất riêng cho bạn</p>
+          <h3 className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Dự án thời vụ dành cho bạn</h3>
+          <p className="mt-1 text-slate-500">Được xếp theo vị trí đã làm và kỹ năng trong hồ sơ của bạn.</p>
+        </div>
+      )}
       {projects.length > 0 && (
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`${personalized ? 'mt-6' : 'mt-14'} grid gap-5 sm:grid-cols-2 lg:grid-cols-3`}>
           {projects.map((job, i) => (
             <Reveal key={job.id} delay={i * 90} className={`h-full ${i === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
               <ProjectCard job={job} />

@@ -6,6 +6,7 @@ const {
   CandidateEvaluation, WorkspaceMember, Workspace,
 } = require('../models');
 const AppError = require('../utils/AppError');
+const { getCandidateSignals, scoreJobs, loadJobSkills } = require('../utils/jobMatch');
 const sendEmail = require('../utils/sendEmail');
 const { escapeHtml, safeHref } = require('../utils/escapeHtml');
 const { logActivity } = require('../utils/activityLogger');
@@ -63,22 +64,49 @@ exports.getProjectJobs = async (req, res, next) => {
       include[1].required = true;
     }
 
-    const { count, rows } = await ProjectJob.findAndCountAll({
-      where,
-      include,
-      limit: parseInt(limit),
-      offset,
-      order: [
-        ...(sort === 'deadline' ? [[sequelize.literal('"ProjectJob"."deadline" ASC NULLS LAST')]]
-          : sort === 'budget' ? [[sequelize.literal('"ProjectJob"."budget" DESC NULLS LAST')]] : []),
-        ['created_at', 'DESC'],
-      ],
-      distinct: true,
-    });
+    // Ứng viên có hồ sơ (kỹ năng / kinh nghiệm / dự án): chấm độ phù hợp từng vị trí, cho phép sort=match ("Phù hợp với bạn")
+    const sig = await getCandidateSignals(req);
+    const personalized = !!sig;
+
+    let count; let rows; let matches = null;
+    if (sort === 'match' && personalized) {
+      const pool = await ProjectJob.findAll({
+        where: skill_id
+          ? { ...where, [Op.and]: [...(where[Op.and] || []), { id: { [Op.in]: sequelize.literal(`(SELECT project_job_id FROM project_job_skills WHERE skill_id = ${sequelize.escape(skill_id)})`) } }] }
+          : where,
+        attributes: ['id', 'title', 'created_at'],
+        raw: true,
+      });
+      const all = scoreJobs(pool, await loadJobSkills(pool.map((j) => j.id), 'project'), sig);
+      const ranked = pool.sort((a, b) => (all.get(b.id).percent - all.get(a.id).percent) || (new Date(b.created_at) - new Date(a.created_at)));
+      count = ranked.length;
+      const pageIds = ranked.slice(offset, offset + parseInt(limit)).map((j) => j.id);
+      const pageRows = await ProjectJob.findAll({ where: { id: pageIds }, include: [include[0], { ...include[1], where: undefined, required: false }] });
+      const byId = new Map(pageRows.map((r) => [r.id, r]));
+      rows = pageIds.map((id) => byId.get(id)).filter(Boolean);
+      matches = all;
+    } else {
+      ({ count, rows } = await ProjectJob.findAndCountAll({
+        where,
+        include,
+        limit: parseInt(limit),
+        offset,
+        order: [
+          ...(sort === 'deadline' ? [[sequelize.literal('"ProjectJob"."deadline" ASC NULLS LAST')]]
+            : sort === 'budget' ? [[sequelize.literal('"ProjectJob"."budget" DESC NULLS LAST')]] : []),
+          ['created_at', 'DESC'],
+        ],
+        distinct: true,
+      }));
+      if (personalized) {
+        matches = scoreJobs(rows.map((r) => r.toJSON()), await loadJobSkills(rows.map((r) => r.id), 'project'), sig);
+      }
+    }
 
     res.json({
       success: true,
-      data: rows,
+      data: matches ? rows.map((r) => ({ ...r.toJSON(), match: matches.get(r.id) })) : rows,
+      personalized,
       pagination: {
         total: count,
         page: parseInt(page),

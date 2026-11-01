@@ -674,9 +674,13 @@ exports.searchCandidates = async (req, res, next) => {
       projectEvalsByProfile.set(mj.candidate_profile_id, list);
     }
 
+    // Số điện thoại chỉ hiện với doanh nghiệp đã được xác thực và khi ứng viên cho phép (giống trang chi tiết)
+    const searcherCompany = await Company.findOne({ where: { user_id: req.user.id }, attributes: ['verification_status'] });
+    const contactAllowed = searcherCompany?.verification_status === 'VERIFIED';
     const data = rows.map((r) => {
       const j = r.toJSON();
       const privacy = normalizePrivacySettings(j.privacy_settings);
+      if (!(contactAllowed && privacy.show_phone)) j.phone = null;
       const ev = evidenceByProfile.get(r.id) || new Map();
       if (!privacy.show_address) j.address = null;
       if (!privacy.show_introduction) j.introduction = null;
@@ -902,12 +906,21 @@ exports.getCandidateForEmployer = async (req, res, next) => {
 exports.toggleSaveCandidate = async (req, res, next) => {
   try {
     if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new AppError('Không tìm thấy ứng viên', 404);
-    const profile = await CandidateProfile.findByPk(req.params.id, { attributes: ['id'] });
+    const profile = await CandidateProfile.findByPk(req.params.id, { attributes: ['id', 'privacy_settings'] });
     if (!profile) throw new AppError('Không tìm thấy ứng viên', 404);
 
     const existing = await SavedCandidate.findOne({
       where: { user_id: req.user.id, candidate_profile_id: profile.id },
     });
+    // Ứng viên đã tắt "cho phép tìm kiếm" thì không lưu mới được (trừ khi họ đã ứng tuyển vào công ty này); bỏ lưu thì luôn được
+    if (!existing && !normalizePrivacySettings(profile.privacy_settings).is_searchable) {
+      const company = await Company.findOne({ where: { user_id: req.user.id }, attributes: ['id'] });
+      const applied = company ? await Application.count({
+        where: { candidate_profile_id: profile.id },
+        include: [{ model: JobPost, where: { company_id: company.id }, attributes: [], required: true }],
+      }) : 0;
+      if (!applied) throw new AppError('Ứng viên đang tắt chế độ cho phép tìm kiếm hồ sơ nên không thể lưu', 403);
+    }
     if (existing) {
       await existing.destroy();
       return res.json({

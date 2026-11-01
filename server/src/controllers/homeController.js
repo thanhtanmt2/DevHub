@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { sequelize, JobPost, Skill, Company, CandidateProfile, Application } = require('../models');
+const { sequelize, JobPost, Skill, Company, CandidateProfile, Application, ProjectJob, Project, ProjectApplication } = require('../models');
 const { CATEGORIES, getCandidateSignals, scoreJob } = require('../utils/jobMatch');
 
 const MIN_MATCH_PERCENT = 45;
@@ -123,6 +123,45 @@ exports.getRecommendedJobs = async (req, res, next) => {
       // Chưa đủ tin phù hợp thì bổ sung bằng tin nổi bật khác (không gắn mức phù hợp)
       const exclude = [...applied, ...hits.map((h) => h.id)];
       const fill = await featuredQuery(exclude.length ? [{ id: { [Op.notIn]: exclude } }] : [], limit - hits.length);
+      data = [...hits, ...fill.map((j) => j.toJSON())];
+    }
+    res.json({ success: true, data, personalized: hits.length > 0, matched_count: hits.length });
+  } catch (error) { next(error); }
+};
+
+// GET /api/home/recommended-projects?limit= — dự án thời vụ đề xuất
+//  - Ứng viên có hồ sơ: xếp theo mức phù hợp (vị trí đã làm + kỹ năng), bỏ các vị trí đã nộp; thiếu thì bổ sung bằng dự án mới nhất.
+//  - Còn lại: dự án thời vụ mới nhất.
+exports.getRecommendedProjects = async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 3, 1), 12);
+    const where = openJobWhere();
+    const include = [
+      { model: Project, attributes: ['id', 'name', 'budget', 'status'] },
+      { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
+    ];
+    const newest = (extraWhere = [], n = limit) => ProjectJob.findAll({
+      where: { ...where, [Op.and]: [...where[Op.and], ...extraWhere] }, include, order: [['created_at', 'DESC']], limit: n,
+    });
+
+    const sig = await getCandidateSignals(req);
+    if (!sig) return res.json({ success: true, data: await newest(), personalized: false, matched_count: 0 });
+
+    const profileRow = await CandidateProfile.findOne({ where: { user_id: req.user.id }, attributes: ['id'] });
+    const applied = (await ProjectApplication.findAll({ where: { candidate_profile_id: profileRow.id }, attributes: ['project_job_id'], raw: true })).map((a) => a.project_job_id);
+    const notApplied = applied.length ? [{ id: { [Op.notIn]: applied } }] : [];
+    const pool = await ProjectJob.findAll({ where: { ...where, [Op.and]: [...where[Op.and], ...notApplied] }, include, order: [['created_at', 'DESC']], limit: 120 });
+
+    const hits = pool
+      .map((job) => { const json = job.toJSON(); return { ...json, match: scoreJob({ ...json, skills: json.Skills || [] }, sig) }; })
+      .filter((j) => j.match.percent >= MIN_MATCH_PERCENT)
+      .sort((a, b) => b.match.percent - a.match.percent)
+      .slice(0, limit);
+
+    let data = hits;
+    if (hits.length < limit) {
+      const exclude = [...applied, ...hits.map((h) => h.id)];
+      const fill = await newest(exclude.length ? [{ id: { [Op.notIn]: exclude } }] : [], limit - hits.length);
       data = [...hits, ...fill.map((j) => j.toJSON())];
     }
     res.json({ success: true, data, personalized: hits.length > 0, matched_count: hits.length });

@@ -353,16 +353,30 @@ exports.reopenEmployerJob = async (req, res, next) => {
       throw new AppError('Hạn nộp hồ sơ mới phải sau thời điểm hiện tại (hoặc chọn Không giới hạn)', 400);
     }
 
+    // Tin chưa từng được Admin duyệt (đang chờ duyệt rồi bị đóng / hết hạn, hoặc bản nháp chưa gửi) thì không được tự lên OPEN:
+    // mở lại = gửi duyệt. Tin đã duyệt từ trước thì mở lại ngay.
+    const needsApproval = !job.approved_at;
     await job.update({
-      status: 'OPEN',
+      status: needsApproval ? 'PENDING_APPROVAL' : 'OPEN',
       deadline: nextDeadline,
       posted_at: job.posted_at || new Date(),
     });
+    if (needsApproval) {
+      await notifyAdmins({
+        type: 'JOB_PENDING',
+        title: 'Tin tuyển dụng mới chờ duyệt',
+        message: `${company.name} vừa mở lại tin "${job.title}" và đang chờ bạn duyệt.`,
+        link: '/admin/jobs',
+        metadata: { job_post_id: job.id },
+      });
+    }
 
     res.json({
       success: true,
       data: job,
-      message: 'Đã mở lại tin tuyển dụng thành công',
+      message: needsApproval
+        ? 'Tin này chưa từng được Admin duyệt nên đã được gửi duyệt, sẽ hiển thị sau khi được duyệt'
+        : 'Đã mở lại tin tuyển dụng thành công',
     });
   } catch (error) { next(error); }
 };
@@ -480,6 +494,7 @@ exports.createAdminJob = async (req, res, next) => {
       created_by_user_id: req.user.id,
       status: 'OPEN',
       posted_at: new Date(),
+      approved_at: new Date(), // Admin tự đăng nên coi như đã duyệt
     });
     if (skill_ids && skill_ids.length > 0) {
       await JobPostSkill.bulkCreate(skill_ids.map(s => ({ job_post_id: job.id, skill_id: s })), { ignoreDuplicates: true });
@@ -515,7 +530,7 @@ exports.approveJob = async (req, res, next) => {
     const job = await JobPost.findByPk(req.params.id);
     if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
     if (job.post_type !== 'PARTNER') throw new AppError('Chỉ tin của doanh nghiệp đối tác mới cần duyệt', 400);
-    await job.update({ status: 'OPEN' });
+    await job.update({ status: 'OPEN', approved_at: new Date() });
     await createNotification({
       user_id: job.created_by_user_id,
       type: 'JOB_APPROVED',

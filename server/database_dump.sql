@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict IK2QhAoRaiSxVxFzYYi0yHHkOZ8NRYaM3587L654OePzANqNz9EyccS8eFuenzO
+\restrict gMNrJbIqtzLJnME6Dhq0iJq5CXFlby4d6t4m6gm8HXcP4rMXeNsQjjBe3dN6DM5
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -743,7 +743,8 @@ CREATE TABLE public.job_posts (
     experience character varying(20),
     position_level character varying(20),
     work_address character varying(500),
-    working_time character varying(255)
+    working_time character varying(255),
+    approved_at timestamp with time zone
 );
 
 
@@ -2422,6 +2423,7 @@ INSERT INTO public.activity_logs VALUES ('3e3d2422-ad01-5fa7-8ed3-2392347530b3',
 INSERT INTO public.activity_logs VALUES ('136036f8-ad02-5221-bf31-9e82ffcdaeaa', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'TASK_APPROVED', 'task', '0f5f7ecb-52ac-53c9-ae2b-b8f477ffaefd', 'Xây dựng trang chủ và danh mục sản phẩm', NULL, NULL, 'Nghiệm thu: duyệt hoàn thành — "Đạt yêu cầu, cảm ơn bạn."', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.72.80.115', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-06-03 11:39:14.383+07');
 INSERT INTO public.activity_logs VALUES ('ad7ae35d-f37e-541d-9a02-9dfe448b93a1', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'TASK_CREATED', 'task', '22795d8a-c573-5c18-b36f-557a566379bf', 'Giỏ hàng, thanh toán và theo dõi đơn hàng', NULL, NULL, 'Tạo task "Giỏ hàng, thanh toán và theo dõi đơn hàng"', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.72.160.19', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-06-25 07:24:40.625+07');
 INSERT INTO public.activity_logs VALUES ('eb3ebb73-712c-517c-b3a8-85da340903fc', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Lê Hồng Ánh', 'CANDIDATE', 'TASK_STATUS_CHANGED', 'task', '22795d8a-c573-5c18-b36f-557a566379bf', 'Giỏ hàng, thanh toán và theo dõi đơn hàng', 'TODO', 'IN_PROGRESS', 'Chuyển trạng thái: Cần làm → Đang làm', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.78.94.243', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-06-26 08:44:24.013+07');
+INSERT INTO public.activity_logs VALUES ('9258938e-b5d7-4223-bc39-3d8b3446027c', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-10-31 18:32:07.959+07');
 INSERT INTO public.activity_logs VALUES ('e9b862bc-e9b1-598f-9c05-deb730d073a2', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Lê Hồng Ánh', 'CANDIDATE', 'TASK_STATUS_CHANGED', 'task', '22795d8a-c573-5c18-b36f-557a566379bf', 'Giỏ hàng, thanh toán và theo dõi đơn hàng', 'IN_PROGRESS', 'REVIEW', 'Chuyển trạng thái: Đang làm → Chờ duyệt', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.74.64.13', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-07-02 17:44:04.371+07');
 INSERT INTO public.activity_logs VALUES ('3640bacd-2e35-5a51-8d85-98078bef383e', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'TASK_APPROVED', 'task', '22795d8a-c573-5c18-b36f-557a566379bf', 'Giỏ hàng, thanh toán và theo dõi đơn hàng', NULL, NULL, 'Nghiệm thu: duyệt hoàn thành — "Hoàn thành tốt và đúng hạn."', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.74.196.251', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-07-04 02:57:20.878+07');
 INSERT INTO public.activity_logs VALUES ('22749f96-cb50-597f-8a22-b9bc059b6808', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'TASK_CREATED', 'task', '739f9e5b-063f-50cd-a3c7-ded977d6863b', 'API sản phẩm, đơn hàng và quản lý kho theo chi nhánh', NULL, NULL, 'Tạo task "API sản phẩm, đơn hàng và quản lý kho theo chi nhánh"', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.78.194.51', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-06-06 14:24:34.301+07');
@@ -2437,6 +2439,7 @@ INSERT INTO public.activity_logs VALUES ('f4ea0243-0919-5191-8a93-438e253f6604',
 INSERT INTO public.activity_logs VALUES ('6fe03683-f131-561b-8319-ab7836a6aca7', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Lê Hồng Ánh', 'CANDIDATE', 'TASK_STATUS_CHANGED', 'task', 'bacf432e-8829-563c-8894-76f3f0c55dfc', 'Tối ưu SEO và tốc độ tải trang', 'IN_PROGRESS', 'REVIEW', 'Chuyển trạng thái: Đang làm → Chờ duyệt', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.71.211.177', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-08-12 19:31:29.462+07');
 INSERT INTO public.activity_logs VALUES ('623f9d54-b1e2-5ff2-91bd-713d05197dd5', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'TASK_APPROVED', 'task', 'bacf432e-8829-563c-8894-76f3f0c55dfc', 'Tối ưu SEO và tốc độ tải trang', NULL, NULL, 'Nghiệm thu: duyệt hoàn thành — "Đạt yêu cầu, cảm ơn bạn."', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.78.29.225', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-08-13 08:45:02.319+07');
 INSERT INTO public.activity_logs VALUES ('a767a6d9-6076-57cc-af80-4713cc82801f', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'TASK_CREATED', 'task', '9d514c6f-ebe4-5b6c-b2dd-a801deab13fd', 'Triển khai và bàn giao tài liệu cho khách hàng', NULL, NULL, 'Tạo task "Triển khai và bàn giao tài liệu cho khách hàng"', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.74.78.161', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-08-25 16:47:13.251+07');
+INSERT INTO public.activity_logs VALUES ('9816bb1a-8852-4530-a631-451ed3bad1d3', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGOUT', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-11-01 12:59:58.276+07');
 INSERT INTO public.activity_logs VALUES ('3c315230-85f2-5fe5-ba83-3301cfa0b918', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Huỳnh Ngọc Hương', 'CANDIDATE', 'TASK_STATUS_CHANGED', 'task', '9d514c6f-ebe4-5b6c-b2dd-a801deab13fd', 'Triển khai và bàn giao tài liệu cho khách hàng', 'TODO', 'IN_PROGRESS', 'Chuyển trạng thái: Cần làm → Đang làm', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.69.131.250', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-08-27 18:29:33.354+07');
 INSERT INTO public.activity_logs VALUES ('d57b744e-bda9-57d7-9aee-1439248ad056', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Huỳnh Ngọc Hương', 'CANDIDATE', 'TASK_STATUS_CHANGED', 'task', '9d514c6f-ebe4-5b6c-b2dd-a801deab13fd', 'Triển khai và bàn giao tài liệu cho khách hàng', 'IN_PROGRESS', 'REVIEW', 'Chuyển trạng thái: Đang làm → Chờ duyệt', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.69.132.13', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-08-29 02:28:30.194+07');
 INSERT INTO public.activity_logs VALUES ('f4beaa30-cad4-5c8d-bb51-1d7425f5dd03', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'TASK_APPROVED', 'task', '9d514c6f-ebe4-5b6c-b2dd-a801deab13fd', 'Triển khai và bàn giao tài liệu cho khách hàng', NULL, NULL, 'Nghiệm thu: duyệt hoàn thành — "Ổn, đã nghiệm thu."', '{"demo": true, "project_id": "f5e71b1e-16cc-5bdd-afba-a7d341db24db", "workspace_id": "fac54513-13fa-534b-acd1-121a0b2702c0"}', '27.79.144.227', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-08-30 03:27:19.516+07');
@@ -2466,6 +2469,7 @@ INSERT INTO public.activity_logs VALUES ('f0000a42-4b17-50be-8e72-f7aa50fd3d05',
 INSERT INTO public.activity_logs VALUES ('0dadaea6-df34-5122-bc79-5853aeea5bf0', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'INTERVIEW_SCHEDULED', 'project_application', 'efb67593-11f3-57de-bea3-137f5cb18b0f', 'Fullstack Developer (Cổng tuyển sinh) – Phần quản trị', NULL, NULL, 'Đã xếp lịch phỏng vấn cho Vũ Bảo Lan', '{"demo": true, "project_job_id": "8360495c-52eb-5782-96d9-431b846bddfb"}', '27.71.29.93', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-10-28 10:06:05.87+07');
 INSERT INTO public.activity_logs VALUES ('eb727d62-fd33-5a34-ac01-4eaf9763615d', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Nguyễn Anh Hải', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'project_application', '3ba2c32f-3d15-56b0-b646-bcfb73ae104e', 'UI/UX Designer (Cổng tuyển sinh)', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "UI/UX Designer (Cổng tuyển sinh)"', '{"demo": true, "project_id": "52763bf1-ab11-5c7a-b11d-4fcdff1df918", "project_job_id": "8e3cf2f2-e572-544d-9157-56f1b1db21a2"}', '27.67.24.159', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-10-28 16:41:59.528+07');
 INSERT INTO public.activity_logs VALUES ('d0b0b2da-a4a7-59fb-9eaa-9d7d85b869b2', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Ngô Kim Thảo', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'project_application', 'd40681e6-f7b2-5ac4-92df-366111a7bb8b', 'UI/UX Designer (Cổng tuyển sinh)', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "UI/UX Designer (Cổng tuyển sinh)"', '{"demo": true, "project_id": "52763bf1-ab11-5c7a-b11d-4fcdff1df918", "project_job_id": "8e3cf2f2-e572-544d-9157-56f1b1db21a2"}', '27.76.111.187', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-10-27 10:14:14.117+07');
+INSERT INTO public.activity_logs VALUES ('a629703c-7eaa-41bf-abb8-5d44d17806e1', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-11-01 13:37:11.129+07');
 INSERT INTO public.activity_logs VALUES ('e9ab24c2-137d-5b4f-bd3b-b657de43621f', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Võ Tuấn Nhân', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'project_application', 'e8c83b9a-3263-5416-a693-7a019549f317', 'UI/UX Designer (Cổng tuyển sinh)', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "UI/UX Designer (Cổng tuyển sinh)"', '{"demo": true, "project_id": "52763bf1-ab11-5c7a-b11d-4fcdff1df918", "project_job_id": "8e3cf2f2-e572-544d-9157-56f1b1db21a2"}', '27.67.128.16', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-10-26 07:07:25.785+07');
 INSERT INTO public.activity_logs VALUES ('f40179a4-f65a-5fbf-9244-b47da9e0ec7f', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'Đỗ Thanh Hạnh', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'project_application', '2f3e75a5-f03b-5261-96ce-6f891a140add', 'UI/UX Designer (Cổng tuyển sinh)', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "UI/UX Designer (Cổng tuyển sinh)"', '{"demo": true, "project_id": "52763bf1-ab11-5c7a-b11d-4fcdff1df918", "project_job_id": "8e3cf2f2-e572-544d-9157-56f1b1db21a2"}', '27.76.91.40', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-10-30 05:34:00.069+07');
 INSERT INTO public.activity_logs VALUES ('54dfe490-dba1-55ae-a086-f05f69fd47f1', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'Đỗ Mai Hương', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'project_application', '934f46cf-ab40-59b7-a31a-c22e6d04ee37', 'UI/UX Designer (Cổng tuyển sinh)', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "UI/UX Designer (Cổng tuyển sinh)"', '{"demo": true, "project_id": "52763bf1-ab11-5c7a-b11d-4fcdff1df918", "project_job_id": "8e3cf2f2-e572-544d-9157-56f1b1db21a2"}', '27.79.123.224', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-10-28 02:30:37.452+07');
@@ -3318,10 +3322,10 @@ INSERT INTO public.candidate_profiles VALUES ('7eb428b1-e57e-5516-a393-5b71d4f30
 INSERT INTO public.candidate_profiles VALUES ('c4c96337-243b-518f-8d2b-1628e8440fc4', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'QA Engineer', 'Mình có 1 năm kinh nghiệm về kiểm thử phần mềm. Thành thạo Manual Testing, Jira, SQL và đã làm quen với Git, Postman. Có tinh thần trách nhiệm, giao tiếp tốt và sẵn sàng làm việc từ xa hoặc linh hoạt thời gian.', '0322563203', 'Hải Phòng', 'https://github.com/kien-vo34', NULL, NULL, '/uploads/cvs/demo-cv-vo-duc-kien.pdf', 'CV_VoDucKien.pdf', 0.00, '2026-06-16 11:16:44.43+07', '2026-06-16 10:16:44.43+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 INSERT INTO public.candidate_profiles VALUES ('1779920c-e6d5-5604-8b1f-82c34fecd7e7', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'React Native Developer', 'Mình có 1 năm kinh nghiệm về ứng dụng di động đa nền tảng. Thành thạo Flutter, Firebase, REST API và đã làm quen với React Native, Kotlin. Mong muốn tham gia các dự án thực tế để nâng cao kỹ năng và đóng góp giá trị cho đội nhóm.', '0787370153', 'Cần Thơ', 'https://github.com/trung-ngo35', NULL, NULL, '/uploads/cvs/demo-cv-ngo-hoang-trung.pdf', 'CV_NgoHoangTrung.pdf', 0.00, '2026-06-19 06:57:22.433+07', '2026-06-19 05:57:22.433+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 INSERT INTO public.candidate_profiles VALUES ('86d194ed-49db-5fff-8de8-8bbc1dc3d19b', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Senior Backend Developer (Python)', 'Mình có 6 năm kinh nghiệm về backend Python và xử lý dữ liệu. Thành thạo Python, Django, PostgreSQL và đã làm quen với Docker, AWS. Mong muốn tham gia các dự án thực tế để nâng cao kỹ năng và đóng góp giá trị cho đội nhóm.', '0876750777', 'Bình Dương', 'https://github.com/huong-phan36', NULL, NULL, '/uploads/cvs/demo-cv-phan-mai-huong.pdf', 'CV_PhanMaiHuong.pdf', 0.00, '2026-09-10 18:50:51.027+07', '2026-09-10 17:50:51.027+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
-INSERT INTO public.candidate_profiles VALUES ('14e3ae09-d084-548b-bcaa-21abff63df1a', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'React Developer', 'Mình có 3 năm kinh nghiệm về giao diện web với React. Thành thạo React, JavaScript, HTML/CSS và đã làm quen với TypeScript, REST API. Mong muốn tham gia các dự án thực tế để nâng cao kỹ năng và đóng góp giá trị cho đội nhóm.', '0714682309', 'Bình Dương', 'https://github.com/anh-le37', 'https://anh-le37.dev', NULL, '/uploads/cvs/demo-cv-le-hong-anh.pdf', 'CV_LeHongAnh.pdf', 9.50, '2026-03-23 10:50:13.905+07', '2026-03-23 09:50:13.905+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 INSERT INTO public.candidate_profiles VALUES ('b2823c36-e80c-5c03-b619-998909028ebb', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Backend Developer (Node.js)', 'Mình có 1 năm kinh nghiệm về API và dịch vụ backend với Node.js. Thành thạo Node.js, Express.js, PostgreSQL và đã làm quen với Docker, REST API. Đang tìm kiếm các dự án thời vụ để tích lũy kinh nghiệm và hoàn thiện hồ sơ năng lực.', '0712895015', 'TP. Hồ Chí Minh', 'https://github.com/dung-bui38', NULL, NULL, '/uploads/cvs/demo-cv-bui-quoc-dung.pdf', 'CV_BuiQuocDung.pdf', 8.50, '2026-06-12 22:56:30.304+07', '2026-06-12 21:56:30.304+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 INSERT INTO public.candidate_profiles VALUES ('c2fe2522-8113-5ab4-93c7-83b773a6a402', '3892c76e-02d1-594c-88f4-b97569ebf7e8', 'Mobile Developer (Flutter)', 'Mình có 1 năm kinh nghiệm về ứng dụng di động đa nền tảng. Thành thạo Flutter, Firebase, REST API và đã làm quen với React Native, Swift. Đang tìm kiếm các dự án thời vụ để tích lũy kinh nghiệm và hoàn thiện hồ sơ năng lực.', '0557286019', 'TP. Hồ Chí Minh', 'https://github.com/ha-vu39', NULL, NULL, NULL, NULL, 0.00, '2026-10-11 11:14:30.608+07', '2026-10-11 10:14:30.608+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 INSERT INTO public.candidate_profiles VALUES ('3c834f8d-7987-5842-bfb2-fa6c17486a04', 'f224b438-95de-581f-ac10-c3d2e50e1a30', 'Fresher Node.js Developer', 'Mình vừa tốt nghiệp và đã thực hiện nhiều đồ án, dự án cá nhân về API và dịch vụ backend với Node.js. Thành thạo Node.js, Express.js, PostgreSQL và đã làm quen với MongoDB, REST API. Đang tìm kiếm các dự án thời vụ để tích lũy kinh nghiệm và hoàn thiện hồ sơ năng lực.', '0347902954', 'Đà Nẵng', 'https://github.com/uyen-vo40', NULL, NULL, NULL, NULL, 0.00, '2026-08-27 10:34:05.395+07', '2026-08-27 09:34:05.395+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
+INSERT INTO public.candidate_profiles VALUES ('14e3ae09-d084-548b-bcaa-21abff63df1a', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'React Developer', 'Mình có 3 năm kinh nghiệm về giao diện web với React. Thành thạo React, JavaScript, HTML/CSS và đã làm quen với TypeScript, REST API. Mong muốn tham gia các dự án thực tế để nâng cao kỹ năng và đóng góp giá trị cho đội nhóm.', '0714682309', 'Bình Dương', 'https://github.com/anh-le37', 'https://anh-le37.dev', NULL, '/uploads/cvs/demo-cv-le-hong-anh.pdf', 'CV_LeHongAnh.pdf', 9.50, '2026-03-23 10:50:13.905+07', '2026-03-23 09:50:13.905+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 INSERT INTO public.candidate_profiles VALUES ('f37c66fb-d3cc-4aad-a7e3-6ae8b88dafa8', '4e332674-295d-444c-a507-2d60b50f1be1', 'Frontend Developer', 'Chuyên gia React, UI/UX, thích viết code sạch.', '0912345678', 'TP. Hồ Chí Minh', 'https://github.com/lethicode', NULL, NULL, 'https://example.com/cvs/CV_Le_Thi_Code_React.pdf', 'CV_Le_Thi_Code_React.pdf', 9.00, '2026-09-26 17:32:17.237+07', '2026-09-26 17:32:17.237+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 INSERT INTO public.candidate_profiles VALUES ('d2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Fullstack Web Developer', 'Đam mê lập trình web với React và Node.js, có 2 năm kinh nghiệm.', '0345595206', 'TP. Hồ Chí Minh', 'https://github.com/nguyenvandev', '', '/uploads/images/img-1793444481927-266362600.jpg', '/uploads/cvs/CV_Software_Tester_Intern_DaoMinhNhut-1793441584480-421834281.pdf', 'CV_Software_Tester_Intern_DaoMinhNhut', 8.50, '2026-09-26 17:32:17.237+07', '2026-10-31 18:01:21.942+07', '{"show_cv": true, "show_email": true, "show_links": true, "show_phone": true, "show_address": true, "is_searchable": true, "show_experiences": true, "show_introduction": true, "show_devhub_projects": true}');
 
@@ -3940,24 +3944,6 @@ INSERT INTO public.job_post_skills VALUES ('012b8297-0e44-59b3-870d-d526255ba60a
 -- Data for Name: job_posts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.job_posts VALUES ('0a5510c3-9bef-5505-83bf-0ae2ae2e8444', '5367db5d-eba6-5298-8218-1cfbf437a638', 'b730ec38-1bdb-5fbc-8bec-66482539838a', 'Senior Backend Node.js Developer', 'VNPAY là công ty công nghệ tài chính, cung cấp giải pháp thanh toán điện tử và thanh toán QR cho ngân hàng, thương nhân và người dùng.
-Chúng tôi đang tìm Senior Backend Node.js Developer gia nhập đội ngũ phát triển Node.js.
-
-Bạn sẽ:
-- Thiết kế và phát triển RESTful API bằng Node.js (Express/NestJS) cho web và mobile
-- Viết tài liệu API, kiểm thử và tham gia code review
-- Xây dựng cơ chế xác thực JWT, phân quyền theo vai trò và ghi log hệ thống
-- Thiết kế cơ sở dữ liệu, viết truy vấn tối ưu và quản lý migration
-- Tích hợp dịch vụ bên thứ ba (thanh toán, email, lưu trữ) và xử lý tác vụ nền', 'PARTNER', 'FULL_TIME', 'Hà Nội', 42000000.00, 53500000.00, 2, '2026-10-29 00:20:13.97+07', '2026-12-15 23:59:59+07', 'OPEN', 22, '2026-10-28 09:56:13.97+07', '2026-10-31 18:17:44.588+07', '- Từ 4 năm kinh nghiệm, từng dẫn dắt hoặc hướng dẫn thành viên khác
-- Làm việc tốt với PostgreSQL hoặc MongoDB, hiểu index và tối ưu truy vấn
-- Hiểu xác thực JWT, bảo mật API cơ bản (CORS, rate limit, validate dữ liệu)
-- Biết Docker; ưu tiên có kinh nghiệm Redis, hàng đợi tác vụ hoặc AWS
-- Thành thạo Node.js, Express hoặc NestJS và TypeScript
-- Viết code sạch, có kiểm thử và biết đọc hiểu code của người khác', '- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
-- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'OVER_5', 'SENIOR', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
 INSERT INTO public.job_posts VALUES ('9146785e-fd1e-476c-a82d-3546251da74d', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Backend Node.js Engineer (Remote)', 'Tuyển kỹ sư Backend thành thạo Node.js, Express, PostgreSQL. Làm việc từ xa linh hoạt, đánh giá theo hiệu quả công việc.', 'PARTNER', 'REMOTE', 'Toàn quốc', 20000000.00, 35000000.00, 3, '2026-09-26 17:32:17.248+07', NULL, 'OPEN', 14, '2026-09-26 17:32:17.248+07', '2026-10-31 18:26:26.332+07', '- Từ 2 năm kinh nghiệm với Node.js (Express/NestJS)
 - Thành thạo PostgreSQL, thiết kế RESTful API
 - Biết Docker, Redis; ưu tiên có kinh nghiệm AWS
@@ -3966,7 +3952,34 @@ INSERT INTO public.job_posts VALUES ('9146785e-fd1e-476c-a82d-3546251da74d', '9c
 - Hỗ trợ thiết bị và chi phí internet hằng tháng
 - Thưởng dự án, xét tăng lương 2 lần/năm
 - Bảo hiểm đầy đủ theo quy định, nghỉ phép 14 ngày/năm
-- Cơ hội tham gia các dự án quốc tế', 'Y2_5', 'MIDDLE', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)');
+- Cơ hội tham gia các dự án quốc tế', 'Y2_5', 'MIDDLE', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)', '2026-09-26 17:32:17.248+07');
+INSERT INTO public.job_posts VALUES ('0e526c0e-86d8-4579-ba90-150c5d7b58f7', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Senior React Developer (Toàn thời gian)', 'FPT Software tuyển dụng Senior React Developer tham gia dự án thương mại điện tử quốc tế. Cơ hội thăng tiến và chế độ đãi ngộ hấp dẫn.', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 40000000.00, 2, '2026-09-26 17:32:17.248+07', NULL, 'CLOSED', 3, '2026-09-26 17:32:17.248+07', '2026-10-24 17:03:07.599+07', '- Tối thiểu 4 năm kinh nghiệm phát triển web với ReactJS/TypeScript
+- Thành thạo Redux/React Query, Tailwind CSS hoặc Styled-components
+- Có kinh nghiệm tối ưu hiệu năng, viết unit test (Jest, React Testing Library)
+- Hiểu quy trình CI/CD, làm việc tốt với Git
+- Có khả năng review code và hướng dẫn thành viên mới', '- Lương tháng 13, thưởng dự án và thưởng hiệu suất theo quý
+- Bảo hiểm sức khỏe cao cấp cho bản thân và người thân
+- Du lịch công ty hằng năm, team building hằng quý
+- Ngân sách đào tạo, chứng chỉ quốc tế lên tới 20 triệu/năm
+- Môi trường làm việc quốc tế, cơ hội onsite', 'Y2_5', 'SENIOR', 'F-Town 3, Quận 9, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30), linh hoạt giờ vào', '2026-09-26 17:32:17.248+07');
+INSERT INTO public.job_posts VALUES ('0a5510c3-9bef-5505-83bf-0ae2ae2e8444', '5367db5d-eba6-5298-8218-1cfbf437a638', 'b730ec38-1bdb-5fbc-8bec-66482539838a', 'Senior Backend Node.js Developer', 'VNPAY là công ty công nghệ tài chính, cung cấp giải pháp thanh toán điện tử và thanh toán QR cho ngân hàng, thương nhân và người dùng.
+Chúng tôi đang tìm Senior Backend Node.js Developer gia nhập đội ngũ phát triển Node.js.
+
+Bạn sẽ:
+- Thiết kế và phát triển RESTful API bằng Node.js (Express/NestJS) cho web và mobile
+- Viết tài liệu API, kiểm thử và tham gia code review
+- Xây dựng cơ chế xác thực JWT, phân quyền theo vai trò và ghi log hệ thống
+- Thiết kế cơ sở dữ liệu, viết truy vấn tối ưu và quản lý migration
+- Tích hợp dịch vụ bên thứ ba (thanh toán, email, lưu trữ) và xử lý tác vụ nền', 'PARTNER', 'FULL_TIME', 'Hà Nội', 42000000.00, 53500000.00, 2, '2026-10-29 00:20:13.97+07', '2026-12-15 23:59:59+07', 'OPEN', 23, '2026-10-28 09:56:13.97+07', '2026-10-31 18:30:00.485+07', '- Từ 4 năm kinh nghiệm, từng dẫn dắt hoặc hướng dẫn thành viên khác
+- Làm việc tốt với PostgreSQL hoặc MongoDB, hiểu index và tối ưu truy vấn
+- Hiểu xác thực JWT, bảo mật API cơ bản (CORS, rate limit, validate dữ liệu)
+- Biết Docker; ưu tiên có kinh nghiệm Redis, hàng đợi tác vụ hoặc AWS
+- Thành thạo Node.js, Express hoặc NestJS và TypeScript
+- Viết code sạch, có kiểm thử và biết đọc hiểu code của người khác', '- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
+- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'OVER_5', 'SENIOR', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-29 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('542d2d7f-a060-5af7-bbfe-c7ef156a1548', '2c6e3aea-f5ab-54de-959f-26806e04783a', '772bed3e-e946-5d59-8d41-aa7d507c0ced', '.NET Developer', 'NashTech là công ty công nghệ cung cấp dịch vụ phát triển phần mềm và chuyển đổi số cho khách hàng trong nước và quốc tế, với đội ngũ kỹ sư tại Việt Nam.
 Chúng tôi đang tìm .NET Developer gia nhập đội ngũ phát triển C# / .NET Core.
 
@@ -3984,16 +3997,7 @@ Bạn sẽ:
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Team building mỗi quý, du lịch công ty hằng năm
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y2_5', 'MIDDLE', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
-INSERT INTO public.job_posts VALUES ('0e526c0e-86d8-4579-ba90-150c5d7b58f7', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Senior React Developer (Toàn thời gian)', 'FPT Software tuyển dụng Senior React Developer tham gia dự án thương mại điện tử quốc tế. Cơ hội thăng tiến và chế độ đãi ngộ hấp dẫn.', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 40000000.00, 2, '2026-09-26 17:32:17.248+07', NULL, 'CLOSED', 3, '2026-09-26 17:32:17.248+07', '2026-10-24 17:03:07.599+07', '- Tối thiểu 4 năm kinh nghiệm phát triển web với ReactJS/TypeScript
-- Thành thạo Redux/React Query, Tailwind CSS hoặc Styled-components
-- Có kinh nghiệm tối ưu hiệu năng, viết unit test (Jest, React Testing Library)
-- Hiểu quy trình CI/CD, làm việc tốt với Git
-- Có khả năng review code và hướng dẫn thành viên mới', '- Lương tháng 13, thưởng dự án và thưởng hiệu suất theo quý
-- Bảo hiểm sức khỏe cao cấp cho bản thân và người thân
-- Du lịch công ty hằng năm, team building hằng quý
-- Ngân sách đào tạo, chứng chỉ quốc tế lên tới 20 triệu/năm
-- Môi trường làm việc quốc tế, cơ hội onsite', 'Y2_5', 'SENIOR', 'F-Town 3, Quận 9, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30), linh hoạt giờ vào');
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y2_5', 'MIDDLE', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-23 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('cb9f913d-e4a3-5b73-a3a1-83d151eca9f2', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'a2b6504b-dfe1-58b8-8863-c8377a358463', 'Senior Java Backend Developer', 'MoMo là ví điện tử và nền tảng thanh toán di động, cung cấp dịch vụ thanh toán, chuyển tiền và tài chính số cho người dùng Việt Nam.
 Chúng tôi đang tìm Senior Java Backend Developer gia nhập đội ngũ phát triển Java Spring Boot.
 
@@ -4011,115 +4015,7 @@ Bạn sẽ:
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Team building mỗi quý, du lịch công ty hằng năm
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
-- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'OVER_5', 'SENIOR', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
-INSERT INTO public.job_posts VALUES ('cf2cba48-090d-5e1c-a957-83649acdba03', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Java Backend Developer', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
-Chúng tôi đang tìm Java Backend Developer gia nhập đội ngũ phát triển Java Spring Boot.
-
-Bạn sẽ:
-- Thiết kế API, mô hình dữ liệu và tối ưu hiệu năng truy vấn MySQL/PostgreSQL
-- Hỗ trợ triển khai, giám sát và xử lý sự cố trên môi trường vận hành
-- Phân tích yêu cầu cùng BA, ước lượng và chia nhỏ công việc theo sprint
-- Viết unit test, integration test và duy trì chất lượng mã nguồn
-- Phát triển các dịch vụ backend bằng Java Spring Boot theo kiến trúc microservices', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 31000000.00, 3, '2026-10-26 00:20:13.97+07', '2026-12-10 23:59:59+07', 'OPEN', 71, '2026-10-25 09:56:13.97+07', '2026-10-26 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
-- Có kinh nghiệm với MySQL hoặc PostgreSQL, biết tối ưu câu truy vấn
-- Hiểu thiết kế RESTful API, transaction và xử lý đồng thời
-- Biết Docker, Git; ưu tiên có kinh nghiệm message queue (RabbitMQ/Kafka)
-- Nắm vững Java (OOP, Collections, Stream) và Spring Boot/Spring Data JPA
-- Tư duy hệ thống tốt, chủ động trao đổi và báo cáo tiến độ', '- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
-- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', 'F-Town 3, Quận 9, TP.HCM', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
-INSERT INTO public.job_posts VALUES ('15e1d95f-8c78-5816-87ac-341f6bf3cd0d', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Junior QA Engineer', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
-Chúng tôi đang tìm Junior QA Engineer gia nhập đội ngũ phát triển kiểm thử phần mềm.
-
-Bạn sẽ:
-- Kiểm thử API bằng Postman và viết kịch bản tự động hóa (Selenium/Cypress)
-- Tham gia sprint planning, review và đảm bảo tiêu chí hoàn thành (DoD)
-- Báo cáo và theo dõi lỗi trên Jira, phối hợp với lập trình viên để xử lý
-- Phân tích yêu cầu, thiết kế test case và thực hiện kiểm thử chức năng, hồi quy
-- Đề xuất cải tiến quy trình đảm bảo chất lượng', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 14500000.00, 19000000.00, 2, '2026-10-22 00:20:13.97+07', '2026-11-30 23:59:59+07', 'OPEN', 215, '2026-10-21 09:56:13.97+07', '2026-10-22 00:20:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
-- Ưu tiên: kiểm thử tự động với Selenium hoặc Cypress
-- Biết sử dụng Jira (hoặc công cụ quản lý lỗi tương đương), Postman và SQL cơ bản
-- Cẩn thận, tỉ mỉ, có khả năng phát hiện vấn đề từ góc nhìn người dùng
-- Nắm vững quy trình kiểm thử phần mềm, kỹ thuật thiết kế test case
-- Đọc hiểu tài liệu tiếng Anh cơ bản', '- Tham gia tech talk nội bộ và các dự án có người dùng thật
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Team building mỗi quý, du lịch công ty hằng năm
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y1_2', 'JUNIOR', 'F-Town 3, Quận 9, TP.HCM', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
-INSERT INTO public.job_posts VALUES ('5e29bcb4-bb83-5ceb-8a84-b04b85384acb', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'DevOps Engineer (Remote)', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
-Chúng tôi đang tìm DevOps Engineer (Remote) gia nhập đội ngũ phát triển AWS.
-
-Bạn sẽ:
-- Thiết lập giám sát, cảnh báo và sao lưu dữ liệu, đảm bảo hệ thống ổn định
-- Quản lý hạ tầng trên AWS (EC2, RDS, S3, ECS/EKS) bằng Infrastructure as Code
-- Xây dựng và duy trì pipeline CI/CD cho các dự án web và mobile
-- Tối ưu chi phí hạ tầng và bảo mật hệ thống (IAM, mạng, secret)
-- Hỗ trợ đội phát triển trong việc đóng gói và triển khai ứng dụng', 'PARTNER', 'REMOTE', 'Toàn quốc', 25000000.00, 30500000.00, 1, '2026-10-17 00:20:13.97+07', '2026-12-05 23:59:59+07', 'OPEN', 366, '2026-10-16 09:56:13.97+07', '2026-10-17 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
-- Hiểu và sử dụng Docker; ưu tiên Kubernetes
-- Đã làm việc với một nền tảng đám mây (AWS/Azure/GCP) và công cụ CI/CD (GitHub Actions, GitLab CI, Jenkins)
-- Hiểu về mạng, bảo mật và giám sát hệ thống (Prometheus, Grafana)
-- Có kinh nghiệm vận hành Linux và viết shell script
-- Sẵn sàng trực xử lý sự cố theo lịch luân phiên', '- Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
-- Họp đồng bộ ngắn mỗi ngày, còn lại tự chủ sắp xếp thời gian
-- Làm việc từ xa linh hoạt, hỗ trợ chi phí internet hằng tháng
-- Team building mỗi quý, du lịch công ty hằng năm
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)');
-INSERT INTO public.job_posts VALUES ('012b8297-0e44-59b3-870d-d526255ba60a', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Junior Data / AI Engineer', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
-Chúng tôi đang tìm Junior Data / AI Engineer gia nhập đội ngũ phát triển Python.
-
-Bạn sẽ:
-- Phối hợp với đội backend để đưa mô hình vào vận hành
-- Theo dõi chất lượng mô hình và đề xuất cải tiến
-- Thiết kế dashboard Power BI và báo cáo định kỳ cho các phòng ban
-- Xây dựng, huấn luyện và đánh giá mô hình học máy (phân loại, dự báo, gợi ý)
-- Thu thập, làm sạch và phân tích dữ liệu khách hàng để hỗ trợ ra quyết định kinh doanh', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 16000000.00, 21000000.00, 2, '2026-09-06 00:20:13.97+07', '2026-10-23 23:59:59+07', 'CLOSED', 1243, '2026-09-05 09:56:13.97+07', '2026-09-06 00:20:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
-- Tư duy logic, trình bày kết quả phân tích rõ ràng
-- Hiểu nền tảng thống kê và các thuật toán học máy phổ biến
-- Biết trực quan hóa dữ liệu (Power BI, Tableau hoặc Matplotlib)
-- Thành thạo Python và SQL; quen với Pandas, NumPy, Scikit-learn
-- Ưu tiên: TensorFlow/PyTorch, kinh nghiệm xử lý ngôn ngữ tự nhiên', '- Tham gia tech talk nội bộ và các dự án có người dùng thật
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Team building mỗi quý, du lịch công ty hằng năm', 'Y1_2', 'JUNIOR', 'F-Town 3, Quận 9, TP.HCM', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
-INSERT INTO public.job_posts VALUES ('e3954ce0-8283-5790-9923-4bc598702114', '2c6e3aea-f5ab-54de-959f-26806e04783a', '772bed3e-e946-5d59-8d41-aa7d507c0ced', 'Fullstack Developer', 'NashTech là công ty công nghệ cung cấp dịch vụ phát triển phần mềm và chuyển đổi số cho khách hàng trong nước và quốc tế, với đội ngũ kỹ sư tại Việt Nam.
-Chúng tôi đang tìm Fullstack Developer gia nhập đội ngũ phát triển React & Node.js.
-
-Bạn sẽ:
-- Phát triển tính năng end-to-end: giao diện React, API Node.js và cơ sở dữ liệu
-- Thiết kế schema, viết migration và tối ưu truy vấn PostgreSQL/MongoDB
-- Triển khai ứng dụng bằng Docker và theo dõi hoạt động trên môi trường thật
-- Viết kiểm thử, tài liệu và tham gia code review
-- Làm việc trực tiếp với bộ phận nghiệp vụ để làm rõ yêu cầu', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 32000000.00, 1, '2026-10-11 00:20:13.97+07', NULL, 'OPEN', 356, '2026-10-10 09:56:13.97+07', '2026-10-11 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
-- Hiểu cơ sở dữ liệu quan hệ, thiết kế REST API và xác thực JWT
-- Giao tiếp rõ ràng, chủ động báo cáo vấn đề
-- Biết Docker và Git; ưu tiên có kinh nghiệm CI/CD
-- Thành thạo JavaScript/TypeScript, React ở phía client và Node.js ở phía server
-- Có khả năng tự tìm hiểu, tự chịu trách nhiệm một module từ đầu đến cuối', '- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
-- Team building mỗi quý, du lịch công ty hằng năm
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
-INSERT INTO public.job_posts VALUES ('cf61e7a9-6dab-518b-bc9c-9e98c4adeeb5', '2c6e3aea-f5ab-54de-959f-26806e04783a', '772bed3e-e946-5d59-8d41-aa7d507c0ced', 'Fresher Frontend Developer', 'NashTech là công ty công nghệ cung cấp dịch vụ phát triển phần mềm và chuyển đổi số cho khách hàng trong nước và quốc tế, với đội ngũ kỹ sư tại Việt Nam.
-Chúng tôi đang tìm Fresher Frontend Developer gia nhập đội ngũ phát triển React.
-
-Bạn sẽ:
-- Đề xuất cải tiến giao diện cùng đội sản phẩm và thiết kế
-- Xây dựng và duy trì giao diện web responsive bằng React/TypeScript theo thiết kế Figma
-- Tối ưu hiệu năng tải trang, khả năng truy cập và trải nghiệm trên thiết bị di động
-- Phối hợp với đội backend để tích hợp REST API và quản lý trạng thái ứng dụng
-- Viết component dùng lại được, kiểm thử đơn vị và tham gia code review', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 9500000.00, 12000000.00, 4, '2026-09-16 00:20:13.97+07', '2026-10-26 23:59:59+07', 'CLOSED', 564, '2026-09-15 09:56:13.97+07', '2026-09-16 00:20:13.97+07', '- Dưới 1 năm kinh nghiệm hoặc vừa tốt nghiệp, có đồ án/dự án cá nhân
-- Ưu tiên: Next.js, Tailwind CSS, có kinh nghiệm viết unit test
-- Chú ý chi tiết giao diện, có tư duy về trải nghiệm người dùng
-- Hiểu cách hoạt động của REST API, xử lý bất đồng bộ và quản lý state
-- Sử dụng thành thạo Git và quy trình pull request
-- Thành thạo JavaScript/TypeScript, HTML5, CSS3 và ít nhất một framework hiện đại (ưu tiên React)', '- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Tham gia tech talk nội bộ và các dự án có người dùng thật
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
-- Team building mỗi quý, du lịch công ty hằng năm', 'UNDER_1', 'FRESHER', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'OVER_5', 'SENIOR', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-30 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('76e0f1e2-8727-59e5-8342-7d39bf0b4ee4', '2c6e3aea-f5ab-54de-959f-26806e04783a', '772bed3e-e946-5d59-8d41-aa7d507c0ced', 'Senior Java Backend Developer', 'NashTech là công ty công nghệ cung cấp dịch vụ phát triển phần mềm và chuyển đổi số cho khách hàng trong nước và quốc tế, với đội ngũ kỹ sư tại Việt Nam.
 Chúng tôi đang tìm Senior Java Backend Developer gia nhập đội ngũ phát triển Java Spring Boot.
 
@@ -4137,7 +4033,7 @@ Bạn sẽ:
 - Team building mỗi quý, du lịch công ty hằng năm
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'OVER_5', 'SENIOR', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'OVER_5', 'SENIOR', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-28 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('ffcec1d6-b34d-5622-9fe3-1af543c2e1b9', '2c6e3aea-f5ab-54de-959f-26806e04783a', '772bed3e-e946-5d59-8d41-aa7d507c0ced', 'Junior QA Engineer', 'NashTech là công ty công nghệ cung cấp dịch vụ phát triển phần mềm và chuyển đổi số cho khách hàng trong nước và quốc tế, với đội ngũ kỹ sư tại Việt Nam.
 Chúng tôi đang tìm Junior QA Engineer gia nhập đội ngũ phát triển kiểm thử phần mềm.
 
@@ -4155,7 +4051,7 @@ Bạn sẽ:
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
-- Team building mỗi quý, du lịch công ty hằng năm', 'Y1_2', 'JUNIOR', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
+- Team building mỗi quý, du lịch công ty hằng năm', 'Y1_2', 'JUNIOR', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-19 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('16a7c20f-cca4-5b31-a944-2d4c86b7f00f', '5367db5d-eba6-5298-8218-1cfbf437a638', 'b730ec38-1bdb-5fbc-8bec-66482539838a', 'Frontend Developer', 'VNPAY là công ty công nghệ tài chính, cung cấp giải pháp thanh toán điện tử và thanh toán QR cho ngân hàng, thương nhân và người dùng.
 Chúng tôi đang tìm Frontend Developer gia nhập đội ngũ phát triển React.
 
@@ -4173,7 +4069,7 @@ Bạn sẽ:
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y2_5', 'MIDDLE', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y2_5', 'MIDDLE', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-25 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('ccbde3ee-5f0d-536a-991e-1af271ab7f92', '5367db5d-eba6-5298-8218-1cfbf437a638', 'b730ec38-1bdb-5fbc-8bec-66482539838a', 'DevOps Engineer', 'VNPAY là công ty công nghệ tài chính, cung cấp giải pháp thanh toán điện tử và thanh toán QR cho ngân hàng, thương nhân và người dùng.
 Chúng tôi đang tìm DevOps Engineer gia nhập đội ngũ phát triển AWS.
 
@@ -4191,7 +4087,7 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
 - Tham gia tech talk nội bộ và các dự án có người dùng thật
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'Y2_5', 'MIDDLE', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'Y2_5', 'MIDDLE', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-21 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('f8f67139-b8eb-504e-ab37-f61ffbef54e3', '5367db5d-eba6-5298-8218-1cfbf437a638', 'b730ec38-1bdb-5fbc-8bec-66482539838a', 'Java Backend Developer', 'VNPAY là công ty công nghệ tài chính, cung cấp giải pháp thanh toán điện tử và thanh toán QR cho ngân hàng, thương nhân và người dùng.
 Chúng tôi đang tìm Java Backend Developer gia nhập đội ngũ phát triển Java Spring Boot.
 
@@ -4209,25 +4105,7 @@ Bạn sẽ:
 - Tham gia tech talk nội bộ và các dự án có người dùng thật
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
-- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa', 'Y2_5', 'MIDDLE', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
-INSERT INTO public.job_posts VALUES ('efeed165-d539-56fc-95ce-870a694580ca', '5367db5d-eba6-5298-8218-1cfbf437a638', 'b730ec38-1bdb-5fbc-8bec-66482539838a', 'Mobile Developer (Remote)', 'VNPAY là công ty công nghệ tài chính, cung cấp giải pháp thanh toán điện tử và thanh toán QR cho ngân hàng, thương nhân và người dùng.
-Chúng tôi đang tìm Mobile Developer (Remote) gia nhập đội ngũ phát triển Flutter.
-
-Bạn sẽ:
-- Phát triển ứng dụng di động đa nền tảng (Flutter hoặc React Native) cho iOS và Android
-- Viết kiểm thử và duy trì chất lượng mã nguồn
-- Đưa ứng dụng lên App Store/Google Play và xử lý phản hồi từ người dùng
-- Tích hợp REST API, thông báo đẩy (push notification) và thanh toán trong ứng dụng
-- Tối ưu hiệu năng, dung lượng ứng dụng và trải nghiệm mượt trên nhiều thiết bị', 'PARTNER', 'REMOTE', 'Toàn quốc', 22500000.00, 32000000.00, 1, NULL, '2026-12-10 23:59:59+07', 'PENDING_APPROVAL', 0, '2026-10-30 21:56:13.97+07', '2026-10-30 21:56:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
-- Có kinh nghiệm phát triển ứng dụng di động với Flutter hoặc React Native
-- Có tinh thần trách nhiệm với sản phẩm cuối
-- Biết Firebase (Auth, Firestore, FCM), Git; ưu tiên có kiến thức Kotlin/Swift
-- Đã từng phát hành ít nhất một ứng dụng lên App Store hoặc Google Play
-- Hiểu vòng đời ứng dụng, quản lý state và điều hướng trong ứng dụng', '- Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)
-- Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
-- Thưởng dự án và đánh giá theo hiệu quả công việc
-- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y2_5', 'MIDDLE', NULL, 'Làm việc từ xa, họp đồng bộ 9h mỗi sáng');
+- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa', 'Y2_5', 'MIDDLE', 'Tầng 12, Tòa nhà Handico, Phạm Hùng, Nam Từ Liêm, Hà Nội', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-16 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('0eaf11da-43f8-5a3b-b801-18b77fc11db7', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '0d373b67-ed5a-5a33-b11e-fa95a4fc8fdb', 'Junior Data / AI Engineer', 'KMS Technology là công ty phát triển phần mềm và tư vấn công nghệ, có đội ngũ kỹ sư tại Việt Nam phục vụ khách hàng toàn cầu.
 Chúng tôi đang tìm Junior Data / AI Engineer gia nhập đội ngũ phát triển Python.
 
@@ -4245,7 +4123,7 @@ Bạn sẽ:
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y1_2', 'JUNIOR', 'Lầu 5, 72 Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y1_2', 'JUNIOR', 'Lầu 5, 72 Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-27 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('a63bdab6-cead-5de0-9b87-039e81bcdc59', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '0d373b67-ed5a-5a33-b11e-fa95a4fc8fdb', 'Python Backend Developer (Remote)', 'KMS Technology là công ty phát triển phần mềm và tư vấn công nghệ, có đội ngũ kỹ sư tại Việt Nam phục vụ khách hàng toàn cầu.
 Chúng tôi đang tìm Python Backend Developer (Remote) gia nhập đội ngũ phát triển Python Django.
 
@@ -4263,7 +4141,7 @@ Bạn sẽ:
 - Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)
 - Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', NULL, 'Làm việc từ xa, họp đồng bộ 9h mỗi sáng');
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', NULL, 'Làm việc từ xa, họp đồng bộ 9h mỗi sáng', '2026-10-22 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('00e9f5f4-455f-5a20-a92c-65db9b3981f1', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '0d373b67-ed5a-5a33-b11e-fa95a4fc8fdb', 'Senior Data / AI Engineer', 'KMS Technology là công ty phát triển phần mềm và tư vấn công nghệ, có đội ngũ kỹ sư tại Việt Nam phục vụ khách hàng toàn cầu.
 Chúng tôi đang tìm Senior Data / AI Engineer gia nhập đội ngũ phát triển Python.
 
@@ -4281,7 +4159,7 @@ Bạn sẽ:
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Tham gia tech talk nội bộ và các dự án có người dùng thật
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'OVER_5', 'SENIOR', 'Lầu 5, 72 Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'OVER_5', 'SENIOR', 'Lầu 5, 72 Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-14 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('ae82128f-2c43-5726-93aa-e1153010aab5', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '0d373b67-ed5a-5a33-b11e-fa95a4fc8fdb', 'Fresher Frontend Developer (Part-time)', 'KMS Technology là công ty phát triển phần mềm và tư vấn công nghệ, có đội ngũ kỹ sư tại Việt Nam phục vụ khách hàng toàn cầu.
 Chúng tôi đang tìm Fresher Frontend Developer (Part-time) gia nhập đội ngũ phát triển React.
 
@@ -4299,7 +4177,7 @@ Bạn sẽ:
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Được cấp MacBook/laptop cấu hình cao và màn hình rời
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa', 'UNDER_1', 'FRESHER', 'Lầu 5, 72 Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Part-time 4 giờ/ngày, tối thiểu 20 giờ/tuần, sắp xếp theo lịch học');
+- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa', 'UNDER_1', 'FRESHER', 'Lầu 5, 72 Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Part-time 4 giờ/ngày, tối thiểu 20 giờ/tuần, sắp xếp theo lịch học', '2026-10-26 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('30a943d1-c36f-5b79-93c6-8196d2026d4c', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'a2b6504b-dfe1-58b8-8863-c8377a358463', 'Backend Node.js Developer', 'MoMo là ví điện tử và nền tảng thanh toán di động, cung cấp dịch vụ thanh toán, chuyển tiền và tài chính số cho người dùng Việt Nam.
 Chúng tôi đang tìm Backend Node.js Developer gia nhập đội ngũ phát triển Node.js.
 
@@ -4317,7 +4195,7 @@ Bạn sẽ:
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
-- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-24 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('74f4f516-af9b-5ea0-9632-b891b6db72bc', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'a2b6504b-dfe1-58b8-8863-c8377a358463', 'QA Engineer', 'MoMo là ví điện tử và nền tảng thanh toán di động, cung cấp dịch vụ thanh toán, chuyển tiền và tài chính số cho người dùng Việt Nam.
 Chúng tôi đang tìm QA Engineer gia nhập đội ngũ phát triển kiểm thử phần mềm.
 
@@ -4335,7 +4213,7 @@ Bạn sẽ:
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Team building mỗi quý, du lịch công ty hằng năm
-- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-18 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('92f25539-964f-5c0c-95c7-007523bec527', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'a2b6504b-dfe1-58b8-8863-c8377a358463', 'Junior .NET Developer', 'MoMo là ví điện tử và nền tảng thanh toán di động, cung cấp dịch vụ thanh toán, chuyển tiền và tài chính số cho người dùng Việt Nam.
 Chúng tôi đang tìm Junior .NET Developer gia nhập đội ngũ phát triển C# / .NET Core.
 
@@ -4353,7 +4231,7 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y1_2', 'JUNIOR', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y1_2', 'JUNIOR', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-09-11 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('bad3b17d-ebec-5f96-8fb0-81314af1d45f', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'a2b6504b-dfe1-58b8-8863-c8377a358463', 'Senior DevOps Engineer', 'MoMo là ví điện tử và nền tảng thanh toán di động, cung cấp dịch vụ thanh toán, chuyển tiền và tài chính số cho người dùng Việt Nam.
 Chúng tôi đang tìm Senior DevOps Engineer gia nhập đội ngũ phát triển AWS.
 
@@ -4371,7 +4249,7 @@ Bạn sẽ:
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa', 'OVER_5', 'SENIOR', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa', 'OVER_5', 'SENIOR', '45 Lê Văn Lương, Thanh Xuân, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-09 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('df35e532-8541-5b91-af0b-6fdc8365d1ca', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'a901076b-bed0-5baa-9b25-d78b899b8be1', 'Senior Frontend Developer', 'Tiki là nền tảng thương mại điện tử của Việt Nam, bán hàng chính hãng kèm dịch vụ giao hàng nhanh.
 Chúng tôi đang tìm Senior Frontend Developer gia nhập đội ngũ phát triển React.
 
@@ -4389,7 +4267,7 @@ Bạn sẽ:
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'OVER_5', 'SENIOR', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'OVER_5', 'SENIOR', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-26 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('b7e9204c-f090-5942-aeb8-6d970f959a6a', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'a901076b-bed0-5baa-9b25-d78b899b8be1', 'PHP Laravel Developer', 'Tiki là nền tảng thương mại điện tử của Việt Nam, bán hàng chính hãng kèm dịch vụ giao hàng nhanh.
 Chúng tôi đang tìm PHP Laravel Developer gia nhập đội ngũ phát triển Laravel.
 
@@ -4407,7 +4285,7 @@ Bạn sẽ:
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
 - Tham gia tech talk nội bộ và các dự án có người dùng thật
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y2_5', 'MIDDLE', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y2_5', 'MIDDLE', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-20 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('a27a0546-4c05-588f-a628-349ebe742cfc', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'a901076b-bed0-5baa-9b25-d78b899b8be1', 'Mobile Developer', 'Tiki là nền tảng thương mại điện tử của Việt Nam, bán hàng chính hãng kèm dịch vụ giao hàng nhanh.
 Chúng tôi đang tìm Mobile Developer gia nhập đội ngũ phát triển Flutter.
 
@@ -4425,7 +4303,7 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
-- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-15 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('152a159c-e118-5bd8-b6d4-cf9fa6ad1af8', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'a901076b-bed0-5baa-9b25-d78b899b8be1', 'Junior UI/UX Designer', 'Tiki là nền tảng thương mại điện tử của Việt Nam, bán hàng chính hãng kèm dịch vụ giao hàng nhanh.
 Chúng tôi đang tìm Junior UI/UX Designer gia nhập đội ngũ phát triển Figma.
 
@@ -4443,25 +4321,7 @@ Bạn sẽ:
 - Tham gia tech talk nội bộ và các dự án có người dùng thật
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'Y1_2', 'JUNIOR', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
-INSERT INTO public.job_posts VALUES ('4613e171-babb-5e11-a186-492466144012', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'a901076b-bed0-5baa-9b25-d78b899b8be1', 'Junior Backend Node.js Developer', 'Tiki là nền tảng thương mại điện tử của Việt Nam, bán hàng chính hãng kèm dịch vụ giao hàng nhanh.
-Chúng tôi đang tìm Junior Backend Node.js Developer gia nhập đội ngũ phát triển Node.js.
-
-Bạn sẽ:
-- Viết tài liệu API, kiểm thử và tham gia code review
-- Xây dựng cơ chế xác thực JWT, phân quyền theo vai trò và ghi log hệ thống
-- Thiết kế cơ sở dữ liệu, viết truy vấn tối ưu và quản lý migration
-- Tích hợp dịch vụ bên thứ ba (thanh toán, email, lưu trữ) và xử lý tác vụ nền
-- Thiết kế và phát triển RESTful API bằng Node.js (Express/NestJS) cho web và mobile', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 13500000.00, 19500000.00, 2, NULL, '2026-12-05 23:59:59+07', 'PENDING_APPROVAL', 0, '2026-10-30 21:56:13.97+07', '2026-10-30 21:56:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
-- Thành thạo Node.js, Express hoặc NestJS và TypeScript
-- Biết Docker; ưu tiên có kinh nghiệm Redis, hàng đợi tác vụ hoặc AWS
-- Làm việc tốt với PostgreSQL hoặc MongoDB, hiểu index và tối ưu truy vấn
-- Hiểu xác thực JWT, bảo mật API cơ bản (CORS, rate limit, validate dữ liệu)
-- Viết code sạch, có kiểm thử và biết đọc hiểu code của người khác', '- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Tham gia tech talk nội bộ và các dự án có người dùng thật
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'Y1_2', 'JUNIOR', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'Y1_2', 'JUNIOR', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-12 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('56e6094c-c04d-57bd-933d-44f2bb1be605', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2d4b2c96-3fb9-5c6e-b08a-35e18729f711', 'Java Backend Developer', 'Rikkeisoft là công ty phần mềm Việt Nam, cung cấp dịch vụ phát triển phần mềm và nhân lực công nghệ, đặc biệt cho thị trường Nhật Bản.
 Chúng tôi đang tìm Java Backend Developer gia nhập đội ngũ phát triển Java Spring Boot.
 
@@ -4479,7 +4339,7 @@ Bạn sẽ:
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-25 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('a421af59-a09b-5294-b624-675e02a708f2', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2d4b2c96-3fb9-5c6e-b08a-35e18729f711', 'Junior .NET Developer', 'Rikkeisoft là công ty phần mềm Việt Nam, cung cấp dịch vụ phát triển phần mềm và nhân lực công nghệ, đặc biệt cho thị trường Nhật Bản.
 Chúng tôi đang tìm Junior .NET Developer gia nhập đội ngũ phát triển C# / .NET Core.
 
@@ -4497,7 +4357,7 @@ Bạn sẽ:
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
 - Team building mỗi quý, du lịch công ty hằng năm
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-17 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('795eaab7-aa3a-5260-b43b-b1009a7bb0f0', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2d4b2c96-3fb9-5c6e-b08a-35e18729f711', 'Fresher QA Engineer', 'Rikkeisoft là công ty phần mềm Việt Nam, cung cấp dịch vụ phát triển phần mềm và nhân lực công nghệ, đặc biệt cho thị trường Nhật Bản.
 Chúng tôi đang tìm Fresher QA Engineer gia nhập đội ngũ phát triển kiểm thử phần mềm.
 
@@ -4515,7 +4375,7 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Team building mỗi quý, du lịch công ty hằng năm
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'UNDER_1', 'FRESHER', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'UNDER_1', 'FRESHER', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-22 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('67a733d9-f277-5cbe-9ac0-da8715a0aadc', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2d4b2c96-3fb9-5c6e-b08a-35e18729f711', 'Junior Frontend Developer', 'Rikkeisoft là công ty phần mềm Việt Nam, cung cấp dịch vụ phát triển phần mềm và nhân lực công nghệ, đặc biệt cho thị trường Nhật Bản.
 Chúng tôi đang tìm Junior Frontend Developer gia nhập đội ngũ phát triển React.
 
@@ -4533,7 +4393,7 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y1_2', 'JUNIOR', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y1_2', 'JUNIOR', '36 Bạch Đằng, Hải Châu, Đà Nẵng', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-06 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('d32c5e74-1c51-5ac1-b732-f3f2aa107bae', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '9380cbfd-3296-5879-a1d8-28a3ca2c4725', 'Junior Frontend Developer', 'MISA là công ty phần mềm Việt Nam, cung cấp các giải pháp kế toán, quản trị doanh nghiệp và hóa đơn điện tử.
 Chúng tôi đang tìm Junior Frontend Developer gia nhập đội ngũ phát triển React.
 
@@ -4551,7 +4411,7 @@ Bạn sẽ:
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
-- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'Y1_2', 'JUNIOR', 'Số 8 Tôn Thất Thuyết, Cầu Giấy, Hà Nội', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'Y1_2', 'JUNIOR', 'Số 8 Tôn Thất Thuyết, Cầu Giấy, Hà Nội', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-28 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('9f504b42-10cc-52af-ae4e-6ddd41c11728', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '9380cbfd-3296-5879-a1d8-28a3ca2c4725', 'Junior Backend Node.js Developer (Remote)', 'MISA là công ty phần mềm Việt Nam, cung cấp các giải pháp kế toán, quản trị doanh nghiệp và hóa đơn điện tử.
 Chúng tôi đang tìm Junior Backend Node.js Developer (Remote) gia nhập đội ngũ phát triển Node.js.
 
@@ -4569,7 +4429,7 @@ Bạn sẽ:
 - Họp đồng bộ ngắn mỗi ngày, còn lại tự chủ sắp xếp thời gian
 - Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)');
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)', '2026-10-23 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('54b51c1b-480c-5c97-b522-91341866a5e4', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '9380cbfd-3296-5879-a1d8-28a3ca2c4725', 'UI/UX Designer', 'MISA là công ty phần mềm Việt Nam, cung cấp các giải pháp kế toán, quản trị doanh nghiệp và hóa đơn điện tử.
 Chúng tôi đang tìm UI/UX Designer gia nhập đội ngũ phát triển Figma.
 
@@ -4587,7 +4447,79 @@ Bạn sẽ:
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', 'Số 8 Tôn Thất Thuyết, Cầu Giấy, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', 'Số 8 Tôn Thất Thuyết, Cầu Giấy, Hà Nội', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-13 00:20:13.97+07');
+INSERT INTO public.job_posts VALUES ('cf2cba48-090d-5e1c-a957-83649acdba03', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Java Backend Developer', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
+Chúng tôi đang tìm Java Backend Developer gia nhập đội ngũ phát triển Java Spring Boot.
+
+Bạn sẽ:
+- Thiết kế API, mô hình dữ liệu và tối ưu hiệu năng truy vấn MySQL/PostgreSQL
+- Hỗ trợ triển khai, giám sát và xử lý sự cố trên môi trường vận hành
+- Phân tích yêu cầu cùng BA, ước lượng và chia nhỏ công việc theo sprint
+- Viết unit test, integration test và duy trì chất lượng mã nguồn
+- Phát triển các dịch vụ backend bằng Java Spring Boot theo kiến trúc microservices', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 31000000.00, 3, '2026-10-26 00:20:13.97+07', '2026-12-10 23:59:59+07', 'OPEN', 71, '2026-10-25 09:56:13.97+07', '2026-10-26 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
+- Có kinh nghiệm với MySQL hoặc PostgreSQL, biết tối ưu câu truy vấn
+- Hiểu thiết kế RESTful API, transaction và xử lý đồng thời
+- Biết Docker, Git; ưu tiên có kinh nghiệm message queue (RabbitMQ/Kafka)
+- Nắm vững Java (OOP, Collections, Stream) và Spring Boot/Spring Data JPA
+- Tư duy hệ thống tốt, chủ động trao đổi và báo cáo tiến độ', '- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
+- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời
+- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', 'F-Town 3, Quận 9, TP.HCM', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-26 00:20:13.97+07');
+INSERT INTO public.job_posts VALUES ('15e1d95f-8c78-5816-87ac-341f6bf3cd0d', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Junior QA Engineer', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
+Chúng tôi đang tìm Junior QA Engineer gia nhập đội ngũ phát triển kiểm thử phần mềm.
+
+Bạn sẽ:
+- Kiểm thử API bằng Postman và viết kịch bản tự động hóa (Selenium/Cypress)
+- Tham gia sprint planning, review và đảm bảo tiêu chí hoàn thành (DoD)
+- Báo cáo và theo dõi lỗi trên Jira, phối hợp với lập trình viên để xử lý
+- Phân tích yêu cầu, thiết kế test case và thực hiện kiểm thử chức năng, hồi quy
+- Đề xuất cải tiến quy trình đảm bảo chất lượng', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 14500000.00, 19000000.00, 2, '2026-10-22 00:20:13.97+07', '2026-11-30 23:59:59+07', 'OPEN', 215, '2026-10-21 09:56:13.97+07', '2026-10-22 00:20:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
+- Ưu tiên: kiểm thử tự động với Selenium hoặc Cypress
+- Biết sử dụng Jira (hoặc công cụ quản lý lỗi tương đương), Postman và SQL cơ bản
+- Cẩn thận, tỉ mỉ, có khả năng phát hiện vấn đề từ góc nhìn người dùng
+- Nắm vững quy trình kiểm thử phần mềm, kỹ thuật thiết kế test case
+- Đọc hiểu tài liệu tiếng Anh cơ bản', '- Tham gia tech talk nội bộ và các dự án có người dùng thật
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
+- Team building mỗi quý, du lịch công ty hằng năm
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y1_2', 'JUNIOR', 'F-Town 3, Quận 9, TP.HCM', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-22 00:20:13.97+07');
+INSERT INTO public.job_posts VALUES ('5e29bcb4-bb83-5ceb-8a84-b04b85384acb', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'DevOps Engineer (Remote)', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
+Chúng tôi đang tìm DevOps Engineer (Remote) gia nhập đội ngũ phát triển AWS.
+
+Bạn sẽ:
+- Thiết lập giám sát, cảnh báo và sao lưu dữ liệu, đảm bảo hệ thống ổn định
+- Quản lý hạ tầng trên AWS (EC2, RDS, S3, ECS/EKS) bằng Infrastructure as Code
+- Xây dựng và duy trì pipeline CI/CD cho các dự án web và mobile
+- Tối ưu chi phí hạ tầng và bảo mật hệ thống (IAM, mạng, secret)
+- Hỗ trợ đội phát triển trong việc đóng gói và triển khai ứng dụng', 'PARTNER', 'REMOTE', 'Toàn quốc', 25000000.00, 30500000.00, 1, '2026-10-17 00:20:13.97+07', '2026-12-05 23:59:59+07', 'OPEN', 366, '2026-10-16 09:56:13.97+07', '2026-10-17 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
+- Hiểu và sử dụng Docker; ưu tiên Kubernetes
+- Đã làm việc với một nền tảng đám mây (AWS/Azure/GCP) và công cụ CI/CD (GitHub Actions, GitLab CI, Jenkins)
+- Hiểu về mạng, bảo mật và giám sát hệ thống (Prometheus, Grafana)
+- Có kinh nghiệm vận hành Linux và viết shell script
+- Sẵn sàng trực xử lý sự cố theo lịch luân phiên', '- Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
+- Họp đồng bộ ngắn mỗi ngày, còn lại tự chủ sắp xếp thời gian
+- Làm việc từ xa linh hoạt, hỗ trợ chi phí internet hằng tháng
+- Team building mỗi quý, du lịch công ty hằng năm
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)', '2026-10-17 00:20:13.97+07');
+INSERT INTO public.job_posts VALUES ('012b8297-0e44-59b3-870d-d526255ba60a', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '70ea000b-37fd-428f-b400-d22be6184df2', 'Junior Data / AI Engineer', 'Tập đoàn công nghệ hàng đầu Việt Nam, triển khai các dự án chuyển đổi số cho khách hàng trong và ngoài nước.
+Chúng tôi đang tìm Junior Data / AI Engineer gia nhập đội ngũ phát triển Python.
+
+Bạn sẽ:
+- Phối hợp với đội backend để đưa mô hình vào vận hành
+- Theo dõi chất lượng mô hình và đề xuất cải tiến
+- Thiết kế dashboard Power BI và báo cáo định kỳ cho các phòng ban
+- Xây dựng, huấn luyện và đánh giá mô hình học máy (phân loại, dự báo, gợi ý)
+- Thu thập, làm sạch và phân tích dữ liệu khách hàng để hỗ trợ ra quyết định kinh doanh', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 16000000.00, 21000000.00, 2, '2026-09-06 00:20:13.97+07', '2026-10-23 23:59:59+07', 'CLOSED', 1243, '2026-09-05 09:56:13.97+07', '2026-09-06 00:20:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
+- Tư duy logic, trình bày kết quả phân tích rõ ràng
+- Hiểu nền tảng thống kê và các thuật toán học máy phổ biến
+- Biết trực quan hóa dữ liệu (Power BI, Tableau hoặc Matplotlib)
+- Thành thạo Python và SQL; quen với Pandas, NumPy, Scikit-learn
+- Ưu tiên: TensorFlow/PyTorch, kinh nghiệm xử lý ngôn ngữ tự nhiên', '- Tham gia tech talk nội bộ và các dự án có người dùng thật
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
+- Team building mỗi quý, du lịch công ty hằng năm', 'Y1_2', 'JUNIOR', 'F-Town 3, Quận 9, TP.HCM', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-09-06 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('dc0c928c-9488-5a1b-9c6e-8fed6826cc9f', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '9380cbfd-3296-5879-a1d8-28a3ca2c4725', 'QA Engineer Intern (Part-time)', 'MISA là công ty phần mềm Việt Nam, cung cấp các giải pháp kế toán, quản trị doanh nghiệp và hóa đơn điện tử.
 Chúng tôi đang tìm QA Engineer Intern (Part-time) gia nhập đội ngũ phát triển kiểm thử phần mềm.
 
@@ -4605,25 +4537,7 @@ Bạn sẽ:
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Team building mỗi quý, du lịch công ty hằng năm', 'NONE', 'INTERN', 'Số 8 Tôn Thất Thuyết, Cầu Giấy, Hà Nội', 'Part-time 4 giờ/ngày, tối thiểu 20 giờ/tuần, sắp xếp theo lịch học');
-INSERT INTO public.job_posts VALUES ('1c5829a1-371b-5d14-aac9-536ef77e07eb', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '9380cbfd-3296-5879-a1d8-28a3ca2c4725', 'Frontend Developer (Freelance)', 'MISA là công ty phần mềm Việt Nam, cung cấp các giải pháp kế toán, quản trị doanh nghiệp và hóa đơn điện tử.
-Chúng tôi đang tìm Frontend Developer (Freelance) gia nhập đội ngũ phát triển React.
-
-Bạn sẽ:
-- Xây dựng và duy trì giao diện web responsive bằng React/TypeScript theo thiết kế Figma
-- Đề xuất cải tiến giao diện cùng đội sản phẩm và thiết kế
-- Phối hợp với đội backend để tích hợp REST API và quản lý trạng thái ứng dụng
-- Tối ưu hiệu năng tải trang, khả năng truy cập và trải nghiệm trên thiết bị di động
-- Viết component dùng lại được, kiểm thử đơn vị và tham gia code review', 'PARTNER', 'FREELANCE', 'Toàn quốc', 23500000.00, 34500000.00, 1, '2026-10-01 00:20:13.97+07', NULL, 'HIDDEN', 642, '2026-09-30 09:56:13.97+07', '2026-10-01 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
-- Ưu tiên: Next.js, Tailwind CSS, có kinh nghiệm viết unit test
-- Sử dụng thành thạo Git và quy trình pull request
-- Thành thạo JavaScript/TypeScript, HTML5, CSS3 và ít nhất một framework hiện đại (ưu tiên React)
-- Chú ý chi tiết giao diện, có tư duy về trải nghiệm người dùng
-- Hiểu cách hoạt động của REST API, xử lý bất đồng bộ và quản lý state', '- Làm việc từ xa linh hoạt, hỗ trợ chi phí internet hằng tháng
-- Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
-- Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', NULL, 'Theo tiến độ dự án, họp đồng bộ 2 buổi/tuần');
+- Team building mỗi quý, du lịch công ty hằng năm', 'NONE', 'INTERN', 'Số 8 Tôn Thất Thuyết, Cầu Giấy, Hà Nội', 'Part-time 4 giờ/ngày, tối thiểu 20 giờ/tuần, sắp xếp theo lịch học', '2026-10-19 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('fda69fec-12ed-5134-a8b0-d5a5641eaa58', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '229d6f1c-b3b9-502f-b047-5d2f42058e15', 'Fullstack Developer', 'Giao Hàng Nhanh (GHN) là công ty vận chuyển và logistics thương mại điện tử của Việt Nam.
 Chúng tôi đang tìm Fullstack Developer gia nhập đội ngũ phát triển React & Node.js.
 
@@ -4641,7 +4555,7 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
-- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', '21 Lạch Tray, Ngô Quyền, Hải Phòng', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Team building mỗi quý, du lịch công ty hằng năm', 'Y2_5', 'MIDDLE', '21 Lạch Tray, Ngô Quyền, Hải Phòng', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-21 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('bcf763cf-9ac9-52ee-8405-8f10bc133095', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '229d6f1c-b3b9-502f-b047-5d2f42058e15', 'Junior PHP Laravel Developer', 'Giao Hàng Nhanh (GHN) là công ty vận chuyển và logistics thương mại điện tử của Việt Nam.
 Chúng tôi đang tìm Junior PHP Laravel Developer gia nhập đội ngũ phát triển Laravel.
 
@@ -4659,25 +4573,7 @@ Bạn sẽ:
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
 - Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'Y1_2', 'JUNIOR', '21 Lạch Tray, Ngô Quyền, Hải Phòng', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
-INSERT INTO public.job_posts VALUES ('dde8156f-a242-570f-87ad-97db41461a7d', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '229d6f1c-b3b9-502f-b047-5d2f42058e15', 'Junior DevOps Engineer', 'Giao Hàng Nhanh (GHN) là công ty vận chuyển và logistics thương mại điện tử của Việt Nam.
-Chúng tôi đang tìm Junior DevOps Engineer gia nhập đội ngũ phát triển AWS.
-
-Bạn sẽ:
-- Xây dựng và duy trì pipeline CI/CD cho các dự án web và mobile
-- Hỗ trợ đội phát triển trong việc đóng gói và triển khai ứng dụng
-- Tối ưu chi phí hạ tầng và bảo mật hệ thống (IAM, mạng, secret)
-- Thiết lập giám sát, cảnh báo và sao lưu dữ liệu, đảm bảo hệ thống ổn định
-- Quản lý hạ tầng trên AWS (EC2, RDS, S3, ECS/EKS) bằng Infrastructure as Code', 'PARTNER', 'FULL_TIME', 'Hải Phòng', 14000000.00, 20000000.00, 1, NULL, NULL, 'DRAFT', 0, '2026-10-30 21:56:13.97+07', '2026-10-30 21:56:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
-- Hiểu về mạng, bảo mật và giám sát hệ thống (Prometheus, Grafana)
-- Sẵn sàng trực xử lý sự cố theo lịch luân phiên
-- Có kinh nghiệm vận hành Linux và viết shell script
-- Hiểu và sử dụng Docker; ưu tiên Kubernetes
-- Đã làm việc với một nền tảng đám mây (AWS/Azure/GCP) và công cụ CI/CD (GitHub Actions, GitLab CI, Jenkins)', '- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
-- Tham gia tech talk nội bộ và các dự án có người dùng thật
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Team building mỗi quý, du lịch công ty hằng năm', 'Y1_2', 'JUNIOR', '21 Lạch Tray, Ngô Quyền, Hải Phòng', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'Y1_2', 'JUNIOR', '21 Lạch Tray, Ngô Quyền, Hải Phòng', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-10 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('1c600fa2-332d-5231-adba-d0dd75729c24', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '26584ebe-152a-5311-a507-3aa72e8c8116', 'Senior Mobile Developer', 'Be Group là công ty công nghệ phát triển ứng dụng gọi xe, giao đồ ăn và các dịch vụ tiện ích trên di động.
 Chúng tôi đang tìm Senior Mobile Developer gia nhập đội ngũ phát triển Flutter.
 
@@ -4695,7 +4591,7 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'OVER_5', 'SENIOR', 'Lầu 3, 123 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'OVER_5', 'SENIOR', 'Lầu 3, 123 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-27 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('f9cde98a-21e5-5bc5-9e06-1b3711cc4f2b', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '26584ebe-152a-5311-a507-3aa72e8c8116', 'Junior Mobile Developer (Remote)', 'Be Group là công ty công nghệ phát triển ứng dụng gọi xe, giao đồ ăn và các dịch vụ tiện ích trên di động.
 Chúng tôi đang tìm Junior Mobile Developer (Remote) gia nhập đội ngũ phát triển Flutter.
 
@@ -4713,7 +4609,7 @@ Bạn sẽ:
 - Thưởng dự án và đánh giá theo hiệu quả công việc
 - Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)');
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', NULL, 'Linh hoạt, trùng ít nhất 4 giờ với team (9h – 17h)', '2026-10-24 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('355e44cb-2a4d-59e9-af1e-87483e4be012', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '26584ebe-152a-5311-a507-3aa72e8c8116', 'Junior UI/UX Designer (Part-time)', 'Be Group là công ty công nghệ phát triển ứng dụng gọi xe, giao đồ ăn và các dịch vụ tiện ích trên di động.
 Chúng tôi đang tìm Junior UI/UX Designer (Part-time) gia nhập đội ngũ phát triển Figma.
 
@@ -4731,7 +4627,7 @@ Bạn sẽ:
 - Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
 - Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
-- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'Y1_2', 'JUNIOR', 'Lầu 3, 123 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh', 'Part-time 4 giờ/ngày, tối thiểu 20 giờ/tuần, sắp xếp theo lịch học');
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời', 'Y1_2', 'JUNIOR', 'Lầu 3, 123 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh', 'Part-time 4 giờ/ngày, tối thiểu 20 giờ/tuần, sắp xếp theo lịch học', '2026-10-16 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('ef1d2b46-a5ad-5817-851b-a13530c7aa16', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '26584ebe-152a-5311-a507-3aa72e8c8116', 'Fresher Frontend Developer', 'Be Group là công ty công nghệ phát triển ứng dụng gọi xe, giao đồ ăn và các dịch vụ tiện ích trên di động.
 Chúng tôi đang tìm Fresher Frontend Developer gia nhập đội ngũ phát triển React.
 
@@ -4749,7 +4645,7 @@ Bạn sẽ:
 - Team building mỗi quý, du lịch công ty hằng năm
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Được cấp MacBook/laptop cấu hình cao và màn hình rời
-- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'UNDER_1', 'FRESHER', 'Lầu 3, 123 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
+- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'UNDER_1', 'FRESHER', 'Lầu 3, 123 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-09-21 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('14bb2fc2-756f-5d17-8d8a-f351d7a06601', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '7c512f0e-7279-5be8-8fd8-21552d0eb57d', 'PHP Laravel Developer', 'VNPT là tập đoàn công nghệ - viễn thông của Việt Nam, cung cấp hạ tầng, nền tảng số và giải pháp công nghệ thông tin cho nhiều lĩnh vực, trong đó có y tế.
 Chúng tôi đang tìm PHP Laravel Developer gia nhập đội ngũ phát triển Laravel.
 
@@ -4767,7 +4663,7 @@ Bạn sẽ:
 - Được cấp MacBook/laptop cấu hình cao và màn hình rời
 - Tham gia tech talk nội bộ và các dự án có người dùng thật
 - Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', '15 Trần Hưng Đạo, Ninh Kiều, Cần Thơ', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)');
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y2_5', 'MIDDLE', '15 Trần Hưng Đạo, Ninh Kiều, Cần Thơ', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', '2026-10-22 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('eaf031cd-6561-52d6-bb0a-9eea254f7055', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '7c512f0e-7279-5be8-8fd8-21552d0eb57d', 'Junior Fullstack Developer', 'VNPT là tập đoàn công nghệ - viễn thông của Việt Nam, cung cấp hạ tầng, nền tảng số và giải pháp công nghệ thông tin cho nhiều lĩnh vực, trong đó có y tế.
 Chúng tôi đang tìm Junior Fullstack Developer gia nhập đội ngũ phát triển React & Node.js.
 
@@ -4785,7 +4681,7 @@ Bạn sẽ:
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
 - Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
 - Team building mỗi quý, du lịch công ty hằng năm
-- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', '15 Trần Hưng Đạo, Ninh Kiều, Cần Thơ', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ');
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)', 'Y1_2', 'JUNIOR', '15 Trần Hưng Đạo, Ninh Kiều, Cần Thơ', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-18 00:20:13.97+07');
 INSERT INTO public.job_posts VALUES ('95f1dad9-68f1-569d-a9a9-c668794796a4', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '7c512f0e-7279-5be8-8fd8-21552d0eb57d', 'Junior QA Engineer', 'VNPT là tập đoàn công nghệ - viễn thông của Việt Nam, cung cấp hạ tầng, nền tảng số và giải pháp công nghệ thông tin cho nhiều lĩnh vực, trong đó có y tế.
 Chúng tôi đang tìm Junior QA Engineer gia nhập đội ngũ phát triển kiểm thử phần mềm.
 
@@ -4803,7 +4699,115 @@ Bạn sẽ:
 - Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
 - Được cấp MacBook/laptop cấu hình cao và màn hình rời
 - Team building mỗi quý, du lịch công ty hằng năm
-- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'Y1_2', 'JUNIOR', '15 Trần Hưng Đạo, Ninh Kiều, Cần Thơ', 'Thứ 2 – Thứ 6 (8h30 – 17h30)');
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu', 'Y1_2', 'JUNIOR', '15 Trần Hưng Đạo, Ninh Kiều, Cần Thơ', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-10-08 00:20:13.97+07');
+INSERT INTO public.job_posts VALUES ('e3954ce0-8283-5790-9923-4bc598702114', '2c6e3aea-f5ab-54de-959f-26806e04783a', '772bed3e-e946-5d59-8d41-aa7d507c0ced', 'Fullstack Developer', 'NashTech là công ty công nghệ cung cấp dịch vụ phát triển phần mềm và chuyển đổi số cho khách hàng trong nước và quốc tế, với đội ngũ kỹ sư tại Việt Nam.
+Chúng tôi đang tìm Fullstack Developer gia nhập đội ngũ phát triển React & Node.js.
+
+Bạn sẽ:
+- Phát triển tính năng end-to-end: giao diện React, API Node.js và cơ sở dữ liệu
+- Thiết kế schema, viết migration và tối ưu truy vấn PostgreSQL/MongoDB
+- Triển khai ứng dụng bằng Docker và theo dõi hoạt động trên môi trường thật
+- Viết kiểm thử, tài liệu và tham gia code review
+- Làm việc trực tiếp với bộ phận nghiệp vụ để làm rõ yêu cầu', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 25000000.00, 32000000.00, 1, '2026-10-11 00:20:13.97+07', NULL, 'OPEN', 356, '2026-10-10 09:56:13.97+07', '2026-10-11 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
+- Hiểu cơ sở dữ liệu quan hệ, thiết kế REST API và xác thực JWT
+- Giao tiếp rõ ràng, chủ động báo cáo vấn đề
+- Biết Docker và Git; ưu tiên có kinh nghiệm CI/CD
+- Thành thạo JavaScript/TypeScript, React ở phía client và Node.js ở phía server
+- Có khả năng tự tìm hiểu, tự chịu trách nhiệm một module từ đầu đến cuối', '- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
+- Team building mỗi quý, du lịch công ty hằng năm
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
+- Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
+- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (9h – 18h), nghỉ trưa 1,5 giờ', '2026-10-11 00:20:13.97+07');
+INSERT INTO public.job_posts VALUES ('cf61e7a9-6dab-518b-bc9c-9e98c4adeeb5', '2c6e3aea-f5ab-54de-959f-26806e04783a', '772bed3e-e946-5d59-8d41-aa7d507c0ced', 'Fresher Frontend Developer', 'NashTech là công ty công nghệ cung cấp dịch vụ phát triển phần mềm và chuyển đổi số cho khách hàng trong nước và quốc tế, với đội ngũ kỹ sư tại Việt Nam.
+Chúng tôi đang tìm Fresher Frontend Developer gia nhập đội ngũ phát triển React.
+
+Bạn sẽ:
+- Đề xuất cải tiến giao diện cùng đội sản phẩm và thiết kế
+- Xây dựng và duy trì giao diện web responsive bằng React/TypeScript theo thiết kế Figma
+- Tối ưu hiệu năng tải trang, khả năng truy cập và trải nghiệm trên thiết bị di động
+- Phối hợp với đội backend để tích hợp REST API và quản lý trạng thái ứng dụng
+- Viết component dùng lại được, kiểm thử đơn vị và tham gia code review', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 9500000.00, 12000000.00, 4, '2026-09-16 00:20:13.97+07', '2026-10-26 23:59:59+07', 'CLOSED', 564, '2026-09-15 09:56:13.97+07', '2026-09-16 00:20:13.97+07', '- Dưới 1 năm kinh nghiệm hoặc vừa tốt nghiệp, có đồ án/dự án cá nhân
+- Ưu tiên: Next.js, Tailwind CSS, có kinh nghiệm viết unit test
+- Chú ý chi tiết giao diện, có tư duy về trải nghiệm người dùng
+- Hiểu cách hoạt động của REST API, xử lý bất đồng bộ và quản lý state
+- Sử dụng thành thạo Git và quy trình pull request
+- Thành thạo JavaScript/TypeScript, HTML5, CSS3 và ít nhất một framework hiện đại (ưu tiên React)', '- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
+- Thưởng giới thiệu ứng viên lên đến 10 triệu đồng
+- Tham gia tech talk nội bộ và các dự án có người dùng thật
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
+- Team building mỗi quý, du lịch công ty hằng năm', 'UNDER_1', 'FRESHER', 'Tòa nhà Viettel Complex, 285 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', '2026-09-16 00:20:13.97+07');
+INSERT INTO public.job_posts VALUES ('efeed165-d539-56fc-95ce-870a694580ca', '5367db5d-eba6-5298-8218-1cfbf437a638', 'b730ec38-1bdb-5fbc-8bec-66482539838a', 'Mobile Developer (Remote)', 'VNPAY là công ty công nghệ tài chính, cung cấp giải pháp thanh toán điện tử và thanh toán QR cho ngân hàng, thương nhân và người dùng.
+Chúng tôi đang tìm Mobile Developer (Remote) gia nhập đội ngũ phát triển Flutter.
+
+Bạn sẽ:
+- Phát triển ứng dụng di động đa nền tảng (Flutter hoặc React Native) cho iOS và Android
+- Viết kiểm thử và duy trì chất lượng mã nguồn
+- Đưa ứng dụng lên App Store/Google Play và xử lý phản hồi từ người dùng
+- Tích hợp REST API, thông báo đẩy (push notification) và thanh toán trong ứng dụng
+- Tối ưu hiệu năng, dung lượng ứng dụng và trải nghiệm mượt trên nhiều thiết bị', 'PARTNER', 'REMOTE', 'Toàn quốc', 22500000.00, 32000000.00, 1, NULL, '2026-12-10 23:59:59+07', 'PENDING_APPROVAL', 0, '2026-10-30 21:56:13.97+07', '2026-10-30 21:56:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
+- Có kinh nghiệm phát triển ứng dụng di động với Flutter hoặc React Native
+- Có tinh thần trách nhiệm với sản phẩm cuối
+- Biết Firebase (Auth, Firestore, FCM), Git; ưu tiên có kiến thức Kotlin/Swift
+- Đã từng phát hành ít nhất một ứng dụng lên App Store hoặc Google Play
+- Hiểu vòng đời ứng dụng, quản lý state và điều hướng trong ứng dụng', '- Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)
+- Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
+- Thưởng dự án và đánh giá theo hiệu quả công việc
+- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm
+- Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định', 'Y2_5', 'MIDDLE', NULL, 'Làm việc từ xa, họp đồng bộ 9h mỗi sáng', NULL);
+INSERT INTO public.job_posts VALUES ('4613e171-babb-5e11-a186-492466144012', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'a901076b-bed0-5baa-9b25-d78b899b8be1', 'Junior Backend Node.js Developer', 'Tiki là nền tảng thương mại điện tử của Việt Nam, bán hàng chính hãng kèm dịch vụ giao hàng nhanh.
+Chúng tôi đang tìm Junior Backend Node.js Developer gia nhập đội ngũ phát triển Node.js.
+
+Bạn sẽ:
+- Viết tài liệu API, kiểm thử và tham gia code review
+- Xây dựng cơ chế xác thực JWT, phân quyền theo vai trò và ghi log hệ thống
+- Thiết kế cơ sở dữ liệu, viết truy vấn tối ưu và quản lý migration
+- Tích hợp dịch vụ bên thứ ba (thanh toán, email, lưu trữ) và xử lý tác vụ nền
+- Thiết kế và phát triển RESTful API bằng Node.js (Express/NestJS) cho web và mobile', 'PARTNER', 'FULL_TIME', 'TP. Hồ Chí Minh', 13500000.00, 19500000.00, 2, NULL, '2026-12-05 23:59:59+07', 'PENDING_APPROVAL', 0, '2026-10-30 21:56:13.97+07', '2026-10-30 21:56:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
+- Thành thạo Node.js, Express hoặc NestJS và TypeScript
+- Biết Docker; ưu tiên có kinh nghiệm Redis, hàng đợi tác vụ hoặc AWS
+- Làm việc tốt với PostgreSQL hoặc MongoDB, hiểu index và tối ưu truy vấn
+- Hiểu xác thực JWT, bảo mật API cơ bản (CORS, rate limit, validate dữ liệu)
+- Viết code sạch, có kiểm thử và biết đọc hiểu code của người khác', '- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
+- Tham gia tech talk nội bộ và các dự án có người dùng thật
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
+- Ngân sách đào tạo và chứng chỉ (AWS, Scrum, tiếng Anh…) 10 triệu/năm', 'Y1_2', 'JUNIOR', '18 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Thứ 2 – Thứ 7 (sáng thứ 7 làm việc nhẹ)', NULL);
+INSERT INTO public.job_posts VALUES ('1c5829a1-371b-5d14-aac9-536ef77e07eb', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '9380cbfd-3296-5879-a1d8-28a3ca2c4725', 'Frontend Developer (Freelance)', 'MISA là công ty phần mềm Việt Nam, cung cấp các giải pháp kế toán, quản trị doanh nghiệp và hóa đơn điện tử.
+Chúng tôi đang tìm Frontend Developer (Freelance) gia nhập đội ngũ phát triển React.
+
+Bạn sẽ:
+- Xây dựng và duy trì giao diện web responsive bằng React/TypeScript theo thiết kế Figma
+- Đề xuất cải tiến giao diện cùng đội sản phẩm và thiết kế
+- Phối hợp với đội backend để tích hợp REST API và quản lý trạng thái ứng dụng
+- Tối ưu hiệu năng tải trang, khả năng truy cập và trải nghiệm trên thiết bị di động
+- Viết component dùng lại được, kiểm thử đơn vị và tham gia code review', 'PARTNER', 'FREELANCE', 'Toàn quốc', 23500000.00, 34500000.00, 1, '2026-10-01 00:20:13.97+07', NULL, 'HIDDEN', 642, '2026-09-30 09:56:13.97+07', '2026-10-01 00:20:13.97+07', '- Từ 2 năm kinh nghiệm, đã tự triển khai tính năng hoàn chỉnh
+- Ưu tiên: Next.js, Tailwind CSS, có kinh nghiệm viết unit test
+- Sử dụng thành thạo Git và quy trình pull request
+- Thành thạo JavaScript/TypeScript, HTML5, CSS3 và ít nhất một framework hiện đại (ưu tiên React)
+- Chú ý chi tiết giao diện, có tư duy về trải nghiệm người dùng
+- Hiểu cách hoạt động của REST API, xử lý bất đồng bộ và quản lý state', '- Làm việc từ xa linh hoạt, hỗ trợ chi phí internet hằng tháng
+- Hỗ trợ thiết bị làm việc và bản quyền phần mềm cần thiết
+- Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)
+- Được cấp MacBook/laptop cấu hình cao và màn hình rời
+- Tham gia tech talk nội bộ và các dự án có người dùng thật', 'Y2_5', 'MIDDLE', NULL, 'Theo tiến độ dự án, họp đồng bộ 2 buổi/tuần', NULL);
+INSERT INTO public.job_posts VALUES ('dde8156f-a242-570f-87ad-97db41461a7d', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '229d6f1c-b3b9-502f-b047-5d2f42058e15', 'Junior DevOps Engineer', 'Giao Hàng Nhanh (GHN) là công ty vận chuyển và logistics thương mại điện tử của Việt Nam.
+Chúng tôi đang tìm Junior DevOps Engineer gia nhập đội ngũ phát triển AWS.
+
+Bạn sẽ:
+- Xây dựng và duy trì pipeline CI/CD cho các dự án web và mobile
+- Hỗ trợ đội phát triển trong việc đóng gói và triển khai ứng dụng
+- Tối ưu chi phí hạ tầng và bảo mật hệ thống (IAM, mạng, secret)
+- Thiết lập giám sát, cảnh báo và sao lưu dữ liệu, đảm bảo hệ thống ổn định
+- Quản lý hạ tầng trên AWS (EC2, RDS, S3, ECS/EKS) bằng Infrastructure as Code', 'PARTNER', 'FULL_TIME', 'Hải Phòng', 14000000.00, 20000000.00, 1, NULL, NULL, 'DRAFT', 0, '2026-10-30 21:56:13.97+07', '2026-10-30 21:56:13.97+07', '- Từ 1 năm kinh nghiệm ở vị trí tương đương
+- Hiểu về mạng, bảo mật và giám sát hệ thống (Prometheus, Grafana)
+- Sẵn sàng trực xử lý sự cố theo lịch luân phiên
+- Có kinh nghiệm vận hành Linux và viết shell script
+- Hiểu và sử dụng Docker; ưu tiên Kubernetes
+- Đã làm việc với một nền tảng đám mây (AWS/Azure/GCP) và công cụ CI/CD (GitHub Actions, GitLab CI, Jenkins)', '- Đồ ăn nhẹ, cà phê miễn phí tại văn phòng; hỗ trợ tiền ăn trưa
+- Tham gia tech talk nội bộ và các dự án có người dùng thật
+- Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ; gói bảo hiểm sức khỏe riêng (PVI/Bảo Việt)
+- Lộ trình thăng tiến rõ ràng, có mentor kèm cặp trong 3 tháng đầu
+- Team building mỗi quý, du lịch công ty hằng năm', 'Y1_2', 'JUNIOR', '21 Lạch Tray, Ngô Quyền, Hải Phòng', 'Thứ 2 – Thứ 6 (8h30 – 17h30)', NULL);
 INSERT INTO public.job_posts VALUES ('8da80976-1e09-5e6b-8843-580a9e871021', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '7c512f0e-7279-5be8-8fd8-21552d0eb57d', 'Junior Python Backend Developer (Freelance)', 'VNPT là tập đoàn công nghệ - viễn thông của Việt Nam, cung cấp hạ tầng, nền tảng số và giải pháp công nghệ thông tin cho nhiều lĩnh vực, trong đó có y tế.
 Chúng tôi đang tìm Junior Python Backend Developer (Freelance) gia nhập đội ngũ phát triển Python Django.
 
@@ -4821,7 +4825,7 @@ Bạn sẽ:
 - Bảo hiểm đầy đủ theo quy định (đối với hợp đồng lao động)
 - Làm việc từ xa linh hoạt, hỗ trợ chi phí internet hằng tháng
 - Nghỉ phép 14 ngày/năm, nghỉ lễ theo quy định
-- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y1_2', 'JUNIOR', NULL, 'Theo tiến độ dự án, họp đồng bộ 2 buổi/tuần');
+- Lương tháng 13 và thưởng theo kết quả kinh doanh, xét tăng lương 2 lần/năm', 'Y1_2', 'JUNIOR', NULL, 'Theo tiến độ dự án, họp đồng bộ 2 buổi/tuần', NULL);
 
 
 --
@@ -4835,6 +4839,7 @@ INSERT INTO public.notifications VALUES ('1819d71f-3c32-40d1-b986-f2ea21e3fa70',
 INSERT INTO public.notifications VALUES ('6a9d50a1-bd76-4bea-be7f-1fca8e01e41f', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', '📋 Đơn ứng tuyển cập nhật', 'Đơn ứng tuyển của Nguyễn Văn Dev đã chuyển sang trạng thái: INTERVIEW', NULL, true, '{"log_id": "b4529345-21eb-48cb-862b-bc9aac32348e", "user_id": "aa1af617-5227-4f42-a47b-7c4dd00250dd", "project_job_id": "9be0af8c-d476-4b05-bb2a-6826b130d8bd"}', '2026-10-08 21:28:55.973+07');
 INSERT INTO public.notifications VALUES ('051df94c-079b-4ecb-90d5-d6ccfe75168e', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', '📋 Đơn ứng tuyển cập nhật', 'Đơn ứng tuyển của Nguyễn Văn Dev đã chuyển sang trạng thái: REVIEWING', NULL, true, '{"log_id": "5a2e7431-aa66-473e-afe0-c427949484b4", "user_id": "aa1af617-5227-4f42-a47b-7c4dd00250dd", "project_job_id": "9be0af8c-d476-4b05-bb2a-6826b130d8bd"}', '2026-10-06 22:19:56.196+07');
 INSERT INTO public.notifications VALUES ('d41cb9b6-2aaa-5f7c-af83-c6b507fac393', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'JOB_APPROVED', 'Tin tuyển dụng đã được duyệt', 'Tin "Senior Java Backend Developer" đã được duyệt và hiển thị công khai.', '/employer/jobs/76e0f1e2-8727-59e5-8342-7d39bf0b4ee4', true, '{"demo": true, "job_post_id": "76e0f1e2-8727-59e5-8342-7d39bf0b4ee4"}', '2026-10-28 00:20:13.97+07');
+INSERT INTO public.notifications VALUES ('1c64d9f6-7a8e-4d00-b0fb-bf62effaa369', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'JOB_PENDING', 'Tin tuyển dụng mới chờ duyệt', 'FPT Software vừa gửi duyệt tin "TMP test tin Tân".', '/admin/jobs', false, '{"job_post_id": "97b58be3-6c1b-40cf-aaa7-3122c5958d41"}', '2026-11-01 13:05:17.104+07');
 INSERT INTO public.notifications VALUES ('4c729b9a-2351-5ec7-9390-24d5d639672a', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Đỗ Mai Hương vừa nộp hồ sơ vào vị trí "Senior Java Backend Developer".', '/employer/jobs/76e0f1e2-8727-59e5-8342-7d39bf0b4ee4?tab=applications', true, '{"demo": true, "job_post_id": "76e0f1e2-8727-59e5-8342-7d39bf0b4ee4", "application_id": "9fef558f-1ccd-584c-94d5-a97aac253458"}', '2026-10-29 07:25:53.301+07');
 INSERT INTO public.notifications VALUES ('ac80e695-6c4e-499f-b914-52a32577db3e', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', '📋 Đơn ứng tuyển cập nhật', 'Đơn ứng tuyển của Nguyễn Văn Dev đã chuyển sang trạng thái: ACCEPTED', NULL, true, '{"log_id": "b1736085-f5c9-4464-ad9c-f769d55d7894", "user_id": "aa1af617-5227-4f42-a47b-7c4dd00250dd", "project_job_id": "ba2deb92-cee0-401d-b797-4d862a7d3e70"}', '2026-10-10 18:48:43.302+07');
 INSERT INTO public.notifications VALUES ('4fb9dd39-fee1-44ee-8199-6f2d8680d191', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'TASK_STATUS_CHANGED', '⏳ Task chờ duyệt', 'Task "Thiết kế màn hình login " đã được nộp sản phẩm (lần 1) và đang chờ duyệt', '/admin/workspaces/5308bacc-baeb-4e27-a2ae-a7d777efdb66?task=be7df978-8cac-4793-99b4-bc0638db5a99', true, '{"task_id": "be7df978-8cac-4793-99b4-bc0638db5a99", "workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66"}', '2026-10-16 20:18:05.051+07');
@@ -4852,6 +4857,7 @@ INSERT INTO public.notifications VALUES ('3e51a108-d773-46cc-be5a-60fe5d182576',
 INSERT INTO public.notifications VALUES ('4d605728-ffda-58bf-bdc1-91a7c7ee2cfa', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Đỗ Thanh Hạnh vừa nộp hồ sơ vào vị trí ".NET Developer".', '/employer/jobs/542d2d7f-a060-5af7-bbfe-c7ef156a1548?tab=applications', true, '{"demo": true, "job_post_id": "542d2d7f-a060-5af7-bbfe-c7ef156a1548", "application_id": "2acbbc53-2485-551e-b569-f59588ff82ab"}', '2026-10-26 15:28:34.219+07');
 INSERT INTO public.notifications VALUES ('6ec16cea-751e-4696-98ce-3d86c3e68f50', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'APPLICATION_STATUS', 'Hồ sơ của bạn đã được xem', 'FPT Software đã xem hồ sơ ứng tuyển vị trí "Backend Node.js Engineer (Remote)" của bạn.', '/candidate/applications', true, '{"status": "VIEWED", "application_id": "66c1e7a9-fc34-4867-a2e6-2daa651bdff2"}', '2026-10-24 17:03:36.139+07');
 INSERT INTO public.notifications VALUES ('c7fecca9-acfa-5028-a03c-dcec007ecbe5', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Võ Thanh Ngân vừa nộp hồ sơ vào vị trí ".NET Developer".', '/employer/jobs/542d2d7f-a060-5af7-bbfe-c7ef156a1548?tab=applications', true, '{"demo": true, "job_post_id": "542d2d7f-a060-5af7-bbfe-c7ef156a1548", "application_id": "2072752a-a74e-53da-93bb-64be5588e00c"}', '2026-10-24 19:39:59.38+07');
+INSERT INTO public.notifications VALUES ('656f521b-8f14-4471-ac1a-7acfc05e6f1f', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'JOB_PENDING', 'Tin tuyển dụng mới chờ duyệt', 'FPT Software vừa gửi duyệt tin "TMP test tin Tân".', '/admin/jobs', false, '{"job_post_id": "7b76f603-0b1d-4933-b64c-c20f9b0fee5c"}', '2026-11-01 13:05:33.368+07');
 INSERT INTO public.notifications VALUES ('faf04979-ba0a-507b-a862-d1fbdb1728ba', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Đỗ Hồng Tiên vừa nộp hồ sơ vào vị trí ".NET Developer".', '/employer/jobs/542d2d7f-a060-5af7-bbfe-c7ef156a1548?tab=applications', true, '{"demo": true, "job_post_id": "542d2d7f-a060-5af7-bbfe-c7ef156a1548", "application_id": "f8707107-7201-537d-80f2-6cb66993a769"}', '2026-10-29 13:14:30.314+07');
 INSERT INTO public.notifications VALUES ('dd0b5a46-9e00-58b8-b0f4-c7b7df113ff7', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Lý Minh Huy vừa nộp hồ sơ vào vị trí ".NET Developer".', '/employer/jobs/542d2d7f-a060-5af7-bbfe-c7ef156a1548?tab=applications', true, '{"demo": true, "job_post_id": "542d2d7f-a060-5af7-bbfe-c7ef156a1548", "application_id": "8df33040-e606-547b-9e1c-5904769d55bd"}', '2026-10-23 21:09:14.067+07');
 INSERT INTO public.notifications VALUES ('fd4a81b8-2ce0-5183-a4cf-8f6154ed0899', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Nguyễn Đức Sơn vừa nộp hồ sơ vào vị trí ".NET Developer".', '/employer/jobs/542d2d7f-a060-5af7-bbfe-c7ef156a1548?tab=applications', true, '{"demo": true, "job_post_id": "542d2d7f-a060-5af7-bbfe-c7ef156a1548", "application_id": "480e0a34-e803-5e05-b4d2-669c6d455275"}', '2026-10-23 15:08:03.008+07');
@@ -4863,10 +4869,13 @@ INSERT INTO public.notifications VALUES ('edb0795e-f752-4459-810f-41925bd4f790',
 INSERT INTO public.notifications VALUES ('5e6fc94b-9c6b-4b62-892c-737ca5b5351d', '4e332674-295d-444c-a507-2d60b50f1be1', 'TASK_ASSIGNED', '📌 Task mới được tạo', 'Tạo task "Thiết kế màn hình login " trong workspace', '/candidate/workspaces/5308bacc-baeb-4e27-a2ae-a7d777efdb66', true, '{"log_id": "66baabde-4889-4e3f-961d-5ab57a058886", "workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66"}', '2026-10-10 19:07:41.882+07');
 INSERT INTO public.notifications VALUES ('098a6346-7b23-476f-85d5-8a8e2292ed02', '4e332674-295d-444c-a507-2d60b50f1be1', 'TASK_APPROVED', '✅ Task được duyệt', 'Task "Tích hợp bảng quét mã vạch sản phẩm" đã được duyệt ✅: tốt', '/candidate/workspaces/5308bacc-baeb-4e27-a2ae-a7d777efdb66', true, '{"log_id": "775a9eaf-f19f-4f83-ac92-d4bce5310804", "workspace_id": "5308bacc-baeb-4e27-a2ae-a7d777efdb66"}', '2026-10-10 20:39:59.632+07');
 INSERT INTO public.notifications VALUES ('883b03de-b0d6-578b-8aa2-cc407202ad0b', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Võ Đức Kiên vừa nộp hồ sơ vào vị trí "Junior QA Engineer".', '/employer/jobs/ffcec1d6-b34d-5622-9fe3-1af543c2e1b9?tab=applications', true, '{"demo": true, "job_post_id": "ffcec1d6-b34d-5622-9fe3-1af543c2e1b9", "application_id": "7e9bbb03-55d1-5579-932b-a8ae8b30611b"}', '2026-10-26 11:34:32.027+07');
+INSERT INTO public.notifications VALUES ('bb9c3b4f-72f8-4667-8533-13f07662c0c2', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'JOB_PENDING', 'Tin tuyển dụng mới chờ duyệt', 'FPT Software vừa gửi duyệt tin "TMP test tin Tân".', '/admin/jobs', false, '{"job_post_id": "ebfb6863-0a2f-4177-a957-5c292a748b64"}', '2026-11-01 13:44:40.751+07');
 INSERT INTO public.notifications VALUES ('084a627e-0e07-544e-b174-2d266564d1cf', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Đặng Thị Nga vừa nộp hồ sơ vào vị trí "Junior QA Engineer".', '/employer/jobs/ffcec1d6-b34d-5622-9fe3-1af543c2e1b9?tab=applications', true, '{"demo": true, "job_post_id": "ffcec1d6-b34d-5622-9fe3-1af543c2e1b9", "application_id": "789f13d4-f298-54e3-939f-f71763427892"}', '2026-10-27 19:05:05.553+07');
 INSERT INTO public.notifications VALUES ('aa89d243-4898-5116-ba35-96efdd24783b', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Ngô Bảo Oanh vừa nộp hồ sơ vào vị trí "Junior QA Engineer".', '/employer/jobs/ffcec1d6-b34d-5622-9fe3-1af543c2e1b9?tab=applications', true, '{"demo": true, "job_post_id": "ffcec1d6-b34d-5622-9fe3-1af543c2e1b9", "application_id": "08e6b779-54dc-5c35-9c45-3eeb16c56b88"}', '2026-10-21 20:25:15.993+07');
 INSERT INTO public.notifications VALUES ('8424f56e-80c8-5faf-a223-757ba759c2a1', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Phạm Minh Quân vừa nộp hồ sơ vào vị trí "Fullstack Developer".', '/employer/jobs/e3954ce0-8283-5790-9923-4bc598702114?tab=applications', true, '{"demo": true, "job_post_id": "e3954ce0-8283-5790-9923-4bc598702114", "application_id": "f1a2be2b-3134-558b-ac26-a5bfa256f93a"}', '2026-10-25 10:52:29.143+07');
 INSERT INTO public.notifications VALUES ('f09975d9-008f-534f-94cf-fd8a83530605', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Hồ Minh Nam vừa nộp hồ sơ vào vị trí "Fullstack Developer".', '/employer/jobs/e3954ce0-8283-5790-9923-4bc598702114?tab=applications', true, '{"demo": true, "job_post_id": "e3954ce0-8283-5790-9923-4bc598702114", "application_id": "db5e3df7-ad3e-524c-9348-b06106e3a281"}', '2026-10-21 18:51:41.755+07');
+INSERT INTO public.notifications VALUES ('63135295-4170-4ce1-9891-f89c0fd177dd', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'JOB_PENDING', 'Tin tuyển dụng mới chờ duyệt', 'FPT Software vừa mở lại tin "TMP test tin Tân" và đang chờ bạn duyệt.', '/admin/jobs', false, '{"job_post_id": "ebfb6863-0a2f-4177-a957-5c292a748b64"}', '2026-11-01 13:44:40.791+07');
+INSERT INTO public.notifications VALUES ('d14e7af8-7ece-4042-9fbd-5067f6d3aa0a', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'JOB_PENDING', 'Tin tuyển dụng mới chờ duyệt', 'FPT Software vừa mở lại tin "TMP test tin Tân (Bản sao)" và đang chờ bạn duyệt.', '/admin/jobs', false, '{"job_post_id": "caad2f78-2b3e-41f2-9ee5-bb59a147dccd"}', '2026-11-01 13:44:40.819+07');
 INSERT INTO public.notifications VALUES ('3231bbb1-09ce-553b-83e0-5ab36b4f9da3', '5367db5d-eba6-5298-8218-1cfbf437a638', 'JOB_APPROVED', 'Tin tuyển dụng đã được duyệt', 'Tin "Senior Backend Node.js Developer" đã được duyệt và hiển thị công khai.', '/employer/jobs/0a5510c3-9bef-5505-83bf-0ae2ae2e8444', false, '{"demo": true, "job_post_id": "0a5510c3-9bef-5505-83bf-0ae2ae2e8444"}', '2026-10-29 00:20:13.97+07');
 INSERT INTO public.notifications VALUES ('da266e34-552d-5710-8bac-4fc97d8d4193', '5367db5d-eba6-5298-8218-1cfbf437a638', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Bùi Quốc Dũng vừa nộp hồ sơ vào vị trí "Senior Backend Node.js Developer".', '/employer/jobs/0a5510c3-9bef-5505-83bf-0ae2ae2e8444?tab=applications', true, '{"demo": true, "job_post_id": "0a5510c3-9bef-5505-83bf-0ae2ae2e8444", "application_id": "07a7310d-011a-540a-8e08-46968aa9ff73"}', '2026-10-29 20:59:40.878+07');
 INSERT INTO public.notifications VALUES ('48c35403-f0e6-541d-8e7d-c126ffcef31a', '5367db5d-eba6-5298-8218-1cfbf437a638', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Hồ Minh Nam vừa nộp hồ sơ vào vị trí "Senior Backend Node.js Developer".', '/employer/jobs/0a5510c3-9bef-5505-83bf-0ae2ae2e8444?tab=applications', true, '{"demo": true, "job_post_id": "0a5510c3-9bef-5505-83bf-0ae2ae2e8444", "application_id": "3497e35a-0d98-5452-98ee-016a68bc6387"}', '2026-10-29 21:19:33.612+07');
@@ -7569,5 +7578,5 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
-\unrestrict IK2QhAoRaiSxVxFzYYi0yHHkOZ8NRYaM3587L654OePzANqNz9EyccS8eFuenzO
+\unrestrict gMNrJbIqtzLJnME6Dhq0iJq5CXFlby4d6t4m6gm8HXcP4rMXeNsQjjBe3dN6DM5
 

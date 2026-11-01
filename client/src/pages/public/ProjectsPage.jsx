@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { projectJobApi } from '@/api/projectJobApi';
@@ -66,10 +66,20 @@ export default function ProjectsPage() {
 
 
   const { data, isLoading } = useQuery({
-    queryKey: ['project-jobs', filters],
+    queryKey: ['project-jobs', filters, user?.id ?? 'guest'],
     queryFn: () => projectJobApi.getProjectJobs(filters),
     keepPreviousData: true,
   });
+
+  // Ứng viên có hồ sơ: server trả personalized; mặc định xếp "Phù hợp với bạn" lên đầu (không hiện % hay lý do)
+  const personalized = !!data?.data?.personalized;
+  const sorts = personalized ? [{ value: 'match', label: 'Phù hợp với bạn' }, ...SORTS] : SORTS;
+  const autoSorted = useRef(false);
+  useEffect(() => {
+    if (!personalized || autoSorted.current) return;
+    autoSorted.current = true;
+    if (filters.sort === 'newest') setFilter({ sort: 'match' });
+  }, [personalized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: myAppsRes } = useQuery({
     queryKey: ['my-project-applications'],
@@ -210,7 +220,7 @@ export default function ProjectsPage() {
         <div className="min-w-0">
           <ResultsHeader
             count={<>Tìm thấy <strong className="text-slate-900">{pagination?.total || 0}</strong> vị trí dự án thời vụ</>}
-            sort={filters.sort} sortOptions={SORTS} onSort={(v) => setFilter({ sort: v })}
+            sort={filters.sort} sortOptions={sorts} onSort={(v) => setFilter({ sort: v })}
             filtersOpen={filterOpen} onToggleFilters={() => setFilterOpen((o) => !o)} activeCount={activeFilterCount}
           />
       {/* Results Section */}
