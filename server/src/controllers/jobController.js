@@ -1,5 +1,7 @@
 const { Op } = require('sequelize');
-const { sequelize, JobPost, JobPostSkill, Skill, Company, User, Application, CandidateProfile } = require('../models');
+const {
+  sequelize, JobPost, JobPostSkill, Skill, Company, User, Application, ApplicationStatusHistory, SavedJob, CandidateProfile,
+} = require('../models');
 const AppError = require('../utils/AppError');
 const { createNotification, notifyAdmins } = require('./notificationController');
 
@@ -23,6 +25,16 @@ const assertValidDeadline = (deadline) => {
 const assertValidSalary = ({ salary_min, salary_max }) => {
   if (salary_min && salary_max && parseFloat(salary_min) > parseFloat(salary_max)) {
     throw new AppError('Lương tối thiểu không được lớn hơn lương tối đa', 400);
+  }
+};
+const assertCompleteJob = (data) => {
+  const missing = [];
+  if (!data.title || !String(data.title).trim()) missing.push('tiêu đề công việc');
+  if (!data.work_type || !String(data.work_type).trim()) missing.push('hình thức làm việc');
+  if (!data.location || !String(data.location).trim()) missing.push('tỉnh/thành phố làm việc');
+  if (!data.description || !String(data.description).trim()) missing.push('mô tả công việc');
+  if (missing.length > 0) {
+    throw new AppError(`Vui lòng nhập đầy đủ thông tin bắt buộc trước khi đăng tin (còn thiếu: ${missing.join(', ')})`, 400);
   }
 };
 
@@ -188,6 +200,15 @@ exports.createEmployerJob = async (req, res, next) => {
     const { skill_ids, is_draft } = req.body;
     const saveAsDraft = Boolean(is_draft);
     const fields = pickJobFields(req.body);
+    if (!fields.title || !String(fields.title).trim()) {
+      throw new AppError('Vui lòng nhập tiêu đề công việc', 400);
+    }
+    if (fields.description === undefined || fields.description === null) {
+      fields.description = '';
+    }
+    if (!saveAsDraft) {
+      assertCompleteJob(fields);
+    }
     if (!saveAsDraft || fields.deadline) {
       assertValidDeadline(fields.deadline);
     }
@@ -253,8 +274,24 @@ exports.updateEmployerJob = async (req, res, next) => {
     const oldDeadline = job.deadline ? job.deadline.toISOString() : '';
     const nextDeadline = updateData.deadline !== undefined ? updateData.deadline : job.deadline;
 
-    // Kiểm tra hạn nộp nếu thay đổi hạn hoặc chuyển từ bản nháp sang đăng chính thức
+    // Gộp dữ liệu mới với dữ liệu hiện tại của tin để kiểm tra đầy đủ các trường bắt buộc
+    const merged = {
+      title: updateData.title !== undefined ? updateData.title : job.title,
+      work_type: updateData.work_type !== undefined ? updateData.work_type : job.work_type,
+      location: updateData.location !== undefined ? updateData.location : job.location,
+      description: updateData.description !== undefined ? updateData.description : job.description,
+    };
+    if (!merged.title || !String(merged.title).trim()) {
+      throw new AppError('Vui lòng nhập tiêu đề công việc', 400);
+    }
+
     const publishingDraft = job.status === 'DRAFT' && is_draft === false;
+    const targetIsDraft = is_draft === true || (job.status === 'DRAFT' && is_draft !== false);
+    if (!targetIsDraft) {
+      assertCompleteJob(merged);
+    }
+
+    // Kiểm tra hạn nộp nếu thay đổi hạn hoặc chuyển từ bản nháp sang đăng chính thức
     if (
       (updateData.deadline !== undefined && String(updateData.deadline ? new Date(updateData.deadline).toISOString() : '') !== oldDeadline)
       || publishingDraft
@@ -317,7 +354,7 @@ exports.updateEmployerJob = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// DELETE /api/employer/jobs/:id (close the job)
+// PUT /api/employer/jobs/:id/close — Đóng tin tuyển dụng
 exports.closeEmployerJob = async (req, res, next) => {
   try {
     const company = await Company.findOne({ where: { user_id: req.user.id } });
@@ -325,6 +362,33 @@ exports.closeEmployerJob = async (req, res, next) => {
     if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
     await job.update({ status: 'CLOSED' });
     res.json({ success: true, message: 'Đã đóng tin tuyển dụng' });
+  } catch (error) { next(error); }
+};
+
+// DELETE /api/employer/jobs/:id — Xóa vĩnh viễn tin tuyển dụng
+exports.deleteEmployerJob = async (req, res, next) => {
+  try {
+    const company = await Company.findOne({ where: { user_id: req.user.id } });
+    const job = await JobPost.findOne({ where: { id: req.params.id, company_id: company?.id } });
+    if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+
+    await sequelize.transaction(async (t) => {
+      const apps = await Application.findAll({
+        where: { job_post_id: job.id },
+        attributes: ['id'],
+        transaction: t,
+      });
+      const appIds = apps.map((a) => a.id);
+      if (appIds.length > 0) {
+        await ApplicationStatusHistory.destroy({ where: { application_id: appIds }, transaction: t });
+        await Application.destroy({ where: { id: appIds }, transaction: t });
+      }
+      await SavedJob.destroy({ where: { job_post_id: job.id }, transaction: t });
+      await JobPostSkill.destroy({ where: { job_post_id: job.id }, transaction: t });
+      await job.destroy({ transaction: t });
+    });
+
+    res.json({ success: true, message: 'Đã xóa tin tuyển dụng' });
   } catch (error) { next(error); }
 };
 
@@ -342,6 +406,7 @@ exports.reopenEmployerJob = async (req, res, next) => {
     if (job.status !== 'CLOSED') {
       throw new AppError('Chỉ có thể mở lại các tin đang ở trạng thái Đã đóng', 400);
     }
+    assertCompleteJob(job);
 
     let nextDeadline = job.deadline;
     if (req.body.deadline !== undefined) {
@@ -393,8 +458,11 @@ exports.duplicateEmployerJob = async (req, res, next) => {
     if (!source) throw new AppError('Không tìm thấy tin tuyển dụng gốc', 404);
 
     const saveAsDraft = req.body.is_draft !== undefined ? Boolean(req.body.is_draft) : true;
-    if (!saveAsDraft && company.verification_status !== 'VERIFIED') {
-      throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể đăng tin', 403);
+    if (!saveAsDraft) {
+      assertCompleteJob(source);
+      if (company.verification_status !== 'VERIFIED') {
+        throw new AppError('Doanh nghiệp chưa được Admin xác thực nên chưa thể đăng tin', 403);
+      }
     }
 
     const validFutureDeadline = source.deadline && new Date(source.deadline) > new Date() ? source.deadline : null;

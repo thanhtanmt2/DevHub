@@ -8,7 +8,7 @@ import Icon, { IconBadge } from '@/components/common/Icon';
 import PageBanner from '@/components/common/PageBanner';
 import { SkillTag, WorkTypeBadge } from '@/components/common/Badges';
 import { DeadlineChip, MetaItem } from '@/components/job/JobParts';
-import JobFormModal from '@/components/employer/JobFormModal';
+import JobFormModal, { getMissingJobFields } from '@/components/employer/JobFormModal';
 import ReopenJobModal from '@/components/employer/ReopenJobModal';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { timeAgo } from '@/utils/timeAgo';
@@ -50,6 +50,16 @@ export default function ManageJobsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Không thể đóng tin'),
   });
 
+  const deleteJobMut = useMutation({
+    mutationFn: (id) => jobApi.deleteJob(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['employer-jobs'] });
+      qc.removeQueries({ queryKey: ['employer-job', id] });
+      toast.success('Đã xóa tin tuyển dụng');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không thể xóa tin'),
+  });
+
   const publishDraftMut = useMutation({
     mutationFn: (id) => jobApi.updateJob(id, { is_draft: false }),
     onSuccess: (res, id) => {
@@ -60,9 +70,34 @@ export default function ManageJobsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Không thể đăng bản nháp'),
   });
 
+  const handlePublishDraft = (job) => {
+    const missing = getMissingJobFields(job);
+    if (missing.length > 0) {
+      toast.error(`Bản nháp còn thiếu ${missing.join(', ')}. Vui lòng bổ sung trước khi đăng tin.`);
+      setForm({ job, mode: 'edit' });
+      return;
+    }
+    if (job.deadline && new Date(job.deadline) < new Date()) {
+      toast.error('Hạn nộp hồ sơ của bản nháp đã qua. Vui lòng cập nhật lại trước khi đăng tin.');
+      setForm({ job, mode: 'edit' });
+      return;
+    }
+    publishDraftMut.mutate(job.id);
+  };
+
   const askClose = async (job) => {
     if (await confirm({ title: 'Đóng tin tuyển dụng', message: `Đóng tin "${job.title}"? Ứng viên sẽ không thể nộp thêm hồ sơ vào tin này.`, confirmText: 'Đóng tin', tone: 'danger' })) {
       closeJobMut.mutate(job.id);
+    }
+  };
+
+  const askDelete = async (job) => {
+    const total = Number(job.application_count) || 0;
+    const message = total > 0
+      ? `Xóa vĩnh viễn tin "${job.title}" cùng ${total} hồ sơ ứng tuyển của tin này? Hành động này không thể hoàn tác.`
+      : `Xóa vĩnh viễn tin tuyển dụng "${job.title}"? Hành động này không thể hoàn tác.`;
+    if (await confirm({ title: 'Xóa tin tuyển dụng', message, confirmText: 'Xóa vĩnh viễn', tone: 'danger' })) {
+      deleteJobMut.mutate(job.id);
     }
   };
 
@@ -125,7 +160,7 @@ export default function ManageJobsPage() {
                       <span className={`px-2.5 py-0.5 text-xs rounded-full font-semibold ${st.cls}`}>{st.label}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2">
-                      <MetaItem icon="mapPin">{shortLocation(job.location) || 'Toàn quốc'}</MetaItem>
+                      <MetaItem icon="mapPin">{shortLocation(job.location) || 'Chưa chọn địa điểm'}</MetaItem>
                       <MetaItem icon="clock">{EXPERIENCE_LABELS[job.experience]}</MetaItem>
                       <MetaItem icon="badge">{LEVEL_LABELS[job.position_level]}</MetaItem>
                       <MetaItem icon="users">{job.quantity > 1 ? `Cần ${job.quantity} người` : ''}</MetaItem>
@@ -160,7 +195,7 @@ export default function ManageJobsPage() {
                   <div className="flex flex-wrap items-center gap-1">
                     {job.status === 'DRAFT' && (
                       <button
-                        onClick={stop(() => publishDraftMut.mutate(job.id))}
+                        onClick={stop(() => handlePublishDraft(job))}
                         disabled={publishDraftMut.isPending}
                         className="text-sm font-semibold text-primary-600 hover:text-primary-800 px-3 py-1.5 rounded-lg hover:bg-primary-50"
                       >
@@ -179,21 +214,30 @@ export default function ManageJobsPage() {
                     >
                       <Icon name="pencil" className="w-4 h-4 mr-1" />Sửa
                     </button>
-                    {job.status === 'CLOSED' ? (
+                    {job.status === 'CLOSED' && (
                       <button
                         onClick={stop(() => setReopenJob(job))}
                         className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-50"
                       >
                         <Icon name="refresh" className="w-4 h-4 mr-1" />Mở lại tin
                       </button>
-                    ) : (
+                    )}
+                    {['OPEN', 'PENDING_APPROVAL'].includes(job.status) && (
                       <button
                         onClick={stop(() => askClose(job))}
-                        className="text-sm font-medium text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50"
+                        disabled={closeJobMut.isPending}
+                        className="text-sm font-medium text-amber-600 hover:text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-50"
                       >
                         <Icon name="lock" className="w-4 h-4 mr-1" />Đóng tin
                       </button>
                     )}
+                    <button
+                      onClick={stop(() => askDelete(job))}
+                      disabled={deleteJobMut.isPending}
+                      className="text-sm font-medium text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50"
+                    >
+                      <Icon name="trash" className="w-4 h-4 mr-1" />Xóa
+                    </button>
                   </div>
                 </div>
               </div>

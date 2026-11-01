@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { jobApi } from '@/api/jobApi';
 import { skillApi } from '@/api/skillApi';
 import { candidateApi } from '@/api/candidateApi';
@@ -35,7 +35,7 @@ const EMPTY_FILTERS = { work_type: '', skill_id: '', location: '', experience: '
 
 
 export default function JobsPage() {
-  const navigate = useNavigate();
+
   const { user, isCandidate, openLoginModal } = useAuth();
   const qc = useQueryClient();
 
@@ -180,7 +180,7 @@ export default function JobsPage() {
   // Màn hình rộng: xem nhanh ở khung bên phải. Màn hình nhỏ: sang trang chi tiết riêng.
   const openJob = (job) => {
     if (window.matchMedia('(min-width: 1024px)').matches) setSelectedJob(job);
-    else navigate(`/jobs/${job.id}`);
+    else window.open(`/jobs/${job.id}`, '_blank', 'noopener,noreferrer');
   };
 
   const applyButton = (job) => {
@@ -338,10 +338,10 @@ export default function JobsPage() {
 
           {/* Khung xem nhanh chi tiết (màn hình rộng) */}
           {selectedJob && (
-            <div className="hidden lg:block flex-1 min-w-0 sticky top-24 self-start animate-fade-in">
-              <div className="card border border-primary-200 shadow-xl bg-white max-h-[calc(100vh-7.5rem)] overflow-y-auto">
+            <div className="hidden lg:block flex-1 min-w-0 sticky top-36 self-start animate-fade-in">
+              <div className="card border border-primary-200 shadow-xl bg-white max-h-[calc(100vh-10rem)] overflow-y-auto">
                 <div className="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-gray-100">
-                  <Link to={`/jobs/${selectedJob.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline">
+                  <Link to={`/jobs/${selectedJob.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline">
                     <Icon name="external" className="w-4 h-4" />Mở trang chi tiết
                   </Link>
                   <button

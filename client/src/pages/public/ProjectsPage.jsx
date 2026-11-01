@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { projectJobApi } from '@/api/projectJobApi';
 import { candidateApi } from '@/api/candidateApi';
 import { skillApi } from '@/api/skillApi';
@@ -34,7 +34,7 @@ const formatSalary = (amount) => {
 export default function ProjectsPage() {
   const { user, isCandidate, openLoginModal } = useAuth();
   const qc = useQueryClient();
-  const navigate = useNavigate();
+
 
   // Từ khóa / kỹ năng có thể đến từ trang chủ qua đường dẫn (?keyword=...&skill_id=...)
   const [searchParams] = useSearchParams();
@@ -172,7 +172,7 @@ export default function ProjectsPage() {
   // Màn hình rộng: xem nhanh ở khung bên phải. Màn hình nhỏ: sang trang chi tiết riêng.
   const openJob = (job) => {
     if (window.matchMedia('(min-width: 1024px)').matches) setActiveDetailJob(job);
-    else navigate(`/projects/${job.id}`);
+    else window.open(`/projects/${job.id}`, '_blank', 'noopener,noreferrer');
   };
 
   const panelAction = (job) => {
@@ -331,10 +331,10 @@ export default function ProjectsPage() {
 
           {/* Khung xem nhanh chi tiết (màn hình rộng) */}
           {activeDetailJob && (
-            <div className="hidden lg:block flex-1 min-w-0 sticky top-24 self-start animate-fade-in">
-              <div className="card border border-primary-200 shadow-xl bg-white max-h-[calc(100vh-7.5rem)] overflow-y-auto">
+            <div className="hidden lg:block flex-1 min-w-0 sticky top-36 self-start animate-fade-in">
+              <div className="card border border-primary-200 shadow-xl bg-white max-h-[calc(100vh-10rem)] overflow-y-auto">
                 <div className="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-gray-100">
-                  <Link to={`/projects/${activeDetailJob.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline">
+                  <Link to={`/projects/${activeDetailJob.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline">
                     <Icon name="external" className="w-4 h-4" />Mở trang chi tiết
                   </Link>
                   <button

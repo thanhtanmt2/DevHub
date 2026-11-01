@@ -8,6 +8,16 @@ import { PROVINCES, EXPERIENCE_LABELS, LEVEL_LABELS, WORK_TYPE_LABELS } from '@/
 
 const WORK_TYPES = ['FULL_TIME', 'PART_TIME', 'REMOTE', 'FREELANCE'];
 
+// Kiểm tra các trường bắt buộc trước khi đăng tin chính thức
+export const getMissingJobFields = (job) => {
+  const missing = [];
+  if (!job?.title || !String(job.title).trim()) missing.push('tiêu đề công việc');
+  if (!job?.work_type || !String(job.work_type).trim()) missing.push('hình thức làm việc');
+  if (!job?.location || !String(job.location).trim()) missing.push('tỉnh/thành phố làm việc');
+  if (!job?.description || !String(job.description).trim()) missing.push('mô tả công việc');
+  return missing;
+};
+
 const INITIAL_FORM = {
   title: '',
   description: '',
@@ -31,11 +41,11 @@ const formFromJob = (job, isDuplicate = false) => {
   const rawDeadline = job.deadline ? job.deadline.slice(0, 16) : '';
   const validDeadline = isDuplicate && rawDeadline && new Date(rawDeadline) < new Date() ? '' : rawDeadline;
   return {
-    title: isDuplicate ? `${job.title} (Bản sao)` : job.title,
-    description: job.description,
+    title: isDuplicate ? `${job.title} (Bản sao)` : (job.title || ''),
+    description: job.description || '',
     requirements: job.requirements || '',
     benefits: job.benefits || '',
-    work_type: job.work_type,
+    work_type: job.work_type || 'FULL_TIME',
     experience: job.experience || '',
     position_level: job.position_level || '',
     location: job.location || '',
@@ -43,7 +53,7 @@ const formFromJob = (job, isDuplicate = false) => {
     working_time: job.working_time || '',
     salary_min: job.salary_min || '',
     salary_max: job.salary_max || '',
-    quantity: job.quantity,
+    quantity: job.quantity || 1,
     deadline: validDeadline,
     skill_ids: job.Skills?.map((s) => s.id) || [],
   };
@@ -80,13 +90,13 @@ export default function JobFormModal({ job = null, mode = job ? 'edit' : 'create
   const submitForm = (isDraft = false) => {
     // Validate thủ công — tránh HTML required bị khuất trong modal
     if (!formData.title.trim()) return toast.error('Vui lòng nhập tiêu đề công việc');
-    if (!formData.description.trim()) return toast.error('Vui lòng nhập mô tả công việc');
     if (!isDraft) {
       if (!formData.work_type) return toast.error('Vui lòng chọn hình thức làm việc');
       if (!formData.location) return toast.error('Vui lòng chọn tỉnh/thành phố làm việc');
+      if (!formData.description.trim()) return toast.error('Vui lòng nhập mô tả công việc');
     }
     const oldDeadline = isEditingExisting ? (job?.deadline?.slice(0, 16) || '') : '';
-    if (formData.deadline && formData.deadline !== oldDeadline && new Date(formData.deadline) < new Date()) {
+    if (formData.deadline && (!isDraft || formData.deadline !== oldDeadline) && new Date(formData.deadline) < new Date()) {
       return toast.error('Hạn nộp hồ sơ phải sau thời điểm hiện tại');
     }
     if (formData.salary_min && formData.salary_max &&
@@ -136,7 +146,7 @@ export default function JobFormModal({ job = null, mode = job ? 'edit' : 'create
           </h3>
           <button type="button" onClick={onClose} aria-label="Đóng" className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-5">
           {isDuplicate && (
             <p className="text-sm text-primary-800 bg-primary-50 border border-primary-200 rounded-lg px-3 py-2">
               Toàn bộ nội dung và kỹ năng đã được sao chép từ tin gốc. Bạn có thể chỉnh sửa lại rồi chọn <strong>Lưu nháp</strong> hoặc <strong>Đăng tin</strong>.
