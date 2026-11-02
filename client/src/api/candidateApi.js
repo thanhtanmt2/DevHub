@@ -16,6 +16,8 @@ export const candidateApi = {
   addExperience: (data) => api.post('/candidates/experiences', data),
   updateExperience: (id, data) => api.put(`/candidates/experiences/${id}`, data),
   deleteExperience: (id) => api.delete(`/candidates/experiences/${id}`),
+  // Danh hiệu: hạng theo số dự án đã hoàn thành + huy hiệu thành tích
+  getMyRank: () => api.get('/candidates/rank'),
   // Dự án thật đã tham gia trên DevHub (hiện tự động trên sơ đồ kinh nghiệm)
   getDevhubProjects: () => api.get('/candidates/devhub-projects'),
   

@@ -35,6 +35,7 @@ const experienceRules = [
   body('technologies').optional().isArray({ max: 20 }).withMessage('Danh sách công nghệ không hợp lệ'),
   body('link_url').optional({ nullable: true, checkFalsy: true }).isURL({ require_protocol: true }).withMessage('Link phải bắt đầu bằng http:// hoặc https://'),
 ];
+router.get('/rank', ctrl.getMyRank);
 router.get('/devhub-projects', ctrl.getMyDevhubProjects);
 router.post('/experiences', [
   body('job_title').notEmpty(),

@@ -4,6 +4,7 @@ import CvImportModal from '@/components/candidate/CvImportModal';
 import { SkillEvidenceModal } from '@/components/common/Badges';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import AvatarUploader from '@/components/common/AvatarUploader';
+import { RankBadge } from '@/components/candidate/RankBadge';
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +37,8 @@ export default function ProfilePage() {
       setActiveTab(t);
     }
   }, [searchParams]);
+
+  const { data: rankRes } = useQuery({ queryKey: ['my-rank'], queryFn: () => candidateApi.getMyRank(), staleTime: 60 * 1000 });
 
   const { data: profileRes, isLoading } = useQuery({
     queryKey: ['candidate-profile'],
@@ -88,6 +91,7 @@ export default function ProfilePage() {
             <h1 className="text-2xl font-bold tracking-tight">{user?.full_name}</h1>
             <p className="text-white">{profile?.professional_title || 'Chưa cập nhật chức danh'}</p>
             <div className="flex flex-wrap items-center gap-2 mt-3">
+              <RankBadge rank={rankRes?.data?.data} onDark className="!px-3 !py-1 !text-sm" />
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-primary-700 text-sm font-bold shadow">
                 <Icon name="star" className="w-4 h-4" />Điểm năng lực: {parseFloat(profile?.competency_score || 0).toFixed(1)}/10
               </span>

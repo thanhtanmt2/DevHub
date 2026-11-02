@@ -1,3 +1,4 @@
+import { RankBadge } from '@/components/candidate/RankBadge';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -280,6 +281,12 @@ export default function CandidateDetailPage() {
               )}
             </div>
             <p className="text-white font-medium mt-1">{c.professional_title || 'Chưa cập nhật chức danh'}</p>
+            {c.rank && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <RankBadge rank={c.rank} onDark className="!px-3 !py-1 !text-sm" />
+                <span className="text-sm text-white">{c.rank.joined_projects} dự án tham gia · {c.rank.completed_projects} hoàn thành{c.rank.avg_score ? ` · điểm TB ${c.rank.avg_score}/10 (${c.rank.grade})` : ''} · {c.rank.points} điểm tích lũy</span>
+              </div>
+            )}
             {c.address && <p className="text-white text-sm mt-1 flex items-center gap-1.5"><Icon name="mapPin" className="w-4 h-4" />{c.address}</p>}
 
             <div className="flex flex-wrap gap-2 mt-4">

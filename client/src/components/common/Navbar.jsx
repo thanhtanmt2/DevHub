@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
 import Logo from '@/components/common/Logo';
+import { RankHeaderPill } from '@/components/candidate/RankBadge';
+import { candidateApi } from '@/api/candidateApi';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { stripEmoji } from '@/utils/stripEmoji';
 import { SUPPORT, telHref, mailHref } from '@/config/support';
@@ -186,6 +188,23 @@ function NotificationBell() {
         document.body
       )}
     </div>
+  );
+}
+
+// Huy hiệu hạng của ứng viên cạnh ảnh đại diện: bấm vào để xem thẻ danh hiệu ở dashboard
+function NavRank() {
+  const { user } = useAuth();
+  const { data } = useQuery({
+    queryKey: ['my-rank', user?.id],
+    queryFn: () => candidateApi.getMyRank(),
+    staleTime: 60 * 1000,
+  });
+  const rank = data?.data?.data;
+  if (!rank) return null;
+  return (
+    <Link to="/candidate" aria-label={`Danh hiệu ${rank.tier.name}`}>
+      <RankHeaderPill rank={rank} className="hover:brightness-105 transition" />
+    </Link>
   );
 }
 
@@ -440,6 +459,7 @@ export default function Navbar({ topBar = false }) {
                   </Link>
                   <NotificationBell />
                   <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-200">
+                    {isCandidate() && <NavRank />}
                     <UserMenu
                       user={user}
                       roleLabel={isAdmin() ? 'Quản trị viên' : isEmployer() ? 'Nhà tuyển dụng' : 'Ứng viên'}

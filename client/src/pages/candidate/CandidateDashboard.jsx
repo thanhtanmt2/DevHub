@@ -7,6 +7,7 @@ import PageBanner from '@/components/common/PageBanner';
 import StatTile from '@/components/common/StatTile';
 import Icon from '@/components/common/Icon';
 import RecommendedForYou from '@/components/candidate/RecommendedForYou';
+import { RankCard } from '@/components/candidate/RankBadge';
 import RecommendedProjectsForYou from '@/components/candidate/RecommendedProjectsForYou';
 
 const STATUS_LABELS = { 
@@ -62,6 +63,9 @@ export default function CandidateDashboard() {
     queryFn: () => candidateApi.getMyProjectApplications(),
   });
 
+  const { data: rankRes } = useQuery({ queryKey: ['my-rank'], queryFn: () => candidateApi.getMyRank(), staleTime: 60 * 1000 });
+  const rank = rankRes?.data?.data;
+
   const profile = profileRes?.data?.data;
   const companyApps = companyAppsRes?.data?.data || [];
   const projectApps = projectAppsRes?.data?.data || [];
@@ -113,6 +117,9 @@ export default function CandidateDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => <StatTile key={s.label} {...s} />)}
       </div>
+
+      {/* Danh hiệu: hạng theo số dự án đã hoàn thành */}
+      <RankCard rank={rank} tiers={rank?.tiers} />
 
       {/* Việc làm đề xuất theo kỹ năng trong hồ sơ */}
       <RecommendedForYou />

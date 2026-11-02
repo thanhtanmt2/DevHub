@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 // nạp class AppError để hiển thị lỗi 
 const AppError = require('../utils/AppError');
 const { getEvidenceForProfiles, syncProjectSkills } = require('../utils/skillEvidence');
+const { computeRank, computeRanks, TIERS } = require('../utils/candidateRank');
 const { extractSkillsFromCv } = require('../utils/cvSkillExtractor');
 
 const DEFAULT_PRIVACY = CandidateProfile.DEFAULT_PRIVACY_SETTINGS || {
@@ -251,6 +252,15 @@ async function loadDevhubProjects(profileId) {
     };
   });
 }
+
+// GET /api/candidates/rank — danh hiệu của tôi (hạng theo số dự án đã hoàn thành và được đánh giá đạt) và bảng các hạng
+exports.getMyRank = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id }, attributes: ['id'] });
+    if (!profile) throw new AppError('Chưa có hồ sơ ứng viên', 404);
+    res.json({ success: true, data: { ...(await computeRank(profile.id)), tiers: TIERS } });
+  } catch (error) { next(error); }
+};
 
 // GET /api/candidates/devhub-projects
 exports.getMyDevhubProjects = async (req, res, next) => {
@@ -595,9 +605,13 @@ exports.searchCandidates = async (req, res, next) => {
         model: Skill,
         through: { attributes: ['source'] },
         attributes: ['id', 'name'],
-        ...(skill_id ? { where: { id: skill_id }, required: true } : {}),
       },
     ];
+    if (skill_id) {
+      andConditions.push(sequelize.literal(
+        `"CandidateProfile"."id" IN (SELECT candidate_profile_id FROM candidate_skills WHERE skill_id = ${sequelize.escape(skill_id)})`,
+      ));
+    }
 
     if (keyword) {
       where[Op.or] = [
@@ -614,8 +628,21 @@ exports.searchCandidates = async (req, res, next) => {
     where[Op.and] = andConditions;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const { count, rows } = await CandidateProfile.findAndCountAll({
+    // Bước 1: lấy đúng một trang id ứng viên (chỉ join bảng User là quan hệ 1-1 nên LIMIT áp dụng trên từng ứng viên);
+    // join cả danh sách kỹ năng ngay ở đây thì LIMIT bị tính trên từng dòng kỹ năng và mỗi trang chỉ còn vài ứng viên.
+    const { count, rows: idRows } = await CandidateProfile.findAndCountAll({
       where,
+      attributes: ['id'],
+      include: [{ model: User, attributes: [] }],
+      limit: parseInt(limit),
+      offset,
+      order: [['competency_score', 'DESC'], ['id', 'ASC']],
+      subQuery: false,
+    });
+    const pageIds = idRows.map((r) => r.id);
+    // Bước 2: nạp đầy đủ thông tin (kỹ năng, số dự án...) cho các ứng viên của trang
+    const loaded = pageIds.length ? await CandidateProfile.findAll({
+      where: { id: { [Op.in]: pageIds } },
       // Kèm số dự án đã tham gia + số task đã được nghiệm thu để nhà tuyển dụng nhìn thẻ là biết kinh nghiệm thực chiến
       attributes: {
         include: [
@@ -627,12 +654,9 @@ exports.searchCandidates = async (req, res, next) => {
         ],
       },
       include,
-      limit: parseInt(limit),
-      offset,
-      order: [['competency_score', 'DESC']],
-      distinct: true,
-      subQuery: false,
-    });
+    }) : [];
+    const byId = new Map(loaded.map((r) => [r.id, r]));
+    const rows = pageIds.map((id) => byId.get(id)).filter(Boolean);
 
     const profileIds = rows.map((r) => r.id);
     // Gắn minh chứng dự án cho từng kỹ năng + điểm đánh giá từng dự án để thẻ ứng viên hiển thị trực tiếp
@@ -677,9 +701,11 @@ exports.searchCandidates = async (req, res, next) => {
     // Số điện thoại chỉ hiện với doanh nghiệp đã được xác thực và khi ứng viên cho phép (giống trang chi tiết)
     const searcherCompany = await Company.findOne({ where: { user_id: req.user.id }, attributes: ['verification_status'] });
     const contactAllowed = searcherCompany?.verification_status === 'VERIFIED';
+    const ranks = await computeRanks(rows.map((r) => r.id));
     const data = rows.map((r) => {
       const j = r.toJSON();
       const privacy = normalizePrivacySettings(j.privacy_settings);
+      j.rank = privacy.show_devhub_projects ? summarizeRank(ranks.get(r.id)) : null;
       if (!(contactAllowed && privacy.show_phone)) j.phone = null;
       const ev = evidenceByProfile.get(r.id) || new Map();
       if (!privacy.show_address) j.address = null;
@@ -721,6 +747,12 @@ exports.searchCandidates = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+
+// Phần danh hiệu hiển thị cho nhà tuyển dụng: hạng, số dự án được tính, điểm trung bình và xếp loại
+function summarizeRank(r) {
+  if (!r) return null;
+  return { tier: r.tier, points: r.points, joined_projects: r.joined_projects, completed_projects: r.completed_projects, avg_score: r.avg_score, grade: r.grade };
+}
 
 // Tổng số tháng kinh nghiệm từ các mốc làm việc (gộp phần thời gian chồng nhau để không tính trùng)
 function totalExperienceMonths(experiences) {
@@ -845,6 +877,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
     }), { total: 0, done: 0, on_time: 0 });
 
     const p = profile.toJSON();
+    const rank = effectivePrivacy.show_devhub_projects ? summarizeRank(await computeRank(profile.id)) : null;
     const [evidenceByProfile, savedRecord] = await Promise.all([
       getEvidenceForProfiles([profile.id]),
       SavedCandidate.findOne({
@@ -861,6 +894,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
       data: {
         id: p.id,
         is_saved: Boolean(savedRecord),
+        rank,
         full_name: p.User?.full_name,
         avatar_url: p.avatar_url,
         professional_title: p.professional_title,

@@ -1,3 +1,4 @@
+import { RankBadge } from '@/components/candidate/RankBadge';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -367,6 +368,7 @@ export default function SearchCandidatesPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 line-clamp-2 break-words">{user?.full_name}</h3>
                       <p className="text-xs text-primary-700 truncate">{profile.professional_title || 'Chưa cập nhật'}</p>
+                      {profile.rank && <RankBadge rank={profile.rank} className="mt-1" />}
                       {profile.address && <p className="text-xs text-gray-400 mt-0.5 truncate"><Icon name="mapPin" className="w-3.5 h-3.5 mr-1" />{profile.address}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
