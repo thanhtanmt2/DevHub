@@ -6,6 +6,8 @@ export const workspaceApi = {
   getProjectById: (id) => api.get(`/admin/projects/${id}`),
   createProject: (data) => api.post('/admin/projects', data),
   updateProject: (id, data) => api.put(`/admin/projects/${id}`, data),
+  // Đóng dự án (nghiệm thu) và tự tạo các khoản thanh toán thù lao; force = vẫn đóng dù còn công việc chưa xong
+  closeProject: (id, data = {}) => api.post(`/admin/projects/${id}/close`, data),
   deleteProject: (id) => api.delete(`/admin/projects/${id}`),
   createWorkspace: (projectId) => api.post(`/admin/projects/${projectId}/workspace`),
 

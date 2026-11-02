@@ -49,6 +49,7 @@ router.get('/projects', wsCtrl.getProjects);
 router.post('/projects', [body('name').notEmpty()], validate, wsCtrl.createProject);
 router.get('/projects/:id', wsCtrl.getProjectById);
 router.put('/projects/:id', wsCtrl.updateProject);
+router.post('/projects/:id/close', wsCtrl.closeProject);
 router.delete('/projects/:id', wsCtrl.deleteProject);
 router.post('/projects/:id/workspace', wsCtrl.createProjectWorkspace);
 

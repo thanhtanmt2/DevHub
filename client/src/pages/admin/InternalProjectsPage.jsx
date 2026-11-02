@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { workspaceApi } from '@/api/workspaceApi';
 import { projectJobApi } from '@/api/projectJobApi';
 import { skillApi } from '@/api/skillApi';
@@ -415,6 +415,33 @@ export default function InternalProjectsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi xóa dự án'),
   });
 
+  // Đóng dự án: nghiệm thu + tự tạo các khoản thù lao rồi chuyển sang trang thanh toán của đúng dự án này
+  const navigate = useNavigate();
+  const closeProjectMutation = useMutation({
+    mutationFn: ({ id, force }) => workspaceApi.closeProject(id, { force }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['admin-projects'] });
+      qc.invalidateQueries({ queryKey: ['admin-payments'] });
+      qc.invalidateQueries({ queryKey: ['admin-payable-members'] });
+      const n = res.data?.auto_created_payments || 0;
+      toast.success(n > 0 ? `Đã đóng dự án và tạo ${n} khoản thanh toán thù lao` : 'Đã đóng dự án');
+      const ws = res.data?.workspace_id;
+      navigate(`/admin/payments?view=projects${ws ? `&project=${ws}` : ''}`);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không đóng được dự án'),
+  });
+  const handleCloseProject = async (project) => {
+    const ps = project.payment_summary || {};
+    const open = ps.open_tasks || 0;
+    const ok = await confirm({
+      title: 'Đóng dự án và chuyển sang thanh toán',
+      message: `Dự án "${project.name}" sẽ được nghiệm thu hoàn thành. Hệ thống tự tạo khoản thù lao (theo mức thù lao vị trí) cho ${ps.members || 0} thành viên và chuyển bạn sang trang thanh toán của dự án này.${open > 0 ? ` Lưu ý: còn ${open} công việc chưa hoàn thành.` : ''}`,
+      confirmText: 'Đóng dự án & thanh toán',
+      tone: open > 0 ? 'danger' : 'primary',
+    });
+    if (ok) closeProjectMutation.mutate({ id: project.id, force: open > 0 });
+  };
+
   // Update Project Status (including Project Completion & Auto-create Payments)
   const updateProjectStatusMutation = useMutation({
     mutationFn: ({ id, status }) => workspaceApi.updateProject(id, { status }),
@@ -633,7 +660,7 @@ export default function InternalProjectsPage() {
                     }}
                     className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400 ${pStatus.color}`}
                   >
-                    {Object.entries(PROJECT_STATUS_META).map(([k, v]) => (
+                    {Object.entries(PROJECT_STATUS_META).filter(([k]) => k !== 'COMPLETED' || project.status === 'COMPLETED').map(([k, v]) => (
                       <option key={k} value={k} className="bg-white text-gray-800 font-normal">
                         {v.label}
                       </option>
@@ -661,6 +688,27 @@ export default function InternalProjectsPage() {
                 <p><Icon name="cash" className="w-4 h-4 mr-1" /><strong>Ngân sách:</strong> {formatCurrency(project.budget)}</p>
                 <p><Icon name="users" className="w-4 h-4 mr-1" /><strong>Vị trí tuyển dụng:</strong> {project.ProjectJobs?.length || 0} vị trí</p>
               </div>
+
+              {/* Tình hình thanh toán thù lao của dự án: bao nhiêu thành viên đã được trả */}
+              {(project.status === 'COMPLETED' || (project.payment_summary?.members > 0 && project.payment_summary.total_amount > 0)) && (() => {
+                const ps = project.payment_summary;
+                const pct = ps.members ? Math.round((ps.paid / ps.members) * 100) : 0;
+                return (
+                  <div className="mb-4 rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-emerald-800 inline-flex items-center gap-1"><Icon name="card" className="w-3.5 h-3.5" />Thanh toán thù lao</span>
+                      <span className="font-bold text-emerald-700">{ps.paid}/{ps.members} thành viên đã nhận</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-emerald-100 overflow-hidden"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} /></div>
+                    <p className="mt-1.5 text-[11px] text-slate-600">
+                      Đã trả {formatCurrency(ps.paid_amount)} / {formatCurrency(ps.total_amount)}
+                      {ps.pending > 0 && <> · {ps.pending} chờ thanh toán</>}
+                      {ps.failed > 0 && <> · {ps.failed} thất bại</>}
+                      {ps.none > 0 && <> · {ps.none} chưa tạo</>}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
@@ -677,9 +725,19 @@ export default function InternalProjectsPage() {
                 >
                   + Thêm Vị Trí
                 </button>
+                {project.Workspace && ['PLANNING', 'RECRUITING', 'IN_PROGRESS'].includes(project.status) && (
+                  <button
+                    onClick={() => handleCloseProject(project)}
+                    disabled={closeProjectMutation.isPending || !(project.payment_summary?.members > 0)}
+                    title={project.payment_summary?.members > 0 ? 'Nghiệm thu dự án và chuyển sang thanh toán thù lao' : 'Dự án chưa có thành viên để thanh toán'}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-xs font-semibold inline-flex items-center gap-1"
+                  >
+                    <Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} /> Đóng dự án
+                  </button>
+                )}
                 {project.status === 'COMPLETED' && (
                   <Link
-                    to="/admin/payments"
+                    to={`/admin/payments?view=projects${project.Workspace ? `&project=${project.Workspace.id}` : ''}`}
                     className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-xs font-medium inline-flex items-center gap-1"
                   >
                     <Icon name="card" className="w-3.5 h-3.5" /> Thanh toán thù lao

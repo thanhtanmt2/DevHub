@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -28,6 +29,10 @@ const METHOD_LABELS = {
   BANK_TRANSFER: 'Chuyển khoản',
 };
 
+// Lưới cột cho danh sách giao dịch / thành viên: vừa khít chiều ngang, không phải cuộn; màn hình nhỏ thì xếp dọc
+const TX_GRID = 'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_7rem_8.5rem_10.5rem]';
+const MEM_GRID = 'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,11rem)_9rem_9.5rem]';
+
 const formatCurrency = (n) =>
   n ? `${new Intl.NumberFormat('vi-VN').format(n)}đ` : '0đ';
 
@@ -44,12 +49,14 @@ export default function PaymentsPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
 
-  // Chế độ xem: 'transactions' (Giao dịch thanh toán) | 'members' (Theo dõi theo thành viên dự án)
-  const [activeView, setActiveView] = useState('transactions');
+  // Chế độ xem: 'projects' (Theo dự án) | 'transactions' (Giao dịch thanh toán) | 'members' (Theo dõi theo thành viên dự án)
+  // Mở từ nút "Đóng dự án" / "Thanh toán thù lao" thì vào thẳng dự án đó: /admin/payments?view=projects&project=<workspaceId>
+  const [searchParams] = useSearchParams();
+  const [activeView, setActiveView] = useState(['projects', 'transactions', 'members'].includes(searchParams.get('view')) ? searchParams.get('view') : 'projects');
 
   // Bộ lọc chung
   const [statusFilter, setStatusFilter] = useState('');
-  const [projectFilter, setProjectFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState(searchParams.get('project') || '');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modal tạo thanh toán
@@ -187,7 +194,7 @@ export default function PaymentsPage() {
     mutationFn: (workspaceId) => adminApi.createBatchProjectPayments(workspaceId),
     onSuccess: (res) => {
       invalidateAll();
-      toast.success(res.data?.message || 'Đã tạo thanh toán theo dự án');
+      toast.success(`${res.data?.message || 'Đã tạo thanh toán theo dự án'} Khoản mới ở trạng thái chờ thanh toán: bấm "Thanh toán" ở từng thành viên để chuyển khoản và xác nhận.`, { duration: 7000 });
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Không thể tạo thanh toán hàng loạt'),
   });
@@ -257,6 +264,37 @@ export default function PaymentsPage() {
     }
     return true;
   });
+
+  // Gom thành viên theo dự án (Workspace): thống kê lấy trên TẤT CẢ thành viên của dự án, danh sách hiển thị theo bộ lọc
+  const projectGroups = (() => {
+    const visibleIds = new Set(filteredMemberRows.map((m) => m.id));
+    const map = new Map();
+    for (const m of payableMembers) {
+      const ws = m.Workspace;
+      if (!ws) continue;
+      if (!map.has(ws.id)) map.set(ws.id, { id: ws.id, name: getProjectName(ws), status: ws.Project?.status || ws.InternalProject?.status, all: [], rows: [] });
+      const g = map.get(ws.id);
+      g.all.push(m);
+      if (visibleIds.has(m.id)) g.rows.push(m);
+    }
+    const groups = Array.from(map.values())
+      .filter((g) => (!projectFilter || g.id === projectFilter) && (g.rows.length > 0 || (!statusFilter && !searchTerm.trim())))
+      .map((g) => {
+        const pays = g.all.map((m) => m.Payments?.[0]).filter(Boolean);
+        const paid = pays.filter((p) => p.status === 'PAID');
+        return {
+          ...g,
+          paidCount: paid.length,
+          waitingCount: pays.filter((p) => p.status === 'PENDING' || p.status === 'PROCESSING').length,
+          failedCount: pays.filter((p) => p.status === 'FAILED').length,
+          noneCount: g.all.filter((m) => !m.Payments?.length).length,
+          paidAmount: paid.reduce((s, p) => s + parseFloat(p.amount || 0), 0),
+          totalAmount: pays.reduce((s, p) => s + parseFloat(p.amount || 0), 0),
+        };
+      });
+    // Dự án còn khoản chưa trả lên trước, dự án đã trả đủ xuống sau
+    return groups.sort((a, b) => Number(a.paidCount === a.all.length) - Number(b.paidCount === b.all.length));
+  })();
 
   // Summary stats
   const totalPaid = allPayments
@@ -339,6 +377,16 @@ export default function PaymentsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3">
           {/* Chuyển chế độ xem */}
           <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
+            <button
+              onClick={() => setActiveView('projects')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeView === 'projects'
+                  ? 'bg-white text-primary-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Theo dự án ({workspaceOptions.length})
+            </button>
             <button
               onClick={() => {
                 setActiveView('transactions');
@@ -458,250 +506,260 @@ export default function PaymentsPage() {
         </div>
       </div>
 
+      {/* ─── VIEW 0: THANH TOÁN THEO DỰ ÁN — dự án nào, ứng viên nào đã được thanh toán chưa ─── */}
+      {activeView === 'projects' && (
+        <div className="space-y-4">
+          {membersLoading && <div className="py-10 flex justify-center"><LoadingSpinner /></div>}
+          {!membersLoading && projectGroups.length === 0 && (
+            <div className="card text-center py-12 text-gray-400">Không có dự án nào phù hợp bộ lọc</div>
+          )}
+          {projectGroups.map((g) => {
+            const pct = g.all.length ? Math.round((g.paidCount / g.all.length) * 100) : 0;
+            const allPaid = g.all.length > 0 && g.paidCount === g.all.length;
+            const needCreate = g.noneCount + g.failedCount;
+            return (
+              <section key={g.id} className="card !p-0 overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-gray-100 bg-gray-50/60">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-gray-900 text-base flex flex-wrap items-center gap-2">
+                        {g.name}
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${g.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {g.status === 'COMPLETED' ? 'Đã nghiệm thu' : 'Chưa đóng dự án'}
+                        </span>
+                        {allPaid && <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-600 text-white">Đã thanh toán đủ</span>}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Đã thanh toán <strong className="text-emerald-700">{g.paidCount}/{g.all.length}</strong> thành viên
+                        {g.waitingCount > 0 && <> · {g.waitingCount} đang chờ</>}
+                        {g.failedCount > 0 && <> · <span className="text-red-600">{g.failedCount} thất bại</span></>}
+                        {g.noneCount > 0 && <> · {g.noneCount} chưa tạo khoản TT</>}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-emerald-700">{formatCurrency(g.paidAmount)} <span className="text-xs font-medium text-gray-400">/ {formatCurrency(g.totalAmount)}</span></p>
+                      <p className="text-[11px] text-gray-400">đã trả / tổng thù lao</p>
+                    </div>
+                  </div>
+                  {g.waitingCount > 0 && (
+                    <p className="mt-3 flex items-start gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                      <Icon name="info" className="w-4 h-4 mt-px flex-shrink-0" />
+                      <span>Khoản thù lao đã được tạo nhưng <strong>chưa chuyển tiền</strong>. Bấm <strong>Thanh toán</strong> ở từng thành viên, quét QR chuyển khoản rồi nhập mã giao dịch để xác nhận, lúc đó trạng thái mới chuyển sang Đã thanh toán.</span>
+                    </p>
+                  )}
+                  <div className="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden"><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} /></div>
+                  {needCreate > 0 && (
+                    <button
+                      type="button"
+                      disabled={batchCreateMutation.isPending}
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Khởi tạo thanh toán cho cả dự án',
+                          message: `Tự động tạo yêu cầu thanh toán (theo mức thù lao vị trí) cho ${needCreate} thành viên chưa có khoản thanh toán trong dự án "${g.name}"? Các thành viên đã thanh toán hoặc đang chờ xử lý sẽ được bỏ qua.`,
+                          confirmText: 'Khởi tạo hàng loạt',
+                          tone: 'primary',
+                        });
+                        if (ok) batchCreateMutation.mutate(g.id);
+                      }}
+                      className="mt-3 px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg text-xs font-semibold border border-primary-200"
+                    >
+                      + Tạo thanh toán cho {needCreate} thành viên chưa có
+                    </button>
+                  )}
+                </div>
+
+                <ul className="divide-y divide-gray-100">
+                  {g.rows.map((m) => {
+                    const pay = m.Payments?.[0];
+                    const user = m.CandidateProfile?.User;
+                    const score = m.CandidateEvaluation?.score;
+                    const amount = pay ? pay.amount : m.ProjectJob?.budget;
+                    const full = pay ? allPayments.find((p) => p.id === pay.id) : null;
+                    const st = pay ? pay.status : 'NONE';
+                    return (
+                      <li key={m.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 sm:px-5 py-3">
+                        <div className="min-w-0 flex-1 basis-56">
+                          <p className="font-semibold text-gray-900 truncate">{user?.full_name || '—'}</p>
+                          <p className="text-xs text-gray-500 truncate">{m.ProjectJob?.title || 'Thành viên dự án'}</p>
+                        </div>
+                        <div className="text-xs text-gray-500 w-28">
+                          <p>Công việc: <strong className="text-gray-700">{m.task_stats?.done_tasks || 0}/{m.task_stats?.total_tasks || 0}</strong></p>
+                          <p>Điểm: <strong className="text-gray-700">{score !== undefined && score !== null ? `${parseFloat(score).toFixed(1)}/10` : 'Chưa chấm'}</strong></p>
+                        </div>
+                        <p className="w-32 text-sm font-bold text-gray-800 text-right">{formatCurrency(amount)}</p>
+                        <div className="w-36 text-center">
+                          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${st === 'NONE' ? 'bg-gray-100 text-gray-600' : STATUS_COLORS[st]}`}>
+                            {st === 'NONE' ? 'Chưa tạo thanh toán' : st === 'PENDING' ? 'Chờ thanh toán' : STATUS_LABELS[st]}
+                          </span>
+                          {st === 'PAID' && pay.paid_at && <p className="text-[11px] text-gray-400 mt-1">{new Date(pay.paid_at).toLocaleDateString('vi-VN')}</p>}
+                        </div>
+                        <div className="w-28 text-right">
+                          {st === 'NONE' && (
+                            <button onClick={() => openCreateForMember(m)} className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs font-semibold">Tạo TT</button>
+                          )}
+                          {['PENDING', 'PROCESSING', 'FAILED'].includes(st) && full && (
+                            <button onClick={() => openQrModal(full)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">Thanh toán</button>
+                          )}
+                          {st === 'PAID' && <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><Icon name="check" className="w-4 h-4" strokeWidth={2.5} />Hoàn tất</span>}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
+
       {/* ─── VIEW 1: DANH SÁCH GIAO DỊCH THANH TOÁN ─── */}
       {activeView === 'transactions' && (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ứng viên</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thông tin ngân hàng</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Dự án & Vị trí</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Số tiền (VNĐ)</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Mã GD</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Trạng thái</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ngày TT</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.length === 0 && (
-                <tr>
-                  <td colSpan="8" className="p-8 text-center text-gray-400">
-                    {statusFilter
-                      ? `Không có giao dịch ở trạng thái "${STATUS_LABELS[statusFilter]}"`
-                      : 'Chưa có giao dịch thanh toán nào'}
-                  </td>
-                </tr>
-              )}
-              {payments.map((p) => {
-                const candidate = p.WorkspaceMember?.CandidateProfile;
-                const bankInfo = candidate?.PaymentInformation;
-                const user = candidate?.User;
-                const ws = p.WorkspaceMember?.Workspace;
-                const projectName = getProjectName(ws);
-                const job = p.WorkspaceMember?.ProjectJob;
-                const evalInfo = p.WorkspaceMember?.CandidateEvaluation;
-                const isEditable = p.status === 'PENDING' || p.status === 'FAILED';
+        <div className="card !p-0 overflow-hidden">
+          <div className={`hidden lg:grid ${TX_GRID} gap-4 px-5 py-3 bg-gray-50 border-b text-xs font-semibold uppercase tracking-wide text-gray-500`}>
+            <span>Ứng viên</span><span>Ngân hàng</span><span>Dự án & vị trí</span><span className="text-right">Số tiền</span><span>Trạng thái</span><span className="text-right">Thao tác</span>
+          </div>
+          {payments.length === 0 && (
+            <p className="p-10 text-center text-sm text-gray-400">
+              {statusFilter ? `Không có giao dịch ở trạng thái "${STATUS_LABELS[statusFilter]}"` : 'Chưa có giao dịch thanh toán nào'}
+            </p>
+          )}
+          <ul className="divide-y divide-gray-100">
+            {payments.map((p) => {
+              const candidate = p.WorkspaceMember?.CandidateProfile;
+              const bankInfo = candidate?.PaymentInformation;
+              const user = candidate?.User;
+              const projectName = getProjectName(p.WorkspaceMember?.Workspace);
+              const job = p.WorkspaceMember?.ProjectJob;
+              const evalInfo = p.WorkspaceMember?.CandidateEvaluation;
+              const isEditable = p.status === 'PENDING' || p.status === 'FAILED';
+              const busy = processMutation.isPending;
 
-                return (
-                  <tr key={p.id} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="p-3">
-                      <p className="font-medium text-gray-800">{user?.full_name || '—'}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
-                    </td>
-                    <td className="p-3">
-                      {bankInfo?.account_number ? (
-                        <div className="text-xs space-y-0.5">
-                          <p className="font-semibold text-gray-700">{bankInfo.bank_name}</p>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-gray-600 font-mono">{bankInfo.account_number}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyText(bankInfo.account_number, 'số tài khoản')}
-                              className="text-[10px] text-primary-700 hover:underline"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                          <p className="text-gray-400 uppercase">{bankInfo.account_holder_name}</p>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          <Icon name="alert" className="w-3.5 h-3.5" /> Chưa có STK
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <p className="font-medium text-gray-800 text-xs">{projectName}</p>
-                      {job?.title && (
-                        <p className="text-xs text-primary-700 mt-0.5">
-                          {job.title}
-                          {job.budget ? ` (${formatCurrency(job.budget)})` : ''}
+              return (
+                <li key={p.id} className={`grid grid-cols-1 ${TX_GRID} gap-x-4 gap-y-2 px-5 py-4 items-center hover:bg-gray-50/60 transition-colors`}>
+                  {/* Ứng viên */}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{user?.full_name || '—'}</p>
+                    <p className="text-xs text-gray-500 break-all">{user?.email}</p>
+                  </div>
+
+                  {/* Ngân hàng */}
+                  <div className="min-w-0 text-xs">
+                    {bankInfo?.account_number ? (
+                      <>
+                        <p className="text-sm font-semibold text-gray-800 truncate">{bankInfo.bank_name}</p>
+                        <p className="flex items-center gap-1.5 text-gray-500">
+                          <span className="font-mono">{bankInfo.account_number}</span>
+                          <button type="button" onClick={() => copyText(bankInfo.account_number, 'số tài khoản')} className="text-primary-700 hover:underline font-medium">Sao chép</button>
                         </p>
-                      )}
-                      {evalInfo && (
-                        <span className="inline-block mt-1 text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded">
-                          Đánh giá: {parseFloat(evalInfo.score).toFixed(1)}/10
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-gray-900 text-base">
-                          {formatCurrency(p.amount)}
-                        </span>
+                        <p className="text-gray-400 uppercase truncate">{bankInfo.account_holder_name}</p>
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 font-medium">
+                        <Icon name="alert" className="w-3.5 h-3.5" /> Chưa có số tài khoản
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Dự án & vị trí */}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 line-clamp-2" title={projectName}>{projectName}</p>
+                    <p className="text-xs text-primary-700 line-clamp-2" title={job?.title}>{job?.title || 'Thành viên dự án'}</p>
+                    {evalInfo && <p className="text-xs text-gray-500 mt-0.5">Đánh giá: <strong className="text-amber-600">{parseFloat(evalInfo.score).toFixed(1)}/10</strong></p>}
+                  </div>
+
+                  {/* Số tiền */}
+                  <div className="flex items-center lg:justify-end gap-1">
+                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{formatCurrency(p.amount)}</span>
+                    {isEditable && (
+                      <button
+                        type="button"
+                        onClick={() => { setEditTarget(p); setEditAmount(String(Math.round(Number(p.amount || 0)))); }}
+                        title="Điều chỉnh số tiền"
+                        className="text-gray-400 hover:text-primary-700 p-1 rounded hover:bg-gray-100"
+                      >
+                        <Icon name="pencil" className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Trạng thái (kèm mã giao dịch / ngày thanh toán) */}
+                  <div className="min-w-0">
+                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${STATUS_COLORS[p.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {STATUS_LABELS[p.status] || p.status}
+                    </span>
+                    {p.paid_at && (
+                      <p className="text-xs text-gray-500 mt-1">{new Date(p.paid_at).toLocaleDateString('vi-VN')} {new Date(p.paid_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+                    )}
+                    {p.transaction_code && (
+                      <p className="text-xs text-gray-400 truncate" title={p.transaction_code}>
+                        <span className="font-mono">{p.transaction_code}</span>{p.payment_method ? ` · ${METHOD_LABELS[p.payment_method] || p.payment_method}` : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Thao tác */}
+                  <div className="flex flex-wrap lg:justify-end items-center gap-x-2 gap-y-1.5">
+                    {p.status === 'PAID' ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400"><Icon name="lock" className="w-3.5 h-3.5" /> Đã tất toán</span>
+                    ) : (
+                      <>
+                        {(p.status === 'PENDING' || p.status === 'PROCESSING' || p.status === 'FAILED') && (
+                          <button
+                            onClick={() => openQrModal(p)}
+                            disabled={busy}
+                            className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-semibold transition-colors shadow-sm whitespace-nowrap"
+                          >
+                            <Icon name="card" className="w-3.5 h-3.5" />{p.status === 'FAILED' ? 'Thanh toán lại' : 'Thanh toán QR'}
+                          </button>
+                        )}
+                        {p.status === 'PENDING' && (
+                          <button onClick={() => processMutation.mutate({ id: p.id, status: 'PROCESSING' })} disabled={busy} className="text-xs px-2 py-1.5 text-primary-700 hover:bg-primary-50 rounded-lg font-medium whitespace-nowrap">Đang xử lý</button>
+                        )}
+                        {p.status === 'PROCESSING' && (
+                          <button onClick={() => processMutation.mutate({ id: p.id, status: 'FAILED' })} disabled={busy} className="text-xs px-2 py-1.5 text-red-600 hover:bg-red-50 rounded-lg font-medium whitespace-nowrap">Báo lỗi</button>
+                        )}
                         {isEditable && (
                           <button
                             type="button"
-                            onClick={() => {
-                              setEditTarget(p);
-                              setEditAmount(String(Math.round(Number(p.amount || 0))));
+                            onClick={async () => {
+                              const ok = await confirm({
+                                title: 'Hủy yêu cầu thanh toán',
+                                message: `Hủy yêu cầu thanh toán ${formatCurrency(p.amount)} của "${user?.full_name || ''}"? Sau khi hủy bạn có thể tạo lại nếu cần.`,
+                                confirmText: 'Hủy thanh toán',
+                                tone: 'danger',
+                              });
+                              if (ok) deleteMutation.mutate(p.id);
                             }}
-                            title="Điều chỉnh số tiền"
-                            className="text-gray-400 hover:text-primary-700 p-1 rounded hover:bg-gray-100"
+                            disabled={deleteMutation.isPending}
+                            title="Hủy yêu cầu thanh toán tạo nhầm"
+                            aria-label="Hủy yêu cầu thanh toán"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           >
-                            <Icon name="pencil" className="w-3.5 h-3.5" />
+                            <Icon name="trash" className="w-4 h-4" />
                           </button>
                         )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      {p.transaction_code ? (
-                        <div>
-                          <p className="font-mono text-xs text-gray-700 font-medium">
-                            {p.transaction_code}
-                          </p>
-                          {p.payment_method && (
-                            <span className="text-[10px] text-gray-400">
-                              {METHOD_LABELS[p.payment_method] || p.payment_method}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`badge text-xs font-semibold px-2 py-1 whitespace-nowrap ${
-                          STATUS_COLORS[p.status] || 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {STATUS_LABELS[p.status] || p.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
-                      {p.paid_at ? (
-                        <div>
-                          <p className="font-medium text-emerald-700">
-                            {new Date(p.paid_at).toLocaleDateString('vi-VN')}
-                          </p>
-                          <p className="text-[10px] text-gray-400">
-                            {new Date(p.paid_at).toLocaleTimeString('vi-VN', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {p.status === 'PAID' ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400">
-                          <Icon name="lock" className="w-3.5 h-3.5" /> Đã tất toán
-                        </span>
-                      ) : (
-                        <div className="flex gap-1.5 flex-wrap items-center">
-                          {(p.status === 'PENDING' || p.status === 'PROCESSING') && (
-                            <button
-                              onClick={() => openQrModal(p)}
-                              disabled={processMutation.isPending}
-                              className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-medium transition-colors shadow-sm"
-                            >
-                              <Icon name="card" className="w-3.5 h-3.5" />
-                              Thanh toán QR
-                            </button>
-                          )}
-                          {p.status === 'PENDING' && (
-                            <button
-                              onClick={() => processMutation.mutate({ id: p.id, status: 'PROCESSING' })}
-                              disabled={processMutation.isPending}
-                              className="text-xs px-2.5 py-1.5 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg font-medium transition-colors"
-                            >
-                              Đang xử lý
-                            </button>
-                          )}
-                          {p.status === 'PROCESSING' && (
-                            <button
-                              onClick={() => processMutation.mutate({ id: p.id, status: 'FAILED' })}
-                              disabled={processMutation.isPending}
-                              className="text-xs px-2.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium transition-colors"
-                            >
-                              Báo lỗi
-                            </button>
-                          )}
-                          {p.status === 'FAILED' && (
-                            <button
-                              onClick={() => openQrModal(p)}
-                              disabled={processMutation.isPending}
-                              className="text-xs px-2.5 py-1.5 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg font-medium transition-colors"
-                            >
-                              Thanh toán lại
-                            </button>
-                          )}
-                          {isEditable && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const ok = await confirm({
-                                  title: 'Hủy yêu cầu thanh toán',
-                                  message: `Hủy yêu cầu thanh toán ${formatCurrency(
-                                    p.amount
-                                  )} của "${user?.full_name || ''}"? Sau khi hủy bạn có thể tạo lại nếu cần.`,
-                                  confirmText: 'Hủy thanh toán',
-                                  tone: 'danger',
-                                });
-                                if (ok) deleteMutation.mutate(p.id);
-                              }}
-                              disabled={deleteMutation.isPending}
-                              title="Hủy yêu cầu thanh toán tạo nhầm"
-                              className="text-xs px-2 py-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Icon name="trash" className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
       {/* ─── VIEW 2: THEO DÕI THÙ LAO THEO THÀNH VIÊN DỰ ÁN ─── */}
       {activeView === 'members' && (
-        <div className="card overflow-x-auto">
+        <div className="card !p-0 overflow-hidden">
           {membersLoading ? (
-            <div className="py-10 flex justify-center">
-              <LoadingSpinner />
-            </div>
+            <div className="py-10 flex justify-center"><LoadingSpinner /></div>
           ) : (
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thành viên</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Dự án & Vị trí</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Tiến độ công việc</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thù lao vị trí</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ngân hàng</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Trạng thái TT</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMemberRows.length === 0 && (
-                  <tr>
-                    <td colSpan="7" className="p-8 text-center text-gray-400">
-                      Không có thành viên nào khớp bộ lọc
-                    </td>
-                  </tr>
-                )}
+            <>
+              <div className={`hidden lg:grid ${MEM_GRID} gap-4 px-5 py-3 bg-gray-50 border-b text-xs font-semibold uppercase tracking-wide text-gray-500`}>
+                <span>Thành viên</span><span>Dự án & vị trí</span><span>Tiến độ</span><span className="text-right">Thù lao</span><span>Trạng thái</span><span className="text-right">Thao tác</span>
+              </div>
+              {filteredMemberRows.length === 0 && <p className="p-10 text-center text-sm text-gray-400">Không có thành viên nào khớp bộ lọc</p>}
+              <ul className="divide-y divide-gray-100">
                 {filteredMemberRows.map((m) => {
                   const user = m.CandidateProfile?.User;
                   const bankInfo = m.CandidateProfile?.PaymentInformation;
@@ -714,116 +772,67 @@ export default function PaymentsPage() {
                   const evalScore = m.CandidateEvaluation?.score;
 
                   return (
-                    <tr key={m.id} className="border-b hover:bg-gray-50 transition-colors">
-                      <td className="p-3">
-                        <p className="font-medium text-gray-800">{user?.full_name || '—'}</p>
-                        <p className="text-xs text-gray-400">{user?.email}</p>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-gray-800 text-xs">{projectName}</span>
-                          {projStatus === 'COMPLETED' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">
-                              Đã nghiệm thu
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-primary-700 mt-0.5">{job?.title || 'Thành viên'}</p>
-                      </td>
-                      <td className="p-3 text-xs">
+                    <li key={m.id} className={`grid grid-cols-1 ${MEM_GRID} gap-x-4 gap-y-2 px-5 py-4 items-center hover:bg-gray-50/60 transition-colors`}>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{user?.full_name || '—'}</p>
+                        <p className="text-xs text-gray-500 break-all">{user?.email}</p>
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 line-clamp-2" title={projectName}>
+                          {projectName}
+                          {projStatus === 'COMPLETED' && <span className="ml-1.5 align-middle text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">Đã nghiệm thu</span>}
+                        </p>
+                        <p className="text-xs text-primary-700 line-clamp-2">{job?.title || 'Thành viên dự án'}</p>
+                      </div>
+
+                      <div className="text-xs min-w-0">
                         {ts.total_tasks > 0 ? (
-                          <div>
-                            <span
-                              className={`font-semibold ${
-                                allDone ? 'text-emerald-700' : 'text-amber-600'
-                              }`}
-                            >
-                              {ts.done_tasks}/{ts.total_tasks} task hoàn thành
-                            </span>
-                            <div className="w-28 bg-gray-100 h-1.5 rounded-full mt-1">
-                              <div
-                                className={`h-1.5 rounded-full ${
-                                  allDone ? 'bg-emerald-500' : 'bg-amber-500'
-                                }`}
-                                style={{
-                                  width: `${Math.round((ts.done_tasks / ts.total_tasks) * 100)}%`,
-                                }}
-                              />
+                          <>
+                            <p className={`font-semibold ${allDone ? 'text-emerald-700' : 'text-amber-600'}`}>{ts.done_tasks}/{ts.total_tasks} công việc hoàn thành</p>
+                            <div className="w-full max-w-[9rem] bg-gray-100 h-1.5 rounded-full mt-1">
+                              <div className={`h-1.5 rounded-full ${allDone ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.round((ts.done_tasks / ts.total_tasks) * 100)}%` }} />
                             </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">Chưa giao task</span>
-                        )}
-                        {evalScore != null && (
-                          <p className="text-[11px] text-gray-500 mt-1">
-                            Đánh giá: <strong className="text-amber-600">{parseFloat(evalScore).toFixed(1)}/10</strong>
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-3 font-bold text-gray-900 whitespace-nowrap">
-                        {job?.budget ? formatCurrency(job.budget) : '—'}
-                      </td>
-                      <td className="p-3 text-xs">
-                        {bankInfo?.account_number ? (
-                          <div>
-                            <p className="font-semibold text-gray-700">{bankInfo.bank_name}</p>
-                            <p className="font-mono text-gray-500">{bankInfo.account_number}</p>
-                          </div>
-                        ) : (
-                          <span className="text-amber-600">Chưa có STK</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {payment ? (
-                          <div>
-                            <span
-                              className={`badge text-xs font-semibold px-2 py-1 ${
-                                STATUS_COLORS[payment.status] || 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              {STATUS_LABELS[payment.status] || payment.status}
-                            </span>
-                            <p className="text-[11px] text-gray-500 mt-1 font-medium">
-                              {formatCurrency(payment.amount)}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="badge text-xs bg-gray-100 text-gray-600 px-2 py-1">
-                            Chưa tạo TT
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3">
+                          </>
+                        ) : <p className="text-gray-400">Chưa giao công việc</p>}
+                        {evalScore != null && <p className="text-gray-500 mt-1">Đánh giá: <strong className="text-amber-600">{parseFloat(evalScore).toFixed(1)}/10</strong></p>}
+                      </div>
+
+                      <div className="min-w-0 lg:text-right">
+                        <p className="text-sm font-bold text-gray-900 whitespace-nowrap">{formatCurrency(payment ? payment.amount : job?.budget)}</p>
+                        <p className="text-xs text-gray-500 break-words">
+                          {bankInfo?.account_number ? `${bankInfo.bank_name} · ${bankInfo.account_number}` : <span className="text-amber-600 font-medium">Chưa có số tài khoản</span>}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${payment ? (STATUS_COLORS[payment.status] || 'bg-gray-100 text-gray-600') : 'bg-gray-100 text-gray-600'}`}>
+                          {payment ? (STATUS_LABELS[payment.status] || payment.status) : 'Chưa tạo thanh toán'}
+                        </span>
+                      </div>
+
+                      <div className="lg:text-right">
                         {!payment ? (
-                          <button
-                            type="button"
-                            onClick={() => openCreateForMember(m)}
-                            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-primary-600 text-white hover:bg-primary-700 rounded-lg font-medium transition-colors shadow-sm"
-                          >
+                          <button type="button" onClick={() => openCreateForMember(m)} className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded-lg font-semibold shadow-sm whitespace-nowrap">
                             <Icon name="plus" className="w-3.5 h-3.5" /> Khởi tạo TT
                           </button>
                         ) : payment.status === 'PAID' ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
-                            <Icon name="lock" className="w-3.5 h-3.5" /> Đã tất toán
-                          </span>
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium"><Icon name="lock" className="w-3.5 h-3.5" /> Đã tất toán</span>
                         ) : (
                           <button
                             type="button"
-                            onClick={() => {
-                              const fullPayment = allPayments.find((p) => p.id === payment.id);
-                              if (fullPayment) openQrModal(fullPayment);
-                            }}
-                            className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-medium transition-colors"
+                            onClick={() => { const full = allPayments.find((p) => p.id === payment.id); if (full) openQrModal(full); }}
+                            className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-semibold shadow-sm whitespace-nowrap"
                           >
                             <Icon name="card" className="w-3.5 h-3.5" /> Thanh toán QR
                           </button>
                         )}
-                      </td>
-                    </tr>
+                      </div>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
+              </ul>
+            </>
           )}
         </div>
       )}
