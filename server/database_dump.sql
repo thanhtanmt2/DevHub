@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict EXnNnscWlYknqMbHX0YZ0MXg6R66sCEPHf7oAtIC57aim9YWet0YSEXrtLprymO
+\restrict AT1CejItZC5TuzpdcRVn8NweNUhuYWS3NxYvDca7OiDLlhiGtP47CVeSKWOLx8c
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -58,6 +58,28 @@ ALTER TABLE IF EXISTS ONLY public.job_posts DROP CONSTRAINT IF EXISTS job_posts_
 ALTER TABLE IF EXISTS ONLY public.job_posts DROP CONSTRAINT IF EXISTS job_posts_company_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.job_post_skills DROP CONSTRAINT IF EXISTS job_post_skills_skill_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.job_post_skills DROP CONSTRAINT IF EXISTS job_post_skills_job_post_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_threads DROP CONSTRAINT IF EXISTS forum_threads_workspace_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_threads DROP CONSTRAINT IF EXISTS forum_threads_last_post_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_threads DROP CONSTRAINT IF EXISTS forum_threads_category_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_threads DROP CONSTRAINT IF EXISTS forum_threads_author_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_reports DROP CONSTRAINT IF EXISTS forum_reports_reporter_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_reports DROP CONSTRAINT IF EXISTS forum_reports_post_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_reports DROP CONSTRAINT IF EXISTS forum_reports_handled_by_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_posts DROP CONSTRAINT IF EXISTS forum_posts_thread_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_posts DROP CONSTRAINT IF EXISTS forum_posts_quote_post_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_posts DROP CONSTRAINT IF EXISTS forum_posts_author_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_post_likes DROP CONSTRAINT IF EXISTS forum_post_likes_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_post_likes DROP CONSTRAINT IF EXISTS forum_post_likes_post_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_sender_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_recipient_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_member_activity DROP CONSTRAINT IF EXISTS forum_member_activity_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_member_activity DROP CONSTRAINT IF EXISTS forum_member_activity_thread_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_ignores DROP CONSTRAINT IF EXISTS forum_ignores_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_ignores DROP CONSTRAINT IF EXISTS forum_ignores_ignored_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_follows DROP CONSTRAINT IF EXISTS forum_follows_follower_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_follows DROP CONSTRAINT IF EXISTS forum_follows_followee_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_bookmarks DROP CONSTRAINT IF EXISTS forum_bookmarks_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_bookmarks DROP CONSTRAINT IF EXISTS forum_bookmarks_post_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.experiences DROP CONSTRAINT IF EXISTS experiences_parent_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.experiences DROP CONSTRAINT IF EXISTS experiences_candidate_profile_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.companies DROP CONSTRAINT IF EXISTS companies_user_id_fkey;
@@ -79,6 +101,15 @@ DROP INDEX IF EXISTS public.uq_applications_candidate_job;
 DROP INDEX IF EXISTS public.idx_task_attachments_task;
 DROP INDEX IF EXISTS public.idx_saved_jobs_candidate;
 DROP INDEX IF EXISTS public.idx_refresh_tokens_user;
+DROP INDEX IF EXISTS public.idx_forum_threads_workspace;
+DROP INDEX IF EXISTS public.idx_forum_threads_category;
+DROP INDEX IF EXISTS public.idx_forum_threads_author;
+DROP INDEX IF EXISTS public.idx_forum_reports_status;
+DROP INDEX IF EXISTS public.idx_forum_posts_thread;
+DROP INDEX IF EXISTS public.idx_forum_posts_author;
+DROP INDEX IF EXISTS public.idx_forum_messages_sender;
+DROP INDEX IF EXISTS public.idx_forum_messages_recipient;
+DROP INDEX IF EXISTS public.idx_forum_follows_followee;
 DROP INDEX IF EXISTS public.idx_experiences_parent;
 DROP INDEX IF EXISTS public.activity_logs_user_id;
 DROP INDEX IF EXISTS public.activity_logs_entity_type_entity_id;
@@ -90,6 +121,7 @@ ALTER TABLE IF EXISTS ONLY public.workspace_members DROP CONSTRAINT IF EXISTS wo
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_pkey;
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_email_key;
 ALTER TABLE IF EXISTS ONLY public.user_roles DROP CONSTRAINT IF EXISTS user_roles_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_reports DROP CONSTRAINT IF EXISTS uq_forum_reports_post_reporter;
 ALTER TABLE IF EXISTS ONLY public.tasks DROP CONSTRAINT IF EXISTS tasks_pkey;
 ALTER TABLE IF EXISTS ONLY public.task_submissions DROP CONSTRAINT IF EXISTS task_submissions_pkey;
 ALTER TABLE IF EXISTS ONLY public.task_comments DROP CONSTRAINT IF EXISTS task_comments_pkey;
@@ -119,6 +151,17 @@ ALTER TABLE IF EXISTS ONLY public.payment_information DROP CONSTRAINT IF EXISTS 
 ALTER TABLE IF EXISTS ONLY public.notifications DROP CONSTRAINT IF EXISTS notifications_pkey;
 ALTER TABLE IF EXISTS ONLY public.job_posts DROP CONSTRAINT IF EXISTS job_posts_pkey;
 ALTER TABLE IF EXISTS ONLY public.job_post_skills DROP CONSTRAINT IF EXISTS job_post_skills_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_threads DROP CONSTRAINT IF EXISTS forum_threads_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_reports DROP CONSTRAINT IF EXISTS forum_reports_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_posts DROP CONSTRAINT IF EXISTS forum_posts_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_post_likes DROP CONSTRAINT IF EXISTS forum_post_likes_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_member_activity DROP CONSTRAINT IF EXISTS forum_member_activity_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_ignores DROP CONSTRAINT IF EXISTS forum_ignores_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_follows DROP CONSTRAINT IF EXISTS forum_follows_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_categories DROP CONSTRAINT IF EXISTS forum_categories_slug_key;
+ALTER TABLE IF EXISTS ONLY public.forum_categories DROP CONSTRAINT IF EXISTS forum_categories_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_bookmarks DROP CONSTRAINT IF EXISTS forum_bookmarks_pkey;
 ALTER TABLE IF EXISTS ONLY public.experiences DROP CONSTRAINT IF EXISTS experiences_pkey;
 ALTER TABLE IF EXISTS ONLY public.companies DROP CONSTRAINT IF EXISTS companies_user_id_key;
 ALTER TABLE IF EXISTS ONLY public.companies DROP CONSTRAINT IF EXISTS companies_tax_code_key;
@@ -159,6 +202,16 @@ DROP TABLE IF EXISTS public.payment_information;
 DROP TABLE IF EXISTS public.notifications;
 DROP TABLE IF EXISTS public.job_posts;
 DROP TABLE IF EXISTS public.job_post_skills;
+DROP TABLE IF EXISTS public.forum_threads;
+DROP TABLE IF EXISTS public.forum_reports;
+DROP TABLE IF EXISTS public.forum_posts;
+DROP TABLE IF EXISTS public.forum_post_likes;
+DROP TABLE IF EXISTS public.forum_messages;
+DROP TABLE IF EXISTS public.forum_member_activity;
+DROP TABLE IF EXISTS public.forum_ignores;
+DROP TABLE IF EXISTS public.forum_follows;
+DROP TABLE IF EXISTS public.forum_categories;
+DROP TABLE IF EXISTS public.forum_bookmarks;
 DROP TABLE IF EXISTS public.experiences;
 DROP TABLE IF EXISTS public.companies;
 DROP TABLE IF EXISTS public.candidate_skills;
@@ -703,6 +756,172 @@ CREATE TABLE public.experiences (
 
 
 ALTER TABLE public.experiences OWNER TO postgres;
+
+--
+-- Name: forum_bookmarks; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_bookmarks (
+    user_id uuid NOT NULL,
+    post_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.forum_bookmarks OWNER TO postgres;
+
+--
+-- Name: forum_categories; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_categories (
+    id uuid NOT NULL,
+    name character varying(100) NOT NULL,
+    slug character varying(100) NOT NULL,
+    description character varying(255),
+    icon character varying(30) DEFAULT 'chat'::character varying NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    admin_only boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.forum_categories OWNER TO postgres;
+
+--
+-- Name: forum_follows; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_follows (
+    follower_id uuid NOT NULL,
+    followee_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_forum_follows_self CHECK ((follower_id <> followee_id))
+);
+
+
+ALTER TABLE public.forum_follows OWNER TO postgres;
+
+--
+-- Name: forum_ignores; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_ignores (
+    user_id uuid NOT NULL,
+    ignored_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_forum_ignores_self CHECK ((user_id <> ignored_id))
+);
+
+
+ALTER TABLE public.forum_ignores OWNER TO postgres;
+
+--
+-- Name: forum_member_activity; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_member_activity (
+    user_id uuid NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    thread_id uuid
+);
+
+
+ALTER TABLE public.forum_member_activity OWNER TO postgres;
+
+--
+-- Name: forum_messages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_messages (
+    id uuid NOT NULL,
+    sender_id uuid NOT NULL,
+    recipient_id uuid NOT NULL,
+    content text NOT NULL,
+    read_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_forum_messages_self CHECK ((sender_id <> recipient_id))
+);
+
+
+ALTER TABLE public.forum_messages OWNER TO postgres;
+
+--
+-- Name: forum_post_likes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_post_likes (
+    post_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    value smallint DEFAULT 1 NOT NULL,
+    CONSTRAINT forum_post_likes_value_check CHECK ((value = ANY (ARRAY[1, '-1'::integer])))
+);
+
+
+ALTER TABLE public.forum_post_likes OWNER TO postgres;
+
+--
+-- Name: forum_posts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_posts (
+    id uuid NOT NULL,
+    thread_id uuid NOT NULL,
+    author_id uuid NOT NULL,
+    content text NOT NULL,
+    quote_post_id uuid,
+    edited_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.forum_posts OWNER TO postgres;
+
+--
+-- Name: forum_reports; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_reports (
+    id uuid NOT NULL,
+    post_id uuid NOT NULL,
+    reporter_id uuid NOT NULL,
+    reason character varying(20) NOT NULL,
+    note character varying(500),
+    status character varying(10) DEFAULT 'OPEN'::character varying NOT NULL,
+    handled_by uuid,
+    handled_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.forum_reports OWNER TO postgres;
+
+--
+-- Name: forum_threads; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_threads (
+    id uuid NOT NULL,
+    category_id uuid,
+    workspace_id uuid,
+    author_id uuid NOT NULL,
+    title character varying(200) NOT NULL,
+    is_pinned boolean DEFAULT false NOT NULL,
+    is_locked boolean DEFAULT false NOT NULL,
+    view_count integer DEFAULT 0 NOT NULL,
+    reply_count integer DEFAULT 0 NOT NULL,
+    last_post_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_post_user_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_forum_threads_one_scope CHECK (((((category_id IS NOT NULL))::integer + ((workspace_id IS NOT NULL))::integer) = 1))
+);
+
+
+ALTER TABLE public.forum_threads OWNER TO postgres;
 
 --
 -- Name: job_post_skills; Type: TABLE; Schema: public; Owner: postgres
@@ -1869,6 +2088,7 @@ INSERT INTO public.activity_logs VALUES ('9f3e7cce-a59d-5eca-aba0-143d5f08bdc2',
 INSERT INTO public.activity_logs VALUES ('fa09910f-4c7c-52c0-b634-de77a36afab7', 'ba39c684-a977-57e6-aa65-2ae802277f75', 'Vũ Gia Nhân', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'application', '3d4058b3-0a4e-5478-9d08-e29321c9f42e', 'Senior Data / AI Engineer', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "Senior Data / AI Engineer"', '{"demo": true, "job_post_id": "00e9f5f4-455f-5a20-a92c-65db9b3981f1"}', '27.75.129.136', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-10-24 15:41:20.899+07');
 INSERT INTO public.activity_logs VALUES ('07311188-0c70-5159-ba16-71aef928deee', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'Lê Hoàng Yến', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', 'dab17bd9-5c7d-57a3-9d87-78089fdca333', 'Fresher Frontend Developer (Part-time)', 'PENDING', 'VIEWED', 'Đơn ứng tuyển của Võ Kim Thảo đã chuyển sang trạng thái: Đã xem', '{"demo": true, "job_post_id": "ae82128f-2c43-5726-93aa-e1153010aab5"}', '27.71.121.61', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-10-28 10:30:42.212+07');
 INSERT INTO public.activity_logs VALUES ('f4c75936-5191-5208-9188-0af4ebb59dcd', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'Lê Hoàng Yến', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', 'dab17bd9-5c7d-57a3-9d87-78089fdca333', 'Fresher Frontend Developer (Part-time)', 'VIEWED', 'INTERVIEW', 'Đơn ứng tuyển của Võ Kim Thảo đã chuyển sang trạng thái: Phỏng vấn', '{"demo": true, "job_post_id": "ae82128f-2c43-5726-93aa-e1153010aab5"}', '27.65.136.57', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-10-29 11:05:19.688+07');
+INSERT INTO public.activity_logs VALUES ('21080fd6-488b-4702-8820-0ebf1cd6674d', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', 'ADMIN', 'USER_LOGOUT', 'user', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub Admin', NULL, NULL, 'DevHub Admin đã đăng xuất', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-11-02 14:05:15.024+07');
 INSERT INTO public.activity_logs VALUES ('c2d69a44-a4e5-547b-86df-57e4acc47854', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'Lê Hoàng Yến', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', 'dab17bd9-5c7d-57a3-9d87-78089fdca333', 'Fresher Frontend Developer (Part-time)', 'INTERVIEW', 'REJECTED', 'Đơn ứng tuyển của Võ Kim Thảo đã chuyển sang trạng thái: Từ chối', '{"demo": true, "job_post_id": "ae82128f-2c43-5726-93aa-e1153010aab5"}', '27.66.76.99', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-10-29 12:27:01.138+07');
 INSERT INTO public.activity_logs VALUES ('27dc152a-ad08-5a7a-a0b6-65decc341474', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Võ Kim Thảo', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'application', 'dab17bd9-5c7d-57a3-9d87-78089fdca333', 'Fresher Frontend Developer (Part-time)', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "Fresher Frontend Developer (Part-time)"', '{"demo": true, "job_post_id": "ae82128f-2c43-5726-93aa-e1153010aab5"}', '27.68.218.142', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-10-27 13:47:09.362+07');
 INSERT INTO public.activity_logs VALUES ('bef37b2c-8585-524e-95a0-5029a0a65a53', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'Lê Hoàng Yến', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', '60e82864-50b3-585d-b934-0bbc3ec9c17e', 'Fresher Frontend Developer (Part-time)', 'PENDING', 'VIEWED', 'Đơn ứng tuyển của Vũ Bảo Lan đã chuyển sang trạng thái: Đã xem', '{"demo": true, "job_post_id": "ae82128f-2c43-5726-93aa-e1153010aab5"}', '27.75.254.209', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-10-28 02:51:45.005+07');
@@ -1921,6 +2141,7 @@ INSERT INTO public.activity_logs VALUES ('41ad7bc5-3f63-53c7-b369-57ff690b329e',
 INSERT INTO public.activity_logs VALUES ('2e7e304d-ffe6-59a9-9f26-7c2ac93c953b', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'Phạm Quốc Bảo', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', '3bef429a-773f-5e7e-a18c-e940a94a41e1', 'Junior .NET Developer', 'PENDING', 'VIEWED', 'Đơn ứng tuyển của Đỗ Hồng Tiên đã chuyển sang trạng thái: Đã xem', '{"demo": true, "job_post_id": "92f25539-964f-5c0c-95c7-007523bec527"}', '27.70.225.53', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '2026-09-28 22:05:02.053+07');
 INSERT INTO public.activity_logs VALUES ('c04c530a-4161-5476-a692-df3431e35003', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'Phạm Quốc Bảo', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', '3bef429a-773f-5e7e-a18c-e940a94a41e1', 'Junior .NET Developer', 'VIEWED', 'INTERVIEW', 'Đơn ứng tuyển của Đỗ Hồng Tiên đã chuyển sang trạng thái: Phỏng vấn', '{"demo": true, "job_post_id": "92f25539-964f-5c0c-95c7-007523bec527"}', '27.72.207.181', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-10-07 05:09:10.31+07');
 INSERT INTO public.activity_logs VALUES ('8fdd9c36-44f1-5440-b01f-c0b17a8d953f', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'Phạm Quốc Bảo', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', '3bef429a-773f-5e7e-a18c-e940a94a41e1', 'Junior .NET Developer', 'INTERVIEW', 'REJECTED', 'Đơn ứng tuyển của Đỗ Hồng Tiên đã chuyển sang trạng thái: Từ chối', '{"demo": true, "job_post_id": "92f25539-964f-5c0c-95c7-007523bec527"}', '27.71.141.160', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-10-17 00:59:29.197+07');
+INSERT INTO public.activity_logs VALUES ('31c2fba0-3719-42aa-ac48-f04ad8b1a30e', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', 'CANDIDATE', 'USER_LOGIN', 'user', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nguyễn Văn Dev', NULL, NULL, 'Nguyễn Văn Dev đã đăng nhập vào hệ thống', '{}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', '2026-11-02 14:05:26.959+07');
 INSERT INTO public.activity_logs VALUES ('944fe2a4-ad43-5bfe-b9b5-1946f82adc10', '89f3d663-d2b6-5688-999b-5accf875c5b0', 'Đỗ Hồng Tiên', 'CANDIDATE', 'APPLICATION_SUBMITTED', 'application', '3bef429a-773f-5e7e-a18c-e940a94a41e1', 'Junior .NET Developer', NULL, NULL, 'Đã nộp đơn ứng tuyển cho vị trí "Junior .NET Developer"', '{"demo": true, "job_post_id": "92f25539-964f-5c0c-95c7-007523bec527"}', '27.75.82.222', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0', '2026-09-17 08:24:51.581+07');
 INSERT INTO public.activity_logs VALUES ('982d0a7e-4629-558e-82d6-207d0b64cb23', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'Phạm Quốc Bảo', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', '129e70b1-e32f-5785-9043-66d81100d851', 'Junior .NET Developer', 'PENDING', 'VIEWED', 'Đơn ứng tuyển của Võ Thanh Ngân đã chuyển sang trạng thái: Đã xem', '{"demo": true, "job_post_id": "92f25539-964f-5c0c-95c7-007523bec527"}', '27.75.3.89', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-09-28 02:32:58.203+07');
 INSERT INTO public.activity_logs VALUES ('89c913f6-34a1-5f8a-a6e6-9066c5677775', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'Phạm Quốc Bảo', 'EMPLOYER', 'APPLICATION_STATUS_CHANGED', 'application', '129e70b1-e32f-5785-9043-66d81100d851', 'Junior .NET Developer', 'VIEWED', 'INTERVIEW', 'Đơn ứng tuyển của Võ Thanh Ngân đã chuyển sang trạng thái: Phỏng vấn', '{"demo": true, "job_post_id": "92f25539-964f-5c0c-95c7-007523bec527"}', '27.68.44.142', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', '2026-10-07 19:32:58.675+07');
@@ -3711,6 +3932,1911 @@ INSERT INTO public.experiences VALUES ('c7e8b410-01e4-575a-a1ae-94544b74d9db', '
 INSERT INTO public.experiences VALUES ('6434505a-7306-559f-bf11-f7975241cc48', 'b2823c36-e80c-5c03-b619-998909028ebb', 'Thành viên phát triển', 'Nền tảng báo cáo và thống kê', '2025-06-28', NULL, 'Dự án trọng điểm của công ty, làm việc cùng đội 6–8 người.', '2026-06-12 21:56:30.304+07', '2026-06-12 21:56:30.304+07', 'PROJECT', 'fcde3fce-0677-5f08-866b-65f24d390e32', '["Thiết kế cơ sở dữ liệu, tối ưu truy vấn PostgreSQL", "Xây dựng xác thực JWT và phân quyền theo vai trò"]', '["Express.js", "Node.js", "REST API"]', NULL);
 INSERT INTO public.experiences VALUES ('c296f33b-ac4d-5827-9b8b-5faf73c55976', 'c2fe2522-8113-5ab4-93c7-83b773a6a402', 'Thành viên phát triển', 'Hệ thống quản lý nhân sự nội bộ', '2025-08-27', NULL, 'Dự án trọng điểm của công ty, làm việc cùng đội 6–8 người.', '2026-10-11 10:14:30.608+07', '2026-10-11 10:14:30.608+07', 'PROJECT', '98cb9713-b886-5374-b005-93b8c9bc10f6', '["Tối ưu hiệu năng và dung lượng ứng dụng", "Phát hành ứng dụng lên App Store và Google Play"]', '["Git", "Swift", "REST API"]', NULL);
 INSERT INTO public.experiences VALUES ('798a0f19-c23a-4766-9c69-98a26e2dd9df', 'd2acdae6-3cbe-4d92-825e-a9a0bb84cf8f', 'Tester Intern', 'FPT Software', '2026-01-01', NULL, 'Thực hiện kiểm thử web, thiết kế testcase, phối hợp vs team phát triển', '2026-09-28 16:34:16.942+07', '2026-09-28 16:34:54.429+07', 'COMPANY', NULL, '[]', '[]', NULL);
+
+
+--
+-- Data for Name: forum_bookmarks; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_bookmarks VALUES ('2c6e3aea-f5ab-54de-959f-26806e04783a', 'b7e85787-4a9c-53bf-911a-3216a634d33d', '2026-10-30 21:47:20.884+07');
+INSERT INTO public.forum_bookmarks VALUES ('2c6e3aea-f5ab-54de-959f-26806e04783a', 'e3170900-e6e5-5190-b1b6-445c511dcd35', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', '12d684be-8de7-5548-8943-e41746fd480a', '2026-10-30 10:15:19.688+07');
+INSERT INTO public.forum_bookmarks VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', 'd97f3893-d06e-5f31-b08a-78df509ca13d', '2026-10-21 23:21:51.972+07');
+INSERT INTO public.forum_bookmarks VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', '5efbfdbf-8644-5163-881a-57b24ff5935c', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2c7763c4-ac79-51e6-a32b-ef24306cce94', '2026-11-01 12:06:55.34+07');
+INSERT INTO public.forum_bookmarks VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '1eb68798-f99e-56f9-a0e8-57512ce700a5', '2026-10-12 21:04:33.306+07');
+INSERT INTO public.forum_bookmarks VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'b56f8b85-340b-5bca-ab39-65f429714214', '2026-10-31 20:48:22.013+07');
+INSERT INTO public.forum_bookmarks VALUES ('9a8807b0-2378-5793-aaa0-f5883de745a8', 'f94cab93-e3d0-5fdb-b383-b355b29c96fd', '2026-10-29 01:20:39.825+07');
+INSERT INTO public.forum_bookmarks VALUES ('8ec61d09-a425-5d54-a53a-90d541a198c5', '5efbfdbf-8644-5163-881a-57b24ff5935c', '2026-11-01 14:27:07+07');
+INSERT INTO public.forum_bookmarks VALUES ('8ec61d09-a425-5d54-a53a-90d541a198c5', 'c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '2026-10-23 06:28:05.458+07');
+INSERT INTO public.forum_bookmarks VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', 'b7e85787-4a9c-53bf-911a-3216a634d33d', '2026-10-30 09:35:46.845+07');
+INSERT INTO public.forum_bookmarks VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', 'd97f3893-d06e-5f31-b08a-78df509ca13d', '2026-10-16 19:31:35.64+07');
+INSERT INTO public.forum_bookmarks VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', 'c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '2026-10-25 15:41:33.541+07');
+INSERT INTO public.forum_bookmarks VALUES ('9f37f89a-4a8c-53c3-99e2-df665e45f23f', 'c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '2026-10-24 21:11:28.589+07');
+INSERT INTO public.forum_bookmarks VALUES ('9f37f89a-4a8c-53c3-99e2-df665e45f23f', 'e0d03c03-0c56-50b0-8089-c54bd5b385fc', '2026-10-13 13:22:12.11+07');
+INSERT INTO public.forum_bookmarks VALUES ('e7dbd809-2b8d-53e8-a72b-87456ecffa90', '0f3cb1dc-569a-5ecd-a37b-182bb383e62d', '2026-11-01 01:27:19.55+07');
+INSERT INTO public.forum_bookmarks VALUES ('e7dbd809-2b8d-53e8-a72b-87456ecffa90', 'fe465ed2-51f8-5993-bfea-a914826cc6de', '2026-10-03 15:55:48.146+07');
+INSERT INTO public.forum_bookmarks VALUES ('5538250e-1c62-5e45-99d0-9777b15bf209', '68ebd6ce-de7f-5523-940a-f82a6ee7dce3', '2026-10-26 11:49:48.47+07');
+INSERT INTO public.forum_bookmarks VALUES ('5538250e-1c62-5e45-99d0-9777b15bf209', '00ed6fca-a33b-5aca-b0bc-97399fd348cb', '2026-10-31 05:06:14.411+07');
+INSERT INTO public.forum_bookmarks VALUES ('5538250e-1c62-5e45-99d0-9777b15bf209', '2de8dbed-2466-57e9-8c62-963eb38731d9', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('13ce34db-d8d9-5086-961e-62abcc761972', '89e5650e-7bf0-5e06-a52b-546cd50d9b89', '2026-10-24 18:04:40.73+07');
+INSERT INTO public.forum_bookmarks VALUES ('13ce34db-d8d9-5086-961e-62abcc761972', 'cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', '2026-10-28 06:16:21.921+07');
+INSERT INTO public.forum_bookmarks VALUES ('13ce34db-d8d9-5086-961e-62abcc761972', '083660f1-fef1-5ebf-aff5-8cd0bea48562', '2026-10-24 16:44:56.733+07');
+INSERT INTO public.forum_bookmarks VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '85cea242-b081-518b-a7da-01ce6f9bb468', '2026-10-28 11:09:33.975+07');
+INSERT INTO public.forum_bookmarks VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '2026-10-22 21:20:37.765+07');
+INSERT INTO public.forum_bookmarks VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'c39c52bb-08a3-5d90-a7fe-ddfdf9cf290a', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('ba39c684-a977-57e6-aa65-2ae802277f75', '99f05e4a-492d-51d6-84f0-79eb8f93a88e', '2026-10-31 07:51:53.517+07');
+INSERT INTO public.forum_bookmarks VALUES ('c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', 'd75ead9b-a749-530f-acb8-bd6fe7890911', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', '85cea242-b081-518b-a7da-01ce6f9bb468', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', '346e3791-925c-57cb-b526-7d3ff268af01', '2026-10-22 00:58:24.134+07');
+INSERT INTO public.forum_bookmarks VALUES ('0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '2026-10-19 02:32:01.882+07');
+INSERT INTO public.forum_bookmarks VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', '89e5650e-7bf0-5e06-a52b-546cd50d9b89', '2026-10-22 23:11:28.38+07');
+INSERT INTO public.forum_bookmarks VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'e3170900-e6e5-5190-b1b6-445c511dcd35', '2026-11-02 14:46:53.041+07');
+INSERT INTO public.forum_bookmarks VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', '31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '2026-10-31 09:37:00.368+07');
+INSERT INTO public.forum_bookmarks VALUES ('e023c99e-6759-5601-a9b7-1c3db1aabdc6', 'ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '2026-10-17 06:03:05.456+07');
+INSERT INTO public.forum_bookmarks VALUES ('e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2de8dbed-2466-57e9-8c62-963eb38731d9', '2026-10-30 18:32:32.634+07');
+INSERT INTO public.forum_bookmarks VALUES ('e023c99e-6759-5601-a9b7-1c3db1aabdc6', '8ba2ce06-9ebb-58a8-b2e1-669b6225d630', '2026-10-29 14:41:01.779+07');
+INSERT INTO public.forum_bookmarks VALUES ('b984662f-f458-5f25-a070-76b789a8d9d4', '4615b73a-8405-54b9-989b-ed0d1f205a0d', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('5d4c39b1-c708-566e-b938-1f07ecb049c5', '89e5650e-7bf0-5e06-a52b-546cd50d9b89', '2026-10-26 00:32:27.074+07');
+INSERT INTO public.forum_bookmarks VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '374a4402-c854-5dcc-bc8a-774e0ff614ab', '2026-11-01 02:04:46.883+07');
+INSERT INTO public.forum_bookmarks VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2d11d829-1de6-5a88-af3b-37a31cf7a5ba', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', 'd3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', '2026-10-30 10:37:32.515+07');
+INSERT INTO public.forum_bookmarks VALUES ('b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '346e3791-925c-57cb-b526-7d3ff268af01', '2026-10-21 04:00:21.642+07');
+INSERT INTO public.forum_bookmarks VALUES ('b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'b56f8b85-340b-5bca-ab39-65f429714214', '2026-11-01 20:24:51.006+07');
+INSERT INTO public.forum_bookmarks VALUES ('b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '1eb68798-f99e-56f9-a0e8-57512ce700a5', '2026-10-11 03:11:12.624+07');
+INSERT INTO public.forum_bookmarks VALUES ('429535c5-5df7-5e12-b135-1572e5931035', '30aa3d30-cd6a-5211-8c23-86b6c693f160', '2026-10-27 10:00:34.485+07');
+INSERT INTO public.forum_bookmarks VALUES ('429535c5-5df7-5e12-b135-1572e5931035', '52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', '2026-11-01 02:49:48.179+07');
+INSERT INTO public.forum_bookmarks VALUES ('5acc1a9a-eae7-50af-a54c-9d1f736780c1', '99f05e4a-492d-51d6-84f0-79eb8f93a88e', '2026-10-31 04:58:55.448+07');
+INSERT INTO public.forum_bookmarks VALUES ('f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'c68199a1-5cf7-58e7-803b-5f96c7be5d23', '2026-09-10 15:55:39.216+07');
+INSERT INTO public.forum_bookmarks VALUES ('f1bdce80-5f35-5850-ae71-88ae23aecbc9', '0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', '2026-11-02 10:55:44.066+07');
+INSERT INTO public.forum_bookmarks VALUES ('d641dc3b-b1f4-5289-b08e-a37292bba97a', '36534c4a-d443-578a-9dd9-8e653ae1c862', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('582d4dba-f518-521b-84ee-9538f8c868d5', '00ed6fca-a33b-5aca-b0bc-97399fd348cb', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('71d52e51-4f4b-525c-9fd7-098e1919fbab', 'd3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', '2026-10-26 06:10:35.36+07');
+INSERT INTO public.forum_bookmarks VALUES ('71d52e51-4f4b-525c-9fd7-098e1919fbab', 'd97f3893-d06e-5f31-b08a-78df509ca13d', '2026-10-15 00:28:30.361+07');
+INSERT INTO public.forum_bookmarks VALUES ('af37aeee-f959-53cb-af71-e1782f1cabee', '52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', '2026-10-28 09:23:11.99+07');
+INSERT INTO public.forum_bookmarks VALUES ('d60911d7-419e-5c8c-a572-52fabb20ee3d', '30aa3d30-cd6a-5211-8c23-86b6c693f160', '2026-10-26 15:43:27.175+07');
+INSERT INTO public.forum_bookmarks VALUES ('33069162-d519-57ec-b125-1728cd0503c7', 'c8ce04f4-855c-5393-ad52-f762c2db4069', '2026-10-15 23:27:55.13+07');
+INSERT INTO public.forum_bookmarks VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', 'ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', '2026-10-18 07:38:08.279+07');
+INSERT INTO public.forum_bookmarks VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '68ebd6ce-de7f-5523-940a-f82a6ee7dce3', '2026-10-29 07:24:45.147+07');
+INSERT INTO public.forum_bookmarks VALUES ('9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'f4983221-9adb-5583-a8da-80961ac693e5', '2026-10-19 08:38:05.027+07');
+INSERT INTO public.forum_bookmarks VALUES ('be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '2026-10-20 23:13:45.401+07');
+INSERT INTO public.forum_bookmarks VALUES ('e3fd00ba-34d4-5dae-bb50-e4282488a189', '00ed6fca-a33b-5aca-b0bc-97399fd348cb', '2026-10-30 20:50:51.968+07');
+INSERT INTO public.forum_bookmarks VALUES ('61bc59e4-810f-5909-9a54-8d8edc6fed1e', '92c6ce7c-1249-5899-b11f-315b13600fe4', '2026-10-13 03:49:20.39+07');
+INSERT INTO public.forum_bookmarks VALUES ('61bc59e4-810f-5909-9a54-8d8edc6fed1e', '90484cd5-45f5-5653-aa2e-29423f8cf102', '2026-10-20 15:49:27.826+07');
+INSERT INTO public.forum_bookmarks VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '7f754d91-9418-5146-9f34-91e6983441cb', '2026-10-29 07:43:44.411+07');
+INSERT INTO public.forum_bookmarks VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', '2026-10-28 10:40:37.948+07');
+INSERT INTO public.forum_bookmarks VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '99f05e4a-492d-51d6-84f0-79eb8f93a88e', '2026-10-28 23:00:59.376+07');
+INSERT INTO public.forum_bookmarks VALUES ('cff0dd25-d9cf-5481-96ed-d440a500e764', '69ffc210-748c-5753-aa3e-ee29c4333ad6', '2026-10-23 12:01:52.88+07');
+INSERT INTO public.forum_bookmarks VALUES ('4645dc90-a73d-5129-ae38-c91df8305fa7', '7f754d91-9418-5146-9f34-91e6983441cb', '2026-10-26 18:59:58.128+07');
+INSERT INTO public.forum_bookmarks VALUES ('4645dc90-a73d-5129-ae38-c91df8305fa7', 'ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', '2026-10-21 09:23:44.925+07');
+INSERT INTO public.forum_bookmarks VALUES ('3892c76e-02d1-594c-88f4-b97569ebf7e8', '0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('3892c76e-02d1-594c-88f4-b97569ebf7e8', '89e5650e-7bf0-5e06-a52b-546cd50d9b89', '2026-10-18 23:00:27+07');
+INSERT INTO public.forum_bookmarks VALUES ('3892c76e-02d1-594c-88f4-b97569ebf7e8', '69ffc210-748c-5753-aa3e-ee29c4333ad6', '2026-10-15 00:36:24.896+07');
+INSERT INTO public.forum_bookmarks VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', 'd75ead9b-a749-530f-acb8-bd6fe7890911', '2026-11-02 15:56:39.822+07');
+INSERT INTO public.forum_bookmarks VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', 'ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', '2026-10-13 12:20:22.794+07');
+INSERT INTO public.forum_bookmarks VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', 'd799953e-cba7-54aa-b24e-5debe1e51ca0', '2026-10-16 01:51:36.022+07');
+INSERT INTO public.forum_bookmarks VALUES ('aa1af617-5227-4f42-a47b-7c4dd00250dd', '5546cd28-a842-5f33-80ba-83f32c772f49', '2026-11-02 15:29:58.73+07');
+
+
+--
+-- Data for Name: forum_categories; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-000000000001', 'Thông báo & Nội quy', 'thong-bao', 'Tin tức, cập nhật tính năng và nội quy của DevHub', 'bell', 1, true, '2026-11-02 13:48:15.806309+07', '2026-11-02 13:48:15.806309+07');
+INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-000000000002', 'Tìm việc & Tuyển dụng', 'tim-viec', 'Chia sẻ cơ hội việc làm, kinh nghiệm phỏng vấn, review công ty', 'briefcase', 2, false, '2026-11-02 13:48:15.806309+07', '2026-11-02 13:48:15.806309+07');
+INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-000000000003', 'Hỏi đáp kỹ thuật', 'hoi-dap', 'Đặt câu hỏi, nhờ debug và trao đổi về lập trình, kiểm thử, DevOps...', 'code', 3, false, '2026-11-02 13:48:15.806309+07', '2026-11-02 13:48:15.806309+07');
+INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-000000000004', 'Dự án & Cộng tác', 'du-an', 'Tìm đồng đội, chia sẻ kinh nghiệm làm dự án thời vụ trên DevHub', 'workspace', 4, false, '2026-11-02 13:48:15.806309+07', '2026-11-02 13:48:15.806309+07');
+INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-000000000005', 'Góc nghề nghiệp & CV', 'nghe-nghiep', 'Định hướng nghề IT, viết CV, lộ trình học và phát triển bản thân', 'document', 5, false, '2026-11-02 13:48:15.806309+07', '2026-11-02 13:48:15.806309+07');
+INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-000000000006', 'Chia sẻ & Học tập', 'chia-se', 'Tài liệu, khóa học, bài viết hay và công cụ hữu ích', 'lightbulb', 6, false, '2026-11-02 13:48:15.806309+07', '2026-11-02 13:48:15.806309+07');
+INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-000000000007', 'Trò chuyện & Giải trí', 'tro-chuyen', 'Nơi thư giãn, làm quen và tán gẫu ngoài lề công việc', 'chat', 7, false, '2026-11-02 13:48:15.806309+07', '2026-11-02 13:48:15.806309+07');
+
+
+--
+-- Data for Name: forum_follows; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_follows VALUES ('2c6e3aea-f5ab-54de-959f-26806e04783a', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-27 15:47:19.379+07');
+INSERT INTO public.forum_follows VALUES ('2c6e3aea-f5ab-54de-959f-26806e04783a', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-30 19:11:30.941+07');
+INSERT INTO public.forum_follows VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-03 17:27:15.86+07');
+INSERT INTO public.forum_follows VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-07 18:29:04.081+07');
+INSERT INTO public.forum_follows VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-08 13:40:29.636+07');
+INSERT INTO public.forum_follows VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-07 19:20:34.938+07');
+INSERT INTO public.forum_follows VALUES ('f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-06 05:28:27.209+07');
+INSERT INTO public.forum_follows VALUES ('f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-09-27 00:47:30.574+07');
+INSERT INTO public.forum_follows VALUES ('f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-01 18:36:11.611+07');
+INSERT INTO public.forum_follows VALUES ('f804d197-4b1d-52fb-876b-0a7c01ef7b68', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-29 19:14:38.063+07');
+INSERT INTO public.forum_follows VALUES ('f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-07 08:02:22.405+07');
+INSERT INTO public.forum_follows VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-11-01 06:54:33.438+07');
+INSERT INTO public.forum_follows VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-23 13:01:35.012+07');
+INSERT INTO public.forum_follows VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-14 01:40:20.249+07');
+INSERT INTO public.forum_follows VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-23 19:14:07.353+07');
+INSERT INTO public.forum_follows VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-11 21:52:17.32+07');
+INSERT INTO public.forum_follows VALUES ('9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-19 23:35:15.455+07');
+INSERT INTO public.forum_follows VALUES ('9a8807b0-2378-5793-aaa0-f5883de745a8', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-12 18:41:20.89+07');
+INSERT INTO public.forum_follows VALUES ('8ec61d09-a425-5d54-a53a-90d541a198c5', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-16 18:43:39.512+07');
+INSERT INTO public.forum_follows VALUES ('bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-04 08:37:34.493+07');
+INSERT INTO public.forum_follows VALUES ('bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-01 00:09:33.5+07');
+INSERT INTO public.forum_follows VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-01 15:37:38.396+07');
+INSERT INTO public.forum_follows VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-09-28 18:23:37.659+07');
+INSERT INTO public.forum_follows VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-16 15:42:13.245+07');
+INSERT INTO public.forum_follows VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-10 01:08:49.985+07');
+INSERT INTO public.forum_follows VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-20 15:13:53.865+07');
+INSERT INTO public.forum_follows VALUES ('9f37f89a-4a8c-53c3-99e2-df665e45f23f', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-06 12:08:05.177+07');
+INSERT INTO public.forum_follows VALUES ('9f37f89a-4a8c-53c3-99e2-df665e45f23f', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-31 11:03:42.713+07');
+INSERT INTO public.forum_follows VALUES ('9f37f89a-4a8c-53c3-99e2-df665e45f23f', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-03 11:50:26.75+07');
+INSERT INTO public.forum_follows VALUES ('e7dbd809-2b8d-53e8-a72b-87456ecffa90', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-21 19:21:42.638+07');
+INSERT INTO public.forum_follows VALUES ('e7dbd809-2b8d-53e8-a72b-87456ecffa90', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-29 14:45:12.734+07');
+INSERT INTO public.forum_follows VALUES ('5538250e-1c62-5e45-99d0-9777b15bf209', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-02 12:40:24.741+07');
+INSERT INTO public.forum_follows VALUES ('5538250e-1c62-5e45-99d0-9777b15bf209', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-26 01:37:40.686+07');
+INSERT INTO public.forum_follows VALUES ('13ce34db-d8d9-5086-961e-62abcc761972', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-02 17:45:39.523+07');
+INSERT INTO public.forum_follows VALUES ('e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-02 18:19:08.844+07');
+INSERT INTO public.forum_follows VALUES ('e5457bad-b9c4-5188-8f44-c730bbbcdb51', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-09-27 00:35:42.845+07');
+INSERT INTO public.forum_follows VALUES ('e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-18 10:34:35.846+07');
+INSERT INTO public.forum_follows VALUES ('69770111-7bfe-53bd-a59d-75d33fd8ec23', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-14 20:43:10.46+07');
+INSERT INTO public.forum_follows VALUES ('69770111-7bfe-53bd-a59d-75d33fd8ec23', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-21 03:29:36.894+07');
+INSERT INTO public.forum_follows VALUES ('69770111-7bfe-53bd-a59d-75d33fd8ec23', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-26 06:06:19.15+07');
+INSERT INTO public.forum_follows VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-15 09:49:24.781+07');
+INSERT INTO public.forum_follows VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '429535c5-5df7-5e12-b135-1572e5931035', '2026-09-24 14:08:45.617+07');
+INSERT INTO public.forum_follows VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-09-27 18:12:43.43+07');
+INSERT INTO public.forum_follows VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-29 05:11:46.659+07');
+INSERT INTO public.forum_follows VALUES ('ba39c684-a977-57e6-aa65-2ae802277f75', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-27 11:49:53.108+07');
+INSERT INTO public.forum_follows VALUES ('ba39c684-a977-57e6-aa65-2ae802277f75', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-06 13:31:19.607+07');
+INSERT INTO public.forum_follows VALUES ('ba39c684-a977-57e6-aa65-2ae802277f75', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-09-27 13:35:22.328+07');
+INSERT INTO public.forum_follows VALUES ('ba39c684-a977-57e6-aa65-2ae802277f75', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-12 12:22:23.237+07');
+INSERT INTO public.forum_follows VALUES ('ba39c684-a977-57e6-aa65-2ae802277f75', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-09-29 05:09:46.369+07');
+INSERT INTO public.forum_follows VALUES ('dba5756f-a817-5793-ba82-111fe64e1baa', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-05 13:46:30.025+07');
+INSERT INTO public.forum_follows VALUES ('dba5756f-a817-5793-ba82-111fe64e1baa', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-09-29 00:06:58.307+07');
+INSERT INTO public.forum_follows VALUES ('dba5756f-a817-5793-ba82-111fe64e1baa', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-20 12:59:16.734+07');
+INSERT INTO public.forum_follows VALUES ('dba5756f-a817-5793-ba82-111fe64e1baa', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-03 05:10:26.2+07');
+INSERT INTO public.forum_follows VALUES ('dba5756f-a817-5793-ba82-111fe64e1baa', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-12 20:23:44.262+07');
+INSERT INTO public.forum_follows VALUES ('b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-18 16:40:28.572+07');
+INSERT INTO public.forum_follows VALUES ('c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-29 23:08:35.154+07');
+INSERT INTO public.forum_follows VALUES ('c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-09-25 11:28:39.906+07');
+INSERT INTO public.forum_follows VALUES ('c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-11-01 05:32:19.63+07');
+INSERT INTO public.forum_follows VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-26 08:22:44.123+07');
+INSERT INTO public.forum_follows VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-05 16:25:25.673+07');
+INSERT INTO public.forum_follows VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-09-25 17:25:32.663+07');
+INSERT INTO public.forum_follows VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-09-30 23:14:55.101+07');
+INSERT INTO public.forum_follows VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-09-26 09:02:44.998+07');
+INSERT INTO public.forum_follows VALUES ('0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-08 15:50:47.152+07');
+INSERT INTO public.forum_follows VALUES ('0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-17 09:46:47.997+07');
+INSERT INTO public.forum_follows VALUES ('0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-09 09:22:18.142+07');
+INSERT INTO public.forum_follows VALUES ('0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-09-25 09:24:10.162+07');
+INSERT INTO public.forum_follows VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-13 12:40:46.732+07');
+INSERT INTO public.forum_follows VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-05 09:32:55.271+07');
+INSERT INTO public.forum_follows VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-08 19:15:21.922+07');
+INSERT INTO public.forum_follows VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-09-27 08:14:16.015+07');
+INSERT INTO public.forum_follows VALUES ('e023c99e-6759-5601-a9b7-1c3db1aabdc6', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-10-02 08:21:58.218+07');
+INSERT INTO public.forum_follows VALUES ('e023c99e-6759-5601-a9b7-1c3db1aabdc6', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-17 06:42:59.415+07');
+INSERT INTO public.forum_follows VALUES ('b984662f-f458-5f25-a070-76b789a8d9d4', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-11-01 07:37:03.586+07');
+INSERT INTO public.forum_follows VALUES ('b984662f-f458-5f25-a070-76b789a8d9d4', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-08 10:18:50.129+07');
+INSERT INTO public.forum_follows VALUES ('b984662f-f458-5f25-a070-76b789a8d9d4', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-22 14:42:39.361+07');
+INSERT INTO public.forum_follows VALUES ('b984662f-f458-5f25-a070-76b789a8d9d4', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-13 21:49:49.919+07');
+INSERT INTO public.forum_follows VALUES ('5d4c39b1-c708-566e-b938-1f07ecb049c5', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-09 14:56:37.846+07');
+INSERT INTO public.forum_follows VALUES ('5d4c39b1-c708-566e-b938-1f07ecb049c5', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-09-23 07:56:10.369+07');
+INSERT INTO public.forum_follows VALUES ('39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-24 22:42:46.103+07');
+INSERT INTO public.forum_follows VALUES ('39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-07 20:41:55.682+07');
+INSERT INTO public.forum_follows VALUES ('39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-09-23 07:48:36.113+07');
+INSERT INTO public.forum_follows VALUES ('39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-03 02:46:55.989+07');
+INSERT INTO public.forum_follows VALUES ('39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-20 02:17:25.314+07');
+INSERT INTO public.forum_follows VALUES ('ff24e6b9-2635-5eee-85ea-1517fc172500', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-25 01:57:18.503+07');
+INSERT INTO public.forum_follows VALUES ('ff24e6b9-2635-5eee-85ea-1517fc172500', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-09-26 12:29:18.27+07');
+INSERT INTO public.forum_follows VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-05 02:11:16.034+07');
+INSERT INTO public.forum_follows VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-28 18:19:45.211+07');
+INSERT INTO public.forum_follows VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-08 02:00:04.424+07');
+INSERT INTO public.forum_follows VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-16 01:23:33.432+07');
+INSERT INTO public.forum_follows VALUES ('b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-15 08:39:08.247+07');
+INSERT INTO public.forum_follows VALUES ('b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-01 05:04:08.225+07');
+INSERT INTO public.forum_follows VALUES ('25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-23 19:54:52.763+07');
+INSERT INTO public.forum_follows VALUES ('25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-09-30 22:15:59.504+07');
+INSERT INTO public.forum_follows VALUES ('25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-30 23:15:54.449+07');
+INSERT INTO public.forum_follows VALUES ('25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-02 08:23:42.29+07');
+INSERT INTO public.forum_follows VALUES ('25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-26 12:16:28.686+07');
+INSERT INTO public.forum_follows VALUES ('429535c5-5df7-5e12-b135-1572e5931035', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-26 18:14:28.446+07');
+INSERT INTO public.forum_follows VALUES ('429535c5-5df7-5e12-b135-1572e5931035', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-09-28 13:11:43.031+07');
+INSERT INTO public.forum_follows VALUES ('429535c5-5df7-5e12-b135-1572e5931035', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-18 11:19:40.506+07');
+INSERT INTO public.forum_follows VALUES ('5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-23 01:44:09.903+07');
+INSERT INTO public.forum_follows VALUES ('5acc1a9a-eae7-50af-a54c-9d1f736780c1', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-06 22:55:19.176+07');
+INSERT INTO public.forum_follows VALUES ('f1bdce80-5f35-5850-ae71-88ae23aecbc9', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-17 04:43:05.781+07');
+INSERT INTO public.forum_follows VALUES ('89f3d663-d2b6-5688-999b-5accf875c5b0', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-04 12:59:42.399+07');
+INSERT INTO public.forum_follows VALUES ('89f3d663-d2b6-5688-999b-5accf875c5b0', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-27 12:17:17.469+07');
+INSERT INTO public.forum_follows VALUES ('89f3d663-d2b6-5688-999b-5accf875c5b0', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-11 03:23:32.282+07');
+INSERT INTO public.forum_follows VALUES ('d641dc3b-b1f4-5289-b08e-a37292bba97a', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-11-01 08:19:20.847+07');
+INSERT INTO public.forum_follows VALUES ('582d4dba-f518-521b-84ee-9538f8c868d5', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-09-26 17:46:09.47+07');
+INSERT INTO public.forum_follows VALUES ('582d4dba-f518-521b-84ee-9538f8c868d5', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-20 13:31:46.327+07');
+INSERT INTO public.forum_follows VALUES ('71d52e51-4f4b-525c-9fd7-098e1919fbab', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-09-28 23:44:44.531+07');
+INSERT INTO public.forum_follows VALUES ('71d52e51-4f4b-525c-9fd7-098e1919fbab', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-13 04:49:58.166+07');
+INSERT INTO public.forum_follows VALUES ('71d52e51-4f4b-525c-9fd7-098e1919fbab', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-04 06:34:06.062+07');
+INSERT INTO public.forum_follows VALUES ('71d52e51-4f4b-525c-9fd7-098e1919fbab', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-18 07:03:41.613+07');
+INSERT INTO public.forum_follows VALUES ('f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-09-30 22:39:16.57+07');
+INSERT INTO public.forum_follows VALUES ('f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-11 14:11:28.393+07');
+INSERT INTO public.forum_follows VALUES ('f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-09-24 06:06:28.761+07');
+INSERT INTO public.forum_follows VALUES ('af37aeee-f959-53cb-af71-e1782f1cabee', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-23 20:09:54.954+07');
+INSERT INTO public.forum_follows VALUES ('af37aeee-f959-53cb-af71-e1782f1cabee', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-19 20:01:40.731+07');
+INSERT INTO public.forum_follows VALUES ('af37aeee-f959-53cb-af71-e1782f1cabee', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-12 17:28:28.56+07');
+INSERT INTO public.forum_follows VALUES ('af37aeee-f959-53cb-af71-e1782f1cabee', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-17 14:36:28.346+07');
+INSERT INTO public.forum_follows VALUES ('d60911d7-419e-5c8c-a572-52fabb20ee3d', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-09-25 23:04:14.273+07');
+INSERT INTO public.forum_follows VALUES ('d60911d7-419e-5c8c-a572-52fabb20ee3d', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-12 21:24:47.847+07');
+INSERT INTO public.forum_follows VALUES ('d60911d7-419e-5c8c-a572-52fabb20ee3d', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-24 14:30:00.096+07');
+INSERT INTO public.forum_follows VALUES ('d60911d7-419e-5c8c-a572-52fabb20ee3d', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-09 09:00:15.976+07');
+INSERT INTO public.forum_follows VALUES ('d60911d7-419e-5c8c-a572-52fabb20ee3d', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-06 16:10:28.348+07');
+INSERT INTO public.forum_follows VALUES ('33069162-d519-57ec-b125-1728cd0503c7', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-04 18:36:48.649+07');
+INSERT INTO public.forum_follows VALUES ('33069162-d519-57ec-b125-1728cd0503c7', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-11-01 14:17:41.124+07');
+INSERT INTO public.forum_follows VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-27 23:46:00.731+07');
+INSERT INTO public.forum_follows VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-09-25 03:37:41.166+07');
+INSERT INTO public.forum_follows VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-28 07:51:20.236+07');
+INSERT INTO public.forum_follows VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-09-28 01:58:48.252+07');
+INSERT INTO public.forum_follows VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-11 11:07:05.497+07');
+INSERT INTO public.forum_follows VALUES ('9b1dd3d8-67e2-5465-821f-cc64ad058d80', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-02 09:44:43.023+07');
+INSERT INTO public.forum_follows VALUES ('9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-09-27 13:56:34.949+07');
+INSERT INTO public.forum_follows VALUES ('9b1dd3d8-67e2-5465-821f-cc64ad058d80', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-15 13:10:09.109+07');
+INSERT INTO public.forum_follows VALUES ('be7bc0dd-b69c-5508-b003-4fc2495bf58e', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-09-28 22:27:25.991+07');
+INSERT INTO public.forum_follows VALUES ('be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-25 08:34:45.476+07');
+INSERT INTO public.forum_follows VALUES ('be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-19 04:56:26.25+07');
+INSERT INTO public.forum_follows VALUES ('be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-29 00:26:10.273+07');
+INSERT INTO public.forum_follows VALUES ('c5f804a7-99ba-54f2-8591-76a39c3ba33f', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-30 06:25:22.459+07');
+INSERT INTO public.forum_follows VALUES ('c5f804a7-99ba-54f2-8591-76a39c3ba33f', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-09-27 17:11:09.917+07');
+INSERT INTO public.forum_follows VALUES ('c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-24 17:16:07.472+07');
+INSERT INTO public.forum_follows VALUES ('c5f804a7-99ba-54f2-8591-76a39c3ba33f', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-11 23:25:01.299+07');
+INSERT INTO public.forum_follows VALUES ('c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-12 20:04:47.418+07');
+INSERT INTO public.forum_follows VALUES ('e3fd00ba-34d4-5dae-bb50-e4282488a189', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-09-30 07:49:28.039+07');
+INSERT INTO public.forum_follows VALUES ('e3fd00ba-34d4-5dae-bb50-e4282488a189', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-15 22:17:57.92+07');
+INSERT INTO public.forum_follows VALUES ('e3fd00ba-34d4-5dae-bb50-e4282488a189', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-12 01:31:23.373+07');
+INSERT INTO public.forum_follows VALUES ('e3fd00ba-34d4-5dae-bb50-e4282488a189', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-02 15:58:48.608+07');
+INSERT INTO public.forum_follows VALUES ('61bc59e4-810f-5909-9a54-8d8edc6fed1e', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-01 16:08:58.789+07');
+INSERT INTO public.forum_follows VALUES ('61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-19 20:50:25.996+07');
+INSERT INTO public.forum_follows VALUES ('61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-18 08:28:08.386+07');
+INSERT INTO public.forum_follows VALUES ('61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-09-22 16:47:42.385+07');
+INSERT INTO public.forum_follows VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-30 12:26:14.535+07');
+INSERT INTO public.forum_follows VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-26 08:48:52.851+07');
+INSERT INTO public.forum_follows VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-07 20:55:50.309+07');
+INSERT INTO public.forum_follows VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-20 23:25:20.184+07');
+INSERT INTO public.forum_follows VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-26 13:25:34.495+07');
+INSERT INTO public.forum_follows VALUES ('cff0dd25-d9cf-5481-96ed-d440a500e764', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-16 13:36:27.832+07');
+INSERT INTO public.forum_follows VALUES ('4645dc90-a73d-5129-ae38-c91df8305fa7', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-09-24 02:24:17.998+07');
+INSERT INTO public.forum_follows VALUES ('4645dc90-a73d-5129-ae38-c91df8305fa7', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-09-25 14:04:31.245+07');
+INSERT INTO public.forum_follows VALUES ('4645dc90-a73d-5129-ae38-c91df8305fa7', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-14 08:47:50.857+07');
+INSERT INTO public.forum_follows VALUES ('4645dc90-a73d-5129-ae38-c91df8305fa7', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-04 10:29:36.511+07');
+INSERT INTO public.forum_follows VALUES ('3892c76e-02d1-594c-88f4-b97569ebf7e8', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-09 16:31:53.284+07');
+INSERT INTO public.forum_follows VALUES ('3892c76e-02d1-594c-88f4-b97569ebf7e8', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-11 20:35:55.282+07');
+INSERT INTO public.forum_follows VALUES ('3892c76e-02d1-594c-88f4-b97569ebf7e8', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-08 02:59:38.846+07');
+INSERT INTO public.forum_follows VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-12 22:00:32.699+07');
+INSERT INTO public.forum_follows VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-08 13:04:19.775+07');
+INSERT INTO public.forum_follows VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-25 10:30:38.584+07');
+INSERT INTO public.forum_follows VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-09-24 17:38:43.397+07');
+INSERT INTO public.forum_follows VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-31 02:06:13.511+07');
+
+
+--
+-- Data for Name: forum_ignores; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- Data for Name: forum_member_activity; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_member_activity VALUES ('5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-31 11:38:56.733+07', '65fe0e54-9a73-57d5-95c8-514513502cd1');
+INSERT INTO public.forum_member_activity VALUES ('f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-11-01 16:46:24.767+07', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42');
+INSERT INTO public.forum_member_activity VALUES ('f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-11-02 15:08:12.014+07', 'da134d03-db88-54d3-af9e-80979f751a1a');
+INSERT INTO public.forum_member_activity VALUES ('9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-11-02 07:02:30.555+07', '8891726b-f59c-5b29-a4dd-780fc208a198');
+INSERT INTO public.forum_member_activity VALUES ('8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-11-02 10:45:14.609+07', '03ea5ee7-a979-565b-90bb-919c3312ad0c');
+INSERT INTO public.forum_member_activity VALUES ('bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-29 05:07:32.55+07', 'e3e6e7ed-629e-522b-934c-80c0e362d612');
+INSERT INTO public.forum_member_activity VALUES ('c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-11-02 15:34:12.815+07', 'acb388a7-bf5b-58f2-acb0-63f655502a15');
+INSERT INTO public.forum_member_activity VALUES ('9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-11-02 14:36:55.462+07', 'd4ee0c91-4cfc-54ca-9889-699350ca0068');
+INSERT INTO public.forum_member_activity VALUES ('e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-27 23:04:25.57+07', '6789ba60-a287-59ba-8f78-e2be82384e3c');
+INSERT INTO public.forum_member_activity VALUES ('5538250e-1c62-5e45-99d0-9777b15bf209', '2026-11-02 14:58:27.861+07', NULL);
+INSERT INTO public.forum_member_activity VALUES ('13ce34db-d8d9-5086-961e-62abcc761972', '2026-11-02 14:02:08.588+07', NULL);
+INSERT INTO public.forum_member_activity VALUES ('e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-11-02 07:33:58.934+07', '7931610a-2f70-5704-97fa-59d61985c340');
+INSERT INTO public.forum_member_activity VALUES ('69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-11-02 08:31:35.48+07', 'e9432a54-b7c4-5eca-b321-655e1e89e886');
+INSERT INTO public.forum_member_activity VALUES ('db7c670f-1493-4391-8c34-722b0e3a487e', '2026-11-02 16:24:29.385978+07', NULL);
+INSERT INTO public.forum_member_activity VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-11-02 16:24:51.689561+07', NULL);
+INSERT INTO public.forum_member_activity VALUES ('aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-11-02 16:24:52.92503+07', NULL);
+INSERT INTO public.forum_member_activity VALUES ('ba39c684-a977-57e6-aa65-2ae802277f75', '2026-11-02 15:00:21.871+07', 'd4ee0c91-4cfc-54ca-9889-699350ca0068');
+INSERT INTO public.forum_member_activity VALUES ('dba5756f-a817-5793-ba82-111fe64e1baa', '2026-11-01 14:40:01.767+07', '0aa6e715-c697-5587-affd-d709b8649716');
+INSERT INTO public.forum_member_activity VALUES ('b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-11-01 20:33:40.693+07', 'b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97');
+INSERT INTO public.forum_member_activity VALUES ('c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-11-02 15:01:55.322+07', 'a66237e1-1605-5d60-ad28-d25b140306a3');
+INSERT INTO public.forum_member_activity VALUES ('2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-11-02 15:01:14.908+07', '014e51ed-f844-5954-8f88-b25a8b2a663f');
+INSERT INTO public.forum_member_activity VALUES ('0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-11-02 07:52:09.616+07', '31ed05bd-4525-5455-a7a3-77ebd54a28c9');
+INSERT INTO public.forum_member_activity VALUES ('0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-11-02 15:56:06.971+07', '31ed05bd-4525-5455-a7a3-77ebd54a28c9');
+INSERT INTO public.forum_member_activity VALUES ('e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-11-02 15:32:10.375+07', 'a5a2ce42-4780-5706-8bda-621bd439d930');
+INSERT INTO public.forum_member_activity VALUES ('b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-30 16:24:20.159+07', 'b1395cf7-bfe6-5c83-b68d-bf279306133b');
+INSERT INTO public.forum_member_activity VALUES ('5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-11-02 01:21:12.376+07', 'acb388a7-bf5b-58f2-acb0-63f655502a15');
+INSERT INTO public.forum_member_activity VALUES ('39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-11-02 15:34:15.725+07', '555f9824-aeb8-59de-bb60-7adf75551511');
+INSERT INTO public.forum_member_activity VALUES ('ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-11-02 03:32:29.116+07', '7be0eea5-21f4-5cae-96ed-0e0ddbd5eda9');
+INSERT INTO public.forum_member_activity VALUES ('f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-11-02 15:54:17.593+07', '7931610a-2f70-5704-97fa-59d61985c340');
+INSERT INTO public.forum_member_activity VALUES ('b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-11-02 15:08:10.157+07', 'e16a7af2-eacb-5a09-a748-3a5014343a61');
+INSERT INTO public.forum_member_activity VALUES ('25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-27 20:28:46.58+07', 'bde49088-e221-5ba1-8c4d-2c0131928d13');
+INSERT INTO public.forum_member_activity VALUES ('429535c5-5df7-5e12-b135-1572e5931035', '2026-11-01 18:18:04.801+07', 'c6f2dd0b-cabc-54a8-aed6-3e5135cb3b53');
+INSERT INTO public.forum_member_activity VALUES ('5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-11-01 15:14:29.277+07', 'a5f2dba2-ccac-5733-b7fd-8feb48543ef3');
+INSERT INTO public.forum_member_activity VALUES ('f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-11-02 15:56:04.477+07', 'b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97');
+INSERT INTO public.forum_member_activity VALUES ('89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-11-01 22:08:59.864+07', '7d47bc02-a400-556b-aad6-a57a0604bf7a');
+INSERT INTO public.forum_member_activity VALUES ('d641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-11-02 15:54:03.762+07', '746bc3fd-254a-55f8-b83c-4b1566ef7632');
+INSERT INTO public.forum_member_activity VALUES ('582d4dba-f518-521b-84ee-9538f8c868d5', '2026-11-01 22:55:05.313+07', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42');
+INSERT INTO public.forum_member_activity VALUES ('71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-11-02 13:23:07.248+07', '014e51ed-f844-5954-8f88-b25a8b2a663f');
+INSERT INTO public.forum_member_activity VALUES ('f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-11-02 15:53:38.441+07', '3625f32f-91b1-5db4-a5c5-82ab61a4e8d5');
+INSERT INTO public.forum_member_activity VALUES ('af37aeee-f959-53cb-af71-e1782f1cabee', '2026-11-02 15:55:49.634+07', 'ace4b62d-59fd-58d7-9570-cdd6921e11c3');
+INSERT INTO public.forum_member_activity VALUES ('d60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-11-02 09:15:07.785+07', '1ca32fd4-7434-56f5-9128-c24036063e25');
+INSERT INTO public.forum_member_activity VALUES ('33069162-d519-57ec-b125-1728cd0503c7', '2026-11-02 02:25:12.538+07', 'ba9754e8-d1b8-5007-8a6b-5830e2305efd');
+INSERT INTO public.forum_member_activity VALUES ('6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-11-02 07:09:34.94+07', '94358e47-3f2a-5fa8-a37f-034674611bc5');
+INSERT INTO public.forum_member_activity VALUES ('9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-11-02 13:29:04.44+07', 'da134d03-db88-54d3-af9e-80979f751a1a');
+INSERT INTO public.forum_member_activity VALUES ('be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-11-02 15:32:18.75+07', 'c4a7a43a-a9cf-5db4-8523-de41eb9cbfc1');
+INSERT INTO public.forum_member_activity VALUES ('c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-11-02 14:24:13.586+07', 'bde49088-e221-5ba1-8c4d-2c0131928d13');
+INSERT INTO public.forum_member_activity VALUES ('e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-11-01 07:19:23.031+07', 'e6f01318-c238-5c36-9216-de3690b4896d');
+INSERT INTO public.forum_member_activity VALUES ('61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-28 12:49:37.578+07', '17379a3d-ebae-5337-86cf-72483fef2e3c');
+INSERT INTO public.forum_member_activity VALUES ('f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-11-02 04:38:48.043+07', '0050a554-e80f-5f6b-8aa9-7557efb5419f');
+INSERT INTO public.forum_member_activity VALUES ('cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-11-02 13:05:50.997+07', '8891726b-f59c-5b29-a4dd-780fc208a198');
+INSERT INTO public.forum_member_activity VALUES ('4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-11-01 20:39:13.757+07', 'e16a7af2-eacb-5a09-a748-3a5014343a61');
+INSERT INTO public.forum_member_activity VALUES ('3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-11-02 07:25:45.25+07', 'c4a7a43a-a9cf-5db4-8523-de41eb9cbfc1');
+INSERT INTO public.forum_member_activity VALUES ('f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-11-02 00:10:51.809+07', 'aac6cc75-7d6e-5e5b-b97d-d7bcc3df20a2');
+INSERT INTO public.forum_member_activity VALUES ('2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-11-02 16:24:51.775857+07', NULL);
+
+
+--
+-- Data for Name: forum_messages; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_messages VALUES ('5b290895-0e0c-5f38-ad36-d1d8d8f67870', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Chào Trâm, mình là Mai bên Tiki. Mình đã xem hồ sơ và các dự án DevHub bạn hoàn thành, rất ấn tượng với điểm đánh giá 9/10.', '2026-10-29 15:08:07.275+07', '2026-10-29 15:05:06.53+07');
+INSERT INTO public.forum_messages VALUES ('e23d0706-9ce5-501e-b8ce-5ee5ad350760', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Dạ em chào chị Mai ạ, em cảm ơn chị đã để ý hồ sơ của em!', '2026-10-29 15:31:34.569+07', '2026-10-29 15:16:28.568+07');
+INSERT INTO public.forum_messages VALUES ('f932f39e-d6d7-5074-aa3a-71d44fed6faf', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Bên mình đang tuyển React Developer (fresher/junior) cho team mua sắm. Bạn có quan tâm không?', '2026-10-29 15:39:42.726+07', '2026-10-29 15:19:14.645+07');
+INSERT INTO public.forum_messages VALUES ('e1b45b45-38be-53a2-8b2a-44c15630b2ad', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Dạ có ạ. Em đang tìm công việc làm chính thức sau khi tốt nghiệp. Chị cho em xin mô tả chi tiết vị trí với ạ.', '2026-10-29 16:02:32.693+07', '2026-10-29 15:24:17.041+07');
+INSERT INTO public.forum_messages VALUES ('cfbb753d-eeb5-5d61-9804-681a3b6c7b20', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mình sẽ gửi JD qua mục ứng tuyển trên DevHub nhé. Bạn nộp hồ sơ thì bên mình sắp xếp phỏng vấn sớm.', '2026-10-29 15:39:25.151+07', '2026-10-29 15:33:50.53+07');
+INSERT INTO public.forum_messages VALUES ('0a5d0c5f-4e4e-5abf-987d-f48f18596dce', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'À, nếu tiện thì thứ Năm tuần này 14h bạn có thể phỏng vấn online được không?', NULL, '2026-10-29 15:46:20.582+07');
+INSERT INTO public.forum_messages VALUES ('07acc0e1-a1d6-50c6-aa1e-bf6bcdebc84b', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Chào anh Dũng, bên NashTech đang cần thêm một bạn backend Java cho dự án ngân hàng, thời vụ 3 tháng. Anh còn lịch trống không?', '2026-10-27 15:18:35.435+07', '2026-10-27 14:48:22.601+07');
+INSERT INTO public.forum_messages VALUES ('e4f85e8a-48a9-573c-87dd-c99eceb1609a', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Chào chị Hà, tháng sau mình mới xong dự án hiện tại. Chị cho mình xin thêm thông tin về công nghệ và mức thù lao nhé.', '2026-10-27 15:40:33.238+07', '2026-10-27 15:07:16.606+07');
+INSERT INTO public.forum_messages VALUES ('ac39196e-b21f-5625-8169-37e5bccbf136', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Spring Boot, PostgreSQL, có Kafka. Thù lao theo giờ, bên mình sẽ gửi chi tiết khi anh xác nhận tham gia.', '2026-10-27 19:50:35.309+07', '2026-10-27 19:35:34.324+07');
+INSERT INTO public.forum_messages VALUES ('54b0368f-025b-584e-875b-81e7c932ca2d', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Mình quen Spring Boot và Postgres, Kafka thì mới dùng ở mức cơ bản thôi, chị thấy ổn không?', '2026-10-27 20:16:57.959+07', '2026-10-27 19:45:19.614+07');
+INSERT INTO public.forum_messages VALUES ('7f4b8a3a-3707-5e78-b0c5-893e9fb8b4a0', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Ổn anh nhé, team có người hướng dẫn phần Kafka. Anh ứng tuyển dự án trên DevHub giúp em để Admin xét duyệt nhé.', '2026-10-27 20:00:38.635+07', '2026-10-27 19:49:09.618+07');
+INSERT INTO public.forum_messages VALUES ('71f23790-b276-5f0a-bc67-d810a08fb26f', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Chào chị Trâm, em đọc bài của chị về cách trình bày CV. Em là fresher, cho em hỏi nên để phần dự án ở trên hay phần học vấn ở trên ạ?', '2026-10-24 12:59:26.373+07', '2026-10-24 12:20:39.558+07');
+INSERT INTO public.forum_messages VALUES ('3209d516-48e3-585f-9388-d2657678b641', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Chào em! Fresher thì chị khuyên để dự án lên trên, kèm link GitHub hoặc demo, nhà tuyển dụng quan tâm em làm được gì hơn là em học ở đâu.', '2026-10-24 12:59:51.311+07', '2026-10-24 12:37:06.262+07');
+INSERT INTO public.forum_messages VALUES ('4b391a80-66bb-5fad-a1bb-15178dc64c87', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Dạ em hiểu rồi. Em có 2 đồ án trên trường và 1 dự án DevHub nữa, vậy em liệt kê cả 3 luôn ạ?', '2026-10-24 13:24:49.035+07', '2026-10-24 12:46:33.518+07');
+INSERT INTO public.forum_messages VALUES ('ce06f645-0114-568a-b3e2-e11a03921012', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Đúng rồi, ưu tiên dự án DevHub vì có điểm đánh giá thật. Mỗi dự án 2–3 gạch đầu dòng: em làm gì, công nghệ gì, kết quả ra sao.', '2026-10-24 12:58:57.463+07', '2026-10-24 12:55:08.368+07');
+INSERT INTO public.forum_messages VALUES ('898f521f-ab34-5af1-8402-313e7516b97b', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Dạ em cảm ơn chị nhiều lắm, em sửa CV ngay tối nay ạ!', '2026-10-24 13:35:04.019+07', '2026-10-24 13:04:01.762+07');
+INSERT INTO public.forum_messages VALUES ('defe5315-6dbc-53dc-b540-7b76cd5f8b2f', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Sửa xong em cứ gửi chị xem giúp cho, chị góp ý thêm.', '2026-10-24 13:53:54.842+07', '2026-10-24 13:14:58.913+07');
+INSERT INTO public.forum_messages VALUES ('0bfc1be2-2fbe-5fae-8ed6-70b870634536', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Sơn ơi, task trang đăng nhập bạn làm tới đâu rồi? Mình cần ghép với phần giỏ hàng.', '2026-10-31 15:41:10.92+07', '2026-10-31 15:21:57.912+07');
+INSERT INTO public.forum_messages VALUES ('cd979a26-637a-5d00-a61d-91e8d7a2673d', '582d4dba-f518-521b-84ee-9538f8c868d5', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình xong giao diện rồi, đang nối API. Chiều nay mình đẩy lên nhánh feature để bạn pull nhé.', '2026-10-31 15:56:30.973+07', '2026-10-31 15:37:40.84+07');
+INSERT INTO public.forum_messages VALUES ('21916b88-6e26-551e-84b5-8217ac5e159d', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Ok bạn. Nhớ xử lý trường hợp token hết hạn giúp mình, hôm qua demo bị văng ra màn hình đăng nhập.', NULL, '2026-10-31 15:56:58.294+07');
+INSERT INTO public.forum_messages VALUES ('363f82b3-513b-594c-9348-1f36f8d2a831', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Với lại tối nay họp nhóm 20h nhớ vào đúng giờ nha.', NULL, '2026-10-31 16:12:05.519+07');
+INSERT INTO public.forum_messages VALUES ('1e6d045a-407a-5961-a13e-406db686d9aa', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Chào bạn Hương, mình là Châu bên VNPAY. Bên mình đang tìm QA tester cho dự án ví điện tử, bạn có kinh nghiệm test API đúng không?', '2026-10-30 13:10:48.052+07', '2026-10-30 13:02:44.364+07');
+INSERT INTO public.forum_messages VALUES ('20793d08-6e45-5687-8344-da20ced44f0f', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Dạ em chào chị Châu. Em có làm test API bằng Postman và viết test case cho dự án DevHub ạ.', '2026-10-30 20:38:06.446+07', '2026-10-30 20:20:54.511+07');
+INSERT INTO public.forum_messages VALUES ('a6f69374-286a-5b59-8be3-863defe39136', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Rất phù hợp. Bạn nộp hồ sơ vào dự án "Kiểm thử phần mềm" trên DevHub nhé, bên mình sẽ ưu tiên xét.', '2026-10-30 23:12:16.554+07', '2026-10-30 22:56:35.528+07');
+INSERT INTO public.forum_messages VALUES ('52c3e495-cdfa-526c-bc7a-7688aa4edc8b', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Dạ em đã ứng tuyển rồi ạ. Em mong sớm nhận được tin từ chị.', '2026-10-30 23:24:56.381+07', '2026-10-30 23:10:48.412+07');
+INSERT INTO public.forum_messages VALUES ('da27e854-86c8-55ca-aaac-31bb6903c2cf', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Mình đã xem hồ sơ rồi, mai Admin sẽ liên hệ bạn để sắp xếp buổi phỏng vấn nhé.', NULL, '2026-10-30 23:25:09.78+07');
+INSERT INTO public.forum_messages VALUES ('f111d9de-cc0a-52b4-a588-bb7d794a1f30', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '429535c5-5df7-5e12-b135-1572e5931035', 'Anh Đạt ơi, em thấy anh trả lời bài hỏi về React Query. Cho em hỏi cách làm phân trang mà giữ dữ liệu trang cũ khi chuyển trang với ạ?', '2026-10-28 16:01:56.268+07', '2026-10-28 15:55:54.329+07');
+INSERT INTO public.forum_messages VALUES ('633d6268-f1e1-5034-9660-e66d832f22ff', '429535c5-5df7-5e12-b135-1572e5931035', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Chào Oanh. Với React Query v5 em dùng placeholderData: keepPreviousData, trang mới chưa về thì vẫn hiện dữ liệu cũ, không bị nháy màn hình trống.', '2026-10-28 16:10:46.028+07', '2026-10-28 16:08:13.961+07');
+INSERT INTO public.forum_messages VALUES ('e022f7d8-139d-5114-becb-55c572c4ecb1', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '429535c5-5df7-5e12-b135-1572e5931035', 'Dạ, em đang dùng v4 với keepPreviousData: true, vậy em nâng lên v5 rồi đổi theo là được ạ?', '2026-10-28 20:16:13.129+07', '2026-10-28 20:06:22.826+07');
+INSERT INTO public.forum_messages VALUES ('d79cfbe7-86b7-5127-a1b7-d36e89537706', '429535c5-5df7-5e12-b135-1572e5931035', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Đúng rồi, v5 đổi tên option đó. Nhớ đổi cả isLoading thành isPending ở mutation nữa nhé.', '2026-10-28 20:37:02.353+07', '2026-10-28 20:10:15.64+07');
+INSERT INTO public.forum_messages VALUES ('f04f9ae7-5082-5fea-b7b9-3c65828b10cf', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Chào Kiên, mình là Tâm bên MISA. Cảm ơn bạn đã ứng tuyển vị trí .NET Developer.', NULL, '2026-11-01 12:06:57.01+07');
+INSERT INTO public.forum_messages VALUES ('b23c3a5c-7199-5c19-97ae-27c65caf5441', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Bên mình muốn mời bạn phỏng vấn kỹ thuật vào 9h sáng thứ Sáu tuần này, hình thức online qua Google Meet.', NULL, '2026-11-01 14:45:34.905+07');
+INSERT INTO public.forum_messages VALUES ('68aa8ade-cbea-5a40-9f96-52da602db724', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Bạn xác nhận giúp mình lịch này nhé, nếu bận mình sẽ dời sang buổi chiều cùng ngày.', NULL, '2026-11-01 15:03:31.449+07');
+INSERT INTO public.forum_messages VALUES ('c7167900-cfb7-5794-a2bf-e480843b423a', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Chào Lan, mình đang lập nhóm học React cuối tuần, mỗi tuần một buổi trên Discord. Bạn tham gia không?', '2026-10-26 15:13:39.067+07', '2026-10-26 15:08:51.894+07');
+INSERT INTO public.forum_messages VALUES ('bbe4e599-8705-5e2e-82d4-bfc6d1cc5531', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Hay quá Ánh ơi, mình tham gia! Buổi đầu học gì vậy bạn?', '2026-10-26 15:29:02.263+07', '2026-10-26 15:16:21.055+07');
+INSERT INTO public.forum_messages VALUES ('2905a819-5dd2-5b25-8fa4-aa0694bd6799', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Buổi đầu mình ôn hooks với bài tập nhỏ: todo list có lọc và lưu localStorage. Tối Chủ nhật 20h nhé.', '2026-10-26 15:35:01.854+07', '2026-10-26 15:31:16.039+07');
+INSERT INTO public.forum_messages VALUES ('131438e8-f847-5904-9243-b8c5d604b14a', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Ok bạn, mình sẽ vào đúng giờ. Bạn gửi link Discord cho mình nha.', '2026-10-26 16:23:37.577+07', '2026-10-26 15:46:15.124+07');
+INSERT INTO public.forum_messages VALUES ('b55285c2-94b0-5f43-a1cb-fc864549cd63', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình gửi link ở tin nhắn sau nhé, bạn nhớ bật micro để trao đổi cho nhanh.', '2026-10-26 16:05:49.832+07', '2026-10-26 15:54:23.671+07');
+
+
+--
+-- Data for Name: forum_post_likes; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_post_likes VALUES ('6adb6de0-dd77-568f-9bbd-77606e315c86', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-21 08:23:59.802+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1bd7bb10-74dc-52a1-842e-b37ae8e90006', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-21 17:40:14.732+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1bd7bb10-74dc-52a1-842e-b37ae8e90006', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-21 04:11:31.111+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-21 15:21:57.834+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-22 00:59:01.217+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-21 06:19:51.975+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-21 00:34:16.054+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-21 05:56:19.149+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-21 14:03:03.218+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-20 16:24:16.964+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-22 04:28:11.134+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1b7c7742-1feb-567e-8cd0-5409d1feaac0', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-21 03:12:50.568+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1b7c7742-1feb-567e-8cd0-5409d1feaac0', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-20 14:51:51.791+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-24 06:01:35.198+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-25 01:13:46.511+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-24 10:49:31.073+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-24 12:52:52.884+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-23 19:30:16.469+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-23 18:01:02.31+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-24 16:53:50.805+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-25 02:48:33.863+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-23 21:06:18.192+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-25 00:10:25.765+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4dc8d9f7-3780-58f8-aaf9-d57949c5df0d', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-25 10:58:08.334+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4dc8d9f7-3780-58f8-aaf9-d57949c5df0d', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-25 02:29:10.437+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4dc8d9f7-3780-58f8-aaf9-d57949c5df0d', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-25 13:14:47.163+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4dc8d9f7-3780-58f8-aaf9-d57949c5df0d', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-24 12:17:24.78+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4dc8d9f7-3780-58f8-aaf9-d57949c5df0d', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-23 18:30:56.986+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8a67733c-ab55-562f-b6eb-bad8699f3d0e', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-23 17:29:36.732+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-26 00:22:24.686+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-26 08:59:55.069+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-27 03:07:41.799+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-26 20:39:55.846+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-25 14:57:32.559+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-26 08:34:47.49+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-27 09:58:55.077+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1400f745-267f-5609-8fff-88ed1c8d6008', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-26 08:16:20.588+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f71eba27-c823-5d01-8843-779ba9ded6f4', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-26 01:13:17.79+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-28 09:30:55.364+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-28 05:09:40.159+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-29 12:49:27.78+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-27 22:28:41.593+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-28 07:00:15.116+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-27 19:44:45.357+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-28 23:45:04.675+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-28 21:58:01.656+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-29 07:42:36.567+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90a9d0d2-b048-5a00-9e4d-4135bf5c11ea', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-28 08:03:27.68+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90a9d0d2-b048-5a00-9e4d-4135bf5c11ea', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-29 18:45:18.64+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90a9d0d2-b048-5a00-9e4d-4135bf5c11ea', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-28 06:37:49.848+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('5efbfdbf-8644-5163-881a-57b24ff5935c', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-29 21:09:42.958+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5efbfdbf-8644-5163-881a-57b24ff5935c', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-28 17:11:29.394+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5efbfdbf-8644-5163-881a-57b24ff5935c', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-28 19:11:43.668+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5efbfdbf-8644-5163-881a-57b24ff5935c', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-28 22:33:28.655+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5efbfdbf-8644-5163-881a-57b24ff5935c', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-10-29 05:41:14.032+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cabccaf2-44ec-57dc-86a1-56a09b6d5265', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-28 22:26:09.779+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8263592f-24e3-5ceb-b434-5feaad716fa7', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-29 10:13:29.041+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8263592f-24e3-5ceb-b434-5feaad716fa7', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-29 17:58:34.62+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8263592f-24e3-5ceb-b434-5feaad716fa7', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-29 23:09:01.181+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('bb7af2ac-02f3-58df-9d89-2267800e603d', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-30 08:33:34.883+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('bb7af2ac-02f3-58df-9d89-2267800e603d', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-30 01:01:10.657+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85e7cd8a-9f73-5d60-8d94-1c8193657813', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-30 10:55:48.541+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85e7cd8a-9f73-5d60-8d94-1c8193657813', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-31 14:29:05.524+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85e7cd8a-9f73-5d60-8d94-1c8193657813', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-30 15:18:36.011+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-08 17:48:08.177+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-09 05:24:31.257+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-09 06:12:10.208+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-08 15:16:43.33+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-09 04:09:05.472+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-08 11:08:42.43+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-10 05:52:54.122+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-09 08:06:38.215+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-10 09:26:33.717+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-09 00:56:25.328+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-10 06:07:04.813+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-08 21:43:19.559+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-09 02:16:33.541+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-08 21:50:08.588+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7ae3d58a-f00f-5536-9a28-17f2638a8e16', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-09 04:55:56.468+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-10 20:29:19.037+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-09 13:52:57.679+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-09 05:33:18.801+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-09 20:28:57.778+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-09 14:09:46.748+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-10 01:06:37.75+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-10 18:01:48.533+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-09 10:54:03.073+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-10 02:26:43.733+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-10 10:33:27.076+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c524ba24-278e-53d0-ad37-59b222154937', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-10 15:43:24.112+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c524ba24-278e-53d0-ad37-59b222154937', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-10 09:41:06.361+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-14 08:11:50.419+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-14 07:04:39.056+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-14 10:23:38.538+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-14 23:33:48.946+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-14 09:55:37.427+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-13 13:47:34.655+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-14 04:27:18.778+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-14 04:09:47.555+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-13 16:56:41.754+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-15 06:14:03.748+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('17704b35-3ac7-5558-85ab-f6b807434819', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-14 03:19:43.164+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('17704b35-3ac7-5558-85ab-f6b807434819', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-14 14:01:08.418+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('755e24d0-5505-574b-a4c8-2aafbf264b02', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-15 03:38:57.058+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('755e24d0-5505-574b-a4c8-2aafbf264b02', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-15 06:17:55.852+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('95197ced-c135-55d7-b4c9-53d08cee2ee9', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-14 20:06:40.995+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-17 18:24:05.712+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-18 01:33:03.227+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-18 00:01:44.948+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-18 12:43:54.97+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-18 04:28:46.146+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-18 23:52:21.634+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-18 03:35:28.794+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-17 10:41:19.189+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-18 19:46:02.457+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-17 11:42:19.584+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-18 03:11:12.396+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-17 22:24:34.976+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-18 17:24:06.633+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-19 09:51:28.234+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3dea3c90-c107-53d3-8853-f279158ffdc1', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-17 17:51:04.804+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3dea3c90-c107-53d3-8853-f279158ffdc1', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-17 20:59:05.537+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3dea3c90-c107-53d3-8853-f279158ffdc1', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-18 01:02:13.871+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3dea3c90-c107-53d3-8853-f279158ffdc1', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-18 19:27:03.338+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('083660f1-fef1-5ebf-aff5-8cd0bea48562', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-22 07:35:23.524+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('083660f1-fef1-5ebf-aff5-8cd0bea48562', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-21 03:32:30.061+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('083660f1-fef1-5ebf-aff5-8cd0bea48562', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-22 06:27:07.219+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('083660f1-fef1-5ebf-aff5-8cd0bea48562', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-20 22:35:23.621+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('083660f1-fef1-5ebf-aff5-8cd0bea48562', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-21 15:48:37.066+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d6de09fc-6e07-5090-8ac3-f7af981b87d7', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-21 02:49:20.878+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d6de09fc-6e07-5090-8ac3-f7af981b87d7', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-20 18:40:03.224+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d6de09fc-6e07-5090-8ac3-f7af981b87d7', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-20 18:03:05.564+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fd82b77c-1474-5244-820b-4b1a80657da0', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-21 23:16:52.156+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fd82b77c-1474-5244-820b-4b1a80657da0', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-21 01:11:29.911+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fd82b77c-1474-5244-820b-4b1a80657da0', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-22 17:01:22.808+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4c83b6c5-425e-5bfe-9cb7-e11491fb342d', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-21 09:18:57.348+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4c83b6c5-425e-5bfe-9cb7-e11491fb342d', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-21 23:30:51.238+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4c83b6c5-425e-5bfe-9cb7-e11491fb342d', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-22 04:23:35.152+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('99f05e4a-492d-51d6-84f0-79eb8f93a88e', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-25 08:01:42.625+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('99f05e4a-492d-51d6-84f0-79eb8f93a88e', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-25 14:11:42.088+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('99f05e4a-492d-51d6-84f0-79eb8f93a88e', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-10-25 23:51:34.731+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('22d27ff8-876b-5e51-854c-26f7be3f90de', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-24 14:15:30.425+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('61fe2d8b-2bc4-5b8b-a1c8-5086c9a2f860', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-26 06:15:59.104+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b56f8b85-340b-5bca-ab39-65f429714214', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-29 13:20:54.968+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b56f8b85-340b-5bca-ab39-65f429714214', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-27 22:50:32.123+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b56f8b85-340b-5bca-ab39-65f429714214', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-29 09:17:00.181+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b56f8b85-340b-5bca-ab39-65f429714214', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-28 09:06:39.985+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b56f8b85-340b-5bca-ab39-65f429714214', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-28 05:36:21.545+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b56f8b85-340b-5bca-ab39-65f429714214', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-29 09:26:12.741+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('11ae0800-81bf-535b-b0f0-e2a540b63954', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-29 02:25:49.002+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('11ae0800-81bf-535b-b0f0-e2a540b63954', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-29 08:41:13.783+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('11ae0800-81bf-535b-b0f0-e2a540b63954', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-29 12:25:21.104+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a310b881-d310-5d8f-923d-52cf03a3470b', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-29 23:11:23.378+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2c7763c4-ac79-51e6-a32b-ef24306cce94', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-30 21:17:14.602+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2c7763c4-ac79-51e6-a32b-ef24306cce94', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-30 17:40:42.875+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2c7763c4-ac79-51e6-a32b-ef24306cce94', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-31 17:45:44.193+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2c7763c4-ac79-51e6-a32b-ef24306cce94', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-31 09:50:55.19+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4e7931b7-1728-58b9-bd19-45de2e8e729c', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-30 19:25:57.099+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4aaa65a8-d36f-5136-a408-1c891362980f', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-31 00:56:29.59+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('4aaa65a8-d36f-5136-a408-1c891362980f', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-31 21:05:29.382+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-05 19:10:28.668+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-05 14:57:01.837+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-04 23:28:20.585+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-05 13:34:46.087+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-04 22:21:57.438+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-06 14:12:35.449+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-06 10:40:34.839+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-05 12:51:11.612+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-05 20:03:45.435+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-06 06:22:16.789+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-04 19:07:35.558+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-05 22:07:37.386+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-05 19:58:33.502+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-05 19:06:17.695+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b3e7fb97-2419-5b26-8c8e-f5981139e4c8', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-04 18:34:32.268+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b3e7fb97-2419-5b26-8c8e-f5981139e4c8', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-04 23:21:26.001+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('718be0cc-6842-5b9e-8f7e-685ffe60489f', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-05 23:34:38.043+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('47c5a458-2d15-5f0f-8287-119828dc8766', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-06 11:01:14.16+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('47c5a458-2d15-5f0f-8287-119828dc8766', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-06 19:26:24.811+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('47c5a458-2d15-5f0f-8287-119828dc8766', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-06 17:29:19.739+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('47c5a458-2d15-5f0f-8287-119828dc8766', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-06 13:54:49.823+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('47c5a458-2d15-5f0f-8287-119828dc8766', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-06 04:04:26.966+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-10 18:26:16.314+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-12 09:22:24.666+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-11 05:30:43.484+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-10 22:46:18.653+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-10 23:10:27.24+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-11 11:29:36.482+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-11 08:50:13.652+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-10 22:46:11.508+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-11 04:58:16.046+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-11 17:02:19.89+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-10 19:29:21.25+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-12 06:58:10.282+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-11 05:20:57.175+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-12 05:04:17.212+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-11 21:20:50.227+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-11 22:15:10.004+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-11 00:49:14.339+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-10 15:35:24.266+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-11 03:37:27.524+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-12 11:17:38.575+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('26414c8d-ee46-5f22-8140-e7668d197da2', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-12 12:51:59.793+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('26414c8d-ee46-5f22-8140-e7668d197da2', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-12 06:51:59.147+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7743d141-2daf-5612-9784-cef4f443169c', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-13 02:19:53.6+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7743d141-2daf-5612-9784-cef4f443169c', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-11 22:40:44.161+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7743d141-2daf-5612-9784-cef4f443169c', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-12 08:18:41.343+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7743d141-2daf-5612-9784-cef4f443169c', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-11 12:45:26.55+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7743d141-2daf-5612-9784-cef4f443169c', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-12 22:13:47.636+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7743d141-2daf-5612-9784-cef4f443169c', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-11 14:08:06.129+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a95e073e-194f-5f4a-ab56-121312afeab3', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-17 01:11:04.941+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a95e073e-194f-5f4a-ab56-121312afeab3', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-16 00:29:13.667+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a95e073e-194f-5f4a-ab56-121312afeab3', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-17 02:51:33.965+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a95e073e-194f-5f4a-ab56-121312afeab3', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-15 17:17:01.212+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('82395ae9-d303-5ce3-be6c-81b1d3b0deff', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-16 09:00:01.586+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('82395ae9-d303-5ce3-be6c-81b1d3b0deff', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-16 02:42:38.343+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('82395ae9-d303-5ce3-be6c-81b1d3b0deff', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-15 16:11:29.059+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('82395ae9-d303-5ce3-be6c-81b1d3b0deff', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-16 19:48:30.669+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8dda27c8-26da-512f-b55b-4dbfab0fcf83', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-16 13:12:04.699+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8dda27c8-26da-512f-b55b-4dbfab0fcf83', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-17 14:59:50.148+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8dda27c8-26da-512f-b55b-4dbfab0fcf83', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-10-17 23:37:39.768+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c4868b47-2c3a-5ecb-9623-d0080f29834b', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-16 22:58:35.147+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c4868b47-2c3a-5ecb-9623-d0080f29834b', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-17 20:33:06.667+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c4868b47-2c3a-5ecb-9623-d0080f29834b', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-16 20:41:38.482+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c4868b47-2c3a-5ecb-9623-d0080f29834b', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-17 17:33:56.84+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c4868b47-2c3a-5ecb-9623-d0080f29834b', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-17 21:31:14.537+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c4868b47-2c3a-5ecb-9623-d0080f29834b', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-17 17:59:34.784+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-19 17:44:21.331+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-20 19:26:12.681+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-20 00:01:02.716+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-10-20 04:48:03.548+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-21 05:27:13.344+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-20 19:55:24.791+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-20 00:37:33.599+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-19 17:14:29.848+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-19 21:11:43.859+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-20 05:52:52.146+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-21 01:02:49.779+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-20 09:43:36.08+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-20 09:51:28.297+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-20 18:03:28.445+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-21 11:43:45.635+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-19 16:53:09.572+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2943f789-24eb-5f27-8295-7537d1e8d1ae', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-20 20:34:34.423+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2943f789-24eb-5f27-8295-7537d1e8d1ae', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-21 08:20:00.454+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('56c6b04f-0e8e-5d2e-b9df-a9956d1e186d', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-20 10:18:52.218+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-25 05:23:35.228+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-24 07:36:12.018+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-24 19:23:19.321+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-24 01:58:02.114+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-23 15:53:20.138+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-25 07:32:12.096+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-25 12:56:50.622+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('12d684be-8de7-5548-8943-e41746fd480a', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-24 11:15:12.51+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-27 12:11:53.15+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-26 15:18:32.818+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-27 22:43:42.355+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-26 21:29:05.666+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-28 05:18:30.963+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-27 09:35:33.095+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-26 18:34:21.704+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-27 13:56:08.755+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8ba2ce06-9ebb-58a8-b2e1-669b6225d630', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-31 02:35:24.626+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8ba2ce06-9ebb-58a8-b2e1-669b6225d630', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-31 00:48:00.871+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8ba2ce06-9ebb-58a8-b2e1-669b6225d630', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-30 01:48:02.339+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8ba2ce06-9ebb-58a8-b2e1-669b6225d630', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-30 22:44:51.24+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8ba2ce06-9ebb-58a8-b2e1-669b6225d630', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-29 17:42:24.803+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8ba2ce06-9ebb-58a8-b2e1-669b6225d630', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-30 04:11:20.373+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('22cc2418-906f-57a2-a689-e6419296347c', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-30 07:27:41.131+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('9cf840be-a05f-5f62-a61f-90bfd433dcb9', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-30 01:38:08.123+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4615b73a-8405-54b9-989b-ed0d1f205a0d', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-11-01 16:04:03.18+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4615b73a-8405-54b9-989b-ed0d1f205a0d', '33069162-d519-57ec-b125-1728cd0503c7', '2026-11-02 09:29:03.004+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4615b73a-8405-54b9-989b-ed0d1f205a0d', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-11-01 13:30:15.191+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a4de825e-8490-573c-afab-2ab177ef2571', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-11-01 07:32:28.238+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-08 07:52:26.715+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-06 15:28:49.747+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-07 23:34:15.281+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-08 04:30:19.104+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-07 19:19:55.954+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-08 07:06:09.04+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-07 23:28:02.763+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-07 03:51:45.843+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-07 10:20:29.853+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-07 02:26:05.293+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-07 04:34:15.138+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-08 02:55:55.831+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-07 23:43:48.636+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-07 07:06:10.557+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-07 16:35:25.705+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-06 23:05:30.541+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-07 00:20:19.219+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-07 04:44:44.409+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('43efeb1e-3158-54f6-a891-7bb33472612a', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-07 22:15:52.921+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1f1a322c-0eec-51f2-bc13-1230afb0e1f6', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-08 00:05:13.808+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('da84818e-582a-50b7-89c1-a90a1f9f3eea', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-08 04:28:42.97+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('da84818e-582a-50b7-89c1-a90a1f9f3eea', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-07 09:17:31.005+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-12 18:33:18.503+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-13 05:33:48.811+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-13 16:15:09.768+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-12 15:50:06.267+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-13 11:49:04.275+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-14 01:03:49.589+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-14 04:50:03.645+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-12 16:47:13.656+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-13 11:09:38.379+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-13 23:29:09.411+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-13 08:02:22.142+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-13 04:39:19.705+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-12 16:51:20.562+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-13 06:32:20.149+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e269baf3-0e7e-5841-9b23-6a1ceb358843', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-13 11:06:04.474+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('be66e9d8-1084-58a1-83e1-7f4c3bb56168', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-13 19:14:57.327+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('be66e9d8-1084-58a1-83e1-7f4c3bb56168', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-14 06:13:58.857+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('be66e9d8-1084-58a1-83e1-7f4c3bb56168', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-13 16:51:45.469+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('be66e9d8-1084-58a1-83e1-7f4c3bb56168', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-12 23:07:43.702+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5b38e468-d9a4-5274-9ffc-3c1e771b8033', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-14 00:51:01.525+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-19 01:23:18.058+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-20 10:37:35.876+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-20 13:54:45.025+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-19 13:36:14.365+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-18 17:24:31.555+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-20 06:29:27.708+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-19 23:27:24.973+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-19 17:21:08.714+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-19 10:26:44.348+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-19 17:30:28.538+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-19 05:01:10.091+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-20 06:09:42.634+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-20 06:07:28.541+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41afc111-e52c-5a51-aa47-e85a667254ce', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-20 06:16:35.522+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41afc111-e52c-5a51-aa47-e85a667254ce', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-20 12:18:12.594+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41afc111-e52c-5a51-aa47-e85a667254ce', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-20 00:04:25.157+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41afc111-e52c-5a51-aa47-e85a667254ce', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-18 21:59:43.113+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('db2b6944-2770-5b34-9be5-d85b74b43d6e', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-19 13:58:46.027+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('db2b6944-2770-5b34-9be5-d85b74b43d6e', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-19 02:38:03.918+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('db2b6944-2770-5b34-9be5-d85b74b43d6e', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-20 07:34:12.042+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('db2b6944-2770-5b34-9be5-d85b74b43d6e', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-20 11:26:54.675+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('db2b6944-2770-5b34-9be5-d85b74b43d6e', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-19 06:12:57.996+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-19 10:46:43.912+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-20 11:38:19.75+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-20 03:04:34.184+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-19 14:27:12.216+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-19 20:52:34.241+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-20 07:12:02.463+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-19 22:32:24.019+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-24 15:22:54.534+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-22 16:39:01.643+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-24 09:46:06.385+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-24 04:24:48.595+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-23 17:27:04.984+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-24 02:43:30.739+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-23 06:54:04.519+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-23 06:21:55.838+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-24 01:25:58.482+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-23 15:09:32.676+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-23 05:09:02.052+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-24 03:19:41.801+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-10-23 23:03:58.199+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-22 22:42:48.26+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-24 12:46:58.709+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-23 00:23:29.794+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('a9fc021d-9856-571c-b19e-e4404b59bc73', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-24 04:14:44.316+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a9fc021d-9856-571c-b19e-e4404b59bc73', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-24 12:12:05.759+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('29ff146b-b144-51e3-b315-28dbddfc877a', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-24 12:26:18.776+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('29ff146b-b144-51e3-b315-28dbddfc877a', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-24 16:01:18.601+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('29ff146b-b144-51e3-b315-28dbddfc877a', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-24 20:11:40.117+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('29ff146b-b144-51e3-b315-28dbddfc877a', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-24 03:58:10.831+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('29ff146b-b144-51e3-b315-28dbddfc877a', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-24 14:44:54.664+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-26 09:14:01.945+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-27 07:21:58.449+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-25 11:16:55.835+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-27 01:05:00.783+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('969b2a1a-f77e-5234-946d-880791cbe312', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-26 05:06:01.285+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('17758ea7-9988-5520-a78e-7e0817e9e6cb', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-27 04:56:22.943+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-29 14:51:34.978+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-29 14:55:22.201+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-30 07:30:18.91+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-30 12:37:03.86+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-29 19:38:38.776+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ce4dfb9a-0394-5750-a92a-9e8a659e4d5b', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-29 08:37:38.715+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ce4dfb9a-0394-5750-a92a-9e8a659e4d5b', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-30 11:46:49.904+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('df061a20-d7b5-5af3-ae39-79d07c06cd55', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-29 23:34:04.626+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-12 19:25:59.462+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-11 17:02:13.01+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-11 19:05:30.932+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-12 15:24:17.063+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-12 11:03:10.11+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-12 23:43:26.826+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-12 14:58:28.957+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-12 06:21:52.829+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-13 02:35:37.756+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-12 07:22:49.398+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-12 11:31:36.845+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-12 02:06:35.957+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-12 09:08:43.904+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9a127b8-e2a4-53c3-b1b6-abc7acf1c6f9', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-12 09:32:32.963+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c9a127b8-e2a4-53c3-b1b6-abc7acf1c6f9', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-12 06:18:32.504+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('9b11c752-0937-5805-8596-3112cedc4ad4', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-13 03:48:33.842+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('9b11c752-0937-5805-8596-3112cedc4ad4', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-12 21:27:26.827+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('9b11c752-0937-5805-8596-3112cedc4ad4', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-12 03:24:10.511+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-17 17:57:25.086+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-17 22:22:47.757+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-18 09:40:40.943+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-18 15:11:58.162+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-18 18:43:39.496+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-18 15:59:58.706+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-17 22:57:57.6+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-18 08:37:04.447+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-19 05:56:34.205+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-17 20:09:02.429+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3752be77-e50a-5bc4-a1bc-8cd14c75dce1', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-17 20:31:09.273+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3752be77-e50a-5bc4-a1bc-8cd14c75dce1', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-17 22:49:52.355+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cd3d09d6-4fbb-5b2a-9328-13e2bd7aa473', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-18 20:52:37.773+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cd3d09d6-4fbb-5b2a-9328-13e2bd7aa473', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-18 05:59:44.135+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cd3d09d6-4fbb-5b2a-9328-13e2bd7aa473', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-19 13:01:03.251+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cd3d09d6-4fbb-5b2a-9328-13e2bd7aa473', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-18 15:51:07.046+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('56b2545d-cc82-58d7-a6da-c10207a23b3c', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-19 14:38:21.815+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('56b2545d-cc82-58d7-a6da-c10207a23b3c', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-18 13:29:14.07+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('56b2545d-cc82-58d7-a6da-c10207a23b3c', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-19 00:49:30.87+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('b8c26a3c-a53b-57b6-b89e-a7a3c839b4ab', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-19 00:00:38.937+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b8c26a3c-a53b-57b6-b89e-a7a3c839b4ab', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-18 15:36:23.057+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b8c26a3c-a53b-57b6-b89e-a7a3c839b4ab', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-20 07:04:48.987+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f94cab93-e3d0-5fdb-b383-b355b29c96fd', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-21 22:46:00.692+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-09-06 20:08:44.227+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-09-07 06:45:05.309+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-09-07 06:22:28.449+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-09-06 21:17:59.694+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-09-05 20:23:30.538+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-09-07 12:02:57.574+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-09-06 11:19:38.012+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-09-07 14:06:06.868+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-09-07 08:09:33.019+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-09-06 05:50:42.606+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-09-05 14:51:00.415+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-09-06 22:24:41.374+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-09-07 01:47:20.957+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-09-05 22:55:43.909+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-09-06 14:40:00.419+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-09-06 12:07:33.765+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', '33069162-d519-57ec-b125-1728cd0503c7', '2026-09-05 16:51:43.01+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-09-07 01:56:06.472+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('96dae189-c28c-5a3a-b0b4-671f40e9b9e8', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-09-07 12:06:09.041+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5b9b3450-6447-54b7-89b4-48e5cff80b34', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-09-06 14:48:00.974+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5b9b3450-6447-54b7-89b4-48e5cff80b34', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-09-06 19:01:23.408+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5b9b3450-6447-54b7-89b4-48e5cff80b34', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-09-07 00:58:53.132+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5b9b3450-6447-54b7-89b4-48e5cff80b34', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-09-07 21:19:20.981+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5b9b3450-6447-54b7-89b4-48e5cff80b34', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-09-06 12:18:43.17+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-09-29 18:29:11.703+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-09-29 20:10:52.729+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-09-29 18:05:31.168+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-09-30 10:28:48.846+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-09-30 06:54:20.312+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-09-29 22:32:41.033+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-09-30 21:47:03.268+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-01 01:17:39.431+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-01 05:25:51.28+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-09-30 13:31:47.379+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-09-30 19:19:32.948+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-09-29 12:32:39.107+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-09-30 10:11:12.034+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-09-30 09:03:42.323+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-09-29 13:03:47.198+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-09-29 10:40:34.696+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-01 03:46:15.177+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-01 10:01:23.568+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('64d4a09c-e37f-5964-8123-b4c74c7e6e95', '429535c5-5df7-5e12-b135-1572e5931035', '2026-09-30 07:35:47.659+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('64d4a09c-e37f-5964-8123-b4c74c7e6e95', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-01 04:43:09.103+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('50fdf3d0-6748-5871-8eaf-c47c97caaa31', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-01 16:21:55.984+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('50fdf3d0-6748-5871-8eaf-c47c97caaa31', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-01 16:09:52.286+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('0510b02b-c196-5aec-a2c0-5a99a9ba7896', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-01 12:56:23.501+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('0510b02b-c196-5aec-a2c0-5a99a9ba7896', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-09-30 14:34:44.538+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('0510b02b-c196-5aec-a2c0-5a99a9ba7896', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-01 19:06:04.196+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('54063427-1415-5679-9dc7-ecb586e78cbd', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-09-30 22:31:11.286+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('bb7af2ac-02f3-58df-9d89-2267800e603d', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-11-02 16:21:43.266+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('54063427-1415-5679-9dc7-ecb586e78cbd', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-01 04:04:19.576+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('54063427-1415-5679-9dc7-ecb586e78cbd', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-09-30 03:54:51.986+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8263592f-24e3-5ceb-b434-5feaad716fa7', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-11-02 16:21:45.749+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('5efbfdbf-8644-5163-881a-57b24ff5935c', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-11-02 16:22:00.297107+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('54063427-1415-5679-9dc7-ecb586e78cbd', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-09-30 22:18:02.83+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-13 04:56:35.344+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-13 16:50:04.7+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-14 00:55:43.676+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-14 07:35:46.399+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-12 13:10:40.303+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-13 20:54:35.912+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-12 17:41:00.473+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-13 06:16:11.182+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-13 03:43:50.173+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3aa26243-587d-5952-9a08-054b4c7451f0', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-12 23:55:43.296+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('3aa26243-587d-5952-9a08-054b4c7451f0', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-13 21:34:22.48+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('66778b4b-a910-558a-8834-8c53b5663b4e', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-13 19:11:18.212+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('66778b4b-a910-558a-8834-8c53b5663b4e', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-13 22:19:50.072+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('66778b4b-a910-558a-8834-8c53b5663b4e', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-13 00:41:18.3+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('66778b4b-a910-558a-8834-8c53b5663b4e', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-13 12:32:00.639+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('66778b4b-a910-558a-8834-8c53b5663b4e', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-14 12:34:31.922+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('66778b4b-a910-558a-8834-8c53b5663b4e', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-13 04:54:07.753+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8981017d-7a2b-587e-9db2-1a11782cfd72', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-14 06:16:02.922+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8981017d-7a2b-587e-9db2-1a11782cfd72', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-14 16:51:39.253+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8981017d-7a2b-587e-9db2-1a11782cfd72', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-13 15:57:35.088+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8981017d-7a2b-587e-9db2-1a11782cfd72', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-13 13:00:25.061+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('766e254d-4203-50a8-9350-f3a319d3d813', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-14 23:08:36.154+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('766e254d-4203-50a8-9350-f3a319d3d813', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-13 04:14:31.347+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-22 19:13:24.956+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-22 16:11:54.114+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-22 00:09:38.355+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-21 17:40:39.497+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-23 02:25:15.653+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-22 07:22:19.561+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-21 23:44:19.983+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-23 09:46:38.256+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-21 11:58:57.804+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-21 15:09:10.636+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-22 04:03:58.205+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-22 03:39:55.733+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-22 21:06:06.887+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-10-23 10:29:48.968+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-21 19:33:08.078+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-23 00:42:54.483+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-23 00:11:19.305+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-23 03:02:48.19+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-22 11:44:22.596+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-21 16:10:42.67+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-23 02:18:02.09+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-22 05:44:40.024+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-22 06:00:03.796+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-22 14:17:40.717+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-23 08:08:31.451+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-22 04:19:44.133+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('8795d786-ada0-5a28-a2f8-3e9f1ac08848', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-22 10:04:04.838+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-27 21:27:24.456+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-28 03:07:45.197+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-27 06:00:53.665+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-27 00:15:46.392+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-27 01:19:43.222+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-26 21:49:20.634+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-27 10:40:34.474+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-27 20:38:09.264+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', 'c006903d-bea8-5844-a0dc-63df6be24c0c', '2026-10-27 21:35:10.742+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-27 02:17:59.564+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-27 05:57:28.321+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-28 11:56:35.509+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-26 17:36:09.027+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cfbfbce1-c1ea-51f6-87d5-621de1f0ddc7', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-26 20:25:49.101+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d75ead9b-a749-530f-acb8-bd6fe7890911', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-30 18:39:36.049+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d75ead9b-a749-530f-acb8-bd6fe7890911', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-11-01 02:14:40.391+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-08 19:39:28.976+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-09 12:25:30.136+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-09 00:42:05.473+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-08 00:50:26.637+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-08 10:32:54.15+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-08 16:47:22.51+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-08 10:01:13.96+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-08 22:25:03.641+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-07 14:16:49.808+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-08 03:01:05.879+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-08 23:47:17.89+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ba08debf-129c-5d77-a41d-273d05870b9c', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-09 04:25:50.141+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ba08debf-129c-5d77-a41d-273d05870b9c', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-10-08 14:25:59.301+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ba08debf-129c-5d77-a41d-273d05870b9c', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-09 10:30:15.19+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ba08debf-129c-5d77-a41d-273d05870b9c', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-09 06:37:17.128+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ba08debf-129c-5d77-a41d-273d05870b9c', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-08 20:53:03.425+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ba08debf-129c-5d77-a41d-273d05870b9c', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-09 02:54:51.92+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7e9d73bc-5ec1-527f-b6ed-b22a53024d07', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-09 23:41:35.91+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2fc8b934-6667-5ae0-9b9e-31b19c6a3a23', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-09 22:29:38.512+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f503f038-15db-561c-96e2-812fd898ed2b', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-08 17:13:40.175+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-16 04:40:44.001+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-16 06:17:34.291+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-15 22:46:31.347+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-14 18:13:53.615+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-15 11:15:53.02+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-16 08:59:53.095+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-16 00:38:54.137+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-15 12:20:34.328+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-15 12:42:59.643+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-16 12:10:52.084+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-15 23:07:42.113+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-16 08:11:33.721+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-16 09:01:17.35+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-16 02:58:10.257+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-16 06:38:14.949+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-14 16:58:31.837+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-16 04:54:30.949+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-16 07:13:02.066+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-10-16 09:13:41.357+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-15 22:23:22.223+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-15 23:09:25.76+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-14 23:29:55.186+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-15 00:26:47.437+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('22886a11-e153-5452-99e6-00535a28570e', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-10-15 06:13:11.699+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7b7eb6a4-50f7-53dc-9328-448c497b2780', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-16 19:50:21.399+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7b7eb6a4-50f7-53dc-9328-448c497b2780', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-16 11:42:57.571+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('015a823a-5f97-5127-9b2f-d0ea672cfff8', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-17 14:38:54.61+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('015a823a-5f97-5127-9b2f-d0ea672cfff8', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-17 09:07:05.151+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('015a823a-5f97-5127-9b2f-d0ea672cfff8', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-17 22:29:58.653+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-19 16:23:54.502+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-10-18 12:17:16.676+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-19 09:39:35.239+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-18 19:35:11.242+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-18 23:38:20.284+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-19 23:23:31.536+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-18 13:28:31.927+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-18 12:25:16.329+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-20 03:39:36.224+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-18 14:43:55.968+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-19 13:24:06.676+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-20 03:05:02.654+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-20 02:43:22.471+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-19 04:44:15.209+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-20 02:35:34.706+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-19 23:48:29.869+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-20 09:45:24.33+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-20 00:44:36.328+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-20 02:41:53.119+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-18 18:10:01.581+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-19 16:22:30.061+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-20 02:50:18.735+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-20 09:49:04.91+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-18 13:54:44.886+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-18 14:03:05.14+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-18 21:31:02.914+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-19 19:18:01.137+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-19 01:07:47.854+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-18 17:13:12.846+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-19 00:39:02.315+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-19 22:33:39.364+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-20 03:15:32.436+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-18 20:01:05.002+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-19 16:43:21.791+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b9e7e74a-1c36-5c79-b144-2367ebf86fdd', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-19 08:15:08.013+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-22 13:17:16.128+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-24 10:55:51.626+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-23 03:05:17.084+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-24 01:07:40.701+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-23 21:22:39.652+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-24 05:27:44.79+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-22 18:00:54.466+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-22 16:56:30.735+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-22 17:23:22.161+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-22 19:23:47.494+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-23 02:52:57.285+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-23 05:05:56.529+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-23 01:28:24.916+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('6fb98c5d-1447-5bb2-a628-4c8cafbaf0ae', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-24 08:19:36.8+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('6fb98c5d-1447-5bb2-a628-4c8cafbaf0ae', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-24 02:54:36.078+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('6fb98c5d-1447-5bb2-a628-4c8cafbaf0ae', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-23 21:31:54.609+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('6fb98c5d-1447-5bb2-a628-4c8cafbaf0ae', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-23 00:35:35.696+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('1d7428a4-37a8-52a7-924d-b33c57bb6e08', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-23 06:46:38.54+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1d7428a4-37a8-52a7-924d-b33c57bb6e08', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-24 18:49:26.479+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1d7428a4-37a8-52a7-924d-b33c57bb6e08', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-23 14:36:16.854+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1d7428a4-37a8-52a7-924d-b33c57bb6e08', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-23 03:14:14.665+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-24 21:15:11.201+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-26 08:52:16.574+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-26 04:14:48.672+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-25 20:53:11.477+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-25 11:22:37.475+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-25 09:42:27.699+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-25 00:22:35.253+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-25 12:37:59.047+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-10-25 10:25:32.838+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-24 17:38:02.826+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f2d9161f-0b73-5c68-b51f-8c5264065b13', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-26 01:12:26.659+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('70114b41-c694-5875-919a-f3999bc3b45a', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-25 07:43:23.165+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('70114b41-c694-5875-919a-f3999bc3b45a', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-24 21:03:03.343+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('374a4402-c854-5dcc-bc8a-774e0ff614ab', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-27 16:52:50.533+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('374a4402-c854-5dcc-bc8a-774e0ff614ab', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-28 15:00:06.184+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('374a4402-c854-5dcc-bc8a-774e0ff614ab', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-27 11:21:27.246+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('374a4402-c854-5dcc-bc8a-774e0ff614ab', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-29 05:32:55.014+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2250a08a-e568-5e03-955a-ccf4b0e95e4e', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-27 12:11:37.114+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2250a08a-e568-5e03-955a-ccf4b0e95e4e', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-27 18:37:35.376+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('047cdbe4-b596-5da5-8a77-1c9cb36fc070', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-29 06:20:06.508+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('047cdbe4-b596-5da5-8a77-1c9cb36fc070', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-29 06:54:24.799+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('047cdbe4-b596-5da5-8a77-1c9cb36fc070', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-29 17:25:08.02+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('047cdbe4-b596-5da5-8a77-1c9cb36fc070', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-27 20:08:14.145+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('b7e85787-4a9c-53bf-911a-3216a634d33d', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-29 22:41:43.066+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b7e85787-4a9c-53bf-911a-3216a634d33d', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-31 01:24:00.801+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b7e85787-4a9c-53bf-911a-3216a634d33d', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-31 02:17:58.782+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b7e85787-4a9c-53bf-911a-3216a634d33d', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-29 17:19:32.449+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-31 21:53:17.432+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-11-02 07:48:39.886+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', '13ce34db-d8d9-5086-961e-62abcc761972', '2026-11-02 11:26:01.735+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-11-01 01:04:04.112+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-11-01 08:32:13.565+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-11-01 03:34:50.73+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-11-02 04:13:33.467+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-31 22:28:05.55+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fd852d5a-75cb-54b3-9ecd-92cff5745d81', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-11-02 04:45:53.392+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('fd852d5a-75cb-54b3-9ecd-92cff5745d81', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-11-02 02:14:45.042+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('fd852d5a-75cb-54b3-9ecd-92cff5745d81', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-11-01 16:46:31.532+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('fd852d5a-75cb-54b3-9ecd-92cff5745d81', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-11-01 15:07:51.992+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('2d11d829-1de6-5a88-af3b-37a31cf7a5ba', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-11-01 22:59:13.347+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('2d11d829-1de6-5a88-af3b-37a31cf7a5ba', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-11-02 15:56:39.822+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-03 20:17:42.264+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-04 02:46:06.835+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-05 00:15:13.758+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-04 06:25:56.135+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-05 09:45:11.575+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-04 23:30:36.643+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-04 22:27:41.295+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-05 02:02:58.14+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('46b6b0f4-01b1-5ec7-b620-af1bef89ef93', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-04 00:05:22.204+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('46b6b0f4-01b1-5ec7-b620-af1bef89ef93', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', '2026-10-04 12:48:58.945+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('af559ae9-c183-5b19-9162-0ca6b4923111', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-05 04:18:21.91+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('af559ae9-c183-5b19-9162-0ca6b4923111', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-04 19:42:17.061+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-05 06:41:21.545+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-04 10:27:42.404+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-04 12:29:36.817+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-04 18:18:44.602+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-05 17:42:30.447+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-05 11:50:58.75+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-04 11:31:40.97+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-04 12:40:35.742+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-06 21:59:32.413+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-06 03:12:14.625+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'f676e1a5-3807-4995-b14c-310100cd183a', '2026-10-07 06:52:18.269+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-06 00:41:22.176+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-06 11:08:19.262+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-07 05:42:13.112+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-06 00:12:15.667+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-07 06:04:25.028+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-07 05:29:24.842+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-06 20:30:43.944+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-07 09:53:32.743+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-06 10:32:23.276+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-05 23:52:38.914+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-07 07:35:03.415+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-05 18:54:01.955+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-06 21:44:11.691+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-06 12:55:21.857+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-06 08:52:19.869+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('95e9fd81-6c21-581d-9f9c-fb8371fc2e34', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-05 22:23:27.258+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('95e9fd81-6c21-581d-9f9c-fb8371fc2e34', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-07 07:05:16.06+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('95e9fd81-6c21-581d-9f9c-fb8371fc2e34', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-06 15:01:21.958+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('95e9fd81-6c21-581d-9f9c-fb8371fc2e34', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-06 03:51:32.524+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-10 17:45:15.943+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-09 22:42:42.098+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-10 07:57:37.464+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-10 11:59:03.003+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-10 10:40:49.996+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-10 14:17:40.351+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-11 10:31:18.799+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-10 15:49:57.748+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-09 15:07:44.055+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-10 16:34:39.976+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-10 04:52:56.298+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-09 17:30:02.011+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-11 12:34:13.878+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-10 02:05:37.687+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-11 09:23:56.187+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-09 22:27:15.678+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-10 10:47:01.218+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-10 05:35:36.472+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-09 19:04:29.553+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-11 05:47:01.638+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d1a2421e-57e9-501d-a309-827c56aa5ec7', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-10 03:33:10.102+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d1a2421e-57e9-501d-a309-827c56aa5ec7', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', '2026-10-11 03:25:54.995+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d1a2421e-57e9-501d-a309-827c56aa5ec7', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-10 01:55:34.3+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d1a2421e-57e9-501d-a309-827c56aa5ec7', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-10 14:18:18.516+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d1a2421e-57e9-501d-a309-827c56aa5ec7', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-10 10:44:39.564+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d1a2421e-57e9-501d-a309-827c56aa5ec7', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-11 01:43:03.583+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('6e86bea5-7a9f-5988-8b1d-6e2ecf5fd52f', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-12 08:58:53.724+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('71633748-b41e-5a9a-a991-ead2083f1e1a', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-11 02:56:06.079+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('71633748-b41e-5a9a-a991-ead2083f1e1a', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-10 19:54:13.257+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('71633748-b41e-5a9a-a991-ead2083f1e1a', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-10 19:06:45.647+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('71633748-b41e-5a9a-a991-ead2083f1e1a', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-11 11:51:56.219+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-13 02:11:58.604+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-13 00:14:25.703+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-12 06:19:33.779+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-12 11:31:18.31+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-13 07:17:14.419+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-12 19:56:32.798+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-12 13:48:03.351+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-12 09:16:08.397+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-11 20:01:51.617+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-12 19:50:09.334+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-13 01:08:24.538+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-12 04:56:56.282+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-13 03:23:03.864+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-12 14:28:04.555+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-11 16:42:12.222+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-12 15:32:29.698+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('387e1052-0249-57ee-8a75-f09112571f6b', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-11 19:09:11.314+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('387e1052-0249-57ee-8a75-f09112571f6b', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-11 17:13:04.056+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('387e1052-0249-57ee-8a75-f09112571f6b', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', '2026-10-13 11:30:59.868+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('387e1052-0249-57ee-8a75-f09112571f6b', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-11 18:46:54.629+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('387e1052-0249-57ee-8a75-f09112571f6b', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-11 23:41:11.746+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('387e1052-0249-57ee-8a75-f09112571f6b', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-12 01:49:34.496+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00bc2244-7694-58c2-b010-752912698700', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-12 07:13:31.414+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00bc2244-7694-58c2-b010-752912698700', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-12 04:45:27.213+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00bc2244-7694-58c2-b010-752912698700', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-12 02:00:54.816+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('00bc2244-7694-58c2-b010-752912698700', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-13 09:45:28.93+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-14 09:28:07.328+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-15 11:07:03.678+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-14 22:37:36.834+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-14 16:56:43.914+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-15 14:18:35.987+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-14 01:05:34.506+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-14 11:50:27.356+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-14 03:27:18.009+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-14 22:44:20.383+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-15 08:57:51.568+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-15 05:46:20.318+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-14 21:02:58.026+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', '2026-10-14 08:40:40.776+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('da8483d0-fa7a-5483-a57d-9a03f0e89242', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-14 19:00:20.308+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('da8483d0-fa7a-5483-a57d-9a03f0e89242', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-14 13:11:41.206+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-14 19:48:24.727+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-15 06:59:43.334+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-15 15:29:08.078+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-15 19:19:19.911+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-14 11:23:01.401+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-15 03:20:16.1+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-14 17:03:53.123+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('1f33800a-6df0-5a66-b3ae-6f18bb57e308', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-15 11:08:26.394+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-16 07:21:01.064+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-16 07:35:11.05+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-16 18:45:33.492+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-16 05:25:30.552+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '69770111-7bfe-53bd-a59d-75d33fd8ec23', '2026-10-17 08:29:51.022+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-17 10:59:01.78+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', '2026-10-16 23:36:57.684+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-17 16:04:13.339+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-16 10:10:32.402+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-16 04:39:02.822+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-16 03:47:17.758+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-16 04:27:01.827+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-17 09:22:31.069+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-16 06:49:02.302+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('9677e067-dbfd-5e9c-9ae2-dfd68257dddd', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-17 09:46:00.094+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('9677e067-dbfd-5e9c-9ae2-dfd68257dddd', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-16 02:14:11.97+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('9677e067-dbfd-5e9c-9ae2-dfd68257dddd', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-16 10:46:44.559+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('9677e067-dbfd-5e9c-9ae2-dfd68257dddd', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-17 04:57:12.417+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('a734f9d7-0f74-5cec-94cf-3cde20cfd2b1', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-16 19:29:23.655+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f71434c-2304-5b08-bbe3-dd1ba9f57242', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-18 01:26:39.641+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f71434c-2304-5b08-bbe3-dd1ba9f57242', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-17 10:59:55.732+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('7f71434c-2304-5b08-bbe3-dd1ba9f57242', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-16 21:25:15.965+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('f4983221-9adb-5583-a8da-80961ac693e5', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-17 03:22:15.874+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f4983221-9adb-5583-a8da-80961ac693e5', '5538250e-1c62-5e45-99d0-9777b15bf209', '2026-10-16 12:23:25.577+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f4983221-9adb-5583-a8da-80961ac693e5', '3892c76e-02d1-594c-88f4-b97569ebf7e8', '2026-10-16 11:04:24.123+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f4983221-9adb-5583-a8da-80961ac693e5', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-18 02:47:48.636+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('4a44b30a-407d-5c80-8f79-297ed6c03dfa', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-18 13:51:02.444+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('798be9da-2092-5269-887f-e8ac54def8ca', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-17 19:20:32.718+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('798be9da-2092-5269-887f-e8ac54def8ca', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-18 03:29:13.003+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('798be9da-2092-5269-887f-e8ac54def8ca', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-18 01:24:47.971+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-10-20 03:53:31.117+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-20 02:24:15.216+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-19 19:57:06.989+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-20 15:47:13.812+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-21 09:16:32.3+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-20 23:44:50.806+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-21 02:29:29.246+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-19 18:05:08.086+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('6adb6de0-dd77-568f-9bbd-77606e315c86', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-21 06:29:56.202+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('6adb6de0-dd77-568f-9bbd-77606e315c86', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-21 14:31:14.922+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f94cab93-e3d0-5fdb-b383-b355b29c96fd', 'dba5756f-a817-5793-ba82-111fe64e1baa', '2026-10-23 02:46:35.836+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f94cab93-e3d0-5fdb-b383-b355b29c96fd', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-22 10:06:13.285+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('f94cab93-e3d0-5fdb-b383-b355b29c96fd', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-23 00:25:09.721+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b21d9249-1836-51c1-9a10-918387f5d01f', '9a8807b0-2378-5793-aaa0-f5883de745a8', '2026-10-22 02:49:46.7+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b21d9249-1836-51c1-9a10-918387f5d01f', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-21 22:11:30.989+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b21d9249-1836-51c1-9a10-918387f5d01f', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-10-23 10:06:07.215+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d35f634e-5876-5f4d-be33-1d04758e80b0', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-22 04:42:22.62+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', '2026-10-26 14:43:15.58+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-26 18:15:18.475+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-26 10:14:52.69+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('d3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-27 07:34:58.345+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('ad7de15b-07ff-5d66-8270-158363a8392e', '9c17353a-74e0-4f9c-af7e-616a4ea7da36', '2026-10-25 19:08:52.19+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('ad7de15b-07ff-5d66-8270-158363a8392e', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-26 07:12:25.752+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('08570ebc-2987-5453-8f26-a51a078e443d', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', '2026-10-27 08:18:09.043+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e00ed39f-e17f-5b0b-a30e-e863c828c54f', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-27 21:34:06.707+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e00ed39f-e17f-5b0b-a30e-e863c828c54f', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', '2026-10-26 21:52:12.852+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('c39c52bb-08a3-5d90-a7fe-ddfdf9cf290a', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-29 18:17:24.204+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('57cf13d6-4b89-537d-899d-10622d19bef1', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '2026-10-29 09:03:07.202+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b070e77d-7c02-574d-9eec-48d4eb70a4de', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-29 03:38:56.54+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b070e77d-7c02-574d-9eec-48d4eb70a4de', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-29 12:08:01.39+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('b070e77d-7c02-574d-9eec-48d4eb70a4de', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '2026-10-29 13:22:17.027+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('e3170900-e6e5-5190-b1b6-445c511dcd35', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-11-02 15:56:39.822+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('e3170900-e6e5-5190-b1b6-445c511dcd35', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', '2026-11-02 12:42:35.544+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('99f43bc4-90c7-5f0f-835b-13c92ade9901', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-11-02 15:56:39.822+07', 1);
+INSERT INTO public.forum_post_likes VALUES ('018780ea-1964-51e9-b82a-6d1ffe574285', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-28 01:01:57.957+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('a34162ad-0b99-5b6c-8a0e-f865280c4dc8', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-26 06:42:52.914+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('c3f7057d-da18-566a-836e-8490c8d067c8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-31 04:54:02.085+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('c3f7057d-da18-566a-836e-8490c8d067c8', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-30 11:40:27.099+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('c3f7057d-da18-566a-836e-8490c8d067c8', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-31 09:51:06.94+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('5fb4a5df-b82f-5c9f-b9c1-54e3d3de2556', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-11-01 05:25:15.42+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('5fb4a5df-b82f-5c9f-b9c1-54e3d3de2556', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-11-02 15:56:39.822+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('64c102a3-0263-5a1b-aa30-4a076d976c59', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-27 13:33:07.993+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('64c102a3-0263-5a1b-aa30-4a076d976c59', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-27 20:13:46.872+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('45861825-3b43-51f8-99b3-d2ad72d49a16', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-25 18:20:23.729+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('d9eaaeb5-47cb-59cd-849c-f81b7750d2e5', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-11-02 15:56:39.822+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('f437c426-6dc8-54aa-8fd0-8717d6d589d9', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-25 10:22:49.67+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('634cf449-877f-5bf5-9bb0-5f140671a29a', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-27 08:20:16.231+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('9b616006-07e8-594f-b414-b0acfb089072', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-11-02 06:28:04.628+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('9b616006-07e8-594f-b414-b0acfb089072', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-11-01 11:28:04.553+07', -1);
+INSERT INTO public.forum_post_likes VALUES ('f3e81098-2c1b-5e64-841f-83cfcac7766e', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-10-30 07:42:23.448+07', -1);
+
+
+--
+-- Data for Name: forum_posts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_posts VALUES ('1b7c7742-1feb-567e-8cd0-5409d1feaac0', 'e6f01318-c238-5c36-9216-de3690b4896d', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Dự án mới stack JS mình nghiêng về Playwright: chạy nhanh, tự động chờ phần tử, hỗ trợ nhiều trình duyệt, ghi trace rất tiện debug. Cypress cũng tốt, giao diện chạy trực quan nhưng hạn chế ở multi-tab. Selenium hợp khi cần hỗ trợ nhiều ngôn ngữ và hệ thống cũ.', NULL, NULL, '2026-10-20 12:28:44.723+07', '2026-10-20 12:28:44.723+07');
+INSERT INTO public.forum_posts VALUES ('db19fd8e-7904-5d4a-a8d0-55277edb202f', 'e6f01318-c238-5c36-9216-de3690b4896d', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Dù chọn công cụ nào, đầu tư vào thiết kế test (Page Object, dữ liệu test ổn định) quan trọng hơn. Test flaky là nguyên nhân khiến team bỏ automation.', '16656c1a-8930-5fdb-a970-904fbb1151e3', NULL, '2026-10-20 19:30:57.485+07', '2026-10-20 19:30:57.485+07');
+INSERT INTO public.forum_posts VALUES ('d3c6cea4-a483-5d89-bad5-a8fcbdbe90b0', 'e6f01318-c238-5c36-9216-de3690b4896d', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Mình sẽ thử Playwright cho sprint tới. Cảm ơn chị Hạnh và chị Oanh.', NULL, NULL, '2026-10-21 02:05:02.174+07', '2026-10-21 02:05:02.174+07');
+INSERT INTO public.forum_posts VALUES ('30aa3d30-cd6a-5211-8c23-86b6c693f160', '17379a3d-ebae-5337-86cf-72483fef2e3c', '3892c76e-02d1-594c-88f4-b97569ebf7e8', 'App của mình đang lớn dần, setState rải khắp nơi rất khó quản lý. Mọi người đang dùng giải pháp nào và vì sao?', NULL, NULL, '2026-10-23 12:21:50.616+07', '2026-10-23 12:21:50.616+07');
+INSERT INTO public.forum_posts VALUES ('4dc8d9f7-3780-58f8-aaf9-d57949c5df0d', '17379a3d-ebae-5337-86cf-72483fef2e3c', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'Mình dùng React Native nhưng thấy cùng tinh thần: chọn giải pháp team hiểu rõ. Bên Flutter mình thấy nhiều dự án chuyển sang Riverpod vì an toàn kiểu và dễ test.', NULL, NULL, '2026-10-23 14:08:57.395+07', '2026-10-23 14:08:57.395+07');
+INSERT INTO public.forum_posts VALUES ('8a67733c-ab55-562f-b6eb-bad8699f3d0e', '17379a3d-ebae-5337-86cf-72483fef2e3c', '3892c76e-02d1-594c-88f4-b97569ebf7e8', 'Mình thử Riverpod ở màn hình danh sách thì thấy code gọn hơn hẳn, sẽ chuyển dần.', '30aa3d30-cd6a-5211-8c23-86b6c693f160', NULL, '2026-10-23 15:06:55.034+07', '2026-10-23 15:06:55.034+07');
+INSERT INTO public.forum_posts VALUES ('037447f1-06d7-54c0-aaa9-fa7cbd1355c7', '17379a3d-ebae-5337-86cf-72483fef2e3c', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Bloc phù hợp khi nghiệp vụ phức tạp, cần tách rõ event/state, nhưng boilerplate nhiều hơn.', NULL, NULL, '2026-10-23 19:54:28.119+07', '2026-10-23 19:54:28.119+07');
+INSERT INTO public.forum_posts VALUES ('0f3cb1dc-569a-5ecd-a37b-182bb383e62d', '3c212b20-e2a6-5332-9c59-0da43c53ce0c', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'Mình mới học SQL, hay nhầm giữa INNER JOIN và LEFT JOIN. Mọi người giải thích dễ hiểu giúp mình với ví dụ bảng khách hàng và đơn hàng.', NULL, NULL, '2026-10-25 14:31:17.62+07', '2026-10-25 14:31:17.62+07');
+INSERT INTO public.forum_posts VALUES ('1400f745-267f-5609-8fff-88ed1c8d6008', '3c212b20-e2a6-5332-9c59-0da43c53ce0c', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', 'INNER JOIN chỉ giữ những dòng khớp ở cả hai bảng (khách có đơn hàng). LEFT JOIN giữ toàn bộ bảng bên trái (mọi khách hàng), khách chưa có đơn thì các cột đơn hàng là NULL. Muốn tìm khách chưa từng mua: LEFT JOIN rồi lọc `WHERE o.id IS NULL`.', NULL, NULL, '2026-10-25 17:00:22.499+07', '2026-10-25 17:00:22.499+07');
+INSERT INTO public.forum_posts VALUES ('f71eba27-c823-5d01-8843-779ba9ded6f4', '3c212b20-e2a6-5332-9c59-0da43c53ce0c', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', 'Mẹo nhớ: vẽ hai hình tròn giao nhau (Venn). INNER = phần giao, LEFT = cả hình tròn trái, FULL = cả hai.', NULL, NULL, '2026-10-25 22:49:22.345+07', '2026-10-25 22:49:22.345+07');
+INSERT INTO public.forum_posts VALUES ('7a82d462-85c0-5c22-8be9-a1be008deb07', '3c212b20-e2a6-5332-9c59-0da43c53ce0c', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'Rõ rồi ạ, cảm ơn anh chị, mình sẽ làm bài tập khách chưa mua hàng.', '0f3cb1dc-569a-5ecd-a37b-182bb383e62d', NULL, '2026-10-26 04:30:15.529+07', '2026-10-26 04:30:15.529+07');
+INSERT INTO public.forum_posts VALUES ('00ed6fca-a33b-5aca-b0bc-97399fd348cb', '014e51ed-f844-5954-8f88-b25a8b2a663f', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', 'Trang danh sách bài viết của mình chạy chậm, debugbar báo hơn 100 query. Mỗi bài viết lại truy vấn thêm tác giả và danh mục. Xử lý thế nào ạ?', NULL, NULL, '2026-10-27 15:49:20.191+07', '2026-10-27 15:49:20.191+07');
+INSERT INTO public.forum_posts VALUES ('e6cdaee8-83b4-5e09-95f6-4f5bceaebdaf', '014e51ed-f844-5954-8f88-b25a8b2a663f', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Đó là N+1 điển hình. Dùng eager loading: `Post::with([''author'', ''category''])->paginate(20)`. Với quan hệ đếm thì `withCount(''comments'')`. Bật `Model::preventLazyLoading()` ở môi trường dev để phát hiện sớm.', NULL, NULL, '2026-10-27 18:16:23.721+07', '2026-10-27 18:16:23.721+07');
+INSERT INTO public.forum_posts VALUES ('c0546127-a4cd-5825-9da1-85feab02fef7', '014e51ed-f844-5954-8f88-b25a8b2a663f', 'ba39c684-a977-57e6-aa65-2ae802277f75', 'Thêm index cho các khóa ngoại (author_id, category_id) và cache những dữ liệu ít thay đổi nữa.', NULL, NULL, '2026-10-27 22:38:12.922+07', '2026-10-27 22:38:12.922+07');
+INSERT INTO public.forum_posts VALUES ('90a9d0d2-b048-5a00-9e4d-4135bf5c11ea', '014e51ed-f844-5954-8f88-b25a8b2a663f', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', 'Giảm từ 100 query còn 4, nhanh hẳn. Cảm ơn chị Hương!', '00ed6fca-a33b-5aca-b0bc-97399fd348cb', NULL, '2026-10-28 02:05:14.439+07', '2026-10-28 02:05:14.439+07');
+INSERT INTO public.forum_posts VALUES ('5efbfdbf-8644-5163-881a-57b24ff5935c', 'e9432a54-b7c4-5eca-b321-655e1e89e886', '69770111-7bfe-53bd-a59d-75d33fd8ec23', 'Mình thấy className rất dài khi dùng Tailwind. Có nên chuyển sang CSS Modules hay styled-components? Mong nghe kinh nghiệm thực tế.', NULL, NULL, '2026-10-28 13:44:39.289+07', '2026-10-28 13:44:39.289+07');
+INSERT INTO public.forum_posts VALUES ('cabccaf2-44ec-57dc-86a1-56a09b6d5265', 'e9432a54-b7c4-5eca-b321-655e1e89e886', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Mình dùng Tailwind hơn một năm: viết nhanh, đồng bộ spacing/màu theo design system, không lo đặt tên class. Để đỡ rối thì tách component nhỏ và dùng `@apply` hoặc các biến thể (cva) cho phần lặp lại.', NULL, NULL, '2026-10-28 15:41:44.897+07', '2026-10-28 15:41:44.897+07');
+INSERT INTO public.forum_posts VALUES ('8263592f-24e3-5ceb-b434-5feaad716fa7', 'e9432a54-b7c4-5eca-b321-655e1e89e886', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Từ góc nhìn designer, Tailwind giúp dev bám đúng token thiết kế. Nhưng nên định nghĩa màu/cỡ chữ trong config thay vì dùng giá trị tùy ý khắp nơi.', NULL, NULL, '2026-10-28 19:04:33.335+07', '2026-10-28 19:04:33.335+07');
+INSERT INTO public.forum_posts VALUES ('bb7af2ac-02f3-58df-9d89-2267800e603d', 'e9432a54-b7c4-5eca-b321-655e1e89e886', '4e332674-295d-444c-a507-2d60b50f1be1', 'Dự án lớn nên thống nhất quy ước từ đầu. Không có đúng/sai tuyệt đối, miễn cả team nhất quán.', '5efbfdbf-8644-5163-881a-57b24ff5935c', NULL, '2026-10-29 00:58:29.036+07', '2026-10-29 00:58:29.036+07');
+INSERT INTO public.forum_posts VALUES ('85e7cd8a-9f73-5d60-8d94-1c8193657813', '730059c8-cdaf-57d7-ba10-45569faa7db9', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', 'Dataset của mình có khoảng 8% giá trị thiếu ở vài cột số. Nên xóa dòng, điền trung bình hay dùng cách khác?', NULL, NULL, '2026-10-30 10:14:21.262+07', '2026-10-30 10:14:21.262+07');
+INSERT INTO public.forum_posts VALUES ('0a15b70f-32b9-53f4-b859-c6c302a35874', '730059c8-cdaf-57d7-ba10-45569faa7db9', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', 'Tùy bản chất dữ liệu. Thiếu ngẫu nhiên và ít thì có thể xóa; cột số có phân phối lệch nên điền median thay vì mean; có thể thêm cột cờ "was_missing" để mô hình biết giá trị đó được điền. Quan trọng: tính giá trị điền trên tập train rồi áp dụng cho tập test để tránh rò rỉ dữ liệu.', NULL, NULL, '2026-10-30 10:52:00.935+07', '2026-10-30 10:52:00.935+07');
+INSERT INTO public.forum_posts VALUES ('87ad9576-9952-588f-b432-584055bbcba8', '730059c8-cdaf-57d7-ba10-45569faa7db9', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', 'Hiểu rồi chị, mình sẽ dùng median và thêm cột cờ.', '85e7cd8a-9f73-5d60-8d94-1c8193657813', NULL, '2026-10-30 13:34:29.029+07', '2026-10-30 13:34:29.029+07');
+INSERT INTO public.forum_posts VALUES ('e0d03c03-0c56-50b0-8089-c54bd5b385fc', 'e3e6e7ed-629e-522b-934c-80c0e362d612', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mình vừa hoàn thành dự án ứng dụng di động theo dõi chi tiêu và được chấm 9/10. Chia sẻ vài kinh nghiệm cho các bạn mới:
+
+• Đọc kỹ mô tả vị trí và chia nhỏ công việc ngay từ ngày đầu, cập nhật trạng thái task thường xuyên.
+• Hỏi sớm khi vướng, đừng đợi sát deadline.
+• Ghi chú đầy đủ khi gửi nghiệm thu (làm gì, cách kiểm tra), Lead duyệt nhanh hơn nhiều.
+• Commit nhỏ và có thông điệp rõ ràng, sau này dễ truy vết.', NULL, NULL, '2026-10-08 10:00:28.182+07', '2026-10-08 10:00:28.182+07');
+INSERT INTO public.forum_posts VALUES ('7ae3d58a-f00f-5536-9a28-17f2638a8e16', 'e3e6e7ed-629e-522b-934c-80c0e362d612', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Cảm ơn chị. Mình cũng sắp vào dự án đầu, sẽ nhớ mục ghi chú khi nghiệm thu.', NULL, NULL, '2026-10-08 12:20:35.86+07', '2026-10-08 12:20:35.86+07');
+INSERT INTO public.forum_posts VALUES ('a93adc2e-d232-5641-b16d-d2b5f1af9c91', 'e3e6e7ed-629e-522b-934c-80c0e362d612', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình bổ sung: nên đọc kỹ phần yêu cầu nghiệm thu của task, tránh bị trả về chỉnh sửa nhiều lần.', NULL, NULL, '2026-10-08 13:14:21.376+07', '2026-10-08 13:14:21.376+07');
+INSERT INTO public.forum_posts VALUES ('a6200f87-05a0-5f55-9760-d5bfcc52d231', 'e3e6e7ed-629e-522b-934c-80c0e362d612', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'Dưới góc nhìn nhà tuyển dụng, điểm đánh giá và nhận xét từ các dự án thật là điểm cộng rất lớn khi xem hồ sơ của bạn.', 'e0d03c03-0c56-50b0-8089-c54bd5b385fc', NULL, '2026-10-09 03:00:04.675+07', '2026-10-09 03:00:04.675+07');
+INSERT INTO public.forum_posts VALUES ('c524ba24-278e-53d0-ad37-59b222154937', 'e3e6e7ed-629e-522b-934c-80c0e362d612', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Cảm ơn anh Tâm. Mình sẽ tiếp tục tích lũy thêm dự án.', 'a6200f87-05a0-5f55-9760-d5bfcc52d231', NULL, '2026-10-09 12:22:42.969+07', '2026-10-09 12:22:42.969+07');
+INSERT INTO public.forum_posts VALUES ('ed3015c0-8d17-5665-aa85-cccc3ee6c3d0', 'b85989d5-ec8d-54ba-be19-83702012cf7f', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình đang xây một bộ test E2E cho web bán hàng (Playwright + CI). Cần thêm 1-2 bạn viết test API (Postman/REST) và cấu hình pipeline GitHub Actions. Làm vào buổi tối cuối tuần, mục tiêu để có sản phẩm bỏ vào portfolio. Ai quan tâm bình luận bên dưới nhé.', NULL, NULL, '2026-10-13 13:06:22.515+07', '2026-10-13 13:06:22.515+07');
+INSERT INTO public.forum_posts VALUES ('17704b35-3ac7-5558-85ab-f6b807434819', 'b85989d5-ec8d-54ba-be19-83702012cf7f', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Mình quan tâm, đang tập viết test API bằng Postman. Cuối tuần làm được.', NULL, NULL, '2026-10-13 15:21:39.121+07', '2026-10-13 15:21:39.121+07');
+INSERT INTO public.forum_posts VALUES ('755e24d0-5505-574b-a4c8-2aafbf264b02', 'b85989d5-ec8d-54ba-be19-83702012cf7f', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Mình có thể hỗ trợ review test case và chiến lược test, không nhận code nhiều được.', NULL, NULL, '2026-10-13 19:54:04.257+07', '2026-10-13 19:54:04.257+07');
+INSERT INTO public.forum_posts VALUES ('95197ced-c135-55d7-b4c9-53d08cee2ee9', 'b85989d5-ec8d-54ba-be19-83702012cf7f', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Tuyệt, mình sẽ tạo repo và nhắn bạn Kiên chi tiết. Chị Oanh review giúp phần test plan nhé.', '17704b35-3ac7-5558-85ab-f6b807434819', NULL, '2026-10-14 05:33:08.943+07', '2026-10-14 05:33:08.943+07');
+INSERT INTO public.forum_posts VALUES ('90484cd5-45f5-5653-aa2e-29423f8cf102', '67f96fad-4229-57c6-aa92-75d67ab57e90', '8ec61d09-a425-5d54-a53a-90d541a198c5', 'Bên mình có vài nhu cầu nhỏ (landing page, công cụ nội bộ). Muốn hỏi quy trình để doanh nghiệp tuyển bạn tham gia theo dự án thời vụ, và cách đánh giá năng lực trước khi giao việc.', NULL, NULL, '2026-10-17 10:12:47.973+07', '2026-10-17 10:12:47.973+07');
+INSERT INTO public.forum_posts VALUES ('3dea3c90-c107-53d3-8853-f279158ffdc1', '67f96fad-4229-57c6-aa92-75d67ab57e90', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Doanh nghiệp liên hệ ban quản trị để tạo dự án và các vị trí cần tuyển; ứng viên ứng tuyển sẽ qua bước xét duyệt/phỏng vấn của Admin. Khi dự án kết thúc có điểm đánh giá từng thành viên để doanh nghiệp tham khảo.', NULL, NULL, '2026-10-17 11:08:27.921+07', '2026-10-17 11:08:27.921+07');
+INSERT INTO public.forum_posts VALUES ('e5ed1d9a-a686-58e8-82ff-4f1d23d237ac', '67f96fad-4229-57c6-aa92-75d67ab57e90', '8ec61d09-a425-5d54-a53a-90d541a198c5', 'Cảm ơn admin, bên mình sẽ gửi yêu cầu qua email hỗ trợ.', '90484cd5-45f5-5653-aa2e-29423f8cf102', NULL, '2026-10-17 13:52:07.595+07', '2026-10-17 13:52:07.595+07');
+INSERT INTO public.forum_posts VALUES ('083660f1-fef1-5ebf-aff5-8cd0bea48562', 'a5f2dba2-ccac-5733-b7fd-8feb48543ef3', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', 'Nhóm mình 4 người, hay bị task quá to kéo dài cả tuần. Mọi người chia task và đặt deadline thế nào cho dễ theo dõi?', NULL, NULL, '2026-10-20 14:41:03.042+07', '2026-10-20 14:41:03.042+07');
+INSERT INTO public.forum_posts VALUES ('d6de09fc-6e07-5090-8ac3-f7af981b87d7', 'a5f2dba2-ccac-5733-b7fd-8feb48543ef3', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình chia task sao cho một người xong trong 1-2 ngày, mô tả rõ "xong là gì" (definition of done). Task lớn tách thành subtask có checklist.', NULL, NULL, '2026-10-20 15:06:55.408+07', '2026-10-20 15:06:55.408+07');
+INSERT INTO public.forum_posts VALUES ('fd82b77c-1474-5244-820b-4b1a80657da0', 'a5f2dba2-ccac-5733-b7fd-8feb48543ef3', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Đặt giới hạn số task "Đang làm" cho mỗi người (khoảng 2) để tránh làm dang dở nhiều việc cùng lúc.', NULL, NULL, '2026-10-20 23:01:17.433+07', '2026-10-20 23:01:17.433+07');
+INSERT INTO public.forum_posts VALUES ('4c83b6c5-425e-5bfe-9cb7-e11491fb342d', 'a5f2dba2-ccac-5733-b7fd-8feb48543ef3', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Với task phụ thuộc nhau thì ghi rõ phụ thuộc vào ai/task nào để Lead dễ sắp xếp.', '083660f1-fef1-5ebf-aff5-8cd0bea48562', NULL, '2026-10-20 23:59:40.156+07', '2026-10-20 23:59:40.156+07');
+INSERT INTO public.forum_posts VALUES ('99f05e4a-492d-51d6-84f0-79eb8f93a88e', '94358e47-3f2a-5fa8-a37f-034674611bc5', '4e332674-295d-444c-a507-2d60b50f1be1', 'Nhóm mình chưa có thói quen review PR, merge xong mới phát hiện lỗi. Có quy trình review nào đơn giản mà hiệu quả cho nhóm 3-5 người không?', NULL, NULL, '2026-10-24 11:28:12.617+07', '2026-10-24 11:28:12.617+07');
+INSERT INTO public.forum_posts VALUES ('22d27ff8-876b-5e51-854c-26f7be3f90de', '94358e47-3f2a-5fa8-a37f-034674611bc5', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', 'Quy tắc đơn giản: mỗi PR ít nhất một người khác duyệt, PR nhỏ (dưới ~300 dòng), có mô tả và ảnh chụp giao diện nếu đổi UI. Dùng checklist: chạy được, có test, không hard-code, đặt tên rõ.', NULL, NULL, '2026-10-24 13:51:57.364+07', '2026-10-24 13:51:57.364+07');
+INSERT INTO public.forum_posts VALUES ('72a3214f-82c2-5bd9-ac44-738cb72f82c1', '94358e47-3f2a-5fa8-a37f-034674611bc5', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Góp ý nên nhẹ nhàng và nói rõ lý do, tránh biến thành tranh luận cá nhân.', NULL, NULL, '2026-10-24 19:50:25.929+07', '2026-10-24 19:50:25.929+07');
+INSERT INTO public.forum_posts VALUES ('61fe2d8b-2bc4-5b8b-a1c8-5086c9a2f860', '94358e47-3f2a-5fa8-a37f-034674611bc5', '4e332674-295d-444c-a507-2d60b50f1be1', 'Cảm ơn các bạn, nhóm mình sẽ áp dụng từ tuần sau.', NULL, NULL, '2026-10-25 02:56:38.505+07', '2026-10-25 02:56:38.505+07');
+INSERT INTO public.forum_posts VALUES ('b56f8b85-340b-5bca-ab39-65f429714214', '2485f31e-e43b-51e1-8f7b-a5e1fb73405b', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Dự án của mình toàn thành viên ở các tỉnh khác nhau. Có bạn trả lời tin nhắn rất chậm. Mọi người có kinh nghiệm duy trì nhịp độ cho nhóm remote không?', NULL, NULL, '2026-10-27 13:02:52.356+07', '2026-10-27 13:02:52.356+07');
+INSERT INTO public.forum_posts VALUES ('11ae0800-81bf-535b-b0f0-e2a540b63954', '2485f31e-e43b-51e1-8f7b-a5e1fb73405b', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Hãy thống nhất khung giờ làm việc chung và kênh liên lạc chính. Họp ngắn 10-15 phút mỗi tuần để cập nhật tiến độ, còn lại giao tiếp bằng văn bản có ngữ cảnh đầy đủ.', NULL, NULL, '2026-10-27 17:23:37.688+07', '2026-10-27 17:23:37.688+07');
+INSERT INTO public.forum_posts VALUES ('55ee7ebc-8f7c-5edf-ae4d-5e2bdb5b2c95', '2485f31e-e43b-51e1-8f7b-a5e1fb73405b', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình dùng tab Diễn đàn trong workspace để ghi lại các quyết định, ai vào sau đọc cũng nắm được.', NULL, NULL, '2026-10-27 19:10:43.544+07', '2026-10-27 19:10:43.544+07');
+INSERT INTO public.forum_posts VALUES ('a310b881-d310-5d8f-923d-52cf03a3470b', '2485f31e-e43b-51e1-8f7b-a5e1fb73405b', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Ý hay, nhóm mình sẽ ghi lại quyết định ở đó luôn.', '11ae0800-81bf-535b-b0f0-e2a540b63954', NULL, '2026-10-28 08:47:16.895+07', '2026-10-28 08:47:16.895+07');
+INSERT INTO public.forum_posts VALUES ('2c7763c4-ac79-51e6-a32b-ef24306cce94', 'c4a7a43a-a9cf-5db4-8523-de41eb9cbfc1', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'Mình định làm hệ thống đặt lịch khám (React + Node + PostgreSQL) để đưa vào portfolio, cần 1 bạn thiết kế UI/UX và 1 bạn làm mobile. Dự kiến 6 tuần, họp tối thứ 7. Quan tâm thì để lại bình luận nhé!', NULL, NULL, '2026-10-30 12:32:28.011+07', '2026-10-30 12:32:28.011+07');
+INSERT INTO public.forum_posts VALUES ('43b72ec3-2e20-59b6-a6f0-96f7e568e7b4', 'c4a7a43a-a9cf-5db4-8523-de41eb9cbfc1', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Mình làm UI/UX, có thể nhận phần wireframe và prototype Figma.', NULL, NULL, '2026-10-30 16:17:28.813+07', '2026-10-30 16:17:28.813+07');
+INSERT INTO public.forum_posts VALUES ('4e7931b7-1728-58b9-bd19-45de2e8e729c', 'c4a7a43a-a9cf-5db4-8523-de41eb9cbfc1', '3892c76e-02d1-594c-88f4-b97569ebf7e8', 'Mình làm mobile Flutter, tham gia được.', NULL, NULL, '2026-10-30 17:39:48.443+07', '2026-10-30 17:39:48.443+07');
+INSERT INTO public.forum_posts VALUES ('4aaa65a8-d36f-5136-a408-1c891362980f', 'c4a7a43a-a9cf-5db4-8523-de41eb9cbfc1', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'Tuyệt vời, mình sẽ tạo nhóm chat và gửi lịch họp.', '43b72ec3-2e20-59b6-a6f0-96f7e568e7b4', NULL, '2026-10-30 18:19:30.543+07', '2026-10-30 18:19:30.543+07');
+INSERT INTO public.forum_posts VALUES ('4fe9a01c-51e8-542a-8ac3-2564f0154093', 'b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'Mình tốt nghiệp ngành kinh tế, làm hành chính 2 năm, giờ muốn chuyển sang phân tích dữ liệu. Mình đã học SQL, Excel nâng cao và đang học Python. Chuyển ngành tuổi này có khó không?', NULL, NULL, '2026-10-04 14:22:53.042+07', '2026-10-04 14:22:53.042+07');
+INSERT INTO public.forum_posts VALUES ('b3e7fb97-2419-5b26-8c8e-f5981139e4c8', 'b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', 'Không muộn đâu bạn. Nền tảng kinh tế còn là lợi thế vì bạn hiểu nghiệp vụ kinh doanh. Hãy làm vài project phân tích dữ liệu thật (bán hàng, tài chính), đưa lên GitHub và viết báo cáo insight rõ ràng.', NULL, NULL, '2026-10-04 16:20:46.053+07', '2026-10-04 16:20:46.053+07');
+INSERT INTO public.forum_posts VALUES ('718be0cc-6842-5b9e-8f7e-685ffe60489f', 'b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', 'Mình cũng chuyển từ ngành khác sang. Điều quan trọng là kiên trì và có sản phẩm chứng minh.', NULL, NULL, '2026-10-04 16:37:01.308+07', '2026-10-04 16:37:01.308+07');
+INSERT INTO public.forum_posts VALUES ('c24e1da0-c035-58fc-af9b-74d03b2ddf0b', 'b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'Nhà tuyển dụng quan tâm bạn giải quyết được bài toán gì hơn là bằng cấp. Vị trí Data Analyst fresher có nhiều chỗ nhận người trái ngành nếu có portfolio tốt.', '4fe9a01c-51e8-542a-8ac3-2564f0154093', NULL, '2026-10-04 23:44:58.404+07', '2026-10-04 23:44:58.404+07');
+INSERT INTO public.forum_posts VALUES ('47c5a458-2d15-5f0f-8287-119828dc8766', 'b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'Cảm ơn mọi người rất nhiều, mình có thêm động lực rồi!', NULL, NULL, '2026-10-05 04:11:49.574+07', '2026-10-05 04:11:49.574+07');
+INSERT INTO public.forum_posts VALUES ('d799953e-cba7-54aa-b24e-5debe1e51ca0', '555f9824-aeb8-59de-bb60-7adf75551511', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'Mình đã biết Python cơ bản. Muốn đi theo hướng Backend, mọi người gợi ý lộ trình học theo thứ tự giúp mình.', NULL, NULL, '2026-10-10 14:22:34.753+07', '2026-10-10 14:22:34.753+07');
+INSERT INTO public.forum_posts VALUES ('cf1f9c8a-4db2-560d-8bbc-74328ad464ec', '555f9824-aeb8-59de-bb60-7adf75551511', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Gợi ý: (1) Thành thạo một ngôn ngữ + framework (Python/Django hoặc FastAPI), (2) HTTP, REST, xác thực (JWT, OAuth), (3) SQL và thiết kế CSDL, (4) Git, Linux cơ bản, (5) Docker và CI/CD, (6) kiểm thử, (7) kiến thức nâng cao: cache, hàng đợi, kiến trúc. Vừa học vừa làm project nhỏ cho mỗi bước.', NULL, NULL, '2026-10-10 14:45:45.627+07', '2026-10-10 14:45:45.627+07');
+INSERT INTO public.forum_posts VALUES ('26414c8d-ee46-5f22-8140-e7668d197da2', '555f9824-aeb8-59de-bb60-7adf75551511', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Đừng sa đà xem khóa học, hãy tự làm một API hoàn chỉnh (đăng ký, đăng nhập, CRUD, phân trang) rồi triển khai lên server thật.', NULL, NULL, '2026-10-11 01:44:17.489+07', '2026-10-11 01:44:17.489+07');
+INSERT INTO public.forum_posts VALUES ('7743d141-2daf-5612-9784-cef4f443169c', '555f9824-aeb8-59de-bb60-7adf75551511', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'Cảm ơn chị Hương và anh Trung, mình sẽ làm project quản lý công việc làm bài tập lớn.', 'd799953e-cba7-54aa-b24e-5debe1e51ca0', NULL, '2026-10-11 05:31:20.342+07', '2026-10-11 05:31:20.342+07');
+INSERT INTO public.forum_posts VALUES ('a95e073e-194f-5f4a-ab56-121312afeab3', 'aac6cc75-7d6e-5e5b-b97d-d7bcc3df20a2', 'f224b438-95de-581f-ac10-c3d2e50e1a30', 'Mình đọc tài liệu tiếng Anh ổn nhưng nghe nói còn yếu. Công ty mình có khách hàng nước ngoài. Nên đầu tư học thế nào cho hiệu quả?', NULL, NULL, '2026-10-15 11:43:43.224+07', '2026-10-15 11:43:43.224+07');
+INSERT INTO public.forum_posts VALUES ('82395ae9-d303-5ce3-be6c-81b1d3b0deff', 'aac6cc75-7d6e-5e5b-b97d-d7bcc3df20a2', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Rất nên. Mỗi ngày dành 20-30 phút luyện nói/nghe: xem tech talk có phụ đề, ghi âm tự đọc lại tài liệu, tham gia meetup. Bắt đầu từ việc viết email/commit message bằng tiếng Anh cho quen.', NULL, NULL, '2026-10-15 14:02:36.514+07', '2026-10-15 14:02:36.514+07');
+INSERT INTO public.forum_posts VALUES ('8dda27c8-26da-512f-b55b-4dbfab0fcf83', 'aac6cc75-7d6e-5e5b-b97d-d7bcc3df20a2', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Tiếng Anh chuyên ngành tích lũy dần khi đọc tài liệu hằng ngày. Đừng ngại nói sai, đồng nghiệp quốc tế thường rất thông cảm.', NULL, NULL, '2026-10-16 00:04:32.235+07', '2026-10-16 00:04:32.235+07');
+INSERT INTO public.forum_posts VALUES ('c4868b47-2c3a-5ecb-9623-d0080f29834b', 'aac6cc75-7d6e-5e5b-b97d-d7bcc3df20a2', 'f224b438-95de-581f-ac10-c3d2e50e1a30', 'Mình sẽ tập đọc tài liệu to thành tiếng mỗi sáng. Cảm ơn anh chị.', 'a95e073e-194f-5f4a-ab56-121312afeab3', NULL, '2026-10-16 05:04:57.222+07', '2026-10-16 05:04:57.222+07');
+INSERT INTO public.forum_posts VALUES ('dec22abf-2477-5083-aa91-7f2b88c9fefd', '6b12e634-bc0d-5320-ae40-f4864896551e', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Mình test tay được 1 năm, muốn học automation để tăng lương và có cơ hội thăng tiến. Mình chưa có nền tảng lập trình nhiều.', NULL, NULL, '2026-10-19 13:39:55.739+07', '2026-10-19 13:39:55.739+07');
+INSERT INTO public.forum_posts VALUES ('2943f789-24eb-5f27-8295-7537d1e8d1ae', '6b12e634-bc0d-5320-ae40-f4864896551e', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Học một ngôn ngữ phổ biến (JavaScript/TypeScript hoặc Java/Python), nắm vững HTTP/REST để test API, rồi chọn một công cụ UI (Playwright/Cypress/Selenium). Sau đó học Git, CI/CD. Hãy tự động hóa chính các test case bạn đang chạy tay, vừa học vừa có sản phẩm.', NULL, NULL, '2026-10-19 18:42:25.119+07', '2026-10-19 18:42:25.119+07');
+INSERT INTO public.forum_posts VALUES ('56c6b04f-0e8e-5d2e-b9df-a9956d1e186d', '6b12e634-bc0d-5320-ae40-f4864896551e', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Đừng bỏ tư duy test: thiết kế test case tốt, phân tích rủi ro vẫn là giá trị cốt lõi của QA, automation chỉ là công cụ.', NULL, NULL, '2026-10-19 19:22:55.267+07', '2026-10-19 19:22:55.267+07');
+INSERT INTO public.forum_posts VALUES ('068023b0-71e6-588f-8738-854673fad086', '6b12e634-bc0d-5320-ae40-f4864896551e', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình làm theo lộ trình Postman → Playwright, sau 4 tháng đã tự viết được bộ regression nhỏ.', 'dec22abf-2477-5083-aa91-7f2b88c9fefd', NULL, '2026-10-20 08:57:39.814+07', '2026-10-20 08:57:39.814+07');
+INSERT INTO public.forum_posts VALUES ('12d684be-8de7-5548-8943-e41746fd480a', '31ed05bd-4525-5455-a7a3-77ebd54a28c9', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Mình chuẩn bị đi xin việc vị trí Product Designer. Portfolio nên trình bày case study thế nào để gây ấn tượng với nhà tuyển dụng?', NULL, NULL, '2026-10-23 14:04:15.897+07', '2026-10-23 14:04:15.897+07');
+INSERT INTO public.forum_posts VALUES ('df64be5a-ed7c-57c7-8e2c-5f67da91e615', '31ed05bd-4525-5455-a7a3-77ebd54a28c9', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Mỗi case study nên có: bối cảnh và vấn đề, vai trò của bạn, quy trình (nghiên cứu, wireframe, prototype, test), quyết định thiết kế và lý do, kết quả đo được. Chọn 3-4 dự án tốt nhất thay vì liệt kê hết.', NULL, NULL, '2026-10-23 16:37:22.439+07', '2026-10-23 16:37:22.439+07');
+INSERT INTO public.forum_posts VALUES ('494e139a-ac98-503f-927c-9f34c8d9577f', '31ed05bd-4525-5455-a7a3-77ebd54a28c9', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Chúng tôi xem portfolio rất nhanh, nên đặt dự án mạnh nhất lên đầu và làm trang gọn, dễ đọc trên cả điện thoại.', '12d684be-8de7-5548-8943-e41746fd480a', NULL, '2026-10-23 18:53:20.621+07', '2026-10-23 18:53:20.621+07');
+INSERT INTO public.forum_posts VALUES ('97db11c7-a9a7-5466-8636-f3df29b53e98', '31ed05bd-4525-5455-a7a3-77ebd54a28c9', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Cảm ơn anh Hải và chị Mai, mình sẽ chỉnh lại thứ tự và rút gọn.', 'df64be5a-ed7c-57c7-8e2c-5f67da91e615', NULL, '2026-10-23 19:47:43.633+07', '2026-10-23 19:47:43.633+07');
+INSERT INTO public.forum_posts VALUES ('85cea242-b081-518b-a7da-01ce6f9bb468', '99f0dab6-88e6-5a98-b6ef-e5762bec7b90', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Mình thấy nhiều người khoe chứng chỉ cloud. Fresher fullstack như mình có nên đầu tư thi không, hay nên tập trung làm project?', NULL, NULL, '2026-10-26 11:08:45.48+07', '2026-10-26 11:08:45.48+07');
+INSERT INTO public.forum_posts VALUES ('a7804ba9-707d-5113-b097-2bb9155905df', '99f0dab6-88e6-5a98-b6ef-e5762bec7b90', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Với fresher fullstack thì project thực tế quan trọng hơn. Chứng chỉ (ví dụ AWS Cloud Practitioner) giúp bạn có nền tảng khái niệm, nhưng nếu phải chọn thì ưu tiên triển khai được một ứng dụng lên cloud và hiểu chi phí.', NULL, NULL, '2026-10-26 13:53:30.63+07', '2026-10-26 13:53:30.63+07');
+INSERT INTO public.forum_posts VALUES ('74772b80-4eae-598a-ba05-3c9df8bafc0c', '99f0dab6-88e6-5a98-b6ef-e5762bec7b90', 'dba5756f-a817-5793-ba82-111fe64e1baa', 'Chứng chỉ có giá trị khi bạn hướng tới vị trí Cloud/DevOps. Hãy học cùng với thực hành trên tài khoản miễn phí.', NULL, NULL, '2026-10-26 18:24:23.52+07', '2026-10-26 18:24:23.52+07');
+INSERT INTO public.forum_posts VALUES ('99a7210f-6321-5e21-bc0e-6d249ce71388', '99f0dab6-88e6-5a98-b6ef-e5762bec7b90', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Mình sẽ ưu tiên deploy project lên cloud trước. Cảm ơn anh chị.', '85cea242-b081-518b-a7da-01ce6f9bb468', NULL, '2026-10-26 20:15:09.683+07', '2026-10-26 20:15:09.683+07');
+INSERT INTO public.forum_posts VALUES ('8ba2ce06-9ebb-58a8-b2e1-669b6225d630', '6789ba60-a287-59ba-8f78-e2be82384e3c', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', 'Rất nhiều CV ghi mục tiêu chung chung như "mong muốn môi trường năng động". Hãy viết cụ thể: vị trí bạn nhắm tới, thế mạnh nổi bật (kỹ năng + dự án) và điều bạn có thể đóng góp. Chỉ 2-3 câu là đủ. Ví dụ: "Fresher Backend Node.js, đã xây dựng 2 API có xác thực và triển khai bằng Docker; mong muốn đóng góp vào đội ngũ phát triển dịch vụ và học hỏi kiến trúc hệ thống lớn."', NULL, NULL, '2026-10-29 12:41:05.744+07', '2026-10-29 12:41:05.744+07');
+INSERT INTO public.forum_posts VALUES ('22cc2418-906f-57a2-a689-e6419296347c', '6789ba60-a287-59ba-8f78-e2be82384e3c', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Ví dụ rất rõ ràng, mình sẽ viết lại mục tiêu theo cấu trúc này.', NULL, NULL, '2026-10-29 13:32:55.091+07', '2026-10-29 13:32:55.091+07');
+INSERT INTO public.forum_posts VALUES ('9cf840be-a05f-5f62-a61f-90bfd433dcb9', '6789ba60-a287-59ba-8f78-e2be82384e3c', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Cảm ơn chị Duyên, mình hay viết quá chung chung thật.', '8ba2ce06-9ebb-58a8-b2e1-669b6225d630', NULL, '2026-10-29 14:54:29.437+07', '2026-10-29 14:54:29.437+07');
+INSERT INTO public.forum_posts VALUES ('4615b73a-8405-54b9-989b-ed0d1f205a0d', 'a66237e1-1605-5d60-ad28-d25b140306a3', '429535c5-5df7-5e12-b135-1572e5931035', 'Mình muốn thử đóng góp cho dự án mã nguồn mở nhưng sợ code chưa đủ tốt. Nên bắt đầu từ đâu?', NULL, NULL, '2026-10-31 13:48:48.804+07', '2026-10-31 13:48:48.804+07');
+INSERT INTO public.forum_posts VALUES ('a4de825e-8490-573c-afab-2ab177ef2571', 'a66237e1-1605-5d60-ad28-d25b140306a3', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', 'Bắt đầu bằng sửa tài liệu, dịch, báo lỗi rõ ràng, hoặc tìm issue gắn nhãn "good first issue". Đọc CONTRIBUTING của dự án trước khi gửi PR.', NULL, NULL, '2026-10-31 15:57:03.018+07', '2026-10-31 15:57:03.018+07');
+INSERT INTO public.forum_posts VALUES ('b92401e0-2d34-5a49-bbe9-22a9eae3544b', 'a66237e1-1605-5d60-ad28-d25b140306a3', '429535c5-5df7-5e12-b135-1572e5931035', 'Cảm ơn bạn, mình sẽ thử với một thư viện React nhỏ.', '4615b73a-8405-54b9-989b-ed0d1f205a0d', NULL, '2026-10-31 23:10:41.975+07', '2026-10-31 23:10:41.975+07');
+INSERT INTO public.forum_posts VALUES ('c8ce04f4-855c-5393-ad52-f762c2db4069', '0050a554-e80f-5f6b-8aa9-7557efb5419f', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Mình tổng hợp các nguồn học mình thấy hữu ích:
+
+• roadmap.sh: sơ đồ lộ trình cho từng vị trí.
+• MDN Web Docs: tài liệu web chuẩn nhất.
+• freeCodeCamp, The Odin Project: học lập trình web có bài tập.
+• CS50 (Harvard): nền tảng khoa học máy tính.
+• Tài liệu chính thức của framework (React, Node.js, Spring...) thường là nguồn tốt nhất.
+• Kênh YouTube về system design và DevOps.
+
+Bạn nào có nguồn hay cứ bổ sung bên dưới nhé.', NULL, NULL, '2026-10-06 13:46:38.013+07', '2026-10-06 13:46:38.013+07');
+INSERT INTO public.forum_posts VALUES ('43efeb1e-3158-54f6-a891-7bb33472612a', '0050a554-e80f-5f6b-8aa9-7557efb5419f', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Bổ sung: javascript.info rất hay để học JavaScript từ cơ bản đến nâng cao.', NULL, NULL, '2026-10-06 17:33:25.595+07', '2026-10-06 17:33:25.595+07');
+INSERT INTO public.forum_posts VALUES ('678729d1-5f56-5b9a-a96f-0438f202c52b', '0050a554-e80f-5f6b-8aa9-7557efb5419f', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Mình thêm "Designing Data-Intensive Applications" cho ai muốn hiểu sâu về hệ thống dữ liệu (sách, không miễn phí nhưng rất đáng đọc).', NULL, NULL, '2026-10-06 19:11:13.151+07', '2026-10-06 19:11:13.151+07');
+INSERT INTO public.forum_posts VALUES ('1f1a322c-0eec-51f2-bc13-1230afb0e1f6', '0050a554-e80f-5f6b-8aa9-7557efb5419f', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Phần test: Ministry of Testing và tài liệu của Playwright rất đầy đủ.', 'c8ce04f4-855c-5393-ad52-f762c2db4069', NULL, '2026-10-06 21:46:14.213+07', '2026-10-06 21:46:14.213+07');
+INSERT INTO public.forum_posts VALUES ('da84818e-582a-50b7-89c1-a90a1f9f3eea', '0050a554-e80f-5f6b-8aa9-7557efb5419f', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', 'Cảm ơn anh Tín, mình lưu lại để học dần.', NULL, NULL, '2026-10-07 03:42:14.126+07', '2026-10-07 03:42:14.126+07');
+INSERT INTO public.forum_posts VALUES ('d5c59e36-e82c-5a96-af73-0cbcb341853c', 'b1395cf7-bfe6-5c83-b68d-bf279306133b', '4e332674-295d-444c-a507-2d60b50f1be1', 'Chia sẻ danh sách extension giúp code nhanh hơn: ESLint, Prettier, GitLens, Error Lens, Thunder Client (test API ngay trong editor), Tailwind CSS IntelliSense, Auto Rename Tag, Docker. Còn bạn nào dùng cái hay ho khác không?', NULL, NULL, '2026-10-12 11:55:21.544+07', '2026-10-12 11:55:21.544+07');
+INSERT INTO public.forum_posts VALUES ('e269baf3-0e7e-5841-9b23-6a1ceb358843', 'b1395cf7-bfe6-5c83-b68d-bf279306133b', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Mình thêm "Pretty TypeScript Errors" và "Todo Tree", hai cái rất tiện.', NULL, NULL, '2026-10-12 13:23:43.017+07', '2026-10-12 13:23:43.017+07');
+INSERT INTO public.forum_posts VALUES ('be66e9d8-1084-58a1-83e1-7f4c3bb56168', 'b1395cf7-bfe6-5c83-b68d-bf279306133b', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'REST Client cũng hay: viết request ra file .http rồi commit chung với dự án.', NULL, NULL, '2026-10-12 20:31:01.112+07', '2026-10-12 20:31:01.112+07');
+INSERT INTO public.forum_posts VALUES ('5b38e468-d9a4-5274-9ffc-3c1e771b8033', 'b1395cf7-bfe6-5c83-b68d-bf279306133b', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Thêm Live Share khi cần code cùng bạn từ xa.', NULL, NULL, '2026-10-13 01:57:22.733+07', '2026-10-13 01:57:22.733+07');
+INSERT INTO public.forum_posts VALUES ('89e5650e-7bf0-5e06-a52b-546cd50d9b89', '746bc3fd-254a-55f8-b83c-4b1566ef7632', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '1. Commit nhỏ, thông điệp rõ (feat/fix/chore).
+2. Đặt tên nhánh theo quy ước: feature/ten-chuc-nang.
+3. `git pull --rebase` trước khi push.
+4. Dùng `git stash` khi cần đổi nhánh giữa chừng.
+5. `git commit --amend` để sửa commit cuối chưa push.
+6. `git reflog` cứu bạn khi lỡ tay reset.
+7. `git bisect` tìm commit gây lỗi.
+8. Cấu hình `.gitignore` ngay từ đầu, không commit file .env.
+9. Bảo vệ nhánh main, bắt buộc review.
+10. Đừng commit file lớn, dùng Git LFS khi cần.', NULL, NULL, '2026-10-18 15:31:06.966+07', '2026-10-18 15:31:06.966+07');
+INSERT INTO public.forum_posts VALUES ('41afc111-e52c-5a51-aa47-e85a667254ce', '746bc3fd-254a-55f8-b83c-4b1566ef7632', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'Mẹo số 6 cứu mình không biết bao lần 😅', NULL, NULL, '2026-10-18 16:13:55.055+07', '2026-10-18 16:13:55.055+07');
+INSERT INTO public.forum_posts VALUES ('db2b6944-2770-5b34-9be5-d85b74b43d6e', '746bc3fd-254a-55f8-b83c-4b1566ef7632', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'Cảm ơn chị, mình chưa biết git bisect, sẽ thử.', '89e5650e-7bf0-5e06-a52b-546cd50d9b89', NULL, '2026-10-18 23:52:19.197+07', '2026-10-18 23:52:19.197+07');
+INSERT INTO public.forum_posts VALUES ('01bde827-5cb4-54a5-a4ec-698fcb200621', '746bc3fd-254a-55f8-b83c-4b1566ef7632', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Bổ sung: dùng pre-commit hook (husky) để tự chạy lint/test trước khi commit.', NULL, NULL, '2026-10-19 00:11:10.578+07', '2026-10-19 00:11:10.578+07');
+INSERT INTO public.forum_posts VALUES ('7a44c6f8-3305-5ccc-aa47-74a89fdae937', '7be0eea5-21f4-5cae-96ed-0e0ddbd5eda9', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Một vài nguyên tắc đơn giản giúp giao diện đẹp và dễ dùng hơn ngay cả khi không phải designer: nhất quán (màu, khoảng cách, font), phân cấp thị giác rõ ràng, khoảng trắng đủ rộng, độ tương phản chữ/nền đủ để đọc, nút bấm đủ lớn trên mobile, phản hồi trạng thái rõ (đang tải, lỗi, thành công). Dùng bảng màu và hệ khoảng cách cố định (4/8px) để mọi thứ ăn khớp.', NULL, NULL, '2026-10-22 15:14:16.761+07', '2026-10-22 15:14:16.761+07');
+INSERT INTO public.forum_posts VALUES ('a9fc021d-9856-571c-b19e-e4404b59bc73', '7be0eea5-21f4-5cae-96ed-0e0ddbd5eda9', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Rất hữu ích. Mình áp dụng hệ khoảng cách 8px thì giao diện tự nhiên gọn hơn hẳn.', NULL, NULL, '2026-10-22 20:12:44.573+07', '2026-10-22 20:12:44.573+07');
+INSERT INTO public.forum_posts VALUES ('29ff146b-b144-51e3-b315-28dbddfc877a', '7be0eea5-21f4-5cae-96ed-0e0ddbd5eda9', '429535c5-5df7-5e12-b135-1572e5931035', 'Lưu ý thêm accessibility: có thể điều hướng bằng bàn phím, ảnh có alt, không chỉ dùng màu để truyền thông tin.', '7a44c6f8-3305-5ccc-aa47-74a89fdae937', NULL, '2026-10-23 05:25:49.714+07', '2026-10-23 05:25:49.714+07');
+INSERT INTO public.forum_posts VALUES ('52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', '0aa6e715-c697-5587-affd-d709b8649716', 'dba5756f-a817-5793-ba82-111fe64e1baa', 'CI (tích hợp liên tục): mỗi lần push, hệ thống tự cài đặt, chạy lint và test để phát hiện lỗi sớm. CD (triển khai liên tục): sau khi qua kiểm tra thì tự động build và triển khai. Ví dụ pipeline tối thiểu:
+
+```
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npm test
+```', NULL, NULL, '2026-10-25 10:03:29.788+07', '2026-10-25 10:03:29.788+07');
+INSERT INTO public.forum_posts VALUES ('969b2a1a-f77e-5234-946d-880791cbe312', '0aa6e715-c697-5587-affd-d709b8649716', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Ví dụ ngắn gọn dễ hiểu quá, mình sẽ thêm cho repo của nhóm.', NULL, NULL, '2026-10-25 13:34:37.585+07', '2026-10-25 13:34:37.585+07');
+INSERT INTO public.forum_posts VALUES ('17758ea7-9988-5520-a78e-7e0817e9e6cb', '0aa6e715-c697-5587-affd-d709b8649716', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Có thể thêm bước chạy test E2E ở nhánh main trước khi deploy.', '52dc75e4-5a63-523b-a6cf-6e5cbc7f3cea', NULL, '2026-10-25 15:18:48.449+07', '2026-10-25 15:18:48.449+07');
+INSERT INTO public.forum_posts VALUES ('0c50f52c-5d8d-5b45-95e2-78dfdbef8f3c', 'ace4b62d-59fd-58d7-9570-cdd6921e11c3', 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', 'Chia sẻ cảm nhận sau khi đọc: "Clean Code" giúp mình đặt tên biến và viết hàm nhỏ hơn; "The Pragmatic Programmer" thiên về tư duy nghề nghiệp, rất đáng đọc khi mới đi làm; "Atomic Habits" giúp duy trì thói quen học mỗi ngày. Các bạn gợi ý thêm sách nhé!', NULL, NULL, '2026-10-28 13:52:47.982+07', '2026-10-28 13:52:47.982+07');
+INSERT INTO public.forum_posts VALUES ('ce4dfb9a-0394-5750-a92a-9e8a659e4d5b', 'ace4b62d-59fd-58d7-9570-cdd6921e11c3', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'Mình thêm "Refactoring" của Martin Fowler cho ai làm dự án dài hơi.', NULL, NULL, '2026-10-28 16:49:21.2+07', '2026-10-28 16:49:21.2+07');
+INSERT INTO public.forum_posts VALUES ('df061a20-d7b5-5af3-ae39-79d07c06cd55', 'ace4b62d-59fd-58d7-9570-cdd6921e11c3', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '"Designing Data-Intensive Applications" khó nhưng rất đáng đọc khi đã có kinh nghiệm backend.', NULL, NULL, '2026-10-28 17:19:31.723+07', '2026-10-28 17:19:31.723+07');
+INSERT INTO public.forum_posts VALUES ('ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', 'c6f2dd0b-cabc-54a8-aed6-3e5135cb3b53', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình mới nâng cấp bàn làm việc: màn hình ngoài 27 inch, bàn phím cơ, đèn bàn ánh sáng ấm và một chậu cây nhỏ. Làm việc đỡ mỏi mắt hẳn. Mọi người khoe góc làm việc của mình đi!', NULL, NULL, '2026-10-11 11:41:28.574+07', '2026-10-11 11:41:28.574+07');
+INSERT INTO public.forum_posts VALUES ('bc021775-5738-585c-a7bf-476f3f8c4a6a', 'c6f2dd0b-cabc-54a8-aed6-3e5135cb3b53', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'Mình thì laptop + giá đỡ + bàn phím rời, đơn giản nhưng đủ dùng.', NULL, NULL, '2026-10-11 14:37:05.48+07', '2026-10-11 14:37:05.48+07');
+INSERT INTO public.forum_posts VALUES ('c9d41d09-1983-5b98-bd44-0168c19c8ce6', 'c6f2dd0b-cabc-54a8-aed6-3e5135cb3b53', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Đầu tư ghế tốt trước, lưng sẽ cảm ơn bạn sau này.', NULL, NULL, '2026-10-11 15:00:53.031+07', '2026-10-11 15:00:53.031+07');
+INSERT INTO public.forum_posts VALUES ('c9a127b8-e2a4-53c3-b1b6-abc7acf1c6f9', 'c6f2dd0b-cabc-54a8-aed6-3e5135cb3b53', '3892c76e-02d1-594c-88f4-b97569ebf7e8', 'Chậu cây là ý hay, mình cũng mua một chậu xương rồng đặt cạnh màn hình.', 'ad959e0f-e82a-564e-9e0b-3ccdfbee99e6', NULL, '2026-10-11 19:02:16.76+07', '2026-10-11 19:02:16.76+07');
+INSERT INTO public.forum_posts VALUES ('9b11c752-0937-5805-8596-3112cedc4ad4', 'c6f2dd0b-cabc-54a8-aed6-3e5135cb3b53', '429535c5-5df7-5e12-b135-1572e5931035', 'Đèn bias lighting phía sau màn hình giúp đỡ mỏi mắt buổi tối đó mọi người.', NULL, NULL, '2026-10-11 20:09:05.454+07', '2026-10-11 20:09:05.454+07');
+INSERT INTO public.forum_posts VALUES ('c96c16ca-a17a-51e6-928a-b591e4e04d88', 'e16a7af2-eacb-5a09-a748-3a5014343a61', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'Sáng nào không có cà phê là mình không code nổi. Còn mọi người, team cà phê, trà hay nước lọc?', NULL, NULL, '2026-10-17 13:02:03.689+07', '2026-10-17 13:02:03.689+07');
+INSERT INTO public.forum_posts VALUES ('3752be77-e50a-5bc4-a1bc-8cd14c75dce1', 'e16a7af2-eacb-5a09-a748-3a5014343a61', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Team cà phê sữa đá, không có là buồn ngủ cả ngày.', NULL, NULL, '2026-10-17 15:11:35.129+07', '2026-10-17 15:11:35.129+07');
+INSERT INTO public.forum_posts VALUES ('cd3d09d6-4fbb-5b2a-9328-13e2bd7aa473', 'e16a7af2-eacb-5a09-a748-3a5014343a61', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'Team trà đào, ít caffeine mà vẫn tỉnh táo.', NULL, NULL, '2026-10-17 20:26:35.785+07', '2026-10-17 20:26:35.785+07');
+INSERT INTO public.forum_posts VALUES ('56b2545d-cc82-58d7-a6da-c10207a23b3c', 'e16a7af2-eacb-5a09-a748-3a5014343a61', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Mình uống nước lọc và ăn trái cây, ngủ đủ giấc là cách tỉnh táo nhất 😅', 'c96c16ca-a17a-51e6-928a-b591e4e04d88', NULL, '2026-10-17 21:13:24.228+07', '2026-10-17 21:13:24.228+07');
+INSERT INTO public.forum_posts VALUES ('b8c26a3c-a53b-57b6-b89e-a7a3c839b4ab', 'e16a7af2-eacb-5a09-a748-3a5014343a61', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'Chị Oanh nói đúng, nhưng deadline thì cà phê vẫn cần.', '56b2545d-cc82-58d7-a6da-c10207a23b3c', NULL, '2026-10-18 09:40:41.143+07', '2026-10-18 09:40:41.143+07');
+INSERT INTO public.forum_posts VALUES ('f94cab93-e3d0-5fdb-b383-b355b29c96fd', 'acb388a7-bf5b-58f2-acb0-63f655502a15', 'c006903d-bea8-5844-a0dc-63df6be24c0c', 'Nhiều bạn trẻ làm việc quá sức vì sợ chậm tiến độ. Theo mọi người, làm gì để không kiệt sức mà vẫn hoàn thành công việc?', NULL, NULL, '2026-10-21 12:51:26.414+07', '2026-10-21 12:51:26.414+07');
+INSERT INTO public.forum_posts VALUES ('b21d9249-1836-51c1-9a10-918387f5d01f', 'acb388a7-bf5b-58f2-acb0-63f655502a15', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Đặt ranh giới giờ làm việc, tắt thông báo công việc sau giờ, và nói chuyện thẳng với quản lý khi khối lượng quá tải.', NULL, NULL, '2026-10-21 14:08:58.116+07', '2026-10-21 14:08:58.116+07');
+INSERT INTO public.forum_posts VALUES ('d35f634e-5876-5f4d-be33-1d04758e80b0', 'acb388a7-bf5b-58f2-acb0-63f655502a15', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Vận động đều đặn, ngủ đủ và có sở thích ngoài công việc. Burnout khó phục hồi hơn nhiều so với việc phòng ngừa.', NULL, NULL, '2026-10-21 19:13:21.843+07', '2026-10-21 19:13:21.843+07');
+INSERT INTO public.forum_posts VALUES ('0dd209aa-6cb7-5e63-999e-4bac38a99ea3', 'acb388a7-bf5b-58f2-acb0-63f655502a15', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình chia task nhỏ và ăn mừng từng cột mốc, thấy đỡ áp lực hơn hẳn.', NULL, NULL, '2026-10-22 02:23:16.438+07', '2026-10-22 02:23:16.438+07');
+INSERT INTO public.forum_posts VALUES ('d3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', '733fa355-0efc-5950-8c49-87a36b7d4abb', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'Hôm qua mình đổi đúng một dòng cấu hình, CI báo đỏ cả màn hình. Ai cũng từng có kỷ niệm kiểu này, kể nghe cho vui nào!', NULL, NULL, '2026-10-25 10:26:22.69+07', '2026-10-25 10:26:22.69+07');
+INSERT INTO public.forum_posts VALUES ('ad7de15b-07ff-5d66-8270-158363a8392e', '733fa355-0efc-5950-8c49-87a36b7d4abb', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Mình sửa lỗi chính tả trong message, test snapshot hỏng hết 🤣', NULL, NULL, '2026-10-25 15:03:23.741+07', '2026-10-25 15:03:23.741+07');
+INSERT INTO public.forum_posts VALUES ('08570ebc-2987-5453-8f26-a51a078e443d', '733fa355-0efc-5950-8c49-87a36b7d4abb', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', '"Chỉ sửa một chút thôi mà" là câu mở đầu của mọi thảm họa.', NULL, NULL, '2026-10-25 15:28:43.155+07', '2026-10-25 15:28:43.155+07');
+INSERT INTO public.forum_posts VALUES ('e00ed39f-e17f-5b0b-a30e-e863c828c54f', '733fa355-0efc-5950-8c49-87a36b7d4abb', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Test hỏng vì một dòng sửa thì cũng là lúc biết test có tác dụng.', 'd3f3c037-d51b-59d9-9bcf-3c5fc3d3978b', NULL, '2026-10-25 22:14:03.22+07', '2026-10-25 22:14:03.22+07');
+INSERT INTO public.forum_posts VALUES ('c39c52bb-08a3-5d90-a7fe-ddfdf9cf290a', '4e0f7d79-ea06-578a-9379-d46a8c0ca28b', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Mình hay đi vẽ phác thảo ở quán cà phê hoặc đạp xe ven sông. Còn mọi người?', NULL, NULL, '2026-10-28 13:30:12.476+07', '2026-10-28 13:30:12.476+07');
+INSERT INTO public.forum_posts VALUES ('46c3ecb2-59ed-59b0-86f1-351fbc59b851', '4e0f7d79-ea06-578a-9379-d46a8c0ca28b', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Mình đá bóng sân mini với đồng nghiệp, mệt nhưng vui.', NULL, NULL, '2026-10-28 17:22:20.284+07', '2026-10-28 17:22:20.284+07');
+INSERT INTO public.forum_posts VALUES ('57cf13d6-4b89-537d-899d-10622d19bef1', '4e0f7d79-ea06-578a-9379-d46a8c0ca28b', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Nấu ăn thử món mới và xem phim, đơn giản mà thư giãn.', NULL, NULL, '2026-10-28 20:14:16.465+07', '2026-10-28 20:14:16.465+07');
+INSERT INTO public.forum_posts VALUES ('b070e77d-7c02-574d-9eec-48d4eb70a4de', '4e0f7d79-ea06-578a-9379-d46a8c0ca28b', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', 'Chạy bộ buổi sáng, đầu óc nhẹ hẳn.', NULL, NULL, '2026-10-28 21:13:41.953+07', '2026-10-28 21:13:41.953+07');
+INSERT INTO public.forum_posts VALUES ('e3170900-e6e5-5190-b1b6-445c511dcd35', 'bb3a8d08-a2c9-5cf2-9d47-2428d78c7039', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Chào mọi người, mình là Ánh, React Developer ở Hà Nội. Mình tham gia để học hỏi và chia sẻ kinh nghiệm frontend. Rất mong được làm quen với các bạn!', NULL, NULL, '2026-11-01 11:50:53.978+07', '2026-11-01 11:50:53.978+07');
+INSERT INTO public.forum_posts VALUES ('d1d04381-3cb5-573f-943c-a53ad592e36b', 'bb3a8d08-a2c9-5cf2-9d47-2428d78c7039', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Chào Ánh, chào mừng bạn!', NULL, NULL, '2026-11-01 15:44:50.511+07', '2026-11-01 15:44:50.511+07');
+INSERT INTO public.forum_posts VALUES ('e8260de0-5f09-576f-8572-555b487c28af', 'bb3a8d08-a2c9-5cf2-9d47-2428d78c7039', '429535c5-5df7-5e12-b135-1572e5931035', 'Hoan nghênh bạn, có gì cần trao đổi về React cứ hỏi nhé.', NULL, NULL, '2026-11-01 17:49:44.16+07', '2026-11-01 17:49:44.16+07');
+INSERT INTO public.forum_posts VALUES ('99f43bc4-90c7-5f0f-835b-13c92ade9901', 'bb3a8d08-a2c9-5cf2-9d47-2428d78c7039', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Chào mừng bạn đến với diễn đàn DevHub!', 'e3170900-e6e5-5190-b1b6-445c511dcd35', NULL, '2026-11-02 02:01:31.859+07', '2026-11-02 02:01:31.859+07');
+INSERT INTO public.forum_posts VALUES ('9084dd3e-e9f8-5836-91cf-359e39631e3a', '77a7cdda-1367-585f-84bc-a31365cec292', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Mọi người rảnh tối thứ Hai lúc 20h không? Mình đề xuất họp 20 phút để chia lại task cho sprint của dự án "Website thương mại điện tử thời trang" và rà các việc đang bị chặn.', NULL, NULL, '2026-10-24 13:57:41.67+07', '2026-10-24 13:57:41.67+07');
+INSERT INTO public.forum_posts VALUES ('f4118717-1b2e-516d-ad57-2803f52bb225', '77a7cdda-1367-585f-84bc-a31365cec292', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Mình rảnh, 20h ổn ạ.', NULL, NULL, '2026-10-24 14:58:57+07', '2026-10-24 14:58:57+07');
+INSERT INTO public.forum_posts VALUES ('c986e33c-6183-5684-81f9-5c3f1ef4bdc9', '77a7cdda-1367-585f-84bc-a31365cec292', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Ok, họp lúc 20h qua Google Meet. Mọi người cập nhật trạng thái task trên bảng trước giờ họp nhé.', '9084dd3e-e9f8-5836-91cf-359e39631e3a', NULL, '2026-10-24 18:58:08.936+07', '2026-10-24 18:58:08.936+07');
+INSERT INTO public.forum_posts VALUES ('4fd05a38-72da-52f4-8eb7-a8ed147328e6', '77a7cdda-1367-585f-84bc-a31365cec292', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Mình sẽ gửi link họp trong nhóm.', NULL, NULL, '2026-10-25 00:11:57.328+07', '2026-10-25 00:11:57.328+07');
+INSERT INTO public.forum_posts VALUES ('3aeb225b-0db4-59e1-b330-4fa5adfede82', 'ce63f8cc-43de-567f-ab85-37b78ffb4888', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Để dễ theo dõi lịch sử, cả nhóm thống nhất:
+
+• Nhánh: feature/ten-chuc-nang, fix/ten-loi.
+• Commit: feat: ..., fix: ..., docs: ... (tiếng Việt hoặc tiếng Anh đều được, nhất quán trong nhóm).
+• Mỗi task một nhánh, tạo PR vào nhánh develop, cần ít nhất 1 người duyệt.
+• Không commit file .env hay khóa bí mật.', NULL, NULL, '2026-10-26 15:32:16.859+07', '2026-10-26 15:32:16.859+07');
+INSERT INTO public.forum_posts VALUES ('09040b51-bcd1-548c-9e71-eaae4fc956e8', 'ce63f8cc-43de-567f-ab85-37b78ffb4888', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Đã rõ, mình sẽ làm theo quy ước.', NULL, NULL, '2026-10-26 16:56:43.036+07', '2026-10-26 16:56:43.036+07');
+INSERT INTO public.forum_posts VALUES ('018780ea-1964-51e9-b82a-6d1ffe574285', 'ce63f8cc-43de-567f-ab85-37b78ffb4888', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Cho mình hỏi nhánh develop đã tạo chưa ạ?', '3aeb225b-0db4-59e1-b330-4fa5adfede82', NULL, '2026-10-26 19:43:47.39+07', '2026-10-26 19:43:47.39+07');
+INSERT INTO public.forum_posts VALUES ('eba05ed1-0de5-5d78-bfa9-3b1ca529c1cc', 'ce63f8cc-43de-567f-ab85-37b78ffb4888', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Mình đã tạo rồi, em pull về và tạo nhánh từ đó nhé.', '09040b51-bcd1-548c-9e71-eaae4fc956e8', NULL, '2026-10-26 21:28:39.947+07', '2026-10-26 21:28:39.947+07');
+INSERT INTO public.forum_posts VALUES ('4f958ee9-7caa-53ab-bfa6-29355558b1c3', 'c09bfce6-4bee-5234-a3f8-61b5ad4fc903', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Mình đang làm màn hình đăng nhập cho "Website thương mại điện tử thời trang". API trả về `accessToken` trong body còn refresh token để cookie đúng không? Mình cần lưu token ở frontend thế nào cho đúng quy ước của nhóm?', NULL, NULL, '2026-10-28 11:28:30.441+07', '2026-10-28 11:28:30.441+07');
+INSERT INTO public.forum_posts VALUES ('d48bc0f9-fab3-5526-9f01-b41365cc9955', 'c09bfce6-4bee-5234-a3f8-61b5ad4fc903', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Đúng rồi, accessToken lưu và gắn vào header Authorization, refresh token nằm trong cookie HttpOnly, frontend không đọc được. Khi 401 thì gọi endpoint refresh để lấy token mới.', NULL, NULL, '2026-10-28 12:04:33.078+07', '2026-10-28 12:04:33.078+07');
+INSERT INTO public.forum_posts VALUES ('c273e92d-e8fb-571d-b1a9-c7944f4af1d1', 'c09bfce6-4bee-5234-a3f8-61b5ad4fc903', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Mình hiểu rồi, cảm ơn anh/chị.', '4f958ee9-7caa-53ab-bfa6-29355558b1c3', NULL, '2026-10-28 18:24:42.324+07', '2026-10-28 18:24:42.324+07');
+INSERT INTO public.forum_posts VALUES ('635f61a3-7707-549f-ab22-0f99022eafcc', 'c09bfce6-4bee-5234-a3f8-61b5ad4fc903', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Mình đã có sẵn interceptor axios tự refresh, em gửi đoạn mã vào repo nhé.', NULL, NULL, '2026-10-29 04:29:47.626+07', '2026-10-29 04:29:47.626+07');
+INSERT INTO public.forum_posts VALUES ('197d3903-7423-561f-8b7d-a2ae2e580b53', '3074bf77-7e22-5ae7-a037-a3f3c0aef634', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Các bạn trong dự án "Website thương mại điện tử thời trang" nhớ cập nhật trạng thái task hằng ngày và gửi nghiệm thu khi hoàn thành kèm ghi chú cách kiểm tra. Task nào vướng mắc thì đăng lên đây để Lead và mình hỗ trợ sớm.', NULL, NULL, '2026-10-29 11:42:04.302+07', '2026-10-29 11:42:04.302+07');
+INSERT INTO public.forum_posts VALUES ('8a2df07f-ba96-5acd-b0dd-043e8065474b', '3074bf77-7e22-5ae7-a037-a3f3c0aef634', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Nhóm đã rõ, mình sẽ nhắc mọi người trong buổi họp.', NULL, NULL, '2026-10-29 14:15:50.307+07', '2026-10-29 14:15:50.307+07');
+INSERT INTO public.forum_posts VALUES ('cf57e37c-eed8-58fa-8ac8-4b8ccbcf9570', '3074bf77-7e22-5ae7-a037-a3f3c0aef634', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Em sẽ cập nhật trạng thái trước 17h mỗi ngày.', NULL, NULL, '2026-10-29 20:18:10.798+07', '2026-10-29 20:18:10.798+07');
+INSERT INTO public.forum_posts VALUES ('f388d1d3-d12f-5f51-9006-934c93b90486', '44012eeb-0ab5-5656-bacf-1ab56137c7ed', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Mình viết nhanh hướng dẫn cài đặt môi trường và chạy "Website thương mại điện tử thời trang" trên máy local (cài Node.js, tạo file .env từ .env.example, chạy migration, khởi động server và client). Ai gặp lỗi khi chạy cứ hỏi dưới bài này nhé.', NULL, NULL, '2026-10-31 15:41:47.279+07', '2026-10-31 15:41:47.279+07');
+INSERT INTO public.forum_posts VALUES ('2411589f-b315-56dc-9dc4-f7275dda0e09', '44012eeb-0ab5-5656-bacf-1ab56137c7ed', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Cảm ơn bạn, mình chạy theo hướng dẫn là lên được ngay.', NULL, NULL, '2026-10-31 17:17:09.274+07', '2026-10-31 17:17:09.274+07');
+INSERT INTO public.forum_posts VALUES ('85bd9ed2-c6cb-584e-ad7c-40e2c28e4681', '44012eeb-0ab5-5656-bacf-1ab56137c7ed', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Mình bị lỗi thiếu biến môi trường DB_HOST, thêm vào .env là chạy.', 'f388d1d3-d12f-5f51-9006-934c93b90486', NULL, '2026-11-01 01:33:35.725+07', '2026-11-01 01:33:35.725+07');
+INSERT INTO public.forum_posts VALUES ('8c6138fb-5bb8-5102-b1bc-57a69ca5e45a', '44012eeb-0ab5-5656-bacf-1ab56137c7ed', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Mình đã bổ sung vào file .env.example, cảm ơn bạn đã báo.', '2411589f-b315-56dc-9dc4-f7275dda0e09', NULL, '2026-11-01 05:10:26.91+07', '2026-11-01 05:10:26.91+07');
+INSERT INTO public.forum_posts VALUES ('2455fe65-bb1d-57e3-a022-0590a5bb06d6', '4eba5d6f-0a69-53d6-9021-c5a7843b4b92', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mọi người rảnh tối thứ Hai lúc 20h không? Mình đề xuất họp 20 phút để chia lại task cho sprint của dự án "Ứng dụng di động theo dõi chi tiêu cá nhân" và rà các việc đang bị chặn.', NULL, NULL, '2026-10-24 10:48:26.231+07', '2026-10-24 10:48:26.231+07');
+INSERT INTO public.forum_posts VALUES ('a34162ad-0b99-5b6c-8a0e-f865280c4dc8', '4eba5d6f-0a69-53d6-9021-c5a7843b4b92', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình rảnh, 20h ổn ạ.', NULL, NULL, '2026-10-24 11:02:06.279+07', '2026-10-24 11:02:06.279+07');
+INSERT INTO public.forum_posts VALUES ('5279feb9-7626-50d7-baaf-ea84cd888e5d', '4eba5d6f-0a69-53d6-9021-c5a7843b4b92', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Ok, họp lúc 20h qua Google Meet. Mọi người cập nhật trạng thái task trên bảng trước giờ họp nhé.', '2455fe65-bb1d-57e3-a022-0590a5bb06d6', NULL, '2026-10-24 11:47:20.439+07', '2026-10-24 11:47:20.439+07');
+INSERT INTO public.forum_posts VALUES ('1ad3d1e5-7b05-539b-9cdf-1f7acc5b53f5', '4eba5d6f-0a69-53d6-9021-c5a7843b4b92', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mình sẽ gửi link họp trong nhóm.', NULL, NULL, '2026-10-24 21:53:55.124+07', '2026-10-24 21:53:55.124+07');
+INSERT INTO public.forum_posts VALUES ('439902a1-2267-50de-acd3-7e729c533087', '85dcf9b8-a181-5c20-8878-9bd8af9148ae', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Để dễ theo dõi lịch sử, cả nhóm thống nhất:
+
+• Nhánh: feature/ten-chuc-nang, fix/ten-loi.
+• Commit: feat: ..., fix: ..., docs: ... (tiếng Việt hoặc tiếng Anh đều được, nhất quán trong nhóm).
+• Mỗi task một nhánh, tạo PR vào nhánh develop, cần ít nhất 1 người duyệt.
+• Không commit file .env hay khóa bí mật.', NULL, NULL, '2026-10-26 12:51:12.639+07', '2026-10-26 12:51:12.639+07');
+INSERT INTO public.forum_posts VALUES ('2b160a11-8509-521a-9cee-b4a5b77ee753', '85dcf9b8-a181-5c20-8878-9bd8af9148ae', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Đã rõ, mình sẽ làm theo quy ước.', NULL, NULL, '2026-10-26 16:47:35.045+07', '2026-10-26 16:47:35.045+07');
+INSERT INTO public.forum_posts VALUES ('fd84cbb3-0fc0-5d59-9e74-e01b8ed243be', '85dcf9b8-a181-5c20-8878-9bd8af9148ae', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Cho mình hỏi nhánh develop đã tạo chưa ạ?', '439902a1-2267-50de-acd3-7e729c533087', NULL, '2026-10-26 22:27:36.996+07', '2026-10-26 22:27:36.996+07');
+INSERT INTO public.forum_posts VALUES ('e4df3d1f-dc6b-5f49-9637-d14495639b2a', '85dcf9b8-a181-5c20-8878-9bd8af9148ae', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mình đã tạo rồi, em pull về và tạo nhánh từ đó nhé.', '2b160a11-8509-521a-9cee-b4a5b77ee753', NULL, '2026-10-26 23:07:08.526+07', '2026-10-26 23:07:08.526+07');
+INSERT INTO public.forum_posts VALUES ('d77b6912-7186-59de-9d77-8f0ed470997f', 'c3651837-cd72-5bdb-a0f2-4e006d5b7528', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình đang làm màn hình đăng nhập cho "Ứng dụng di động theo dõi chi tiêu cá nhân". API trả về `accessToken` trong body còn refresh token để cookie đúng không? Mình cần lưu token ở frontend thế nào cho đúng quy ước của nhóm?', NULL, NULL, '2026-10-28 12:22:14.817+07', '2026-10-28 12:22:14.817+07');
+INSERT INTO public.forum_posts VALUES ('58faaf33-1f52-5463-ae46-269d75ea306a', 'c3651837-cd72-5bdb-a0f2-4e006d5b7528', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Đúng rồi, accessToken lưu và gắn vào header Authorization, refresh token nằm trong cookie HttpOnly, frontend không đọc được. Khi 401 thì gọi endpoint refresh để lấy token mới.', NULL, NULL, '2026-10-28 14:57:00.596+07', '2026-10-28 14:57:00.596+07');
+INSERT INTO public.forum_posts VALUES ('213b6a55-8075-5d74-a4b3-160496cc6e5e', 'c3651837-cd72-5bdb-a0f2-4e006d5b7528', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình hiểu rồi, cảm ơn anh/chị.', 'd77b6912-7186-59de-9d77-8f0ed470997f', NULL, '2026-10-28 15:18:38.999+07', '2026-10-28 15:18:38.999+07');
+INSERT INTO public.forum_posts VALUES ('ce105d2c-0565-5bfd-a472-fc800865551c', 'c3651837-cd72-5bdb-a0f2-4e006d5b7528', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Mình đã có sẵn interceptor axios tự refresh, em gửi đoạn mã vào repo nhé.', NULL, NULL, '2026-10-28 15:50:10.736+07', '2026-10-28 15:50:10.736+07');
+INSERT INTO public.forum_posts VALUES ('c3f7057d-da18-566a-836e-8490c8d067c8', 'c1e92046-6025-54f8-b9a9-78af4384c208', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Các bạn trong dự án "Ứng dụng di động theo dõi chi tiêu cá nhân" nhớ cập nhật trạng thái task hằng ngày và gửi nghiệm thu khi hoàn thành kèm ghi chú cách kiểm tra. Task nào vướng mắc thì đăng lên đây để Lead và mình hỗ trợ sớm.', NULL, NULL, '2026-10-29 14:01:22.083+07', '2026-10-29 14:01:22.083+07');
+INSERT INTO public.forum_posts VALUES ('58d6ba4e-aeba-5047-81d2-b52376aa80b7', 'c1e92046-6025-54f8-b9a9-78af4384c208', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Nhóm đã rõ, mình sẽ nhắc mọi người trong buổi họp.', NULL, NULL, '2026-10-29 18:46:57.235+07', '2026-10-29 18:46:57.235+07');
+INSERT INTO public.forum_posts VALUES ('b224f26f-325a-548e-ae51-27c82fdca5ad', 'c1e92046-6025-54f8-b9a9-78af4384c208', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Em sẽ cập nhật trạng thái trước 17h mỗi ngày.', NULL, NULL, '2026-10-30 04:44:49.089+07', '2026-10-30 04:44:49.089+07');
+INSERT INTO public.forum_posts VALUES ('8198cca1-be72-551d-857e-1627d9b64b83', 'ceb225be-a1ae-5d5e-b124-b439aa2a50f4', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Mình viết nhanh hướng dẫn cài đặt môi trường và chạy "Ứng dụng di động theo dõi chi tiêu cá nhân" trên máy local (cài Node.js, tạo file .env từ .env.example, chạy migration, khởi động server và client). Ai gặp lỗi khi chạy cứ hỏi dưới bài này nhé.', NULL, NULL, '2026-10-31 15:15:33.599+07', '2026-10-31 15:15:33.599+07');
+INSERT INTO public.forum_posts VALUES ('5fb4a5df-b82f-5c9f-b9c1-54e3d3de2556', 'ceb225be-a1ae-5d5e-b124-b439aa2a50f4', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Cảm ơn bạn, mình chạy theo hướng dẫn là lên được ngay.', NULL, NULL, '2026-10-31 19:56:59.654+07', '2026-10-31 19:56:59.654+07');
+INSERT INTO public.forum_posts VALUES ('77db8f42-955d-5384-8358-08eef95f2ed0', 'ceb225be-a1ae-5d5e-b124-b439aa2a50f4', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình bị lỗi thiếu biến môi trường DB_HOST, thêm vào .env là chạy.', '8198cca1-be72-551d-857e-1627d9b64b83', NULL, '2026-11-01 02:10:23.364+07', '2026-11-01 02:10:23.364+07');
+INSERT INTO public.forum_posts VALUES ('378d2d82-71ec-5ef8-87b7-e6e886e9618f', 'ceb225be-a1ae-5d5e-b124-b439aa2a50f4', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Mình đã bổ sung vào file .env.example, cảm ơn bạn đã báo.', '5fb4a5df-b82f-5c9f-b9c1-54e3d3de2556', NULL, '2026-11-01 15:15:20.117+07', '2026-11-01 15:15:20.117+07');
+INSERT INTO public.forum_posts VALUES ('806f5dfc-535f-5a7e-aac4-ba0242bbf97d', '65647ac3-606a-5f48-a8a1-9c702da47d74', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Mọi người rảnh tối thứ Hai lúc 20h không? Mình đề xuất họp 20 phút để chia lại task cho sprint của dự án "Hệ thống đặt lịch khám bệnh trực tuyến" và rà các việc đang bị chặn.', NULL, NULL, '2026-10-24 12:49:06.188+07', '2026-10-24 12:49:06.188+07');
+INSERT INTO public.forum_posts VALUES ('99c9509f-7325-5a65-9473-cd933297788b', '65647ac3-606a-5f48-a8a1-9c702da47d74', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình rảnh, 20h ổn ạ.', NULL, NULL, '2026-10-24 16:33:45.85+07', '2026-10-24 16:33:45.85+07');
+INSERT INTO public.forum_posts VALUES ('60164f63-f5a1-5d79-946e-4a5db8421adb', '65647ac3-606a-5f48-a8a1-9c702da47d74', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Ok, họp lúc 20h qua Google Meet. Mọi người cập nhật trạng thái task trên bảng trước giờ họp nhé.', '806f5dfc-535f-5a7e-aac4-ba0242bbf97d', NULL, '2026-10-25 07:39:44.689+07', '2026-10-25 07:39:44.689+07');
+INSERT INTO public.forum_posts VALUES ('d06f0055-e27a-55dd-9405-ac87e0fc9e5d', '65647ac3-606a-5f48-a8a1-9c702da47d74', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Mình sẽ gửi link họp trong nhóm.', NULL, NULL, '2026-10-25 08:44:53.399+07', '2026-10-25 08:44:53.399+07');
+INSERT INTO public.forum_posts VALUES ('82569202-3014-5fd1-82d5-46ad0ff3272d', '1903c289-9f18-5351-b33a-01e568e4b574', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Để dễ theo dõi lịch sử, cả nhóm thống nhất:
+
+• Nhánh: feature/ten-chuc-nang, fix/ten-loi.
+• Commit: feat: ..., fix: ..., docs: ... (tiếng Việt hoặc tiếng Anh đều được, nhất quán trong nhóm).
+• Mỗi task một nhánh, tạo PR vào nhánh develop, cần ít nhất 1 người duyệt.
+• Không commit file .env hay khóa bí mật.', NULL, NULL, '2026-10-26 11:29:19.823+07', '2026-10-26 11:29:19.823+07');
+INSERT INTO public.forum_posts VALUES ('d0c1030e-e009-501d-bb26-b1eb7ca789dd', '1903c289-9f18-5351-b33a-01e568e4b574', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Đã rõ, mình sẽ làm theo quy ước.', NULL, NULL, '2026-10-26 12:23:33.769+07', '2026-10-26 12:23:33.769+07');
+INSERT INTO public.forum_posts VALUES ('64c102a3-0263-5a1b-aa30-4a076d976c59', '1903c289-9f18-5351-b33a-01e568e4b574', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Cho mình hỏi nhánh develop đã tạo chưa ạ?', '82569202-3014-5fd1-82d5-46ad0ff3272d', NULL, '2026-10-26 12:38:35.778+07', '2026-10-26 12:38:35.778+07');
+INSERT INTO public.forum_posts VALUES ('c9d9ae11-6ac3-5a63-944e-a555d79d44ac', '1903c289-9f18-5351-b33a-01e568e4b574', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Mình đã tạo rồi, em pull về và tạo nhánh từ đó nhé.', 'd0c1030e-e009-501d-bb26-b1eb7ca789dd', NULL, '2026-10-26 18:29:39.242+07', '2026-10-26 18:29:39.242+07');
+INSERT INTO public.forum_posts VALUES ('552330bd-f4eb-58f9-9bb2-f18ff0ab50ab', '41495cb7-1043-5c62-a876-3495567f4918', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình đang làm màn hình đăng nhập cho "Hệ thống đặt lịch khám bệnh trực tuyến". API trả về `accessToken` trong body còn refresh token để cookie đúng không? Mình cần lưu token ở frontend thế nào cho đúng quy ước của nhóm?', NULL, NULL, '2026-10-28 14:43:34.637+07', '2026-10-28 14:43:34.637+07');
+INSERT INTO public.forum_posts VALUES ('5750f4c4-3a42-57f9-8021-3207ed965628', '41495cb7-1043-5c62-a876-3495567f4918', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Đúng rồi, accessToken lưu và gắn vào header Authorization, refresh token nằm trong cookie HttpOnly, frontend không đọc được. Khi 401 thì gọi endpoint refresh để lấy token mới.', NULL, NULL, '2026-10-28 17:27:24.354+07', '2026-10-28 17:27:24.354+07');
+INSERT INTO public.forum_posts VALUES ('2e884bbe-6aef-59d5-9d0b-a6669c206701', '41495cb7-1043-5c62-a876-3495567f4918', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình hiểu rồi, cảm ơn anh/chị.', '552330bd-f4eb-58f9-9bb2-f18ff0ab50ab', NULL, '2026-10-29 02:04:04.208+07', '2026-10-29 02:04:04.208+07');
+INSERT INTO public.forum_posts VALUES ('9174a36c-85ce-5421-8213-472e337b198f', '41495cb7-1043-5c62-a876-3495567f4918', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Mình đã có sẵn interceptor axios tự refresh, em gửi đoạn mã vào repo nhé.', NULL, NULL, '2026-10-29 10:25:27.705+07', '2026-10-29 10:25:27.705+07');
+INSERT INTO public.forum_posts VALUES ('c67835e2-990e-5093-adfe-9813ddda43cd', 'ddf685b5-cdb5-5961-9bff-1b5038336679', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Các bạn trong dự án "Hệ thống đặt lịch khám bệnh trực tuyến" nhớ cập nhật trạng thái task hằng ngày và gửi nghiệm thu khi hoàn thành kèm ghi chú cách kiểm tra. Task nào vướng mắc thì đăng lên đây để Lead và mình hỗ trợ sớm.', NULL, NULL, '2026-10-29 15:32:30.988+07', '2026-10-29 15:32:30.988+07');
+INSERT INTO public.forum_posts VALUES ('f6c7cd1a-7429-5dfb-8b57-3c434ad263e3', 'ddf685b5-cdb5-5961-9bff-1b5038336679', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Nhóm đã rõ, mình sẽ nhắc mọi người trong buổi họp.', NULL, NULL, '2026-10-29 19:10:26.577+07', '2026-10-29 19:10:26.577+07');
+INSERT INTO public.forum_posts VALUES ('fa46746e-5d2b-51b3-801c-7819fbf140bd', 'ddf685b5-cdb5-5961-9bff-1b5038336679', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Em sẽ cập nhật trạng thái trước 17h mỗi ngày.', NULL, NULL, '2026-10-30 02:06:28.132+07', '2026-10-30 02:06:28.132+07');
+INSERT INTO public.forum_posts VALUES ('95351a34-b0df-5af9-a712-0fd308366023', 'a40c3988-7801-5a45-a410-08870a39dcfc', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Mình viết nhanh hướng dẫn cài đặt môi trường và chạy "Hệ thống đặt lịch khám bệnh trực tuyến" trên máy local (cài Node.js, tạo file .env từ .env.example, chạy migration, khởi động server và client). Ai gặp lỗi khi chạy cứ hỏi dưới bài này nhé.', NULL, NULL, '2026-10-31 15:40:39.932+07', '2026-10-31 15:40:39.932+07');
+INSERT INTO public.forum_posts VALUES ('89204df1-efe1-554b-ae0e-7710dedab370', 'a40c3988-7801-5a45-a410-08870a39dcfc', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Cảm ơn bạn, mình chạy theo hướng dẫn là lên được ngay.', NULL, NULL, '2026-10-31 19:21:14.532+07', '2026-10-31 19:21:14.532+07');
+INSERT INTO public.forum_posts VALUES ('15485b1b-61b0-54da-b34d-bb53f99bc755', 'a40c3988-7801-5a45-a410-08870a39dcfc', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình bị lỗi thiếu biến môi trường DB_HOST, thêm vào .env là chạy.', '95351a34-b0df-5af9-a712-0fd308366023', NULL, '2026-10-31 20:45:27.038+07', '2026-10-31 20:45:27.038+07');
+INSERT INTO public.forum_posts VALUES ('1b4acb31-4e71-5142-8c25-416d045f4723', 'a40c3988-7801-5a45-a410-08870a39dcfc', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Mình đã bổ sung vào file .env.example, cảm ơn bạn đã báo.', '89204df1-efe1-554b-ae0e-7710dedab370', NULL, '2026-11-01 01:28:29.168+07', '2026-11-01 01:28:29.168+07');
+INSERT INTO public.forum_posts VALUES ('37143050-3984-5852-8df4-270bfc6ed151', 'dcefb457-f17e-53bc-aa8c-1f7ea7e135dd', '4e332674-295d-444c-a507-2d60b50f1be1', 'Mọi người rảnh tối thứ Hai lúc 20h không? Mình đề xuất họp 20 phút để chia lại task cho sprint của dự án "Hệ thống Quản lý kho Logistics (DevHub Client)" và rà các việc đang bị chặn.', NULL, NULL, '2026-10-24 12:19:35.315+07', '2026-10-24 12:19:35.315+07');
+INSERT INTO public.forum_posts VALUES ('ef004ad1-aef0-51ee-89d3-af141ec1150e', 'dcefb457-f17e-53bc-aa8c-1f7ea7e135dd', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình rảnh, 20h ổn ạ.', NULL, NULL, '2026-10-24 13:56:53.775+07', '2026-10-24 13:56:53.775+07');
+INSERT INTO public.forum_posts VALUES ('6c3f3151-728c-5472-86b6-4c7f757f098d', 'dcefb457-f17e-53bc-aa8c-1f7ea7e135dd', '4e332674-295d-444c-a507-2d60b50f1be1', 'Ok, họp lúc 20h qua Google Meet. Mọi người cập nhật trạng thái task trên bảng trước giờ họp nhé.', '37143050-3984-5852-8df4-270bfc6ed151', NULL, '2026-10-24 21:47:03.613+07', '2026-10-24 21:47:03.613+07');
+INSERT INTO public.forum_posts VALUES ('45861825-3b43-51f8-99b3-d2ad72d49a16', 'dcefb457-f17e-53bc-aa8c-1f7ea7e135dd', '4e332674-295d-444c-a507-2d60b50f1be1', 'Mình sẽ gửi link họp trong nhóm.', NULL, NULL, '2026-10-24 23:28:19.084+07', '2026-10-24 23:28:19.084+07');
+INSERT INTO public.forum_posts VALUES ('fc14393e-5a07-504a-bdd3-a5943deb2563', 'dd25d243-fe3e-523b-be17-187138eec206', '4e332674-295d-444c-a507-2d60b50f1be1', 'Để dễ theo dõi lịch sử, cả nhóm thống nhất:
+
+• Nhánh: feature/ten-chuc-nang, fix/ten-loi.
+• Commit: feat: ..., fix: ..., docs: ... (tiếng Việt hoặc tiếng Anh đều được, nhất quán trong nhóm).
+• Mỗi task một nhánh, tạo PR vào nhánh develop, cần ít nhất 1 người duyệt.
+• Không commit file .env hay khóa bí mật.', NULL, NULL, '2026-10-26 10:18:38.159+07', '2026-10-26 10:18:38.159+07');
+INSERT INTO public.forum_posts VALUES ('2eaa86c4-a568-5b20-a326-fe37f0b2f445', 'dd25d243-fe3e-523b-be17-187138eec206', '4e332674-295d-444c-a507-2d60b50f1be1', 'Đã rõ, mình sẽ làm theo quy ước.', NULL, NULL, '2026-10-26 14:10:26.268+07', '2026-10-26 14:10:26.268+07');
+INSERT INTO public.forum_posts VALUES ('6739d07b-8ead-5d99-91bf-3a70d05e3363', 'dd25d243-fe3e-523b-be17-187138eec206', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Cho mình hỏi nhánh develop đã tạo chưa ạ?', 'fc14393e-5a07-504a-bdd3-a5943deb2563', NULL, '2026-10-26 19:31:04.878+07', '2026-10-26 19:31:04.878+07');
+INSERT INTO public.forum_posts VALUES ('dddd1e42-3180-536c-90d7-df29737144a1', 'dd25d243-fe3e-523b-be17-187138eec206', '4e332674-295d-444c-a507-2d60b50f1be1', 'Mình đã tạo rồi, em pull về và tạo nhánh từ đó nhé.', '2eaa86c4-a568-5b20-a326-fe37f0b2f445', NULL, '2026-10-26 21:55:59.236+07', '2026-10-26 21:55:59.236+07');
+INSERT INTO public.forum_posts VALUES ('6fea53a6-0a89-520d-aa08-ca619be9b4b8', '82fa1252-a210-5b56-be33-b59ebc0a428c', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình đang làm màn hình đăng nhập cho "Hệ thống Quản lý kho Logistics (DevHub Client)". API trả về `accessToken` trong body còn refresh token để cookie đúng không? Mình cần lưu token ở frontend thế nào cho đúng quy ước của nhóm?', NULL, NULL, '2026-10-28 13:09:15.076+07', '2026-10-28 13:09:15.076+07');
+INSERT INTO public.forum_posts VALUES ('8756d7c8-3295-5654-9cce-af91d9a134ce', '82fa1252-a210-5b56-be33-b59ebc0a428c', '4e332674-295d-444c-a507-2d60b50f1be1', 'Đúng rồi, accessToken lưu và gắn vào header Authorization, refresh token nằm trong cookie HttpOnly, frontend không đọc được. Khi 401 thì gọi endpoint refresh để lấy token mới.', NULL, NULL, '2026-10-28 17:45:16.096+07', '2026-10-28 17:45:16.096+07');
+INSERT INTO public.forum_posts VALUES ('05b93cd9-0dbd-5a2a-94e0-095a2f74e7a0', '82fa1252-a210-5b56-be33-b59ebc0a428c', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình hiểu rồi, cảm ơn anh/chị.', '6fea53a6-0a89-520d-aa08-ca619be9b4b8', NULL, '2026-10-28 22:05:40.015+07', '2026-10-28 22:05:40.015+07');
+INSERT INTO public.forum_posts VALUES ('86035c7a-ccde-5d54-b8a8-ba6a718ac854', '82fa1252-a210-5b56-be33-b59ebc0a428c', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình đã có sẵn interceptor axios tự refresh, em gửi đoạn mã vào repo nhé.', NULL, NULL, '2026-10-28 23:19:29.447+07', '2026-10-28 23:19:29.447+07');
+INSERT INTO public.forum_posts VALUES ('152c7e3a-7414-5b79-9dd3-929f8071a072', 'dbcd2cd0-2b61-5feb-b00b-ec1632477c73', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Các bạn trong dự án "Hệ thống Quản lý kho Logistics (DevHub Client)" nhớ cập nhật trạng thái task hằng ngày và gửi nghiệm thu khi hoàn thành kèm ghi chú cách kiểm tra. Task nào vướng mắc thì đăng lên đây để Lead và mình hỗ trợ sớm.', NULL, NULL, '2026-10-29 10:14:29.735+07', '2026-10-29 10:14:29.735+07');
+INSERT INTO public.forum_posts VALUES ('a3d7e681-61ae-5ac6-b6ee-a712b25517f8', 'dbcd2cd0-2b61-5feb-b00b-ec1632477c73', '4e332674-295d-444c-a507-2d60b50f1be1', 'Nhóm đã rõ, mình sẽ nhắc mọi người trong buổi họp.', NULL, NULL, '2026-10-29 15:19:00.737+07', '2026-10-29 15:19:00.737+07');
+INSERT INTO public.forum_posts VALUES ('bb9718df-eb31-5a2b-8027-d76ff101bf77', 'dbcd2cd0-2b61-5feb-b00b-ec1632477c73', '4e332674-295d-444c-a507-2d60b50f1be1', 'Em sẽ cập nhật trạng thái trước 17h mỗi ngày.', NULL, NULL, '2026-10-29 16:15:01.482+07', '2026-10-29 16:15:01.482+07');
+INSERT INTO public.forum_posts VALUES ('474bde7c-1049-5e61-9305-7bd3567d165f', '5d4bf3c3-a69f-58d7-bdc0-5ab88e824970', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình viết nhanh hướng dẫn cài đặt môi trường và chạy "Hệ thống Quản lý kho Logistics (DevHub Client)" trên máy local (cài Node.js, tạo file .env từ .env.example, chạy migration, khởi động server và client). Ai gặp lỗi khi chạy cứ hỏi dưới bài này nhé.', NULL, NULL, '2026-10-31 13:44:02.595+07', '2026-10-31 13:44:02.595+07');
+INSERT INTO public.forum_posts VALUES ('3c2e1fed-60df-5ad1-a904-b1c3cd6d31f4', '5d4bf3c3-a69f-58d7-bdc0-5ab88e824970', '4e332674-295d-444c-a507-2d60b50f1be1', 'Cảm ơn bạn, mình chạy theo hướng dẫn là lên được ngay.', NULL, NULL, '2026-10-31 14:26:24.133+07', '2026-10-31 14:26:24.133+07');
+INSERT INTO public.forum_posts VALUES ('ef128f66-38f8-5286-845c-da9b06665122', '5d4bf3c3-a69f-58d7-bdc0-5ab88e824970', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình bị lỗi thiếu biến môi trường DB_HOST, thêm vào .env là chạy.', '474bde7c-1049-5e61-9305-7bd3567d165f', NULL, '2026-10-31 15:31:46.435+07', '2026-10-31 15:31:46.435+07');
+INSERT INTO public.forum_posts VALUES ('d9eaaeb5-47cb-59cd-849c-f81b7750d2e5', '5d4bf3c3-a69f-58d7-bdc0-5ab88e824970', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình đã bổ sung vào file .env.example, cảm ơn bạn đã báo.', '3c2e1fed-60df-5ad1-a904-b1c3cd6d31f4', NULL, '2026-11-01 10:45:06.208+07', '2026-11-01 10:45:06.208+07');
+INSERT INTO public.forum_posts VALUES ('326d4dd3-d7c9-5836-bd47-a91127c495c3', 'f86b96d6-c65d-51db-8849-6367cfa9bb53', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Mọi người rảnh tối thứ Hai lúc 20h không? Mình đề xuất họp 20 phút để chia lại task cho sprint của dự án "Chatbot hỗ trợ luyện tiếng Anh (MVP)" và rà các việc đang bị chặn.', NULL, NULL, '2026-10-24 12:16:43.949+07', '2026-10-24 12:16:43.949+07');
+INSERT INTO public.forum_posts VALUES ('f437c426-6dc8-54aa-8fd0-8717d6d589d9', 'f86b96d6-c65d-51db-8849-6367cfa9bb53', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình rảnh, 20h ổn ạ.', NULL, NULL, '2026-10-24 13:34:17.945+07', '2026-10-24 13:34:17.945+07');
+INSERT INTO public.forum_posts VALUES ('26bc3d5f-ebf3-5923-a8c3-c2df8bf974ad', 'f86b96d6-c65d-51db-8849-6367cfa9bb53', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Ok, họp lúc 20h qua Google Meet. Mọi người cập nhật trạng thái task trên bảng trước giờ họp nhé.', '326d4dd3-d7c9-5836-bd47-a91127c495c3', NULL, '2026-10-24 15:28:38.291+07', '2026-10-24 15:28:38.291+07');
+INSERT INTO public.forum_posts VALUES ('113b0837-9a0e-5ba8-9134-5e58122e9952', 'f86b96d6-c65d-51db-8849-6367cfa9bb53', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Mình sẽ gửi link họp trong nhóm.', NULL, NULL, '2026-10-24 16:37:34.856+07', '2026-10-24 16:37:34.856+07');
+INSERT INTO public.forum_posts VALUES ('c6bd90d7-d95e-5730-b988-9f5abece47fe', '80623bbd-74fe-5bef-8bda-07927780f0c5', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Để dễ theo dõi lịch sử, cả nhóm thống nhất:
+
+• Nhánh: feature/ten-chuc-nang, fix/ten-loi.
+• Commit: feat: ..., fix: ..., docs: ... (tiếng Việt hoặc tiếng Anh đều được, nhất quán trong nhóm).
+• Mỗi task một nhánh, tạo PR vào nhánh develop, cần ít nhất 1 người duyệt.
+• Không commit file .env hay khóa bí mật.', NULL, NULL, '2026-10-26 15:00:54.649+07', '2026-10-26 15:00:54.649+07');
+INSERT INTO public.forum_posts VALUES ('634cf449-877f-5bf5-9bb0-5f140671a29a', '80623bbd-74fe-5bef-8bda-07927780f0c5', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Đã rõ, mình sẽ làm theo quy ước.', NULL, NULL, '2026-10-26 19:32:42.451+07', '2026-10-26 19:32:42.451+07');
+INSERT INTO public.forum_posts VALUES ('28c7376d-3c5e-5cf7-a308-eb31c1d184e4', '80623bbd-74fe-5bef-8bda-07927780f0c5', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Cho mình hỏi nhánh develop đã tạo chưa ạ?', 'c6bd90d7-d95e-5730-b988-9f5abece47fe', NULL, '2026-10-26 21:22:42.843+07', '2026-10-26 21:22:42.843+07');
+INSERT INTO public.forum_posts VALUES ('9837c4bd-3c03-5a57-8150-50dc80e3e120', '80623bbd-74fe-5bef-8bda-07927780f0c5', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Mình đã tạo rồi, em pull về và tạo nhánh từ đó nhé.', '634cf449-877f-5bf5-9bb0-5f140671a29a', NULL, '2026-10-26 22:24:43.813+07', '2026-10-26 22:24:43.813+07');
+INSERT INTO public.forum_posts VALUES ('55968854-b472-5511-b265-44f452b6ab50', 'cb63750e-43b2-5cfb-98f2-29604965dc84', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình đang làm màn hình đăng nhập cho "Chatbot hỗ trợ luyện tiếng Anh (MVP)". API trả về `accessToken` trong body còn refresh token để cookie đúng không? Mình cần lưu token ở frontend thế nào cho đúng quy ước của nhóm?', NULL, NULL, '2026-10-28 10:04:51.757+07', '2026-10-28 10:04:51.757+07');
+INSERT INTO public.forum_posts VALUES ('aff98050-347c-5332-bd4a-eb9f1fb2fc40', 'cb63750e-43b2-5cfb-98f2-29604965dc84', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Đúng rồi, accessToken lưu và gắn vào header Authorization, refresh token nằm trong cookie HttpOnly, frontend không đọc được. Khi 401 thì gọi endpoint refresh để lấy token mới.', NULL, NULL, '2026-10-28 14:53:13.366+07', '2026-10-28 14:53:13.366+07');
+INSERT INTO public.forum_posts VALUES ('074524ac-25d1-53ee-b3a2-42420a896acc', 'cb63750e-43b2-5cfb-98f2-29604965dc84', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình hiểu rồi, cảm ơn anh/chị.', '55968854-b472-5511-b265-44f452b6ab50', NULL, '2026-10-28 17:00:35.899+07', '2026-10-28 17:00:35.899+07');
+INSERT INTO public.forum_posts VALUES ('82553b1c-acee-5cb4-a2d1-c84d90b244ee', 'cb63750e-43b2-5cfb-98f2-29604965dc84', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình đã có sẵn interceptor axios tự refresh, em gửi đoạn mã vào repo nhé.', NULL, NULL, '2026-10-28 20:17:27.88+07', '2026-10-28 20:17:27.88+07');
+INSERT INTO public.forum_posts VALUES ('05db8983-9ce6-58e6-a1fb-3e9e51d746b2', '302b3dde-7a04-54e1-b9d5-2bcce4c1ba97', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Các bạn trong dự án "Chatbot hỗ trợ luyện tiếng Anh (MVP)" nhớ cập nhật trạng thái task hằng ngày và gửi nghiệm thu khi hoàn thành kèm ghi chú cách kiểm tra. Task nào vướng mắc thì đăng lên đây để Lead và mình hỗ trợ sớm.', NULL, NULL, '2026-10-29 12:45:52.476+07', '2026-10-29 12:45:52.476+07');
+INSERT INTO public.forum_posts VALUES ('13aea852-9021-534b-a01f-88e8f8416403', '302b3dde-7a04-54e1-b9d5-2bcce4c1ba97', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Nhóm đã rõ, mình sẽ nhắc mọi người trong buổi họp.', NULL, NULL, '2026-10-29 17:09:14.698+07', '2026-10-29 17:09:14.698+07');
+INSERT INTO public.forum_posts VALUES ('4c4f85e0-3f25-52cc-b001-1fb80e8120f0', '302b3dde-7a04-54e1-b9d5-2bcce4c1ba97', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Em sẽ cập nhật trạng thái trước 17h mỗi ngày.', NULL, NULL, '2026-10-30 03:14:14.898+07', '2026-10-30 03:14:14.898+07');
+INSERT INTO public.forum_posts VALUES ('e61334b0-f54c-5907-952a-8efffed00294', '2416e335-8f20-5601-b188-9046286c786d', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình viết nhanh hướng dẫn cài đặt môi trường và chạy "Chatbot hỗ trợ luyện tiếng Anh (MVP)" trên máy local (cài Node.js, tạo file .env từ .env.example, chạy migration, khởi động server và client). Ai gặp lỗi khi chạy cứ hỏi dưới bài này nhé.', NULL, NULL, '2026-10-31 13:26:03.108+07', '2026-10-31 13:26:03.108+07');
+INSERT INTO public.forum_posts VALUES ('78e66fb6-2dd3-5fcc-8a5c-2b2c04460300', '2416e335-8f20-5601-b188-9046286c786d', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Cảm ơn bạn, mình chạy theo hướng dẫn là lên được ngay.', NULL, NULL, '2026-10-31 17:15:17.749+07', '2026-10-31 17:15:17.749+07');
+INSERT INTO public.forum_posts VALUES ('9b616006-07e8-594f-b414-b0acfb089072', '2416e335-8f20-5601-b188-9046286c786d', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình bị lỗi thiếu biến môi trường DB_HOST, thêm vào .env là chạy.', 'e61334b0-f54c-5907-952a-8efffed00294', NULL, '2026-11-01 03:28:09.732+07', '2026-11-01 03:28:09.732+07');
+INSERT INTO public.forum_posts VALUES ('92b947be-9261-5ece-b84f-772c5db18819', '2416e335-8f20-5601-b188-9046286c786d', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình đã bổ sung vào file .env.example, cảm ơn bạn đã báo.', '78e66fb6-2dd3-5fcc-8a5c-2b2c04460300', NULL, '2026-11-01 16:32:42.507+07', '2026-11-01 16:32:42.507+07');
+INSERT INTO public.forum_posts VALUES ('fb88d146-2647-5dfe-ba88-80348f6937aa', '5aa93076-91af-5b63-9921-64da23233d32', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Để dễ theo dõi lịch sử, cả nhóm thống nhất:
+
+• Nhánh: feature/ten-chuc-nang, fix/ten-loi.
+• Commit: feat: ..., fix: ..., docs: ... (tiếng Việt hoặc tiếng Anh đều được, nhất quán trong nhóm).
+• Mỗi task một nhánh, tạo PR vào nhánh develop, cần ít nhất 1 người duyệt.
+• Không commit file .env hay khóa bí mật.', NULL, NULL, '2026-10-26 11:48:56.808+07', '2026-10-26 11:48:56.808+07');
+INSERT INTO public.forum_posts VALUES ('91cd6eb5-876b-5cdd-8343-3b52595598de', '5aa93076-91af-5b63-9921-64da23233d32', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Đã rõ, mình sẽ làm theo quy ước.', NULL, NULL, '2026-10-26 15:45:15.383+07', '2026-10-26 15:45:15.383+07');
+INSERT INTO public.forum_posts VALUES ('9133736c-7e68-5c9a-9da0-41f8402e4a26', '5aa93076-91af-5b63-9921-64da23233d32', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Cho mình hỏi nhánh develop đã tạo chưa ạ?', 'fb88d146-2647-5dfe-ba88-80348f6937aa', NULL, '2026-10-26 16:19:04.82+07', '2026-10-26 16:19:04.82+07');
+INSERT INTO public.forum_posts VALUES ('2b704c3c-0c8d-51ba-b6e9-1163d75845d3', '5aa93076-91af-5b63-9921-64da23233d32', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình đã tạo rồi, em pull về và tạo nhánh từ đó nhé.', '91cd6eb5-876b-5cdd-8343-3b52595598de', NULL, '2026-10-26 23:32:12.168+07', '2026-10-26 23:32:12.168+07');
+INSERT INTO public.forum_posts VALUES ('e5e6da73-27ae-51ef-9267-f43021d30963', 'c0e53c67-5afb-501c-9786-22f1ce392978', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Các bạn trong dự án "Kiểm thử phần mềm" nhớ cập nhật trạng thái task hằng ngày và gửi nghiệm thu khi hoàn thành kèm ghi chú cách kiểm tra. Task nào vướng mắc thì đăng lên đây để Lead và mình hỗ trợ sớm.', NULL, NULL, '2026-10-29 10:43:56.497+07', '2026-10-29 10:43:56.497+07');
+INSERT INTO public.forum_posts VALUES ('f3e81098-2c1b-5e64-841f-83cfcac7766e', 'c0e53c67-5afb-501c-9786-22f1ce392978', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Nhóm đã rõ, mình sẽ nhắc mọi người trong buổi họp.', NULL, NULL, '2026-10-29 12:32:00.01+07', '2026-10-29 12:32:00.01+07');
+INSERT INTO public.forum_posts VALUES ('49277a50-35e6-54da-b06b-49496b48a587', 'c0e53c67-5afb-501c-9786-22f1ce392978', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Em sẽ cập nhật trạng thái trước 17h mỗi ngày.', NULL, NULL, '2026-10-29 18:33:56.318+07', '2026-10-29 18:33:56.318+07');
+INSERT INTO public.forum_posts VALUES ('c68199a1-5cf7-58e7-803b-5f96c7be5d23', 'ed984231-4b95-5db7-ba74-2d3bd87bbef6', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Chào mừng các bạn đến với diễn đàn DevHub. Để nơi này luôn hữu ích và thân thiện, mong mọi người cùng tuân thủ:
+
+1. Tôn trọng mọi thành viên, không công kích cá nhân, không dùng ngôn từ thô tục.
+2. Đăng đúng chuyên mục, đặt tiêu đề rõ ràng. Câu hỏi kỹ thuật nên kèm đoạn mã tối thiểu tái hiện lỗi.
+3. Không quảng cáo, mời chào đa cấp, đăng nội dung lừa đảo hoặc vi phạm pháp luật.
+4. Không chia sẻ thông tin cá nhân của người khác (số điện thoại, địa chỉ, giấy tờ tùy thân).
+5. Tin tuyển dụng chính thức vui lòng đăng ở mục Việc làm của DevHub; diễn đàn dành cho trao đổi, chia sẻ kinh nghiệm.
+
+Bài viết vi phạm sẽ bị ẩn hoặc xóa, tài khoản vi phạm nhiều lần có thể bị khóa. Cảm ơn các bạn!', NULL, NULL, '2026-09-05 14:20:53.948+07', '2026-09-05 14:20:53.948+07');
+INSERT INTO public.forum_posts VALUES ('96dae189-c28c-5a3a-b0b4-671f40e9b9e8', 'ed984231-4b95-5db7-ba74-2d3bd87bbef6', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Đã đọc, cảm ơn ban quản trị. Mong diễn đàn ngày càng nhiều bài chất lượng.', NULL, NULL, '2026-09-05 14:32:11.908+07', '2026-09-05 14:32:11.908+07');
+INSERT INTO public.forum_posts VALUES ('b9c8f8cf-dd53-57e4-acbe-e83423c081fb', 'ed984231-4b95-5db7-ba74-2d3bd87bbef6', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình là fresher mới vào, nội quy rõ ràng quá. Cảm ơn admin!', NULL, NULL, '2026-09-05 15:42:45.559+07', '2026-09-05 15:42:45.559+07');
+INSERT INTO public.forum_posts VALUES ('5b9b3450-6447-54b7-89b4-48e5cff80b34', 'ed984231-4b95-5db7-ba74-2d3bd87bbef6', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Nhà tuyển dụng chúng tôi sẽ chia sẻ kinh nghiệm phỏng vấn ở mục Tìm việc, tin tuyển dụng đăng bên mục Việc làm đúng như nội quy.', 'c68199a1-5cf7-58e7-803b-5f96c7be5d23', NULL, '2026-09-05 21:45:11.026+07', '2026-09-05 21:45:11.026+07');
+INSERT INTO public.forum_posts VALUES ('5546cd28-a842-5f33-80ba-83f32c772f49', '6a46d3f9-4811-56dc-a05e-b2713d0de72b', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub vừa cập nhật hệ thống danh hiệu cho ứng viên. Mỗi dự án thời vụ bạn hoàn thành và được chấm từ 5/10 trở lên sẽ được cộng đúng số điểm đó vào điểm tích lũy:
+
+• Tân binh: mới tham gia
+• Đồng hành: từ 5 điểm
+• Cộng sự: từ 24 điểm
+• Chuyên gia: từ 40 điểm
+• Bậc thầy: từ 80 điểm
+
+Huy hiệu hạng hiện cạnh ảnh đại diện trên thanh header; di chuột vào để xem tên hạng và điểm tích lũy. Nhà tuyển dụng cũng thấy hạng, số dự án đã làm và điểm trung bình của bạn (trừ khi bạn ẩn mục dự án DevHub trong cài đặt quyền riêng tư).', NULL, NULL, '2026-09-29 09:58:47.658+07', '2026-09-29 09:58:47.658+07');
+INSERT INTO public.forum_posts VALUES ('64d4a09c-e37f-5964-8123-b4c74c7e6e95', '6a46d3f9-4811-56dc-a05e-b2713d0de72b', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mình vừa lên hạng Đồng hành, huy hiệu màu cam nhìn đẹp ghê 😄', '5546cd28-a842-5f33-80ba-83f32c772f49', NULL, '2026-09-29 12:34:21.549+07', '2026-09-29 12:34:21.549+07');
+INSERT INTO public.forum_posts VALUES ('50fdf3d0-6748-5871-8eaf-c47c97caaa31', '6a46d3f9-4811-56dc-a05e-b2713d0de72b', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Điểm trung bình 9.5 mà mới có 1 dự án, mong có thêm nhiều dự án để cày hạng.', NULL, NULL, '2026-09-29 17:40:44.931+07', '2026-09-29 17:40:44.931+07');
+INSERT INTO public.forum_posts VALUES ('0510b02b-c196-5aec-a2c0-5a99a9ba7896', '6a46d3f9-4811-56dc-a05e-b2713d0de72b', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Cách tính cộng đúng điểm đánh giá nghe công bằng, dự án làm ẩu điểm thấp thì không được cộng.', '5546cd28-a842-5f33-80ba-83f32c772f49', NULL, '2026-09-29 21:57:42.154+07', '2026-09-29 21:57:42.154+07');
+INSERT INTO public.forum_posts VALUES ('54063427-1415-5679-9dc7-ecb586e78cbd', '6a46d3f9-4811-56dc-a05e-b2713d0de72b', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Đúng vậy bạn, dự án chưa được chấm hoặc dưới 5/10 sẽ chưa được cộng điểm. Các bạn có thể xem chi tiết từng dự án trong thẻ "Danh hiệu của bạn" ở trang tổng quan.', '50fdf3d0-6748-5871-8eaf-c47c97caaa31', NULL, '2026-09-29 23:19:01.77+07', '2026-09-29 23:19:01.77+07');
+INSERT INTO public.forum_posts VALUES ('2babc957-92ed-5dfd-b179-ffbb0c815841', '3ca76a44-4a38-581b-8a1f-9b1902618f2f', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Quy trình dự án thời vụ trên DevHub gồm 5 bước:
+
+1. Ứng tuyển vị trí dự án phù hợp, chờ Admin xét duyệt và phỏng vấn.
+2. Khi trúng tuyển, bạn được thêm vào Workspace của dự án và nhận việc trên bảng Kanban.
+3. Hoàn thành task, gửi nghiệm thu; Lead/Admin duyệt hoặc yêu cầu chỉnh sửa.
+4. Kết thúc dự án, Admin đóng dự án và chấm điểm đánh giá từng thành viên.
+5. Hệ thống tạo khoản thù lao theo mức của vị trí; Admin chuyển khoản và xác nhận bằng mã giao dịch.
+
+Để nhận tiền thuận lợi, hãy cập nhật số tài khoản ngân hàng ở tab "Thông tin nhận tiền" trong Hồ sơ năng lực.', NULL, NULL, '2026-10-12 12:14:45.458+07', '2026-10-12 12:14:45.458+07');
+INSERT INTO public.forum_posts VALUES ('3aa26243-587d-5952-9a08-054b4c7451f0', '3ca76a44-4a38-581b-8a1f-9b1902618f2f', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Cho mình hỏi sau khi Admin xác nhận chuyển khoản thì bao lâu tiền về tài khoản ạ?', NULL, NULL, '2026-10-12 16:03:57.75+07', '2026-10-12 16:03:57.75+07');
+INSERT INTO public.forum_posts VALUES ('66778b4b-a910-558a-8834-8c53b5663b4e', '3ca76a44-4a38-581b-8a1f-9b1902618f2f', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Thường trong ngày làm việc. Mã giao dịch sẽ hiện trong lịch sử thanh toán của bạn để đối chiếu.', '2babc957-92ed-5dfd-b179-ffbb0c815841', NULL, '2026-10-12 19:09:37.848+07', '2026-10-12 19:09:37.848+07');
+INSERT INTO public.forum_posts VALUES ('8981017d-7a2b-587e-9db2-1a11782cfd72', '3ca76a44-4a38-581b-8a1f-9b1902618f2f', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Mình làm dự án chatbot rồi, quy trình đúng như hướng dẫn, nhận thông báo từng bước rất rõ.', NULL, NULL, '2026-10-13 00:29:28.763+07', '2026-10-13 00:29:28.763+07');
+INSERT INTO public.forum_posts VALUES ('766e254d-4203-50a8-9350-f3a319d3d813', '3ca76a44-4a38-581b-8a1f-9b1902618f2f', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Cảm ơn admin và bạn Nga nhé.', '3aa26243-587d-5952-9a08-054b4c7451f0', NULL, '2026-10-13 02:18:57.006+07', '2026-10-13 02:18:57.006+07');
+INSERT INTO public.forum_posts VALUES ('7f754d91-9418-5146-9f34-91e6983441cb', '7931610a-2f70-5704-97fa-59d61985c340', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Hai tính năng mới dành cho ứng viên:
+
+• Lưu tin: bấm biểu tượng trái tim trên tin tuyển dụng hoặc dự án thời vụ để lưu lại, xem tại mục "Việc làm đã lưu".
+• Gợi ý phù hợp: danh sách việc làm và dự án được xếp theo vị trí bạn đã làm và kỹ năng trong hồ sơ. Hồ sơ càng đầy đủ, gợi ý càng chính xác.
+
+Gợi ý mang tính tham khảo; bạn vẫn có thể đổi cách sắp xếp ở bộ lọc phía trên danh sách.', NULL, NULL, '2026-10-21 11:26:02.748+07', '2026-10-21 11:26:02.748+07');
+INSERT INTO public.forum_posts VALUES ('d28b3068-8901-538f-a493-49e61f8abbfe', '7931610a-2f70-5704-97fa-59d61985c340', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mục Việc làm đã lưu rất tiện, mình lưu mấy tin Fresher React để so sánh dần.', NULL, NULL, '2026-10-21 15:19:01.829+07', '2026-10-21 15:19:01.829+07');
+INSERT INTO public.forum_posts VALUES ('f0306b38-7f7c-5a8c-8315-18e9013bb59f', '7931610a-2f70-5704-97fa-59d61985c340', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', 'Mình mới bổ sung kinh nghiệm vào hồ sơ thì danh sách gợi ý thay đổi hẳn, hay đó.', NULL, NULL, '2026-10-21 16:58:41.562+07', '2026-10-21 16:58:41.562+07');
+INSERT INTO public.forum_posts VALUES ('8795d786-ada0-5a28-a2f8-3e9f1ac08848', '7931610a-2f70-5704-97fa-59d61985c340', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Phía nhà tuyển dụng cũng có thêm bộ lọc ứng viên theo số dự án, rất tiện để chọn người có kinh nghiệm thực chiến.', NULL, NULL, '2026-10-21 20:58:56.631+07', '2026-10-21 20:58:56.631+07');
+INSERT INTO public.forum_posts VALUES ('2de8dbed-2466-57e9-8c62-963eb38731d9', '137ea3b2-1954-5966-b078-57a28b7ce4f6', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'DevHub sẽ bảo trì định kỳ từ 01:00 đến 03:00 sáng Chủ nhật tuần này để nâng cấp cơ sở dữ liệu. Trong thời gian này một số chức năng có thể tạm thời không truy cập được. Dữ liệu của các bạn được sao lưu đầy đủ trước khi bảo trì. Xin lỗi vì sự bất tiện!', NULL, NULL, '2026-10-26 12:26:11.498+07', '2026-10-26 12:26:11.498+07');
+INSERT INTO public.forum_posts VALUES ('cfbfbce1-c1ea-51f6-87d5-621de1f0ddc7', '137ea3b2-1954-5966-b078-57a28b7ce4f6', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Ok admin, mình sẽ gửi nghiệm thu task trước thứ Bảy.', NULL, NULL, '2026-10-26 14:35:52.569+07', '2026-10-26 14:35:52.569+07');
+INSERT INTO public.forum_posts VALUES ('8cb86403-e004-5bc7-8a8d-a06af82fb781', '137ea3b2-1954-5966-b078-57a28b7ce4f6', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Cảm ơn thông báo trước nhé.', NULL, NULL, '2026-10-26 15:45:57.583+07', '2026-10-26 15:45:57.583+07');
+INSERT INTO public.forum_posts VALUES ('d75ead9b-a749-530f-acb8-bd6fe7890911', '1ca32fd4-7434-56f5-9128-c24036063e25', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Từ hôm nay mỗi Workspace có thêm tab "Diễn đàn" để các thành viên trao đổi riêng: họp nhóm, quy ước code, hỏi đáp trong dự án... Chỉ thành viên của dự án và quản trị viên nhìn thấy các chủ đề này; Lead được ghim, khóa và xóa bài. Các thảo luận chung của cộng đồng vẫn ở diễn đàn chính.', NULL, NULL, '2026-10-30 14:44:09.853+07', '2026-10-30 14:44:09.853+07');
+INSERT INTO public.forum_posts VALUES ('d6b641b5-143b-59f2-95f0-907b7cef1f4d', '1ca32fd4-7434-56f5-9128-c24036063e25', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Hay quá, đỡ phải nhắn rải rác trên nhiều nhóm chat.', NULL, NULL, '2026-10-30 16:31:25.752+07', '2026-10-30 16:31:25.752+07');
+INSERT INTO public.forum_posts VALUES ('6fa67bd0-a46b-5f6c-bba2-c48fb434356b', '1ca32fd4-7434-56f5-9128-c24036063e25', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Tab Diễn đàn trong workspace dùng ổn, mình mới mở chủ đề họp tuần.', NULL, NULL, '2026-10-30 16:49:01.463+07', '2026-10-30 16:49:01.463+07');
+INSERT INTO public.forum_posts VALUES ('18d545c1-b102-5b86-a530-7df83bb382b9', '03ea5ee7-a979-565b-90bb-919c3312ad0c', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình sắp có buổi phỏng vấn vị trí Fresher React ở một công ty sản phẩm. Mình đã làm 2 project cá nhân (todo app và web bán hàng nhỏ). Mọi người cho mình hỏi nên ôn những phần nào, và phỏng vấn kỹ thuật thường hỏi kiểu gì ạ?', NULL, NULL, '2026-10-07 12:38:11.835+07', '2026-10-07 12:38:11.835+07');
+INSERT INTO public.forum_posts VALUES ('ba08debf-129c-5d77-a41d-273d05870b9c', '03ea5ee7-a979-565b-90bb-919c3312ad0c', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Fresher thường hỏi nền tảng nhiều hơn framework: JavaScript (closure, this, promise/async, event loop), rồi React (state vs props, useEffect, key trong list, re-render). Nên tự giải thích được project của mình: vì sao chọn cách tổ chức state như vậy.', NULL, NULL, '2026-10-07 15:03:41.247+07', '2026-10-07 15:03:41.247+07');
+INSERT INTO public.forum_posts VALUES ('7e9d73bc-5ec1-527f-b6ed-b22a53024d07', '03ea5ee7-a979-565b-90bb-919c3312ad0c', '8ec61d09-a425-5d54-a53a-90d541a198c5', 'Dưới góc nhìn nhà tuyển dụng: chúng tôi quan tâm bạn hiểu mình đã code gì hơn là biết nhiều thư viện. Hãy chuẩn bị trả lời "khó khăn lớn nhất khi làm project là gì, bạn giải quyết thế nào". Code sạch trên GitHub cũng là điểm cộng.', '18d545c1-b102-5b86-a530-7df83bb382b9', NULL, '2026-10-08 02:34:23.631+07', '2026-10-08 02:34:23.631+07');
+INSERT INTO public.forum_posts VALUES ('2fc8b934-6667-5ae0-9b9e-31b19c6a3a23', '03ea5ee7-a979-565b-90bb-919c3312ad0c', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Cảm ơn anh chị nhiều, mình sẽ ôn event loop và chuẩn bị phần kể về project.', '7e9d73bc-5ec1-527f-b6ed-b22a53024d07', NULL, '2026-10-08 03:06:36.693+07', '2026-10-08 03:06:36.693+07');
+INSERT INTO public.forum_posts VALUES ('aeb394a3-bb7d-5d6a-a145-18fed98980a3', '03ea5ee7-a979-565b-90bb-919c3312ad0c', '429535c5-5df7-5e12-b135-1572e5931035', 'Thêm 1 mẹo: làm sẵn vài bài live coding nhỏ (debounce, render list có filter) để bớt run khi bị yêu cầu code ngay.', NULL, NULL, '2026-10-08 14:51:50.035+07', '2026-10-08 14:51:50.035+07');
+INSERT INTO public.forum_posts VALUES ('f503f038-15db-561c-96e2-812fd898ed2b', '03ea5ee7-a979-565b-90bb-919c3312ad0c', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Mình phỏng vấn tuần trước bị hỏi cách tối ưu re-render (memo, useCallback). Nên xem trước phần đó.', NULL, NULL, '2026-10-08 15:08:36.695+07', '2026-10-08 15:08:36.695+07');
+INSERT INTO public.forum_posts VALUES ('69ffc210-748c-5753-aa3e-ee29c4333ad6', '65fe0e54-9a73-57d5-95c8-514513502cd1', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Sau nhiều đợt sàng lọc hồ sơ, đây là những lỗi chúng tôi gặp nhiều nhất:
+
+1. CV dài trên 2 trang, liệt kê cả những thứ không liên quan vị trí.
+2. Mục kỹ năng ghi "thành thạo" quá nhiều công nghệ nhưng project chỉ dùng một vài thứ.
+3. Không có link GitHub / sản phẩm demo để kiểm chứng.
+4. Mô tả project chỉ ghi tên công nghệ, không nói bạn làm phần nào, kết quả ra sao.
+5. Lỗi chính tả, định dạng lộn xộn, ảnh CV thiếu nghiêm túc.
+6. Gửi cùng một CV cho mọi vị trí, không điều chỉnh theo mô tả công việc.
+7. Thông tin liên hệ sai hoặc email thiếu chuyên nghiệp.
+
+Mong giúp ích cho các bạn đang đi xin việc!', NULL, NULL, '2026-10-14 14:06:50.44+07', '2026-10-14 14:06:50.44+07');
+INSERT INTO public.forum_posts VALUES ('51f715c5-5e12-538f-a802-9488e75eb57d', '65fe0e54-9a73-57d5-95c8-514513502cd1', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'Mình mắc lỗi số 4 rồi... cảm ơn anh, sẽ viết lại phần mô tả project theo kiểu "làm gì - kết quả gì".', NULL, NULL, '2026-10-14 16:25:46.987+07', '2026-10-14 16:25:46.987+07');
+INSERT INTO public.forum_posts VALUES ('22886a11-e153-5452-99e6-00535a28570e', '65fe0e54-9a73-57d5-95c8-514513502cd1', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'Lỗi số 2 mình cũng bị. Mọi người có nên ghi mức độ kỹ năng (ví dụ 3/5) không ạ?', NULL, NULL, '2026-10-14 17:31:43.769+07', '2026-10-14 17:31:43.769+07');
+INSERT INTO public.forum_posts VALUES ('b2ce5f06-3f80-5343-974d-ce8d476d361f', '65fe0e54-9a73-57d5-95c8-514513502cd1', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Không cần chấm điểm số, bạn nên chia nhóm "dùng thường xuyên" và "đã tìm hiểu". Quan trọng là project chứng minh được.', '51f715c5-5e12-538f-a802-9488e75eb57d', NULL, '2026-10-15 03:27:48.07+07', '2026-10-15 03:27:48.07+07');
+INSERT INTO public.forum_posts VALUES ('7b7eb6a4-50f7-53dc-9328-448c497b2780', '65fe0e54-9a73-57d5-95c8-514513502cd1', '89f3d663-d2b6-5688-999b-5accf875c5b0', 'Lưu bài này lại, cảm ơn anh Châu.', NULL, NULL, '2026-10-15 14:18:35.131+07', '2026-10-15 14:18:35.131+07');
+INSERT INTO public.forum_posts VALUES ('015a823a-5f97-5127-9b2f-d0ea672cfff8', '65fe0e54-9a73-57d5-95c8-514513502cd1', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'Bổ sung: nên đặt tên file CV rõ ràng (Ten_ViTri.pdf), nhà tuyển dụng tải nhiều file về dễ phân biệt hơn.', NULL, NULL, '2026-10-16 06:21:28.896+07', '2026-10-16 06:21:28.896+07');
+INSERT INTO public.forum_posts VALUES ('c1e3fd21-627f-5d06-8cd5-b97ef8f6779d', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Mình sắp tốt nghiệp, đang đi hỏi mặt bằng lương để biết đường thương lượng. Mọi người đang đi làm cho mình xin tham khảo mức lương fresher và junior (1-2 năm) hiện tại nhé. Mình học fullstack (React + Node.js).', NULL, NULL, '2026-10-18 11:28:02.54+07', '2026-10-18 11:28:02.54+07');
+INSERT INTO public.forum_posts VALUES ('f5d86451-5346-530a-bee3-cb36e0a5f998', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Mình junior Node.js ~1.5 năm ở HCM, khoảng 16-20 triệu tùy công ty. Fresher thường 8-12 triệu, công ty sản phẩm hoặc có chương trình đào tạo thì cao hơn một chút.', NULL, NULL, '2026-10-18 12:37:36.558+07', '2026-10-18 12:37:36.558+07');
+INSERT INTO public.forum_posts VALUES ('8eaa320a-a70d-5b5f-8450-deacda669135', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Tuỳ khu vực nữa, Hà Nội và HCM chênh không nhiều, Đà Nẵng thấp hơn chút nhưng chi phí sống cũng thấp hơn.', NULL, NULL, '2026-10-18 15:13:38.287+07', '2026-10-18 15:13:38.287+07');
+INSERT INTO public.forum_posts VALUES ('d4a639c0-22e3-5367-9ad0-d05c18584924', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42', 'f804d197-4b1d-52fb-876b-0a7c01ef7b68', 'Góc nhìn công ty: fresher có project thực tế và biết làm việc nhóm thường được trả cao hơn mặt bằng chung. Nên nêu rõ dự án đã làm khi thương lượng.', NULL, NULL, '2026-10-18 15:32:09.575+07', '2026-10-18 15:32:09.575+07');
+INSERT INTO public.forum_posts VALUES ('69d7bd32-6e8a-5144-9627-a87be6407a92', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Cảm ơn mọi người, mình hiểu rồi. Mình cũng đang làm dự án thời vụ trên DevHub để có thêm kinh nghiệm.', 'd4a639c0-22e3-5367-9ad0-d05c18584924', NULL, '2026-10-18 16:32:17.516+07', '2026-10-18 16:32:17.516+07');
+INSERT INTO public.forum_posts VALUES ('b9e7e74a-1c36-5c79-b144-2367ebf86fdd', 'd43ec918-f993-5e5d-a72b-f51eb72d7c42', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'Đừng chỉ nhìn lương cứng, hỏi thêm về review lương, thưởng, bảo hiểm và cơ hội học hỏi nữa nhé.', NULL, NULL, '2026-10-18 20:07:27.398+07', '2026-10-18 20:07:27.398+07');
+INSERT INTO public.forum_posts VALUES ('31b3e679-38e1-50ad-a16d-e9fff14b2ecc', '9f7984ce-532f-5065-ab07-0cc327a92df6', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Mình đang có 2 offer: một công ty outsource (nhiều dự án, nhiều công nghệ) và một công ty sản phẩm (làm sâu một hệ thống). Lương tương đương. Mọi người có kinh nghiệm cho mình xin lời khuyên với.', NULL, NULL, '2026-10-22 12:13:08.488+07', '2026-10-22 12:13:08.488+07');
+INSERT INTO public.forum_posts VALUES ('6fb98c5d-1447-5bb2-a628-4c8cafbaf0ae', '9f7984ce-532f-5065-ab07-0cc327a92df6', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Mình làm cả hai kiểu. Outsource: học nhanh, tiếp xúc nhiều stack, quy trình chặt nhưng hay phải chạy deadline. Sản phẩm: đi sâu, hiểu hệ thống lớn, tốc độ học đều hơn. Fresher thì quan trọng nhất là có mentor tốt.', NULL, NULL, '2026-10-22 16:56:05.653+07', '2026-10-22 16:56:05.653+07');
+INSERT INTO public.forum_posts VALUES ('1d7428a4-37a8-52a7-924d-b33c57bb6e08', '9f7984ce-532f-5065-ab07-0cc327a92df6', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'Mình chọn outsource lúc đầu để đa dạng kinh nghiệm, sau 2 năm sang product. Cũng ổn vì có nền tảng rộng.', NULL, NULL, '2026-10-22 21:12:49.313+07', '2026-10-22 21:12:49.313+07');
+INSERT INTO public.forum_posts VALUES ('bfa7fb44-cfae-5b44-b6a2-2d6b3a93bfff', '9f7984ce-532f-5065-ab07-0cc327a92df6', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Dù chọn bên nào, hãy hỏi kỹ về chương trình onboard và người hướng dẫn trực tiếp. Đó là yếu tố quyết định 6 tháng đầu của bạn.', '31b3e679-38e1-50ad-a16d-e9fff14b2ecc', NULL, '2026-10-22 21:36:08.438+07', '2026-10-22 21:36:08.438+07');
+INSERT INTO public.forum_posts VALUES ('09e8b189-c070-5156-a496-5e4e90e53862', '9f7984ce-532f-5065-ab07-0cc327a92df6', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Mình sẽ hỏi lại phần mentor và quy trình review code. Cảm ơn mọi người.', NULL, NULL, '2026-10-23 08:00:31.951+07', '2026-10-23 08:00:31.951+07');
+INSERT INTO public.forum_posts VALUES ('68ebd6ce-de7f-5523-940a-f82a6ee7dce3', '6e7597bd-698d-59c4-bcf6-fbc2f756254d', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Có một công ty mời mình thực tập 3 tháng không lương nhưng hứa có khả năng nhận chính thức. Mình đang phân vân vì cũng cần thu nhập. Mọi người nghĩ sao?', NULL, NULL, '2026-10-24 13:58:06.884+07', '2026-10-24 13:58:06.884+07');
+INSERT INTO public.forum_posts VALUES ('f2d9161f-0b73-5c68-b51f-8c5264065b13', '6e7597bd-698d-59c4-bcf6-fbc2f756254d', '8ec61d09-a425-5d54-a53a-90d541a198c5', 'Quan điểm cá nhân: thực tập nên có hỗ trợ tối thiểu (ít nhất là chi phí đi lại, ăn trưa) và có lộ trình học rõ ràng. Hãy hỏi kỹ về nội dung công việc, mentor và tiêu chí để được nhận chính thức.', NULL, NULL, '2026-10-24 16:40:29.773+07', '2026-10-24 16:40:29.773+07');
+INSERT INTO public.forum_posts VALUES ('63c245dc-2da1-5bca-b64d-e4a3892daa3a', '6e7597bd-698d-59c4-bcf6-fbc2f756254d', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Nếu không lương thì phải đổi lại bằng việc học thật sự. Mình từng thực tập kiểu chỉ làm việc vặt, mất 3 tháng chẳng học được gì.', NULL, NULL, '2026-10-24 18:04:08.938+07', '2026-10-24 18:04:08.938+07');
+INSERT INTO public.forum_posts VALUES ('70114b41-c694-5875-919a-f3999bc3b45a', '6e7597bd-698d-59c4-bcf6-fbc2f756254d', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Mình sẽ hỏi kỹ lộ trình rồi mới quyết định, cảm ơn mọi người.', 'f2d9161f-0b73-5c68-b51f-8c5264065b13', NULL, '2026-10-24 20:11:03.96+07', '2026-10-24 20:11:03.96+07');
+INSERT INTO public.forum_posts VALUES ('374a4402-c854-5dcc-bc8a-774e0ff614ab', 'da134d03-db88-54d3-af9e-80979f751a1a', 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'Nhiều bạn lo trả lời sai một câu là trượt. Thực tế buổi phỏng vấn chúng tôi đánh giá: (1) cách bạn suy nghĩ và trình bày vấn đề, (2) khả năng học hỏi, chịu khó, (3) giao tiếp, làm việc nhóm, (4) kiến thức nền tảng, (5) sự phù hợp với vai trò. Không biết thì cứ nói thẳng và trình bày hướng tìm hiểu, tốt hơn là đoán bừa. Chúc các bạn tự tin!', NULL, NULL, '2026-10-27 10:46:33.371+07', '2026-10-27 10:46:33.371+07');
+INSERT INTO public.forum_posts VALUES ('2250a08a-e568-5e03-955a-ccf4b0e95e4e', 'da134d03-db88-54d3-af9e-80979f751a1a', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'Rất đúng, mình thấy khi nói "em chưa biết nhưng em sẽ tìm theo hướng này" người phỏng vấn lại có ấn tượng tốt hơn.', NULL, NULL, '2026-10-27 11:44:52.571+07', '2026-10-27 11:44:52.571+07');
+INSERT INTO public.forum_posts VALUES ('047cdbe4-b596-5da5-8a77-1c9cb36fc070', 'da134d03-db88-54d3-af9e-80979f751a1a', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'Cảm ơn bài chia sẻ, bớt áp lực hẳn.', NULL, NULL, '2026-10-27 19:02:14.144+07', '2026-10-27 19:02:14.144+07');
+INSERT INTO public.forum_posts VALUES ('14ff9d9c-a1c2-57d6-81dc-24603c56f4bc', 'da134d03-db88-54d3-af9e-80979f751a1a', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Phỏng vấn QA cũng vậy, họ hay cho một tính năng đơn giản rồi bảo liệt kê test case, để xem tư duy chứ không phải học thuộc.', '374a4402-c854-5dcc-bc8a-774e0ff614ab', NULL, '2026-10-28 02:27:01.413+07', '2026-10-28 02:27:01.413+07');
+INSERT INTO public.forum_posts VALUES ('b7e85787-4a9c-53bf-911a-3216a634d33d', '1d128cfc-4349-5e76-b48b-6a0d9394a28f', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Mình có offer làm remote hoàn toàn cho một công ty. Mình mới ra trường nên hơi lo thiếu người chỉ dẫn. Ai có kinh nghiệm remote cho mình xin ý kiến.', NULL, NULL, '2026-10-29 11:15:18.517+07', '2026-10-29 11:15:18.517+07');
+INSERT INTO public.forum_posts VALUES ('ee7a2224-e180-55b8-a04c-5c5e50fc1ede', '1d128cfc-4349-5e76-b48b-6a0d9394a28f', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Remote thì tự giác và giao tiếp chủ động quan trọng hơn. Với fresher mình khuyên bắt đầu hybrid vài tháng đầu để có người kèm trực tiếp.', NULL, NULL, '2026-10-29 14:47:24.465+07', '2026-10-29 14:47:24.465+07');
+INSERT INTO public.forum_posts VALUES ('d9a49dc2-c503-58eb-a420-f18a14ca49db', '1d128cfc-4349-5e76-b48b-6a0d9394a28f', 'dba5756f-a817-5793-ba82-111fe64e1baa', 'Điều kiện cần là công ty có quy trình rõ: daily meeting, review code, tài liệu đầy đủ. Hỏi kỹ những điều này trước khi nhận.', NULL, NULL, '2026-10-29 18:26:46.675+07', '2026-10-29 18:26:46.675+07');
+INSERT INTO public.forum_posts VALUES ('49935c6b-af84-5e38-846b-b0416bc81feb', '1d128cfc-4349-5e76-b48b-6a0d9394a28f', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Mình sẽ đề xuất làm hybrid thử việc. Cảm ơn anh chị.', 'b7e85787-4a9c-53bf-911a-3216a634d33d', NULL, '2026-10-30 00:07:13.655+07', '2026-10-30 00:07:13.655+07');
+INSERT INTO public.forum_posts VALUES ('36534c4a-d443-578a-9dd9-8e653ae1c862', 'd4ee0c91-4cfc-54ca-9889-699350ca0068', '9f37f89a-4a8c-53c3-99e2-df665e45f23f', 'Theo quan sát của chúng tôi cuối năm nay nhu cầu tập trung vào: Backend (Java, Node.js, Go), Mobile (Flutter, React Native), DevOps/Cloud, QA Automation và Data. Fresher có project thực tế và biết làm việc nhóm vẫn được ưu tiên. Các bạn thấy thị trường ở khu vực mình thế nào?', NULL, NULL, '2026-10-31 14:52:42.658+07', '2026-10-31 14:52:42.658+07');
+INSERT INTO public.forum_posts VALUES ('fd852d5a-75cb-54b3-9ecd-92cff5745d81', 'd4ee0c91-4cfc-54ca-9889-699350ca0068', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'QA Automation mình thấy tin tuyển nhiều, đặc biệt yêu cầu biết viết test bằng Cypress/Playwright và có kiến thức CI/CD.', NULL, NULL, '2026-10-31 17:50:44.198+07', '2026-10-31 17:50:44.198+07');
+INSERT INTO public.forum_posts VALUES ('a23e51cd-461e-5186-94fb-9be442fd366c', 'd4ee0c91-4cfc-54ca-9889-699350ca0068', '3892c76e-02d1-594c-88f4-b97569ebf7e8', 'Flutter vẫn nhiều tin, nhưng yêu cầu ngày càng cao về kiến trúc và quản lý state.', NULL, NULL, '2026-10-31 20:03:45.778+07', '2026-10-31 20:03:45.778+07');
+INSERT INTO public.forum_posts VALUES ('6ebebdd2-c909-575c-80b4-5e43f90ddf61', 'd4ee0c91-4cfc-54ca-9889-699350ca0068', 'ba39c684-a977-57e6-aa65-2ae802277f75', 'PHP Laravel cũng còn nhiều việc ở mảng thương mại điện tử và hệ thống nội bộ.', NULL, NULL, '2026-11-01 08:17:31.7+07', '2026-11-01 08:17:31.7+07');
+INSERT INTO public.forum_posts VALUES ('2d11d829-1de6-5a88-af3b-37a31cf7a5ba', '8891726b-f59c-5b29-a4dd-780fc208a198', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Mình đang gửi CV khá rộng nhưng tỉ lệ phản hồi thấp. Mọi người có chiến lược nào hiệu quả hơn không?', NULL, NULL, '2026-11-01 00:53:10.71+07', '2026-11-01 00:53:10.71+07');
+INSERT INTO public.forum_posts VALUES ('e9eeee5d-ee18-5307-9716-4b972f5420f2', '8891726b-f59c-5b29-a4dd-780fc208a198', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Nên chọn lọc và điều chỉnh CV theo từng vị trí, đọc kỹ mô tả công việc. 10 hồ sơ viết kỹ thường hiệu quả hơn 50 hồ sơ gửi đại trà.', NULL, NULL, '2026-11-01 04:12:33.506+07', '2026-11-01 04:12:33.506+07');
+INSERT INTO public.forum_posts VALUES ('3d888ffd-aff6-5388-bbd6-0ce1b6da2e57', '8891726b-f59c-5b29-a4dd-780fc208a198', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Mình thử cách nhắn thêm cho HR kèm link project liên quan, tỉ lệ được phản hồi tăng rõ.', NULL, NULL, '2026-11-01 16:17:26.199+07', '2026-11-01 16:17:26.199+07');
+INSERT INTO public.forum_posts VALUES ('fe465ed2-51f8-5993-bfea-a914826cc6de', 'be7e58d8-772d-5869-99e0-36cc036b094a', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Mình viết component lấy danh sách user nhưng request bị gọi liên tục, trình duyệt treo luôn:
+
+```
+function Users() {
+  const [users, setUsers] = useState([]);
+  const filters = { role: "admin" };
+
+  useEffect(() => {
+    fetch("/api/users?role=" + filters.role)
+      .then(r => r.json())
+      .then(setUsers);
+  }, [filters]);
+
+  return <List data={users} />;
+}
+```
+Mình đã khai báo dependency đầy đủ mà vẫn bị. Mọi người chỉ giúp với.', NULL, NULL, '2026-10-03 13:30:05.204+07', '2026-10-03 13:30:05.204+07');
+INSERT INTO public.forum_posts VALUES ('46b6b0f4-01b1-5ec7-b620-af1bef89ef93', 'be7e58d8-772d-5869-99e0-36cc036b094a', '429535c5-5df7-5e12-b135-1572e5931035', 'Vấn đề ở `filters`: nó là object tạo mới sau mỗi lần render nên React coi là dependency thay đổi → effect chạy lại → setUsers → render lại → vòng lặp. Cách sửa: đưa object ra ngoài component, dùng useMemo, hoặc chỉ phụ thuộc vào giá trị nguyên thủy `filters.role`.', NULL, NULL, '2026-10-03 17:42:13.43+07', '2026-10-03 17:42:13.43+07');
+INSERT INTO public.forum_posts VALUES ('af559ae9-c183-5b19-9162-0ca6b4923111', 'be7e58d8-772d-5869-99e0-36cc036b094a', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Ví dụ sửa:
+```
+const role = "admin";
+useEffect(() => {
+  fetch("/api/users?role=" + role).then(r => r.json()).then(setUsers);
+}, [role]);
+```
+Nên thêm cờ huỷ để tránh set state khi component đã unmount.', '46b6b0f4-01b1-5ec7-b620-af1bef89ef93', NULL, '2026-10-03 22:27:33.794+07', '2026-10-03 22:27:33.794+07');
+INSERT INTO public.forum_posts VALUES ('e06b68f3-06ea-58ab-a730-0718b8445b11', 'be7e58d8-772d-5869-99e0-36cc036b094a', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Đã chạy ổn, hiểu rồi! Cảm ơn hai bạn rất nhiều.', 'af559ae9-c183-5b19-9162-0ca6b4923111', NULL, '2026-10-04 03:00:08.109+07', '2026-10-04 03:00:08.109+07');
+INSERT INTO public.forum_posts VALUES ('e1bfbcdc-955d-5565-a8cc-4fd1af845abd', 'be7e58d8-772d-5869-99e0-36cc036b094a', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Bài này hay, lưu lại. Mình cũng từng bị y chang.', NULL, NULL, '2026-10-04 05:45:31.881+07', '2026-10-04 05:45:31.881+07');
+INSERT INTO public.forum_posts VALUES ('2d5178c0-b98a-5d05-a496-d2c126d84a4e', 'be7e58d8-772d-5869-99e0-36cc036b094a', '4e332674-295d-444c-a507-2d60b50f1be1', 'Có thể dùng thêm React Query/SWR để khỏi tự quản lý fetch trong useEffect, cache và retry có sẵn.', NULL, NULL, '2026-10-04 15:14:18.394+07', '2026-10-04 15:14:18.394+07');
+INSERT INTO public.forum_posts VALUES ('92c6ce7c-1249-5899-b11f-315b13600fe4', 'a5a2ce42-4780-5706-8bda-621bd439d930', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', 'API của mình có middleware xử lý lỗi nhưng khi query DB lỗi thì server báo "UnhandledPromiseRejection" thay vì trả về 500 JSON:
+
+```
+app.get("/users/:id", async (req, res) => {
+  const user = await User.findByPk(req.params.id);
+  res.json(user.toJSON());
+});
+
+app.use((err, req, res, next) => {
+  res.status(500).json({ message: err.message });
+});
+```', NULL, NULL, '2026-10-05 15:27:36.146+07', '2026-10-05 15:27:36.146+07');
+INSERT INTO public.forum_posts VALUES ('95e9fd81-6c21-581d-9f9c-fb8371fc2e34', 'a5a2ce42-4780-5706-8bda-621bd439d930', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Với Express 4, lỗi ném ra trong handler async không tự chuyển sang error middleware. Phải bọc try/catch rồi gọi next(err), hoặc dùng wrapper:
+```
+const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+app.get("/users/:id", wrap(async (req, res) => { ... }));
+```', NULL, NULL, '2026-10-05 20:19:41.78+07', '2026-10-05 20:19:41.78+07');
+INSERT INTO public.forum_posts VALUES ('cdbc1097-7b15-5484-9264-6979400a2861', 'a5a2ce42-4780-5706-8bda-621bd439d930', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Chỗ `user.toJSON()` cũng có thể crash nếu không tìm thấy user (null). Nên kiểm tra và trả 404 cho rõ nghĩa.', '92c6ce7c-1249-5899-b11f-315b13600fe4', NULL, '2026-10-06 08:16:01.445+07', '2026-10-06 08:16:01.445+07');
+INSERT INTO public.forum_posts VALUES ('b7a642f5-8e14-54bd-9428-c6afbbe953fe', 'a5a2ce42-4780-5706-8bda-621bd439d930', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', 'Mình dùng wrapper như bạn Nam rồi, chạy ngon. Cảm ơn mọi người!', '95e9fd81-6c21-581d-9f9c-fb8371fc2e34', NULL, '2026-10-06 10:57:02.031+07', '2026-10-06 10:57:02.031+07');
+INSERT INTO public.forum_posts VALUES ('19e2aa71-c891-5785-b515-30028a9c9b62', 'a5a2ce42-4780-5706-8bda-621bd439d930', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Express 5 đã tự xử lý promise rejection trong handler, nếu dự án mới có thể cân nhắc nâng phiên bản.', NULL, NULL, '2026-10-06 19:20:58.316+07', '2026-10-06 19:20:58.316+07');
+INSERT INTO public.forum_posts VALUES ('1eb68798-f99e-56f9-a0e8-57512ce700a5', '39fe530c-3fe5-5bc5-ae9a-92efd1b9620c', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'Bảng orders của mình khoảng 3 triệu dòng, câu truy vấn dưới đây mất tới vài giây:
+
+```
+SELECT * FROM orders
+WHERE customer_id = 123 AND status = ''PAID''
+ORDER BY created_at DESC
+LIMIT 20;
+```
+Mình mới biết sơ về index, mong được chỉ dẫn.', NULL, NULL, '2026-10-09 13:31:30.191+07', '2026-10-09 13:31:30.191+07');
+INSERT INTO public.forum_posts VALUES ('d1a2421e-57e9-501d-a309-827c56aa5ec7', '39fe530c-3fe5-5bc5-ae9a-92efd1b9620c', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Hãy chạy `EXPLAIN (ANALYZE)` xem nó đang Seq Scan hay Index Scan. Với điều kiện lọc theo customer_id + status và sắp xếp theo created_at, một composite index phù hợp là:
+```
+CREATE INDEX idx_orders_customer_status_created
+ON orders (customer_id, status, created_at DESC);
+```
+Thứ tự cột: cột lọc bằng (=) trước, cột sắp xếp sau cùng.', NULL, NULL, '2026-10-09 16:53:24.737+07', '2026-10-09 16:53:24.737+07');
+INSERT INTO public.forum_posts VALUES ('e836fe4d-a56b-5c31-ba6b-07e09263e4df', '39fe530c-3fe5-5bc5-ae9a-92efd1b9620c', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Thêm: tránh `SELECT *`, chỉ lấy cột cần dùng. Và nhớ chạy ANALYZE để planner có thống kê mới.', NULL, NULL, '2026-10-10 08:47:40.76+07', '2026-10-10 08:47:40.76+07');
+INSERT INTO public.forum_posts VALUES ('6e86bea5-7a9f-5988-8b1d-6e2ecf5fd52f', '39fe530c-3fe5-5bc5-ae9a-92efd1b9620c', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'Tạo index xong còn vài chục ms thôi, thần kỳ luôn! Cảm ơn chị Hương và anh Tín.', '1eb68798-f99e-56f9-a0e8-57512ce700a5', NULL, '2026-10-10 09:19:13.81+07', '2026-10-10 09:19:13.81+07');
+INSERT INTO public.forum_posts VALUES ('71633748-b41e-5a9a-a991-ead2083f1e1a', '39fe530c-3fe5-5bc5-ae9a-92efd1b9620c', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Cẩn thận đừng tạo quá nhiều index vì làm chậm INSERT/UPDATE. Hãy tạo theo các truy vấn thực sự hay dùng.', NULL, NULL, '2026-10-10 11:04:14.091+07', '2026-10-10 11:04:14.091+07');
+INSERT INTO public.forum_posts VALUES ('41ecae85-031a-52d6-8f4f-ccc70f08d680', '066c48df-d4b1-5ec3-a503-867b6b583791', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Mình chạy docker compose với service api và db (postgres). API báo `ECONNREFUSED 127.0.0.1:5432`. Trên máy mình chạy bình thường khi không dùng docker.
+
+```
+services:
+  db:
+    image: postgres:16
+  api:
+    build: .
+    environment:
+      DB_HOST: localhost
+```', NULL, NULL, '2026-10-11 13:21:03.288+07', '2026-10-11 13:21:03.288+07');
+INSERT INTO public.forum_posts VALUES ('387e1052-0249-57ee-8a75-f09112571f6b', '066c48df-d4b1-5ec3-a503-867b6b583791', '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Trong container, `localhost` là chính container đó chứ không phải máy chủ hay container khác. Hãy đặt `DB_HOST: db` (tên service trong compose), hai service cùng mạng mặc định sẽ gọi nhau bằng tên.', NULL, NULL, '2026-10-11 16:32:07.742+07', '2026-10-11 16:32:07.742+07');
+INSERT INTO public.forum_posts VALUES ('00bc2244-7694-58c2-b010-752912698700', '066c48df-d4b1-5ec3-a503-867b6b583791', 'dba5756f-a817-5793-ba82-111fe64e1baa', 'Ngoài ra nên dùng `depends_on` kèm healthcheck cho postgres để API đợi DB sẵn sàng mới khởi động.
+```
+db:
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U postgres"]
+    interval: 5s
+    retries: 5
+api:
+  depends_on:
+    db:
+      condition: service_healthy
+```', '41ecae85-031a-52d6-8f4f-ccc70f08d680', NULL, '2026-10-11 23:23:48.958+07', '2026-10-11 23:23:48.958+07');
+INSERT INTO public.forum_posts VALUES ('2fe2e5cd-18ee-594d-b872-e3a0147aa799', '066c48df-d4b1-5ec3-a503-867b6b583791', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Đổi sang DB_HOST: db là chạy liền. Cảm ơn mọi người!', '387e1052-0249-57ee-8a75-f09112571f6b', NULL, '2026-10-12 04:01:54.33+07', '2026-10-12 04:01:54.33+07');
+INSERT INTO public.forum_posts VALUES ('d97f3893-d06e-5f31-b08a-78df509ca13d', 'bde49088-e221-5ba1-8c4d-2c0131928d13', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'Nhóm mình có 4 người, mỗi người một nhánh feature. Có bạn bảo nên rebase, có bạn bảo merge cho an toàn. Mình chưa rõ nên dùng cách nào và khi nào.', NULL, NULL, '2026-10-13 14:27:13.815+07', '2026-10-13 14:27:13.815+07');
+INSERT INTO public.forum_posts VALUES ('da8483d0-fa7a-5483-a57d-9a03f0e89242', 'bde49088-e221-5ba1-8c4d-2c0131928d13', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'Quy tắc dễ nhớ: rebase để làm sạch nhánh cá nhân của bạn trước khi tạo PR (đưa commit của mình lên trên nhánh chính mới nhất); merge khi đưa nhánh feature vào nhánh chung. Tuyệt đối không rebase nhánh đã được người khác pull về.', NULL, NULL, '2026-10-13 16:57:32.934+07', '2026-10-13 16:57:32.934+07');
+INSERT INTO public.forum_posts VALUES ('1043ba66-758d-5a63-8642-2c0d4b6c90a6', 'bde49088-e221-5ba1-8c4d-2c0131928d13', 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', 'Nhiều nhóm dùng "squash and merge" ở PR để lịch sử nhánh chính gọn: mỗi tính năng một commit. Dễ revert hơn nữa.', NULL, NULL, '2026-10-13 18:03:03.187+07', '2026-10-13 18:03:03.187+07');
+INSERT INTO public.forum_posts VALUES ('a6e60452-03cd-5663-afc2-b3ac304588d7', 'bde49088-e221-5ba1-8c4d-2c0131928d13', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'Nhớ dùng `git pull --rebase` hoặc cấu hình `pull.rebase true` để tránh các merge commit thừa khi pull.', 'd97f3893-d06e-5f31-b08a-78df509ca13d', NULL, '2026-10-14 07:57:08.32+07', '2026-10-14 07:57:08.32+07');
+INSERT INTO public.forum_posts VALUES ('1f33800a-6df0-5a66-b3ae-6f18bb57e308', 'bde49088-e221-5ba1-8c4d-2c0131928d13', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'Cả nhóm sẽ thống nhất: rebase nhánh cá nhân, squash merge khi vào main. Cảm ơn các anh chị!', NULL, NULL, '2026-10-14 09:19:57.192+07', '2026-10-14 09:19:57.192+07');
+INSERT INTO public.forum_posts VALUES ('346e3791-925c-57cb-b526-7d3ff268af01', '3625f32f-91b1-5db4-a5c5-82ab61a4e8d5', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Dự án của mình đang lưu access token trong localStorage. Mình nghe nói dễ bị XSS đánh cắp. Vậy cách lưu nào an toàn hơn? Refresh token có nên để cookie không?', NULL, NULL, '2026-10-15 15:54:18.145+07', '2026-10-15 15:54:18.145+07');
+INSERT INTO public.forum_posts VALUES ('9677e067-dbfd-5e9c-9ae2-dfd68257dddd', '3625f32f-91b1-5db4-a5c5-82ab61a4e8d5', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Cách phổ biến: access token ngắn hạn (10-15 phút) giữ trong bộ nhớ hoặc localStorage, refresh token dài hạn trong cookie `HttpOnly; Secure; SameSite` để JavaScript không đọc được. Khi access token hết hạn, gọi endpoint refresh để lấy token mới.', NULL, NULL, '2026-10-15 18:17:20.003+07', '2026-10-15 18:17:20.003+07');
+INSERT INTO public.forum_posts VALUES ('a734f9d7-0f74-5cec-94cf-3cde20cfd2b1', '3625f32f-91b1-5db4-a5c5-82ab61a4e8d5', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Lưu ý thêm: phía server nên lưu bản băm của refresh token và cho phép thu hồi (đăng xuất, đổi mật khẩu). Và luôn chống XSS bằng cách không render HTML tùy ý từ người dùng.', '346e3791-925c-57cb-b526-7d3ff268af01', NULL, '2026-10-15 19:23:43.503+07', '2026-10-15 19:23:43.503+07');
+INSERT INTO public.forum_posts VALUES ('7f71434c-2304-5b08-bbe3-dd1ba9f57242', '3625f32f-91b1-5db4-a5c5-82ab61a4e8d5', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'Cookie thì phải để ý CSRF: SameSite=Strict/Lax và CORS cấu hình đúng origin. Không có phương án nào "tuyệt đối an toàn", quan trọng là giảm thiểu rủi ro.', NULL, NULL, '2026-10-16 04:29:54.042+07', '2026-10-16 04:29:54.042+07');
+INSERT INTO public.forum_posts VALUES ('87b4e8ea-8393-52be-9f90-ccd852b729e2', '3625f32f-91b1-5db4-a5c5-82ab61a4e8d5', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Mình đang dùng đúng mô hình access token ngắn + refresh token trong cookie HttpOnly, cảm ơn mọi người đã xác nhận hướng đi.', NULL, NULL, '2026-10-16 05:33:15.679+07', '2026-10-16 05:33:15.679+07');
+INSERT INTO public.forum_posts VALUES ('f4983221-9adb-5583-a8da-80961ac693e5', '7d47bc02-a400-556b-aad6-a57a0604bf7a', '89f3d663-d2b6-5688-999b-5accf875c5b0', 'Trình duyệt báo: "Access to fetch at ''http://localhost:5000/api'' from origin ''http://localhost:5173'' has been blocked by CORS policy". Mình dùng ASP.NET Core Web API. Cấu hình thế nào cho đúng?', NULL, NULL, '2026-10-16 10:11:48.023+07', '2026-10-16 10:11:48.023+07');
+INSERT INTO public.forum_posts VALUES ('9253c9cd-88a3-53e7-8b18-9c00a463560d', '7d47bc02-a400-556b-aad6-a57a0604bf7a', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', 'Thêm policy CORS rồi bật middleware trước `UseAuthorization`:
+```
+builder.Services.AddCors(o => o.AddPolicy("Web", p =>
+  p.WithOrigins("http://localhost:5173")
+   .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+...
+app.UseCors("Web");
+```
+Nếu dùng cookie/credentials thì không được dùng `AllowAnyOrigin`.', NULL, NULL, '2026-10-16 11:13:52.935+07', '2026-10-16 11:13:52.935+07');
+INSERT INTO public.forum_posts VALUES ('4a44b30a-407d-5c80-8f79-297ed6c03dfa', '7d47bc02-a400-556b-aad6-a57a0604bf7a', 'dba5756f-a817-5793-ba82-111fe64e1baa', 'Nhớ là CORS do trình duyệt áp dụng, gọi bằng Postman không bị. Khi lên production hãy giới hạn origin theo domain thật.', NULL, NULL, '2026-10-16 23:42:19.958+07', '2026-10-16 23:42:19.958+07');
+INSERT INTO public.forum_posts VALUES ('798be9da-2092-5269-887f-e8ac54def8ca', '7d47bc02-a400-556b-aad6-a57a0604bf7a', '89f3d663-d2b6-5688-999b-5accf875c5b0', 'Chạy được rồi ạ, cảm ơn chị Hạnh!', 'f4983221-9adb-5583-a8da-80961ac693e5', NULL, '2026-10-17 03:05:55.931+07', '2026-10-17 03:05:55.931+07');
+INSERT INTO public.forum_posts VALUES ('cdf89b54-ff8c-5b0d-8705-a3d02a79fc12', 'ba9754e8-d1b8-5007-8a6b-5830e2305efd', '33069162-d519-57ec-b125-1728cd0503c7', 'Mình đặt @Transactional trên method nhưng khi ném Exception thì dữ liệu vẫn được lưu. Mình dùng Spring Boot 3, JPA. Có ai gặp chưa?', NULL, NULL, '2026-10-19 14:06:19.955+07', '2026-10-19 14:06:19.955+07');
+INSERT INTO public.forum_posts VALUES ('b77a9d92-72ae-5d63-90d6-6cff487edd82', 'ba9754e8-d1b8-5007-8a6b-5830e2305efd', '6a7bda96-baf5-5022-ac77-7f43f5bf56a5', 'Mặc định Spring chỉ rollback với RuntimeException/Error, còn checked Exception (như IOException, Exception) thì không. Thêm `@Transactional(rollbackFor = Exception.class)` hoặc ném unchecked exception.', NULL, NULL, '2026-10-19 18:47:26.846+07', '2026-10-19 18:47:26.846+07');
+INSERT INTO public.forum_posts VALUES ('6adb6de0-dd77-568f-9bbd-77606e315c86', 'ba9754e8-d1b8-5007-8a6b-5830e2305efd', 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'Một lỗi hay gặp nữa: gọi method @Transactional từ chính cùng class (self-invocation) thì proxy không được áp dụng nên transaction không hoạt động. Hãy tách ra bean khác.', NULL, NULL, '2026-10-19 19:26:53.039+07', '2026-10-19 19:26:53.039+07');
+INSERT INTO public.forum_posts VALUES ('1bd7bb10-74dc-52a1-842e-b37ae8e90006', 'ba9754e8-d1b8-5007-8a6b-5830e2305efd', '33069162-d519-57ec-b125-1728cd0503c7', 'Đúng là mình đang gọi nội bộ trong cùng class. Tách service ra là rollback đúng. Cảm ơn anh Sơn, anh Huy!', 'b77a9d92-72ae-5d63-90d6-6cff487edd82', NULL, '2026-10-19 21:18:47.306+07', '2026-10-19 21:18:47.306+07');
+INSERT INTO public.forum_posts VALUES ('16656c1a-8930-5fdb-a970-904fbb1151e3', 'e6f01318-c238-5c36-9216-de3690b4896d', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Team mình chuẩn bị làm automation test cho web app React. Mình đang phân vân giữa Selenium (đã quen) và Cypress/Playwright. Ưu nhược điểm thế nào để chọn?', NULL, NULL, '2026-10-20 10:51:56.759+07', '2026-10-20 10:51:56.759+07');
+
+
+--
+-- Data for Name: forum_reports; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- Data for Name: forum_threads; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.forum_threads VALUES ('e3e6e7ed-629e-522b-934c-80c0e362d612', '0c1d0a10-0000-4000-8000-000000000004', NULL, '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Kinh nghiệm làm dự án thời vụ đầu tiên trên DevHub', false, false, 769, 4, '2026-10-09 12:22:42.969+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-08 10:00:28.182+07', '2026-11-02 16:22:01.15+07');
+INSERT INTO public.forum_threads VALUES ('da134d03-db88-54d3-af9e-80979f751a1a', '0c1d0a10-0000-4000-8000-000000000002', NULL, 'f152627a-3a86-5b3a-99cb-eb53de5b8e7d', 'Phỏng vấn kỹ thuật: nhà tuyển dụng thực sự đánh giá điều gì?', false, false, 515, 3, '2026-10-28 02:27:01.413+07', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-27 10:46:33.371+07', '2026-10-28 02:27:01.413+07');
+INSERT INTO public.forum_threads VALUES ('1d128cfc-4349-5e76-b48b-6a0d9394a28f', '0c1d0a10-0000-4000-8000-000000000002', NULL, 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', 'Làm remote có phù hợp với người mới ra trường?', false, false, 330, 3, '2026-10-30 00:07:13.655+07', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-29 11:15:18.517+07', '2026-10-30 00:07:13.655+07');
+INSERT INTO public.forum_threads VALUES ('d4ee0c91-4cfc-54ca-9889-699350ca0068', '0c1d0a10-0000-4000-8000-000000000002', NULL, '9f37f89a-4a8c-53c3-99e2-df665e45f23f', 'Thị trường tuyển dụng IT cuối năm: vị trí nào đang được săn đón?', false, false, 260, 3, '2026-11-01 08:17:31.7+07', 'ba39c684-a977-57e6-aa65-2ae802277f75', '2026-10-31 14:52:42.658+07', '2026-11-01 08:17:31.7+07');
+INSERT INTO public.forum_threads VALUES ('8891726b-f59c-5b29-a4dd-780fc208a198', '0c1d0a10-0000-4000-8000-000000000002', NULL, 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'Nên apply nhiều nơi cùng lúc hay chọn lọc từng công ty?', false, false, 140, 2, '2026-11-01 16:17:26.199+07', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-11-01 00:53:10.71+07', '2026-11-01 16:17:26.199+07');
+INSERT INTO public.forum_threads VALUES ('be7e58d8-772d-5869-99e0-36cc036b094a', '0c1d0a10-0000-4000-8000-000000000003', NULL, 'd641dc3b-b1f4-5289-b08e-a37292bba97a', 'useEffect bị gọi lặp vô hạn khi fetch dữ liệu, sửa thế nào?', false, false, 1530, 5, '2026-10-04 15:14:18.394+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-03 13:30:05.204+07', '2026-10-04 15:14:18.394+07');
+INSERT INTO public.forum_threads VALUES ('a5a2ce42-4780-5706-8bda-621bd439d930', '0c1d0a10-0000-4000-8000-000000000003', NULL, 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', 'Express: lỗi trong hàm async không được errorHandler bắt', false, false, 970, 4, '2026-10-06 19:20:58.316+07', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '2026-10-05 15:27:36.146+07', '2026-10-06 19:20:58.316+07');
+INSERT INTO public.forum_threads VALUES ('39fe530c-3fe5-5bc5-ae9a-92efd1b9620c', '0c1d0a10-0000-4000-8000-000000000003', NULL, '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'Query PostgreSQL chậm khi bảng có hàng triệu dòng, nên index thế nào?', false, false, 640, 4, '2026-10-10 11:04:14.091+07', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-09 13:31:30.191+07', '2026-10-10 11:04:14.091+07');
+INSERT INTO public.forum_threads VALUES ('066c48df-d4b1-5ec3-a503-867b6b583791', '0c1d0a10-0000-4000-8000-000000000003', NULL, 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Docker compose: container API không kết nối được tới database', false, false, 705, 3, '2026-10-12 04:01:54.33+07', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-11 13:21:03.288+07', '2026-10-12 04:01:54.33+07');
+INSERT INTO public.forum_threads VALUES ('bde49088-e221-5ba1-8c4d-2c0131928d13', '0c1d0a10-0000-4000-8000-000000000003', NULL, 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', 'Git: khi nào dùng merge, khi nào dùng rebase?', false, false, 820, 4, '2026-10-14 09:19:57.192+07', 'b5b1b1e2-ad6a-5289-9b99-8b40f8584ad1', '2026-10-13 14:27:13.815+07', '2026-10-14 09:19:57.192+07');
+INSERT INTO public.forum_threads VALUES ('3625f32f-91b1-5db4-a5c5-82ab61a4e8d5', '0c1d0a10-0000-4000-8000-000000000003', NULL, 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Lưu JWT ở đâu là an toàn: localStorage hay cookie?', false, false, 1120, 4, '2026-10-16 05:33:15.679+07', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-15 15:54:18.145+07', '2026-10-16 05:33:15.679+07');
+INSERT INTO public.forum_threads VALUES ('7d47bc02-a400-556b-aad6-a57a0604bf7a', '0c1d0a10-0000-4000-8000-000000000003', NULL, '89f3d663-d2b6-5688-999b-5accf875c5b0', 'Lỗi CORS khi gọi API từ React sang backend .NET', false, false, 455, 3, '2026-10-17 03:05:55.931+07', '89f3d663-d2b6-5688-999b-5accf875c5b0', '2026-10-16 10:11:48.023+07', '2026-10-17 03:05:55.931+07');
+INSERT INTO public.forum_threads VALUES ('ba9754e8-d1b8-5007-8a6b-5830e2305efd', '0c1d0a10-0000-4000-8000-000000000003', NULL, '33069162-d519-57ec-b125-1728cd0503c7', 'Spring Boot: @Transactional không rollback như mong đợi', false, false, 590, 3, '2026-10-19 21:18:47.306+07', '33069162-d519-57ec-b125-1728cd0503c7', '2026-10-19 14:06:19.955+07', '2026-10-19 21:18:47.306+07');
+INSERT INTO public.forum_threads VALUES ('e6f01318-c238-5c36-9216-de3690b4896d', '0c1d0a10-0000-4000-8000-000000000003', NULL, 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Selenium hay Cypress/Playwright cho dự án web mới?', false, false, 515, 3, '2026-10-21 02:05:02.174+07', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', '2026-10-20 10:51:56.759+07', '2026-10-21 02:05:02.174+07');
+INSERT INTO public.forum_threads VALUES ('17379a3d-ebae-5337-86cf-72483fef2e3c', '0c1d0a10-0000-4000-8000-000000000003', NULL, '3892c76e-02d1-594c-88f4-b97569ebf7e8', 'Flutter: quản lý state nên dùng Provider, Riverpod hay Bloc?', false, false, 480, 3, '2026-10-23 19:54:28.119+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-23 12:21:50.616+07', '2026-10-23 19:54:28.119+07');
+INSERT INTO public.forum_threads VALUES ('3c212b20-e2a6-5332-9c59-0da43c53ce0c', '0c1d0a10-0000-4000-8000-000000000003', NULL, '9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'SQL: khác nhau giữa INNER JOIN, LEFT JOIN và khi nào dùng?', false, false, 372, 3, '2026-10-26 04:30:15.529+07', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-25 14:31:17.62+07', '2026-10-26 04:30:15.529+07');
+INSERT INTO public.forum_threads VALUES ('014e51ed-f844-5954-8f88-b25a8b2a663f', '0c1d0a10-0000-4000-8000-000000000003', NULL, '2cf395d9-9434-5eba-8c33-5f5a51d8518c', 'Laravel: lỗi N+1 query khi hiển thị danh sách bài viết', false, false, 290, 3, '2026-10-28 02:05:14.439+07', '2cf395d9-9434-5eba-8c33-5f5a51d8518c', '2026-10-27 15:49:20.191+07', '2026-10-28 02:05:14.439+07');
+INSERT INTO public.forum_threads VALUES ('730059c8-cdaf-57d7-ba10-45569faa7db9', '0c1d0a10-0000-4000-8000-000000000003', NULL, 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', 'Pandas: xử lý dữ liệu thiếu (NaN) nên điền hay xóa?', false, false, 215, 2, '2026-10-30 13:34:29.029+07', 'b3de2d2e-2221-53b6-adb2-7e0a6ea73b16', '2026-10-30 10:14:21.262+07', '2026-10-30 13:34:29.029+07');
+INSERT INTO public.forum_threads VALUES ('b85989d5-ec8d-54ba-be19-83702012cf7f', '0c1d0a10-0000-4000-8000-000000000004', NULL, 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Tìm đồng đội làm dự án mẫu QA Automation', false, false, 515, 3, '2026-10-14 05:33:08.943+07', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-13 13:06:22.515+07', '2026-10-14 05:33:08.943+07');
+INSERT INTO public.forum_threads VALUES ('67f96fad-4229-57c6-aa92-75d67ab57e90', '0c1d0a10-0000-4000-8000-000000000004', NULL, '8ec61d09-a425-5d54-a53a-90d541a198c5', 'Doanh nghiệp có thể đặt hàng dự án nhỏ cho sinh viên trên DevHub không?', false, false, 450, 2, '2026-10-17 13:52:07.595+07', '8ec61d09-a425-5d54-a53a-90d541a198c5', '2026-10-17 10:12:47.973+07', '2026-10-17 13:52:07.595+07');
+INSERT INTO public.forum_threads VALUES ('a5f2dba2-ccac-5733-b7fd-8feb48543ef3', '0c1d0a10-0000-4000-8000-000000000004', NULL, 'c84a4564-7a6e-57f7-9a50-23ba7e0c4deb', 'Chia task trên Kanban thế nào cho hiệu quả?', false, false, 388, 3, '2026-10-20 23:59:40.156+07', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-20 14:41:03.042+07', '2026-10-20 23:59:40.156+07');
+INSERT INTO public.forum_threads VALUES ('94358e47-3f2a-5fa8-a37f-034674611bc5', '0c1d0a10-0000-4000-8000-000000000004', NULL, '4e332674-295d-444c-a507-2d60b50f1be1', 'Review code (PR) trong nhóm nhỏ: nên làm thế nào?', false, false, 295, 3, '2026-10-25 02:56:38.505+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-24 11:28:12.617+07', '2026-10-25 02:56:38.505+07');
+INSERT INTO public.forum_threads VALUES ('2485f31e-e43b-51e1-8f7b-a5e1fb73405b', '0c1d0a10-0000-4000-8000-000000000004', NULL, 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Làm việc nhóm từ xa: giữ nhịp độ và giao tiếp ra sao?', false, false, 260, 3, '2026-10-28 08:47:16.895+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-27 13:02:52.356+07', '2026-10-28 08:47:16.895+07');
+INSERT INTO public.forum_threads VALUES ('c4a7a43a-a9cf-5db4-8523-de41eb9cbfc1', '0c1d0a10-0000-4000-8000-000000000004', NULL, 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', 'Tìm bạn làm cùng dự án portfolio: web đặt lịch khám', false, false, 190, 3, '2026-10-30 18:19:30.543+07', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-30 12:32:28.011+07', '2026-10-30 18:19:30.543+07');
+INSERT INTO public.forum_threads VALUES ('b9cfeef0-5d4a-5c51-9f9e-fe0878a7db97', '0c1d0a10-0000-4000-8000-000000000005', NULL, '9b1dd3d8-67e2-5465-821f-cc64ad058d80', 'Chuyển ngành sang IT ở tuổi 24, có muộn không?', false, false, 905, 4, '2026-10-05 04:11:49.574+07', '9b1dd3d8-67e2-5465-821f-cc64ad058d80', '2026-10-04 14:22:53.042+07', '2026-10-05 04:11:49.574+07');
+INSERT INTO public.forum_threads VALUES ('e9432a54-b7c4-5eca-b321-655e1e89e886', '0c1d0a10-0000-4000-8000-000000000003', NULL, '69770111-7bfe-53bd-a59d-75d33fd8ec23', 'Tailwind CSS có làm code JSX rối không? Có nên dùng không?', false, false, 359, 3, '2026-10-29 00:58:29.036+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-28 13:44:39.289+07', '2026-11-02 16:22:00.309+07');
+INSERT INTO public.forum_threads VALUES ('31ed05bd-4525-5455-a7a3-77ebd54a28c9', '0c1d0a10-0000-4000-8000-000000000005', NULL, '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Portfolio cho Product Designer cần có những gì?', false, false, 433, 3, '2026-10-23 19:47:43.633+07', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', '2026-10-23 14:04:15.897+07', '2026-11-02 16:21:51.57+07');
+INSERT INTO public.forum_threads VALUES ('555f9824-aeb8-59de-bb60-7adf75551511', '0c1d0a10-0000-4000-8000-000000000005', NULL, '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', 'Lộ trình trở thành Backend Developer cho người mới bắt đầu', false, false, 680, 3, '2026-10-11 05:31:20.342+07', '39f9b4d5-1f6c-55a2-9158-6c1ad28c4eda', '2026-10-10 14:22:34.753+07', '2026-10-11 05:31:20.342+07');
+INSERT INTO public.forum_threads VALUES ('aac6cc75-7d6e-5e5b-b97d-d7bcc3df20a2', '0c1d0a10-0000-4000-8000-000000000005', NULL, 'f224b438-95de-581f-ac10-c3d2e50e1a30', 'Có nên đầu tư học tiếng Anh giao tiếp khi mới đi làm IT?', false, false, 520, 3, '2026-10-16 05:04:57.222+07', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-15 11:43:43.224+07', '2026-10-16 05:04:57.222+07');
+INSERT INTO public.forum_threads VALUES ('6b12e634-bc0d-5320-ae40-f4864896551e', '0c1d0a10-0000-4000-8000-000000000005', NULL, 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Từ Manual Tester lên Automation: cần học gì?', false, false, 610, 3, '2026-10-20 08:57:39.814+07', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-19 13:39:55.739+07', '2026-10-20 08:57:39.814+07');
+INSERT INTO public.forum_threads VALUES ('99f0dab6-88e6-5a98-b6ef-e5762bec7b90', '0c1d0a10-0000-4000-8000-000000000005', NULL, '582d4dba-f518-521b-84ee-9538f8c868d5', 'Chứng chỉ AWS/Azure có thực sự cần cho người mới?', false, false, 305, 3, '2026-10-26 20:15:09.683+07', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-26 11:08:45.48+07', '2026-10-26 20:15:09.683+07');
+INSERT INTO public.forum_threads VALUES ('6789ba60-a287-59ba-8f78-e2be82384e3c', '0c1d0a10-0000-4000-8000-000000000005', NULL, 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', 'Làm sao viết mục tiêu nghề nghiệp trong CV cho thuyết phục?', false, false, 245, 2, '2026-10-29 14:54:29.437+07', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '2026-10-29 12:41:05.744+07', '2026-10-29 14:54:29.437+07');
+INSERT INTO public.forum_threads VALUES ('a66237e1-1605-5d60-ad28-d25b140306a3', '0c1d0a10-0000-4000-8000-000000000005', NULL, '429535c5-5df7-5e12-b135-1572e5931035', 'Có nên đóng góp open source khi chưa có kinh nghiệm?', false, false, 150, 2, '2026-10-31 23:10:41.975+07', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-31 13:48:48.804+07', '2026-10-31 23:10:41.975+07');
+INSERT INTO public.forum_threads VALUES ('0050a554-e80f-5f6b-8aa9-7557efb5419f', '0c1d0a10-0000-4000-8000-000000000006', NULL, '0b0373a0-12e2-5cc2-9277-976dd0ad9685', 'Tổng hợp nguồn học miễn phí chất lượng cho dân IT', false, false, 1010, 4, '2026-10-07 03:42:14.126+07', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-06 13:46:38.013+07', '2026-10-07 03:42:14.126+07');
+INSERT INTO public.forum_threads VALUES ('b1395cf7-bfe6-5c83-b68d-bf279306133b', '0c1d0a10-0000-4000-8000-000000000006', NULL, '4e332674-295d-444c-a507-2d60b50f1be1', 'Những extension VS Code mình dùng hằng ngày', false, false, 640, 3, '2026-10-13 01:57:22.733+07', 'f1bdce80-5f35-5850-ae71-88ae23aecbc9', '2026-10-12 11:55:21.544+07', '2026-10-13 01:57:22.733+07');
+INSERT INTO public.forum_threads VALUES ('746bc3fd-254a-55f8-b83c-4b1566ef7632', '0c1d0a10-0000-4000-8000-000000000006', NULL, 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '10 mẹo Git giúp làm việc nhóm gọn gàng hơn', false, false, 710, 3, '2026-10-19 00:11:10.578+07', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-18 15:31:06.966+07', '2026-10-19 00:11:10.578+07');
+INSERT INTO public.forum_threads VALUES ('7be0eea5-21f4-5cae-96ed-0e0ddbd5eda9', '0c1d0a10-0000-4000-8000-000000000006', NULL, 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Nguyên tắc thiết kế giao diện mà dev nào cũng nên biết', false, false, 475, 2, '2026-10-23 05:25:49.714+07', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-22 15:14:16.761+07', '2026-10-23 05:25:49.714+07');
+INSERT INTO public.forum_threads VALUES ('0aa6e715-c697-5587-affd-d709b8649716', '0c1d0a10-0000-4000-8000-000000000006', NULL, 'dba5756f-a817-5793-ba82-111fe64e1baa', 'Hiểu CI/CD trong 5 phút (kèm ví dụ GitHub Actions)', false, false, 350, 2, '2026-10-25 15:18:48.449+07', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-25 10:03:29.788+07', '2026-10-25 15:18:48.449+07');
+INSERT INTO public.forum_threads VALUES ('ace4b62d-59fd-58d7-9570-cdd6921e11c3', '0c1d0a10-0000-4000-8000-000000000006', NULL, 'f54ab7af-cb87-54cf-beb3-9b2bbdc18e32', 'Sách mình đọc năm nay: Clean Code, Pragmatic Programmer và vài cuốn khác', false, false, 265, 2, '2026-10-28 17:19:31.723+07', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-28 13:52:47.982+07', '2026-10-28 17:19:31.723+07');
+INSERT INTO public.forum_threads VALUES ('c6f2dd0b-cabc-54a8-aed6-3e5135cb3b53', '0c1d0a10-0000-4000-8000-000000000007', NULL, '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Setup góc làm việc của mọi người trông như thế nào?', false, false, 540, 4, '2026-10-11 20:09:05.454+07', '429535c5-5df7-5e12-b135-1572e5931035', '2026-10-11 11:41:28.574+07', '2026-10-11 20:09:05.454+07');
+INSERT INTO public.forum_threads VALUES ('e16a7af2-eacb-5a09-a748-3a5014343a61', '0c1d0a10-0000-4000-8000-000000000007', NULL, '61bc59e4-810f-5909-9a54-8d8edc6fed1e', 'Cà phê hay trà khi code? Team nào đây 😄', false, false, 420, 4, '2026-10-18 09:40:41.143+07', '61bc59e4-810f-5909-9a54-8d8edc6fed1e', '2026-10-17 13:02:03.689+07', '2026-10-18 09:40:41.143+07');
+INSERT INTO public.forum_threads VALUES ('acb388a7-bf5b-58f2-acb0-63f655502a15', '0c1d0a10-0000-4000-8000-000000000007', NULL, 'c006903d-bea8-5844-a0dc-63df6be24c0c', 'Làm sao cân bằng công việc và cuộc sống khi làm IT?', false, false, 330, 3, '2026-10-22 02:23:16.438+07', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-21 12:51:26.414+07', '2026-10-22 02:23:16.438+07');
+INSERT INTO public.forum_threads VALUES ('733fa355-0efc-5950-8c49-87a36b7d4abb', '0c1d0a10-0000-4000-8000-000000000007', NULL, 'c5f804a7-99ba-54f2-8591-76a39c3ba33f', 'Meme dev: khi bạn sửa 1 dòng code và 100 test fail', false, false, 280, 3, '2026-10-25 22:14:03.22+07', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-25 10:26:22.69+07', '2026-10-25 22:14:03.22+07');
+INSERT INTO public.forum_threads VALUES ('4e0f7d79-ea06-578a-9379-d46a8c0ca28b', '0c1d0a10-0000-4000-8000-000000000007', NULL, '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Cuối tuần mọi người làm gì để xả stress?', false, false, 215, 3, '2026-10-28 21:13:41.953+07', 'e023c99e-6759-5601-a9b7-1c3db1aabdc6', '2026-10-28 13:30:12.476+07', '2026-10-28 21:13:41.953+07');
+INSERT INTO public.forum_threads VALUES ('bb3a8d08-a2c9-5cf2-9d47-2428d78c7039', '0c1d0a10-0000-4000-8000-000000000007', NULL, 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Giới thiệu bản thân: mới tham gia diễn đàn DevHub', false, false, 120, 3, '2026-11-02 02:01:31.859+07', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-11-01 11:50:53.978+07', '2026-11-02 02:01:31.859+07');
+INSERT INTO public.forum_threads VALUES ('77a7cdda-1367-585f-84bc-a31365cec292', NULL, 'fac54513-13fa-534b-acd1-121a0b2702c0', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 19, 3, '2026-10-25 00:11:57.328+07', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-24 13:57:41.67+07', '2026-10-25 00:11:57.328+07');
+INSERT INTO public.forum_threads VALUES ('ce63f8cc-43de-567f-ab85-37b78ffb4888', NULL, 'fac54513-13fa-534b-acd1-121a0b2702c0', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 19, 3, '2026-10-26 21:28:39.947+07', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-26 15:32:16.859+07', '2026-10-26 21:28:39.947+07');
+INSERT INTO public.forum_threads VALUES ('c09bfce6-4bee-5234-a3f8-61b5ad4fc903', NULL, 'fac54513-13fa-534b-acd1-121a0b2702c0', '0b5855dc-6ebd-5ad4-b223-8a9e560204b4', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 25, 3, '2026-10-29 04:29:47.626+07', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-28 11:28:30.441+07', '2026-10-29 04:29:47.626+07');
+INSERT INTO public.forum_threads VALUES ('3074bf77-7e22-5ae7-a037-a3f3c0aef634', NULL, 'fac54513-13fa-534b-acd1-121a0b2702c0', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 5, 2, '2026-10-29 20:18:10.798+07', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-29 11:42:04.302+07', '2026-10-29 20:18:10.798+07');
+INSERT INTO public.forum_threads VALUES ('44012eeb-0ab5-5656-bacf-1ab56137c7ed', NULL, 'fac54513-13fa-534b-acd1-121a0b2702c0', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 19, 3, '2026-11-01 05:10:26.91+07', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-31 15:41:47.279+07', '2026-11-01 05:10:26.91+07');
+INSERT INTO public.forum_threads VALUES ('4eba5d6f-0a69-53d6-9021-c5a7843b4b92', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 22, 3, '2026-10-24 21:53:55.124+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-24 10:48:26.231+07', '2026-10-24 21:53:55.124+07');
+INSERT INTO public.forum_threads VALUES ('85dcf9b8-a181-5c20-8878-9bd8af9148ae', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 25, 3, '2026-10-26 23:07:08.526+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-26 12:51:12.639+07', '2026-10-26 23:07:08.526+07');
+INSERT INTO public.forum_threads VALUES ('c3651837-cd72-5bdb-a0f2-4e006d5b7528', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 26, 3, '2026-10-28 15:50:10.736+07', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-28 12:22:14.817+07', '2026-10-28 15:50:10.736+07');
+INSERT INTO public.forum_threads VALUES ('c1e92046-6025-54f8-b9a9-78af4384c208', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 29, 2, '2026-10-30 04:44:49.089+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-29 14:01:22.083+07', '2026-10-30 04:44:49.089+07');
+INSERT INTO public.forum_threads VALUES ('ceb225be-a1ae-5d5e-b124-b439aa2a50f4', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 14, 3, '2026-11-01 15:15:20.117+07', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-31 15:15:33.599+07', '2026-11-01 15:15:20.117+07');
+INSERT INTO public.forum_threads VALUES ('65647ac3-606a-5f48-a8a1-9c702da47d74', NULL, '50d6cf25-9a87-57bb-aa93-7e90017ae094', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 21, 3, '2026-10-25 08:44:53.399+07', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-24 12:49:06.188+07', '2026-10-25 08:44:53.399+07');
+INSERT INTO public.forum_threads VALUES ('1903c289-9f18-5351-b33a-01e568e4b574', NULL, '50d6cf25-9a87-57bb-aa93-7e90017ae094', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 25, 3, '2026-10-26 18:29:39.242+07', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-26 11:29:19.823+07', '2026-10-26 18:29:39.242+07');
+INSERT INTO public.forum_threads VALUES ('41495cb7-1043-5c62-a876-3495567f4918', NULL, '50d6cf25-9a87-57bb-aa93-7e90017ae094', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 22, 3, '2026-10-29 10:25:27.705+07', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-28 14:43:34.637+07', '2026-10-29 10:25:27.705+07');
+INSERT INTO public.forum_threads VALUES ('ddf685b5-cdb5-5961-9bff-1b5038336679', NULL, '50d6cf25-9a87-57bb-aa93-7e90017ae094', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 29, 2, '2026-10-30 02:06:28.132+07', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-29 15:32:30.988+07', '2026-10-30 02:06:28.132+07');
+INSERT INTO public.forum_threads VALUES ('6a46d3f9-4811-56dc-a05e-b2713d0de72b', '0c1d0a10-0000-4000-8000-000000000001', NULL, 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Ra mắt danh hiệu ứng viên: làm càng nhiều dự án, hạng càng cao', true, false, 1266, 4, '2026-09-29 23:19:01.77+07', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-09-29 09:58:47.658+07', '2026-11-02 15:58:30.789+07');
+INSERT INTO public.forum_threads VALUES ('ed984231-4b95-5db7-ba74-2d3bd87bbef6', '0c1d0a10-0000-4000-8000-000000000001', NULL, 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nội quy diễn đàn DevHub (vui lòng đọc trước khi đăng bài)', true, false, 1840, 3, '2026-09-05 21:45:11.026+07', '2c6e3aea-f5ab-54de-959f-26806e04783a', '2026-09-05 14:20:53.948+07', '2026-09-05 21:45:11.026+07');
+INSERT INTO public.forum_threads VALUES ('3ca76a44-4a38-581b-8a1f-9b1902618f2f', '0c1d0a10-0000-4000-8000-000000000001', NULL, 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Hướng dẫn: từ ứng tuyển dự án thời vụ đến khi nhận thù lao', false, false, 940, 4, '2026-10-13 02:18:57.006+07', '582d4dba-f518-521b-84ee-9538f8c868d5', '2026-10-12 12:14:45.458+07', '2026-10-13 02:18:57.006+07');
+INSERT INTO public.forum_threads VALUES ('7931610a-2f70-5704-97fa-59d61985c340', '0c1d0a10-0000-4000-8000-000000000001', NULL, 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Cập nhật: lưu tin yêu thích và tìm việc phù hợp với hồ sơ', false, false, 610, 3, '2026-10-21 20:58:56.631+07', '5367db5d-eba6-5298-8218-1cfbf437a638', '2026-10-21 11:26:02.748+07', '2026-10-21 20:58:56.631+07');
+INSERT INTO public.forum_threads VALUES ('137ea3b2-1954-5966-b078-57a28b7ce4f6', '0c1d0a10-0000-4000-8000-000000000001', NULL, 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Thông báo bảo trì hệ thống rạng sáng Chủ nhật', false, false, 420, 2, '2026-10-26 15:45:57.583+07', 'af37aeee-f959-53cb-af71-e1782f1cabee', '2026-10-26 12:26:11.498+07', '2026-10-26 15:45:57.583+07');
+INSERT INTO public.forum_threads VALUES ('1ca32fd4-7434-56f5-9128-c24036063e25', '0c1d0a10-0000-4000-8000-000000000001', NULL, 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Mở diễn đàn riêng cho từng Workspace dự án', false, false, 305, 2, '2026-10-30 16:49:01.463+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-30 14:44:09.853+07', '2026-10-30 16:49:01.463+07');
+INSERT INTO public.forum_threads VALUES ('03ea5ee7-a979-565b-90bb-919c3312ad0c', '0c1d0a10-0000-4000-8000-000000000002', NULL, 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Fresher React đi phỏng vấn cần chuẩn bị những gì?', false, false, 735, 5, '2026-10-08 15:08:36.695+07', 'd641dc3b-b1f4-5289-b08e-a37292bba97a', '2026-10-07 12:38:11.835+07', '2026-10-08 15:08:36.695+07');
+INSERT INTO public.forum_threads VALUES ('65fe0e54-9a73-57d5-95c8-514513502cd1', '0c1d0a10-0000-4000-8000-000000000002', NULL, '5367db5d-eba6-5298-8218-1cfbf437a638', '[Góc nhà tuyển dụng] 7 lỗi phổ biến khiến CV fresher bị loại ngay vòng đầu', false, false, 1120, 5, '2026-10-16 06:21:28.896+07', '25a2286f-510f-534c-bc3e-4cc1f9aaff9a', '2026-10-14 14:06:50.44+07', '2026-10-16 06:21:28.896+07');
+INSERT INTO public.forum_threads VALUES ('d43ec918-f993-5e5d-a72b-f51eb72d7c42', '0c1d0a10-0000-4000-8000-000000000002', NULL, '582d4dba-f518-521b-84ee-9538f8c868d5', 'Mức lương fresher/junior IT hiện nay ở TP.HCM và Hà Nội khoảng bao nhiêu?', false, false, 868, 5, '2026-10-18 20:07:27.398+07', 'be7bc0dd-b69c-5508-b003-4fc2495bf58e', '2026-10-18 11:28:02.54+07', '2026-10-18 20:07:27.398+07');
+INSERT INTO public.forum_threads VALUES ('9f7984ce-532f-5065-ab07-0cc327a92df6', '0c1d0a10-0000-4000-8000-000000000002', NULL, '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Nên chọn công ty outsource hay công ty sản phẩm khi mới ra trường?', false, false, 590, 4, '2026-10-23 08:00:31.951+07', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-22 12:13:08.488+07', '2026-10-23 08:00:31.951+07');
+INSERT INTO public.forum_threads VALUES ('6e7597bd-698d-59c4-bcf6-fbc2f756254d', '0c1d0a10-0000-4000-8000-000000000002', NULL, 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', 'Thực tập không lương có đáng để nhận không?', false, false, 402, 3, '2026-10-24 20:11:03.96+07', 'f345aa01-d4a9-53ca-b9ea-f8cf463ab44e', '2026-10-24 13:58:06.884+07', '2026-10-24 20:11:03.96+07');
+INSERT INTO public.forum_threads VALUES ('a40c3988-7801-5a45-a410-08870a39dcfc', NULL, '50d6cf25-9a87-57bb-aa93-7e90017ae094', 'ff24e6b9-2635-5eee-85ea-1517fc172500', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 20, 3, '2026-11-01 01:28:29.168+07', 'ff24e6b9-2635-5eee-85ea-1517fc172500', '2026-10-31 15:40:39.932+07', '2026-11-01 01:28:29.168+07');
+INSERT INTO public.forum_threads VALUES ('dcefb457-f17e-53bc-aa8c-1f7ea7e135dd', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', '4e332674-295d-444c-a507-2d60b50f1be1', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 4, 3, '2026-10-24 23:28:19.084+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-24 12:19:35.315+07', '2026-10-24 23:28:19.084+07');
+INSERT INTO public.forum_threads VALUES ('dd25d243-fe3e-523b-be17-187138eec206', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', '4e332674-295d-444c-a507-2d60b50f1be1', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 22, 3, '2026-10-26 21:55:59.236+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-26 10:18:38.159+07', '2026-10-26 21:55:59.236+07');
+INSERT INTO public.forum_threads VALUES ('82fa1252-a210-5b56-be33-b59ebc0a428c', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 28, 3, '2026-10-28 23:19:29.447+07', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-28 13:09:15.076+07', '2026-10-28 23:19:29.447+07');
+INSERT INTO public.forum_threads VALUES ('dbcd2cd0-2b61-5feb-b00b-ec1632477c73', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 19, 2, '2026-10-29 16:15:01.482+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-29 10:14:29.735+07', '2026-10-29 16:15:01.482+07');
+INSERT INTO public.forum_threads VALUES ('5d4bf3c3-a69f-58d7-bdc0-5ab88e824970', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 15, 3, '2026-11-01 10:45:06.208+07', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-31 13:44:02.595+07', '2026-11-01 10:45:06.208+07');
+INSERT INTO public.forum_threads VALUES ('f86b96d6-c65d-51db-8849-6367cfa9bb53', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 13, 3, '2026-10-24 16:37:34.856+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-24 12:16:43.949+07', '2026-10-24 16:37:34.856+07');
+INSERT INTO public.forum_threads VALUES ('80623bbd-74fe-5bef-8bda-07927780f0c5', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 16, 3, '2026-10-26 22:24:43.813+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-26 15:00:54.649+07', '2026-10-26 22:24:43.813+07');
+INSERT INTO public.forum_threads VALUES ('cb63750e-43b2-5cfb-98f2-29604965dc84', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 6, 3, '2026-10-28 20:17:27.88+07', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-28 10:04:51.757+07', '2026-10-28 20:17:27.88+07');
+INSERT INTO public.forum_threads VALUES ('302b3dde-7a04-54e1-b9d5-2bcce4c1ba97', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 6, 2, '2026-10-30 03:14:14.898+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-29 12:45:52.476+07', '2026-10-30 03:14:14.898+07');
+INSERT INTO public.forum_threads VALUES ('2416e335-8f20-5601-b188-9046286c786d', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 6, 3, '2026-11-01 16:32:42.507+07', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-31 13:26:03.108+07', '2026-11-01 16:32:42.507+07');
+INSERT INTO public.forum_threads VALUES ('5aa93076-91af-5b63-9921-64da23233d32', NULL, '681f19d2-32f7-4280-9698-2db0eaa0a031', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 22, 3, '2026-10-26 23:32:12.168+07', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-26 11:48:56.808+07', '2026-10-26 23:32:12.168+07');
+INSERT INTO public.forum_threads VALUES ('c0e53c67-5afb-501c-9786-22f1ce392978', NULL, '681f19d2-32f7-4280-9698-2db0eaa0a031', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 18, 2, '2026-10-29 18:33:56.318+07', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-29 10:43:56.497+07', '2026-10-29 18:33:56.318+07');
 
 
 --
@@ -6815,6 +8941,94 @@ ALTER TABLE ONLY public.experiences
 
 
 --
+-- Name: forum_bookmarks forum_bookmarks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_bookmarks
+    ADD CONSTRAINT forum_bookmarks_pkey PRIMARY KEY (user_id, post_id);
+
+
+--
+-- Name: forum_categories forum_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_categories
+    ADD CONSTRAINT forum_categories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: forum_categories forum_categories_slug_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_categories
+    ADD CONSTRAINT forum_categories_slug_key UNIQUE (slug);
+
+
+--
+-- Name: forum_follows forum_follows_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_follows
+    ADD CONSTRAINT forum_follows_pkey PRIMARY KEY (follower_id, followee_id);
+
+
+--
+-- Name: forum_ignores forum_ignores_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_ignores
+    ADD CONSTRAINT forum_ignores_pkey PRIMARY KEY (user_id, ignored_id);
+
+
+--
+-- Name: forum_member_activity forum_member_activity_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_member_activity
+    ADD CONSTRAINT forum_member_activity_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: forum_messages forum_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_messages
+    ADD CONSTRAINT forum_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: forum_post_likes forum_post_likes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_post_likes
+    ADD CONSTRAINT forum_post_likes_pkey PRIMARY KEY (post_id, user_id);
+
+
+--
+-- Name: forum_posts forum_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_posts
+    ADD CONSTRAINT forum_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: forum_reports forum_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_reports
+    ADD CONSTRAINT forum_reports_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: forum_threads forum_threads_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_threads
+    ADD CONSTRAINT forum_threads_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: job_post_skills job_post_skills_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -7047,6 +9261,14 @@ ALTER TABLE ONLY public.tasks
 
 
 --
+-- Name: forum_reports uq_forum_reports_post_reporter; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_reports
+    ADD CONSTRAINT uq_forum_reports_post_reporter UNIQUE (post_id, reporter_id);
+
+
+--
 -- Name: user_roles user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -7127,6 +9349,69 @@ CREATE INDEX activity_logs_user_id ON public.activity_logs USING btree (user_id)
 --
 
 CREATE INDEX idx_experiences_parent ON public.experiences USING btree (parent_id);
+
+
+--
+-- Name: idx_forum_follows_followee; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_follows_followee ON public.forum_follows USING btree (followee_id);
+
+
+--
+-- Name: idx_forum_messages_recipient; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_messages_recipient ON public.forum_messages USING btree (recipient_id, sender_id, created_at DESC);
+
+
+--
+-- Name: idx_forum_messages_sender; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_messages_sender ON public.forum_messages USING btree (sender_id, recipient_id, created_at DESC);
+
+
+--
+-- Name: idx_forum_posts_author; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_posts_author ON public.forum_posts USING btree (author_id);
+
+
+--
+-- Name: idx_forum_posts_thread; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_posts_thread ON public.forum_posts USING btree (thread_id, created_at);
+
+
+--
+-- Name: idx_forum_reports_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_reports_status ON public.forum_reports USING btree (status, created_at DESC);
+
+
+--
+-- Name: idx_forum_threads_author; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_threads_author ON public.forum_threads USING btree (author_id);
+
+
+--
+-- Name: idx_forum_threads_category; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_threads_category ON public.forum_threads USING btree (category_id, is_pinned DESC, last_post_at DESC);
+
+
+--
+-- Name: idx_forum_threads_workspace; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_threads_workspace ON public.forum_threads USING btree (workspace_id, is_pinned DESC, last_post_at DESC);
 
 
 --
@@ -7286,6 +9571,182 @@ ALTER TABLE ONLY public.experiences
 
 ALTER TABLE ONLY public.experiences
     ADD CONSTRAINT experiences_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.experiences(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_bookmarks forum_bookmarks_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_bookmarks
+    ADD CONSTRAINT forum_bookmarks_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.forum_posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_bookmarks forum_bookmarks_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_bookmarks
+    ADD CONSTRAINT forum_bookmarks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_follows forum_follows_followee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_follows
+    ADD CONSTRAINT forum_follows_followee_id_fkey FOREIGN KEY (followee_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_follows forum_follows_follower_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_follows
+    ADD CONSTRAINT forum_follows_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_ignores forum_ignores_ignored_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_ignores
+    ADD CONSTRAINT forum_ignores_ignored_id_fkey FOREIGN KEY (ignored_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_ignores forum_ignores_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_ignores
+    ADD CONSTRAINT forum_ignores_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_member_activity forum_member_activity_thread_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_member_activity
+    ADD CONSTRAINT forum_member_activity_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.forum_threads(id) ON DELETE SET NULL;
+
+
+--
+-- Name: forum_member_activity forum_member_activity_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_member_activity
+    ADD CONSTRAINT forum_member_activity_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_messages forum_messages_recipient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_messages
+    ADD CONSTRAINT forum_messages_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_messages forum_messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_messages
+    ADD CONSTRAINT forum_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_post_likes forum_post_likes_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_post_likes
+    ADD CONSTRAINT forum_post_likes_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.forum_posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_post_likes forum_post_likes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_post_likes
+    ADD CONSTRAINT forum_post_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_posts forum_posts_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_posts
+    ADD CONSTRAINT forum_posts_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_posts forum_posts_quote_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_posts
+    ADD CONSTRAINT forum_posts_quote_post_id_fkey FOREIGN KEY (quote_post_id) REFERENCES public.forum_posts(id) ON DELETE SET NULL;
+
+
+--
+-- Name: forum_posts forum_posts_thread_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_posts
+    ADD CONSTRAINT forum_posts_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.forum_threads(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_reports forum_reports_handled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_reports
+    ADD CONSTRAINT forum_reports_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: forum_reports forum_reports_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_reports
+    ADD CONSTRAINT forum_reports_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.forum_posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_reports forum_reports_reporter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_reports
+    ADD CONSTRAINT forum_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_threads forum_threads_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_threads
+    ADD CONSTRAINT forum_threads_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_threads forum_threads_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_threads
+    ADD CONSTRAINT forum_threads_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.forum_categories(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_threads forum_threads_last_post_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_threads
+    ADD CONSTRAINT forum_threads_last_post_user_id_fkey FOREIGN KEY (last_post_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: forum_threads forum_threads_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_threads
+    ADD CONSTRAINT forum_threads_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 
 --
@@ -7604,5 +10065,5 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
-\unrestrict EXnNnscWlYknqMbHX0YZ0MXg6R66sCEPHf7oAtIC57aim9YWet0YSEXrtLprymO
+\unrestrict AT1CejItZC5TuzpdcRVn8NweNUhuYWS3NxYvDca7OiDLlhiGtP47CVeSKWOLx8c
 

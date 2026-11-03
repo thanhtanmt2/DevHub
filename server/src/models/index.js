@@ -29,6 +29,18 @@ const ProjectJobSkill = require('./ProjectJobSkill')(sequelize, DataTypes);
 const ProjectApplication = require('./ProjectApplication')(sequelize, DataTypes);
 const SavedJob = require('./SavedJob')(sequelize, DataTypes);
 
+// Diễn đàn
+const ForumCategory = require('./ForumCategory')(sequelize, DataTypes);
+const ForumThread = require('./ForumThread')(sequelize, DataTypes);
+const ForumPost = require('./ForumPost')(sequelize, DataTypes);
+const ForumPostLike = require('./ForumPostLike')(sequelize, DataTypes);
+const ForumMemberActivity = require('./ForumMemberActivity')(sequelize, DataTypes);
+const ForumFollow = require('./ForumFollow')(sequelize, DataTypes);
+const ForumIgnore = require('./ForumIgnore')(sequelize, DataTypes);
+const ForumBookmark = require('./ForumBookmark')(sequelize, DataTypes);
+const ForumReport = require('./ForumReport')(sequelize, DataTypes);
+const ForumMessage = require('./ForumMessage')(sequelize, DataTypes);
+
 // Workspace models
 const Workspace = require('./Workspace')(sequelize, DataTypes);
 const WorkspaceMember = require('./WorkspaceMember')(sequelize, DataTypes);
@@ -196,6 +208,18 @@ Notification.belongsTo(User, { foreignKey: 'user_id' });
 User.hasMany(ActivityLog, { foreignKey: 'user_id', as: 'ActivityLogs' });
 ActivityLog.belongsTo(User, { foreignKey: 'user_id' });
 
+// Diễn đàn
+ForumCategory.hasMany(ForumThread, { foreignKey: 'category_id', onDelete: 'CASCADE' });
+ForumThread.belongsTo(ForumCategory, { foreignKey: 'category_id' });
+Workspace.hasMany(ForumThread, { foreignKey: 'workspace_id', onDelete: 'CASCADE' });
+ForumThread.belongsTo(Workspace, { foreignKey: 'workspace_id' });
+ForumThread.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
+ForumThread.hasMany(ForumPost, { foreignKey: 'thread_id', onDelete: 'CASCADE' });
+ForumPost.belongsTo(ForumThread, { foreignKey: 'thread_id' });
+ForumPost.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
+ForumPost.hasMany(ForumPostLike, { foreignKey: 'post_id', onDelete: 'CASCADE' });
+ForumPostLike.belongsTo(ForumPost, { foreignKey: 'post_id' });
+
 // Backwards compatibility alias
 const InternalProject = Project;
 
@@ -210,6 +234,8 @@ module.exports = {
   Application, ApplicationStatusHistory,
   SavedCandidate,
   Project, ProjectJob, ProjectJobSkill, ProjectApplication, SavedJob,
+  ForumCategory, ForumThread, ForumPost, ForumPostLike,
+  ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage,
   InternalProject, // alias
   Workspace, WorkspaceMember,
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,

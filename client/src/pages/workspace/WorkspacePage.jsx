@@ -15,6 +15,7 @@ import Icon, { IconBadge } from '@/components/common/Icon';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import useEscapeKey from '@/hooks/useEscapeKey';
 import { stripEmoji } from '@/utils/stripEmoji';
+import WorkspaceForum from '@/components/forum/WorkspaceForum';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
@@ -1387,7 +1388,7 @@ export default function WorkspacePage() {
   const qc = useQueryClient();
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list'
-  const [activeSection, setActiveSection] = useState('board'); // 'board' | 'stats' | 'members'
+  const [activeSection, setActiveSection] = useState('board'); // 'board' | 'stats' | 'forum' | 'members' | 'logs'
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [reviewIntent, setReviewIntent] = useState(null); // 'APPROVE' | 'REVISION' khi kéo task ra khỏi "Chờ duyệt"
@@ -1651,6 +1652,10 @@ export default function WorkspacePage() {
               className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${activeSection === 'stats' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>
               <Icon name="chart" className="w-3.5 h-3.5 mr-1" />Thống kê
             </button>
+            <button onClick={() => setActiveSection('forum')}
+              className={`text-xs px-2.5 py-1.5 rounded-md transition-all ${activeSection === 'forum' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>
+              <Icon name="comments" className="w-3.5 h-3.5 mr-1" />Diễn đàn
+            </button>
             {canManage && (
               <>
                 <button onClick={() => setActiveSection('members')}
@@ -1745,6 +1750,9 @@ export default function WorkspacePage() {
 
       {/* Content */}
       {/* ─── Stats Section: chỉ giữ những số liệu dùng được ngay (số task theo trạng thái, việc cần chú ý, khối lượng từng người) ─── */}
+      {/* Diễn đàn riêng của dự án: chỉ thành viên và Admin */}
+      {activeSection === 'forum' && <WorkspaceForum workspaceId={workspace.id} />}
+
       {activeSection === 'stats' && (
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {!wsStats ? (

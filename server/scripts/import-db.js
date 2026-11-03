@@ -91,6 +91,8 @@ const migrations = [
     UPDATE job_posts SET approved_at = COALESCE(posted_at, created_at) WHERE status IN ('OPEN', 'CLOSED');
   END IF;
 END $$`,
+  // Diễn đàn (bảng + chuyên mục mặc định); gộp thành 1 dòng để chạy được qua psql -c
+  ...require('./forumSchema').map((q) => q.replace(/\s+/g, ' ').trim()),
 ];
 
 console.log('Đang chạy migration patch...');

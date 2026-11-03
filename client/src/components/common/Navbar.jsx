@@ -70,6 +70,10 @@ function NotificationBell() {
     COMPANY_VERIFIED: { name: 'verified', tone: 'green' },
     COMPANY_REJECTED: { name: 'xCircle', tone: 'red' },
     PAYMENT_UPDATE: { name: 'cash', tone: 'green' },
+    FORUM_REPLY: { name: 'chat', tone: 'blue' },
+    FORUM_FOLLOW: { name: 'userPlus', tone: 'emerald' },
+    FORUM_MESSAGE: { name: 'mail', tone: 'blue' },
+    FORUM_REPORT: { name: 'flag', tone: 'red' },
   };
   const notifIcon = (type, size) => {
     const i = NOTIF_ICONS[type] || { name: 'bell', tone: 'gray' };
@@ -249,6 +253,9 @@ const accountMenu = (user, candidate) => ({
     { to: '/account?tab=password', icon: 'lock', text: 'Đổi mật khẩu' },
     { to: '/account?tab=twofa', icon: 'shield', text: 'Xác minh 2 bước', hint: user?.two_factor_enabled ? 'Đã bật' : 'Chưa kích hoạt' },
     { to: '/account?tab=devices', icon: 'laptop', text: 'Thiết bị đăng nhập' },
+    { to: '/forum?me=1', icon: 'document', text: 'Bài viết diễn đàn của tôi' },
+    { to: '/forum/saved', icon: 'bookmark', text: 'Bài viết đã lưu' },
+    { to: '/forum/messages', icon: 'mail', text: 'Tin nhắn diễn đàn' },
     ...(candidate ? [{ to: '/candidate/profile', icon: 'eye', text: 'Quyền riêng tư hồ sơ', hint: 'Chọn thông tin nhà tuyển dụng được xem' }] : []),
     { href: mailHref(SUPPORT.email), icon: 'headset', text: 'Trợ giúp & hỗ trợ' },
   ],
@@ -446,6 +453,7 @@ export default function Navbar({ topBar = false }) {
                 <NavLink to="/" end className={navLinkClass}>Trang chủ</NavLink>
                 <NavLink to="/jobs" className={navLinkClass}>Việc làm</NavLink>
                 <NavLink to="/projects" className={navLinkClass}>Dự án thời vụ</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>Diễn đàn</NavLink>
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
@@ -507,6 +515,7 @@ export default function Navbar({ topBar = false }) {
             <NavLink to="/" end className={mobileLinkClass}>Trang chủ</NavLink>
             <NavLink to="/jobs" className={mobileLinkClass}>Việc làm</NavLink>
             <NavLink to="/projects" className={mobileLinkClass}>Dự án thời vụ</NavLink>
+            <NavLink to="/forum" className={mobileLinkClass}>Diễn đàn</NavLink>
             {user ? (
               <>
                 <NavLink to={profileLink} className={mobileLinkClass}>Hồ sơ cá nhân</NavLink>

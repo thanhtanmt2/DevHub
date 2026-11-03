@@ -24,12 +24,22 @@ export function RankBadge({ rank, onDark = false, className = '' }) {
   const st = style(rank.tier.key);
   return (
     <span
-      title={`${rank.tier.name} · ${rank.joined_projects || 0} dự án tham gia, ${rank.completed_projects || 0} hoàn thành${rank.avg_score ? ` · điểm TB ${rank.avg_score}/10 (${rank.grade})` : ''} · ${rank.points || 0} điểm`}
+      title={rank.completed_projects === undefined ? `Hạng ${rank.tier.name}` : `${rank.tier.name} · ${rank.joined_projects || 0} dự án tham gia, ${rank.completed_projects || 0} hoàn thành${rank.avg_score ? ` · điểm TB ${rank.avg_score}/10 (${rank.grade})` : ''} · ${rank.points || 0} điểm`}
       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ring-1 ring-inset whitespace-nowrap ${
         onDark ? 'bg-white text-slate-800 ring-white/60 shadow' : st.pill
       } ${className}`}
     >
       <Icon name={st.iconName} className={`w-3.5 h-3.5 ${onDark ? st.icon : ''}`} />{rank.tier.name}
+    </span>
+  );
+}
+
+// Huy hiệu tròn nhỏ của hạng, đặt ở góc ảnh đại diện (diễn đàn, khung thông tin thành viên). Kích thước chỉnh qua className (vd. w-6 h-6)
+export function RankMedal({ tierKey, name, className = 'w-6 h-6' }) {
+  const st = style(tierKey);
+  return (
+    <span title={name ? `Hạng ${name}` : undefined} className={`inline-flex items-center justify-center rounded-full bg-gradient-to-br ${st.solid} ring-2 ring-white shadow ${className}`}>
+      <Icon name={st.iconName} className="w-[58%] h-[58%]" />
     </span>
   );
 }

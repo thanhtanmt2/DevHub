@@ -28,6 +28,8 @@ import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
 import ProfilePage from '@/pages/candidate/ProfilePage';
 import MyApplicationsPage from '@/pages/candidate/MyApplicationsPage';
 import SavedJobsPage from '@/pages/candidate/SavedJobsPage';
+import { ForumHomePage, ForumCategoryPage, ForumThreadPage, ForumNewThreadPage } from '@/pages/forum/ForumPages';
+import { ForumMessagesPage, ForumSavedPage, ForumReportsPage } from '@/pages/forum/ForumSocialPages';
 import MyWorkspacesPage from '@/pages/candidate/MyWorkspacesPage';
 
 // Workspace (dùng chung cho Ứng viên và Admin, quyền được kiểm tra bên trong)
@@ -79,6 +81,10 @@ function AppRoutes() {
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/jobs/:id" element={<JobDetailPage />} />
         <Route path="/projects/:id" element={<ProjectJobDetailPage />} />
+        {/* Diễn đàn: ai cũng đọc được diễn đàn chung; đăng bài cần đăng nhập */}
+        <Route path="/forum" element={<ForumHomePage />} />
+        <Route path="/forum/c/:slug" element={<ForumCategoryPage />} />
+        <Route path="/forum/t/:id" element={<ForumThreadPage />} />
       </Route>
 
       {/* Auth */}
@@ -86,6 +92,10 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<PublicLayout />}>
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/forum/new" element={<ForumNewThreadPage />} />
+          <Route path="/forum/messages" element={<ForumMessagesPage />} />
+          <Route path="/forum/saved" element={<ForumSavedPage />} />
+          <Route path="/forum/reports" element={<ForumReportsPage />} />
         </Route>
       </Route>
 

@@ -75,12 +75,38 @@ const PATHS = {
   history: 'M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8m0-5v5h5m4-1v5l4 2',
   headset: 'M4 14v-2a8 8 0 0116 0v2M4 14h2.5a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM20 14h-2.5a1 1 0 00-1 1v3a1 1 0 001 1H19a1 1 0 001-1v-4zM19 19.5a2.5 2.5 0 01-2.5 2.5H13',
   globeAlt: 'M12 3a9 9 0 100 18 9 9 0 000-18zM3.6 9h16.8M3.6 15h16.8M12 3c2.3 2.4 3.5 5.4 3.5 9s-1.2 6.6-3.5 9M12 3C9.7 5.4 8.5 8.4 8.5 12s1.2 6.6 3.5 9',
+  commentsOutline: 'M3 9.5A2.5 2.5 0 015.5 7H14.5A2.5 2.5 0 0117 9.5V15A2.5 2.5 0 0114.5 17.5H9L5.5 21V17.5A2.5 2.5 0 013 15V9.5ZM8 7V5A2.5 2.5 0 0110.5 2.5H18.5A2.5 2.5 0 0121 5V11A2.5 2.5 0 0118.5 13.5V17L14.5 13.5H17',
   bookmark: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z',
   copy: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+  share: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
+  flag: 'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9',
+  send: 'M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5',
+  thumbUp: 'M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5',
+  thumbDown: 'M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5',
+  userPlus: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z',
 };
+
+// Biểu tượng "bình luận": hai bong bóng chồng nhau, tô đặc theo màu chữ. Bong bóng sau bị khoét một viền mỏng quanh bong bóng trước
+// (mask) nên hai hình tách rõ trên mọi màu nền.
+const COMMENTS_BACK = 'M8 5A2.5 2.5 0 0110.5 2.5H18.5A2.5 2.5 0 0121 5V11A2.5 2.5 0 0118.5 13.5V17L14.5 13.5H10.5A2.5 2.5 0 018 11Z';
+const COMMENTS_FRONT = 'M3 9.5A2.5 2.5 0 015.5 7H14.5A2.5 2.5 0 0117 9.5V15A2.5 2.5 0 0114.5 17.5H9L5.5 21V17.5A2.5 2.5 0 013 15V9.5Z';
 
 // Icon nằm cùng dòng chữ (inline) hoặc trong flex đều được; kích thước chỉnh qua className (mặc định w-5 h-5)
 export default function Icon({ name, className = 'w-5 h-5', strokeWidth = 1.8, filled = false }) {
+  if (name === 'comments') {
+    return (
+      <svg className={`${className} inline-block align-[-0.2em] flex-shrink-0`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <defs>
+          <mask id="devhub-comments-mask">
+            <rect width="24" height="24" fill="white" />
+            <path d={COMMENTS_FRONT} fill="black" stroke="black" strokeWidth="2.6" strokeLinejoin="round" />
+          </mask>
+        </defs>
+        <path d={COMMENTS_BACK} mask="url(#devhub-comments-mask)" />
+        <path d={COMMENTS_FRONT} />
+      </svg>
+    );
+  }
   return (
     <svg className={`${className} inline-block align-[-0.2em] flex-shrink-0`} fill={filled ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d={PATHS[name] || PATHS.info} />
