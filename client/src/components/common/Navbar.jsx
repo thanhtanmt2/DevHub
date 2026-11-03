@@ -74,6 +74,7 @@ function NotificationBell() {
     FORUM_FOLLOW: { name: 'userPlus', tone: 'emerald' },
     FORUM_MESSAGE: { name: 'mail', tone: 'blue' },
     FORUM_REPORT: { name: 'flag', tone: 'red' },
+    FORUM_WARNING: { name: 'alert', tone: 'amber' },
   };
   const notifIcon = (type, size) => {
     const i = NOTIF_ICONS[type] || { name: 'bell', tone: 'gray' };

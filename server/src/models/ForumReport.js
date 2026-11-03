@@ -9,5 +9,6 @@ module.exports = (sequelize, DataTypes) => {
     status: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'OPEN' }, // OPEN | RESOLVED | DISMISSED
     handled_by: { type: DataTypes.UUID },
     handled_at: { type: DataTypes.DATE },
+    action: { type: DataTypes.STRING(40) }, // hình thức xử lý: warn | delete | lock, nối bằng dấu +
   }, { tableName: 'forum_reports', underscored: true, updatedAt: false });
 };

@@ -3,6 +3,7 @@ const { protect, authorize, optionalAuth } = require('../middleware/auth');
 const ctrl = require('../controllers/forumController');
 const social = require('../controllers/forumSocialController');
 const messages = require('../controllers/forumMessageController');
+const moderation = require('../controllers/forumModerationController');
 
 // Đọc: ai cũng xem được diễn đàn chung (khách chỉ đọc); diễn đàn dự án tự kiểm tra quyền thành viên trong controller.
 // optionalAuth để biết người xem là ai (ẩn người đã bỏ qua, trạng thái theo dõi, đã thích / đã lưu...)
@@ -29,6 +30,10 @@ router.post('/posts/:id/bookmark', protect, social.toggleBookmark);
 router.post('/posts/:id/report', protect, social.createReport);
 router.get('/reports', protect, authorize('ADMIN'), social.listReports);
 router.put('/reports/:id', protect, authorize('ADMIN'), social.handleReport);
+// Chế tài người đăng vi phạm (Admin): cảnh cáo / xóa bài / khóa tài khoản; đủ số lần cảnh cáo thì tự khóa
+router.post('/reports/:id/action', protect, authorize('ADMIN'), moderation.sanctionReport);
+router.get('/warnings', protect, authorize('ADMIN'), moderation.listWarnings);
+router.delete('/warnings/:id', protect, authorize('ADMIN'), moderation.revokeWarning);
 
 // Theo dõi / bỏ qua thành viên
 router.post('/members/:id/follow', protect, social.toggleFollow);

@@ -32,4 +32,7 @@ async function followerIds(userId) {
   return rows.map((r) => r.follower_id);
 }
 
-module.exports = { touchPresence, ignoredIds, followerIds };
+// Đủ chừng này lần cảnh cáo thì tài khoản tự động bị khóa
+const MAX_WARNINGS = 3;
+
+module.exports = { touchPresence, ignoredIds, followerIds, MAX_WARNINGS };

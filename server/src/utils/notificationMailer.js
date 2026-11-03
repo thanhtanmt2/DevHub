@@ -39,10 +39,10 @@ const buildHtml = ({ name, title, message, url }) => `
     </div>
   </div>`;
 
-async function deliver({ user_id, title, message, link }) {
+async function deliver({ user_id, title, message, link, allowLocked = false }) {
   const user = await User.findByPk(user_id, { attributes: ['email', 'full_name', 'status'] });
   // Chỉ gửi cho tài khoản đang hoạt động (bỏ qua tài khoản bị khóa / chưa kích hoạt)
-  if (!user?.email || user.status !== 'ACTIVE') return false;
+  if (!user?.email || (user.status !== 'ACTIVE' && !allowLocked)) return false;
   const base = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
   await sendEmail({
     to: user.email,

@@ -26,6 +26,9 @@ export const forumApi = {
   // Admin: hàng đợi báo cáo
   getReports: (params) => api.get('/forum/reports', { params }),
   handleReport: (id, status) => api.put(`/forum/reports/${id}`, { status }),
+  sanctionReport: (id, data) => api.post(`/forum/reports/${id}/action`, data), // { warn, delete_post, lock, message }
+  getWarnings: (params) => api.get('/forum/warnings', { params }),
+  revokeWarning: (id) => api.delete(`/forum/warnings/${id}`),
   // Tin nhắn riêng
   getConversations: () => api.get('/forum/messages/conversations'),
   getConversation: (userId) => api.get(`/forum/messages/with/${userId}`),

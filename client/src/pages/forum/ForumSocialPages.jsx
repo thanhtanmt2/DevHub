@@ -9,6 +9,8 @@ import Icon, { IconBadge } from '@/components/common/Icon';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import MemberCard from '@/components/forum/MemberCard';
 import { REASON_LABEL } from '@/components/forum/ReportDialog';
+import SanctionDialog from '@/components/forum/SanctionDialog';
+import { useConfirm } from '@/components/common/ConfirmDialog';
 import { Pager, apiMessage, memberTitle } from '@/components/forum/ForumParts';
 import { Hero, Shell } from '@/pages/forum/ForumPages';
 import { timeAgo } from '@/utils/timeAgo';
@@ -265,7 +267,72 @@ export function ForumSavedPage() {
 }
 
 // ─── /forum/reports — hàng đợi báo cáo (Admin) ───────────────────────────────
-const TABS = [{ v: 'OPEN', l: 'Chờ xử lý' }, { v: 'RESOLVED', l: 'Đã xử lý' }, { v: 'DISMISSED', l: 'Đã bỏ qua' }];
+const TABS = [{ v: 'OPEN', l: 'Chờ xử lý' }, { v: 'RESOLVED', l: 'Đã xử lý' }, { v: 'DISMISSED', l: 'Đã bỏ qua' }, { v: 'WARNINGS', l: 'Cảnh cáo' }];
+const ACTION_LABEL = { warn: 'Đã cảnh cáo', lock: 'Đã khóa tài khoản', delete: 'Đã xóa bài', 'warn+delete': 'Đã cảnh cáo và xóa bài', 'lock+delete': 'Đã khóa tài khoản và xóa bài' };
+
+// Chip "Đã bị cảnh cáo n/3 lần" + "Tài khoản đã bị khóa"
+const WarnChips = ({ warnings, locked, max }) => (
+  <>
+    {warnings > 0 && <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ring-1 ring-inset ${warnings >= max - 1 ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-amber-50 text-amber-800 ring-amber-200'}`}>Đã bị cảnh cáo {warnings}/{max} lần</span>}
+    {locked && <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-600 text-white">Tài khoản đã bị khóa</span>}
+  </>
+);
+
+// Lịch sử cảnh cáo: ai bị cảnh cáo, vì bài nào, ai cảnh cáo; gỡ được khi xử nhầm
+function WarningsTab({ enabled }) {
+  const qc = useQueryClient();
+  const confirm = useConfirm();
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useQuery({
+    queryKey: ['forum-warnings', page],
+    queryFn: () => forumApi.getWarnings({ page }).then((r) => r.data),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+  const revoke = useMutation({
+    mutationFn: (id) => forumApi.revokeWarning(id),
+    onSuccess: (res) => { toast.success(res.data.message); qc.invalidateQueries({ queryKey: ['forum-warnings'] }); qc.invalidateQueries({ queryKey: ['forum-reports'] }); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa gỡ được cảnh cáo')),
+  });
+  const onRevoke = async (w) => {
+    const ok = await confirm({ title: 'Gỡ cảnh cáo', message: `Gỡ lần cảnh cáo này của ${w.user.full_name}? Tài khoản sẽ không tự động được mở khóa, nếu đang bị khóa hãy mở ở trang Quản lý người dùng.`, confirmText: 'Gỡ cảnh cáo', tone: 'danger' });
+    if (ok) revoke.mutate(w.id);
+  };
+  if (isLoading) return <LoadingSpinner />;
+  return (
+    <>
+      {data?.data.length ? (
+        <ul className="space-y-3">
+          {data.data.map((w) => (
+            <li key={w.id} className="card !p-4 sm:!p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Avatar name={w.user.full_name} src={w.user.avatar_url} size="sm" />
+                <strong className="text-slate-900">{w.user.full_name}</strong>
+                <WarnChips warnings={w.user.warnings} locked={w.user.locked} max={data.max_warnings} />
+                <span className="ml-auto text-xs text-slate-400">{w.issuer_name ? `${w.issuer_name} · ` : ''}{timeAgo(w.created_at)}</span>
+              </div>
+              <p className="mt-2 text-sm text-slate-700 break-words"><span className="font-semibold">Lời nhắn:</span> {w.message}</p>
+              <div className="mt-2 rounded-lg border-l-4 border-amber-400 bg-amber-50/50 px-3 py-2">
+                <p className="text-xs text-slate-500">Bài viết trong <strong className="text-slate-700">{w.thread_title}</strong>{w.reason && <> · {REASON_LABEL[w.reason] || w.reason}</>}{w.post_deleted && <> · <span className="text-red-600 font-semibold">đã bị xóa</span></>}</p>
+                <p className="mt-0.5 text-sm text-slate-700 break-words">{w.post_excerpt}</p>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {w.post_link ? <Link to={w.post_link} className="btn-secondary text-sm !py-1.5"><Icon name="external" className="w-4 h-4" />Mở bài viết</Link> : <span className="text-xs text-slate-400">Bài viết không còn trên diễn đàn</span>}
+                <button type="button" onClick={() => onRevoke(w)} disabled={revoke.isPending} className="ml-auto btn-secondary text-sm !py-1.5">Gỡ cảnh cáo</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="card text-center py-14">
+          <IconBadge name="verified" tone="green" size="lg" className="mx-auto" />
+          <p className="mt-3 font-semibold text-slate-800">Chưa có cảnh cáo nào</p>
+        </div>
+      )}
+      {data && <Pager page={page} totalPages={data.pagination.totalPages} onChange={setPage} />}
+    </>
+  );
+}
 const REASON_TONE = { SPAM: 'bg-amber-50 text-amber-800 ring-amber-200', OFFENSIVE: 'bg-red-50 text-red-700 ring-red-200', ILLEGAL: 'bg-rose-50 text-rose-700 ring-rose-200', OTHER: 'bg-slate-100 text-slate-600 ring-slate-200' };
 
 export function ForumReportsPage() {
@@ -274,12 +341,15 @@ export function ForumReportsPage() {
   const [status, setStatus] = useState('OPEN');
   const [page, setPage] = useState(1);
   const allowed = isAdmin();
+  const warningsTab = status === 'WARNINGS';
+  const reportStatus = warningsTab ? 'OPEN' : status; // tab Cảnh cáo vẫn cần số đếm của các tab từ cùng truy vấn này
   const { data, isLoading } = useQuery({
-    queryKey: ['forum-reports', status, page],
-    queryFn: () => forumApi.getReports({ status, page }).then((r) => r.data),
+    queryKey: ['forum-reports', reportStatus, warningsTab ? 1 : page],
+    queryFn: () => forumApi.getReports({ status: reportStatus, page: warningsTab ? 1 : page }).then((r) => r.data),
     enabled: allowed,
     placeholderData: keepPreviousData,
   });
+  const [sanction, setSanction] = useState(null);
   const handle = useMutation({
     mutationFn: ({ id, value }) => forumApi.handleReport(id, value),
     onSuccess: (res) => { toast.success(res.data.message); qc.invalidateQueries({ queryKey: ['forum-reports'] }); qc.invalidateQueries({ queryKey: ['forum-overview'] }); },
@@ -293,7 +363,7 @@ export function ForumReportsPage() {
   return (
     <Shell>
       <Crumb>Báo cáo vi phạm</Crumb>
-      <Hero title="Báo cáo vi phạm" subtitle="Các bài viết thành viên báo cáo. Mở bài để xem ngữ cảnh, xóa nếu vi phạm, rồi đánh dấu đã xử lý." />
+      <Hero title="Báo cáo vi phạm" subtitle="Các bài viết thành viên báo cáo. Mở bài để xem ngữ cảnh, rồi cảnh cáo, xóa bài hoặc khóa tài khoản người vi phạm. Đủ 3 lần cảnh cáo tài khoản tự động bị khóa." />
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar" role="tablist">
         {TABS.map((t) => (
           <button key={t.v} type="button" role="tab" aria-selected={status === t.v} onClick={() => { setStatus(t.v); setPage(1); }}
@@ -303,7 +373,7 @@ export function ForumReportsPage() {
         ))}
       </div>
 
-      {isLoading ? <LoadingSpinner /> : data?.data.length ? (
+      {warningsTab ? <WarningsTab enabled={allowed} /> : isLoading ? <LoadingSpinner /> : data?.data.length ? (
         <ul className="space-y-3">
           {data.data.map((r) => (
             <li key={r.id} className="card !p-4 sm:!p-5">
@@ -318,6 +388,7 @@ export function ForumReportsPage() {
                 <p className="text-xs text-slate-500 flex items-center gap-1.5">
                   {r.post.author && <Avatar name={r.post.author.full_name} src={r.post.author.avatar_url} size="xs" />}
                   <strong className="text-slate-700">{r.post.author?.full_name || 'Tài khoản đã xóa'}</strong>
+                  {r.post.author && <WarnChips warnings={r.post.author.warnings} locked={r.post.author.locked} max={data.max_warnings} />}
                   <span>trong</span>
                   <Link to={`/forum/t/${r.thread.id}?post=${r.post.id}`} className="font-semibold text-primary-700 hover:underline truncate">{r.thread.title}</Link>
                 </p>
@@ -329,9 +400,10 @@ export function ForumReportsPage() {
                 {r.status === 'OPEN' ? (
                   <span className="ml-auto flex flex-wrap gap-2">
                     <button type="button" disabled={handle.isPending} onClick={() => handle.mutate({ id: r.id, value: 'DISMISSED' })} className="btn-secondary text-sm !py-1.5">Bỏ qua báo cáo</button>
-                    <button type="button" disabled={handle.isPending} onClick={() => handle.mutate({ id: r.id, value: 'RESOLVED' })} className="btn-primary text-sm !py-1.5"><Icon name="check" className="w-4 h-4" />Đã xử lý</button>
+                    <button type="button" disabled={handle.isPending} onClick={() => handle.mutate({ id: r.id, value: 'RESOLVED' })} className="btn-secondary text-sm !py-1.5"><Icon name="check" className="w-4 h-4" />Đã xử lý</button>
+                    {r.post.author?.role !== 'ADMIN' && <button type="button" onClick={() => setSanction(r)} className="btn-danger text-sm !py-1.5"><Icon name="shield" className="w-4 h-4" />Xử phạt</button>}
                   </span>
-                ) : <span className="ml-auto text-xs text-slate-400">{r.status === 'RESOLVED' ? 'Đã xử lý' : 'Đã bỏ qua'}{r.handled_at ? ` · ${timeAgo(r.handled_at)}` : ''}</span>}
+                ) : <span className="ml-auto text-xs text-slate-400">{r.status === 'RESOLVED' ? (ACTION_LABEL[r.action] || 'Đã xử lý') : 'Đã bỏ qua'}{r.handled_at ? ` · ${timeAgo(r.handled_at)}` : ''}</span>}
               </div>
             </li>
           ))}
@@ -342,7 +414,15 @@ export function ForumReportsPage() {
           <p className="mt-3 font-semibold text-slate-800">{status === 'OPEN' ? 'Không có báo cáo nào đang chờ xử lý' : 'Chưa có báo cáo nào ở mục này'}</p>
         </div>
       )}
-      {data && <Pager page={page} totalPages={data.pagination.totalPages} onChange={setPage} />}
+      {data && !warningsTab && <Pager page={page} totalPages={data.pagination.totalPages} onChange={setPage} />}
+      {sanction && (
+        <SanctionDialog
+          report={sanction}
+          maxWarnings={data.max_warnings}
+          onClose={() => setSanction(null)}
+          onDone={() => { ['forum-reports', 'forum-warnings', 'forum-overview', 'forum-thread', 'forum-threads'].forEach((k) => qc.invalidateQueries({ queryKey: [k] })); }}
+        />
+      )}
     </Shell>
   );
 }

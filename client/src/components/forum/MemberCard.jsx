@@ -89,6 +89,12 @@ export default function MemberCard({ userId, onClose }) {
               <div className="min-w-0 flex-1 pr-7">
                 <h2 className="text-lg font-extrabold leading-tight text-primary-700 break-words">{m.full_name}</h2>
                 <p className={`mt-0.5 text-sm break-words ${m.role === 'ADMIN' ? 'font-semibold text-red-600' : 'text-slate-500'}`}>{memberTitle(m)}</p>
+                {m.moderation && (m.moderation.warnings > 0 || m.moderation.locked) && (
+                  <p className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-bold">
+                    {m.moderation.warnings > 0 && <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200">Đã bị cảnh cáo {m.moderation.warnings}/{m.moderation.max_warnings} lần</span>}
+                    {m.moderation.locked && <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 ring-1 ring-inset ring-red-200">Tài khoản đang bị khóa</span>}
+                  </p>
+                )}
                 <dl className="mt-2.5 space-y-1 text-[13px] text-slate-600">
                   <div className={row}><dt className="text-slate-500">Đã tham gia:</dt><dd className="font-semibold text-slate-800">{new Date(m.joined_at).toLocaleDateString('vi-VN')}</dd></div>
                   <div className={row}>

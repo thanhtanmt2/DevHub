@@ -40,6 +40,7 @@ const ForumIgnore = require('./ForumIgnore')(sequelize, DataTypes);
 const ForumBookmark = require('./ForumBookmark')(sequelize, DataTypes);
 const ForumReport = require('./ForumReport')(sequelize, DataTypes);
 const ForumMessage = require('./ForumMessage')(sequelize, DataTypes);
+const ForumWarning = require('./ForumWarning')(sequelize, DataTypes);
 
 // Workspace models
 const Workspace = require('./Workspace')(sequelize, DataTypes);
@@ -235,7 +236,7 @@ module.exports = {
   SavedCandidate,
   Project, ProjectJob, ProjectJobSkill, ProjectApplication, SavedJob,
   ForumCategory, ForumThread, ForumPost, ForumPostLike,
-  ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage,
+  ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage, ForumWarning,
   InternalProject, // alias
   Workspace, WorkspaceMember,
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,

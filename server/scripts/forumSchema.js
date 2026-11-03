@@ -61,6 +61,7 @@ module.exports = [
   //  - forum_follows: theo dõi thành viên (báo khi họ mở chủ đề mới); forum_ignores: bỏ qua thành viên (ẩn bài, chặn nhắn tin)
   //  - forum_bookmarks: lưu bài viết; forum_reports: báo cáo bài viết vi phạm gửi quản trị viên
   //  - forum_messages: tin nhắn riêng giữa hai thành viên
+//  - forum_warnings: cảnh cáo người đăng vi phạm (lưu kèm trích đoạn bài để còn bằng chứng khi bài đã bị xóa)
   `CREATE TABLE IF NOT EXISTS forum_member_activity (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -100,6 +101,21 @@ module.exports = [
     CONSTRAINT uq_forum_reports_post_reporter UNIQUE (post_id, reporter_id)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_forum_reports_status ON forum_reports (status, created_at DESC)`,
+  // Chế tài: hình thức xử lý báo cáo (warn, delete, lock, nối bằng dấu +) và các lần cảnh cáo người đăng (đủ số lần thì tự khóa tài khoản)
+  `ALTER TABLE forum_reports ADD COLUMN IF NOT EXISTS action VARCHAR(40)`,
+  `CREATE TABLE IF NOT EXISTS forum_warnings (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    issued_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    post_id UUID REFERENCES forum_posts(id) ON DELETE SET NULL,
+    reason VARCHAR(20),
+    message VARCHAR(500) NOT NULL,
+    post_excerpt VARCHAR(300),
+    thread_title VARCHAR(200),
+    post_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_forum_warnings_user ON forum_warnings (user_id, created_at DESC)`,
   `CREATE TABLE IF NOT EXISTS forum_messages (
     id UUID PRIMARY KEY,
     sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -3,6 +3,8 @@ const AppError = require('../utils/AppError');
 const { notifyAdmins } = require('./notificationController');
 const forum = require('./forumController');
 
+const { MAX_WARNINGS } = require('../utils/forumSocial');
+
 const { isUuid, loadPost, threadAccess, authorInfo, excerpt, checkRate } = forum.internals;
 
 // Theo dõi / bỏ qua thành viên, lưu bài viết, báo cáo bài viết vi phạm của diễn đàn.
@@ -129,7 +131,7 @@ exports.listReports = async (req, res, next) => {
     const limit = 20;
     const [rows, counts] = await Promise.all([
       sequelize.query(
-        `SELECT r.id, r.reason, r.note, r.status, r.created_at, r.handled_at,
+        `SELECT r.id, r.reason, r.note, r.status, r.created_at, r.handled_at, r.action,
                 p.id AS post_id, p.author_id, left(p.content, 300) AS excerpt,
                 t.id AS thread_id, t.title, t.workspace_id,
                 ru.id AS reporter_id, ru.full_name AS reporter_name
@@ -140,16 +142,24 @@ exports.listReports = async (req, res, next) => {
       sequelize.query('SELECT status, COUNT(*) AS n FROM forum_reports GROUP BY status', { type: sequelize.QueryTypes.SELECT }),
     ]);
     const authors = await authorInfo(rows.map((r) => r.author_id));
+    const authorIds = [...new Set(rows.map((r) => r.author_id).filter(Boolean))];
+    const warned = new Map(); const lockedIds = new Set();
+    if (authorIds.length) {
+      (await sequelize.query('SELECT user_id, COUNT(*) AS n FROM forum_warnings WHERE user_id IN (:ids) GROUP BY user_id', { replacements: { ids: authorIds }, type: sequelize.QueryTypes.SELECT })).forEach((w) => warned.set(w.user_id, Number(w.n)));
+      (await sequelize.query("SELECT id FROM users WHERE id IN (:ids) AND status = 'LOCKED'", { replacements: { ids: authorIds }, type: sequelize.QueryTypes.SELECT })).forEach((u) => lockedIds.add(u.id));
+    }
+    const [{ n: warningTotal }] = await sequelize.query('SELECT COUNT(*) AS n FROM forum_warnings', { type: sequelize.QueryTypes.SELECT });
     const by = Object.fromEntries(counts.map((c) => [c.status, Number(c.n)]));
     res.json({
       success: true,
       data: rows.map((r) => ({
-        id: r.id, reason: r.reason, reason_label: REASONS[r.reason] || r.reason, note: r.note, status: r.status, created_at: r.created_at, handled_at: r.handled_at,
-        post: { id: r.post_id, excerpt: excerpt(r.excerpt, 260), author: authors.get(r.author_id) ? { id: r.author_id, full_name: authors.get(r.author_id).full_name, avatar_url: authors.get(r.author_id).avatar_url, role: authors.get(r.author_id).role } : null },
+        id: r.id, reason: r.reason, reason_label: REASONS[r.reason] || r.reason, note: r.note, status: r.status, created_at: r.created_at, handled_at: r.handled_at, action: r.action,
+        post: { id: r.post_id, excerpt: excerpt(r.excerpt, 260), author: authors.get(r.author_id) ? { id: r.author_id, full_name: authors.get(r.author_id).full_name, avatar_url: authors.get(r.author_id).avatar_url, role: authors.get(r.author_id).role, warnings: warned.get(r.author_id) || 0, locked: lockedIds.has(r.author_id) } : null },
         thread: { id: r.thread_id, title: r.title, is_workspace: !!r.workspace_id },
         reporter: { id: r.reporter_id, full_name: r.reporter_name },
       })),
-      counts: { OPEN: by.OPEN || 0, RESOLVED: by.RESOLVED || 0, DISMISSED: by.DISMISSED || 0 },
+      counts: { OPEN: by.OPEN || 0, RESOLVED: by.RESOLVED || 0, DISMISSED: by.DISMISSED || 0, WARNINGS: Number(warningTotal) },
+      max_warnings: MAX_WARNINGS,
       pagination: { total: by[status] || 0, page, limit, totalPages: Math.max(1, Math.ceil((by[status] || 0) / limit)) },
     });
   } catch (error) { next(error); }

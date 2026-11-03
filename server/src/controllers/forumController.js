@@ -4,7 +4,7 @@ const AppError = require('../utils/AppError');
 const { getWorkspaceAccess } = require('../utils/workspaceAccess');
 const { computeRanks } = require('../utils/candidateRank');
 const { createNotification } = require('./notificationController');
-const { touchPresence, ignoredIds, followerIds } = require('../utils/forumSocial');
+const { touchPresence, ignoredIds, followerIds, MAX_WARNINGS } = require('../utils/forumSocial');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Diễn đàn: diễn đàn chung (theo chuyên mục) + diễn đàn riêng của từng workspace (chỉ thành viên và Admin).
@@ -236,6 +236,16 @@ exports.getMember = async (req, res, next) => {
       viewer = { is_self: self, following: !!v.following, ignored: !!v.ignored, can_message: !self && !v.blocked_by, can_ignore: !self && info.role !== 'ADMIN' };
     }
 
+    // Chỉ quản trị viên thấy: số lần đã bị cảnh cáo và tài khoản có đang bị khóa không
+    let moderation = null;
+    if (isAdmin(req)) {
+      const [m] = await sequelize.query(
+        `SELECT (SELECT COUNT(*) FROM forum_warnings WHERE user_id = :id) AS warnings, (SELECT status FROM users WHERE id = :id) AS status`,
+        { replacements: { id: info.id }, type: sequelize.QueryTypes.SELECT }
+      );
+      moderation = { warnings: Number(m.warnings), max_warnings: MAX_WARNINGS, locked: m.status === 'LOCKED' };
+    }
+
     let rank = null;
     if (info.role === 'CANDIDATE') {
       const [cp] = await sequelize.query('SELECT id, privacy_settings FROM candidate_profiles WHERE user_id = :id', { replacements: { id: info.id }, type: sequelize.QueryTypes.SELECT });
@@ -253,7 +263,7 @@ exports.getMember = async (req, res, next) => {
         // Điểm cảm xúc = lượt thích nhận được trừ lượt không thích (như XenForo / voz), chỉ tính ở diễn đàn chung
         likes_received: Number(stats.likes_received), dislikes_received: Number(stats.dislikes_received), reaction_score: Number(stats.likes_received) - Number(stats.dislikes_received),
         last_seen_at: presence.last_seen_at, watching: presence.watching || null,
-        viewer,
+        viewer, moderation,
       },
     });
   } catch (error) { next(error); }
@@ -611,6 +621,23 @@ exports.updatePost = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const isFirstPost = async (post, thread, transaction) => (await ForumPost.findOne({ where: { thread_id: thread.id }, order: [['createdAt', 'ASC'], ['id', 'ASC']], attributes: ['id'], transaction }))?.id === post.id;
+
+// Xóa một bài (không kiểm tra quyền). Xóa bài gốc = xóa cả chủ đề; xóa bài trả lời thì cập nhật số trả lời và bài mới nhất của chủ đề.
+async function removePost(post, thread, transaction) {
+  if (await isFirstPost(post, thread, transaction)) {
+    await thread.destroy({ transaction });
+    return { deleted_thread: true };
+  }
+  const run = async (t) => {
+    await post.destroy({ transaction: t });
+    const last = await ForumPost.findOne({ where: { thread_id: thread.id }, order: [['createdAt', 'DESC']], transaction: t });
+    await thread.update({ reply_count: Math.max(0, thread.reply_count - 1), last_post_at: last?.createdAt || thread.createdAt, last_post_user_id: last?.author_id || thread.author_id }, { transaction: t });
+  };
+  if (transaction) await run(transaction); else await sequelize.transaction(run);
+  return { deleted_thread: false };
+}
+
 // DELETE /api/forum/posts/:id — tác giả hoặc người quản trị. Xóa bài gốc = xóa cả chủ đề
 exports.deletePost = async (req, res, next) => {
   try {
@@ -619,18 +646,9 @@ exports.deletePost = async (req, res, next) => {
     const own = post.author_id === req.user.id;
     if (!own && !access.canModerate) throw new AppError('Bạn không có quyền xóa bài viết này', 403);
 
-    const first = await ForumPost.findOne({ where: { thread_id: thread.id }, order: [['createdAt', 'ASC'], ['id', 'ASC']], attributes: ['id'] });
-    if (first.id === post.id) {
-      if (!access.canModerate && thread.reply_count > 0) throw new AppError('Chủ đề đã có người trả lời nên chỉ quản trị viên mới xóa được', 403);
-      await thread.destroy();
-      return res.json({ success: true, deleted_thread: true, message: 'Đã xóa chủ đề' });
-    }
-    await sequelize.transaction(async (t) => {
-      await post.destroy({ transaction: t });
-      const last = await ForumPost.findOne({ where: { thread_id: thread.id }, order: [['createdAt', 'DESC']], transaction: t });
-      await thread.update({ reply_count: Math.max(0, thread.reply_count - 1), last_post_at: last?.createdAt || thread.createdAt, last_post_user_id: last?.author_id || thread.author_id }, { transaction: t });
-    });
-    res.json({ success: true, deleted_thread: false, message: 'Đã xóa bài viết' });
+    if (!access.canModerate && thread.reply_count > 0 && await isFirstPost(post, thread)) throw new AppError('Chủ đề đã có người trả lời nên chỉ quản trị viên mới xóa được', 403);
+    const { deleted_thread } = await removePost(post, thread);
+    res.json({ success: true, deleted_thread, message: deleted_thread ? 'Đã xóa chủ đề' : 'Đã xóa bài viết' });
   } catch (error) { next(error); }
 };
 
@@ -694,4 +712,4 @@ exports.moveThread = async (req, res, next) => {
 };
 
 // Dùng chung với các controller xã hội / tin nhắn của diễn đàn
-exports.internals = { isUuid, loadPost, loadThread, threadAccess, authorInfo, excerpt, checkRate, shortAuthor };
+exports.internals = { isUuid, loadPost, loadThread, threadAccess, authorInfo, excerpt, checkRate, shortAuthor, removePost };
