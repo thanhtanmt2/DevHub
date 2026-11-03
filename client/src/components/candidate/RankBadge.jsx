@@ -2,11 +2,11 @@ import Icon from '@/components/common/Icon';
 
 // Danh hiệu ứng viên: hạng theo điểm tích lũy từ các dự án DevHub (xét cả số dự án lẫn điểm đánh giá), dữ liệu do server tính: /candidates/rank
 const TIER_STYLE = {
-  newbie: { pill: 'bg-emerald-50 text-emerald-700 ring-emerald-200', grad: 'from-emerald-400 to-emerald-600', solid: 'from-emerald-500 to-emerald-600 text-white', icon: 'text-emerald-600', bar: 'bg-emerald-500', iconName: 'award' },
-  bronze: { pill: 'bg-orange-50 text-orange-700 ring-orange-200', grad: 'from-orange-400 to-amber-700', solid: 'from-orange-500 to-orange-700 text-white', icon: 'text-orange-600', bar: 'bg-orange-500', iconName: 'award' },
-  silver: { pill: 'bg-slate-100 text-slate-700 ring-slate-300', grad: 'from-slate-300 to-slate-500', solid: 'from-slate-400 to-slate-600 text-white', icon: 'text-slate-500', bar: 'bg-slate-500', iconName: 'award' },
+  newbie: { pill: 'bg-emerald-50 text-emerald-700 ring-emerald-200', grad: 'from-emerald-400 to-emerald-600', solid: 'from-emerald-500 to-emerald-600 text-white', icon: 'text-emerald-600', bar: 'bg-emerald-500', iconName: 'sprout' },
+  bronze: { pill: 'bg-orange-50 text-orange-700 ring-orange-200', grad: 'from-orange-400 to-amber-700', solid: 'from-orange-500 to-orange-700 text-white', icon: 'text-orange-600', bar: 'bg-orange-500', iconName: 'rocket' },
+  silver: { pill: 'bg-slate-100 text-slate-700 ring-slate-300', grad: 'from-slate-300 to-slate-500', solid: 'from-slate-400 to-slate-600 text-white', icon: 'text-slate-500', bar: 'bg-slate-500', iconName: 'handshake' },
   gold: { pill: 'bg-yellow-50 text-yellow-800 ring-yellow-300', grad: 'from-yellow-300 to-amber-500', solid: 'from-yellow-300 to-amber-500 text-amber-950', icon: 'text-amber-500', bar: 'bg-amber-500', iconName: 'trophy' },
-  diamond: { pill: 'bg-cyan-50 text-cyan-800 ring-cyan-300', grad: 'from-cyan-300 to-blue-500', solid: 'from-cyan-400 to-blue-600 text-white', icon: 'text-cyan-600', bar: 'bg-cyan-500', iconName: 'trophy' },
+  diamond: { pill: 'bg-cyan-50 text-cyan-800 ring-cyan-300', grad: 'from-cyan-300 to-blue-500', solid: 'from-cyan-400 to-blue-600 text-white', icon: 'text-cyan-600', bar: 'bg-cyan-500', iconName: 'gem' },
 };
 
 const PROJECT_STATUS = {

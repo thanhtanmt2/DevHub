@@ -8,7 +8,7 @@
 //    nên gỡ/nạp lại không đụng tới dữ liệu thật của bạn (hồ sơ, doanh nghiệp, dự án bạn tự tạo).
 //  - Toàn bộ chạy trong MỘT giao dịch: lỗi giữa chừng thì không để lại dữ liệu dở.
 //  - Có dữ liệu thanh toán theo module thanh toán mới (mỗi thành viên tối đa 1 khoản; PAID có mã giao dịch và thông tin ngân hàng).
-//  - Logo công ty (uploads/images/demo-logo-*.png) và CV (uploads/cvs/demo-cv-*.pdf) chỉ được gắn nếu file có trong thư mục uploads.
+//  - Logo công ty (uploads/images/demo-logo-*.png), ảnh đại diện ứng viên (demo-avatar-*.jpg, tải bằng npm run db:seed-avatars) và CV (uploads/cvs/demo-cv-*.pdf) chỉ được gắn nếu file có trong thư mục uploads.
 //  - Không gửi email.
 require('dotenv').config();
 const fs = require('fs');
@@ -306,8 +306,10 @@ async function seed(t) {
       const when = new Date(c.created.getTime() + 7200000);
       cvRows.push({ id: id('cv', c.profileId), candidate_profile_id: c.profileId, name: 'CV chính', file_url: c.cvUrl, file_name: c.cvDisplay, file_size: fs.statSync(path.join(UPLOADS, 'cvs', c.cvFile)).size, is_default: true, created_at: when, updated_at: when });
     } else { c.cvUrl = null; }
+    const avatarFile = `demo-avatar-${c.handle}.jpg`; // tải bằng npm run db:seed-avatars
+    c.avatar = hasFile('images', avatarFile) ? `/uploads/images/${avatarFile}` : null;
     users.push({
-      id: c.userId, email: c.email, password_hash: passwordHash, full_name: c.full, status: c.status, email_verified: c.status !== 'INACTIVE',
+      id: c.userId, email: c.email, password_hash: passwordHash, full_name: c.full, status: c.status, email_verified: c.status !== 'INACTIVE', avatar_url: c.avatar,
       created_at: c.created, updated_at: c.created,
     });
     userRoles.push({ user_id: c.userId, role_id: roles.CANDIDATE });
@@ -315,7 +317,7 @@ async function seed(t) {
       id: c.profileId, user_id: c.userId, professional_title: c.title, introduction: c.intro, phone: c.phone, address: c.city,
       github_url: `https://github.com/${c.handle}`,
       portfolio_url: ['uiux', 'frontend'].includes(c.arch) && chance(0.6) ? `https://${c.handle}.dev` : null,
-      avatar_url: null, cv_url: c.cvUrl, cv_name: c.cvUrl ? c.cvDisplay : null, competency_score: 0, created_at: new Date(c.created.getTime() + 3600000), updated_at: c.created,
+      avatar_url: c.avatar, cv_url: c.cvUrl, cv_name: c.cvUrl ? c.cvDisplay : null, competency_score: 0, created_at: new Date(c.created.getTime() + 3600000), updated_at: c.created,
     });
     for (const s of c.skills) candSkillRows.push({ candidate_profile_id: c.profileId, skill_id: sk(s), source: chance(0.25) ? 'CV' : 'MANUAL' });
     addLog(c.userId, c.full, 'CANDIDATE', 'USER_REGISTER', 'user', c.userId, c.full, `${c.full} (${c.email}) đã đăng ký tài khoản mới với vai trò CANDIDATE`, {}, c.created);
