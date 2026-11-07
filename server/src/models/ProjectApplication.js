@@ -10,6 +10,12 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 'PENDING' 
     },
     interview_time: { type: DataTypes.DATE },
+    interview_duration: { type: DataTypes.INTEGER, defaultValue: 30 },
+    interviewer_id: { type: DataTypes.UUID, allowNull: true },
+    interviewer_name: { type: DataTypes.STRING(150) },
+    interview_response: { type: DataTypes.STRING(30), defaultValue: 'PENDING' }, // PENDING | CONFIRMED | RESCHEDULE_REQUESTED
+    candidate_reschedule_note: { type: DataTypes.TEXT },
+    interview_responded_at: { type: DataTypes.DATE },
     meet_url: { type: DataTypes.STRING(500) },
     interview_note: { type: DataTypes.TEXT },
     applied_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
@@ -22,4 +28,3 @@ module.exports = (sequelize, DataTypes) => {
     indexes: [{ unique: true, name: 'uq_project_applications_candidate_job', fields: ['candidate_profile_id', 'project_job_id'] }],
   });
 };
-

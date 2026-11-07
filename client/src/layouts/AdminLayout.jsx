@@ -3,6 +3,7 @@ import DashboardShell from '@/components/common/DashboardShell';
 const navItems = [
   { to: '/admin', label: 'Tổng quan', icon: 'home', end: true },
   { to: '/admin/users', label: 'Quản lý người dùng', icon: 'users' },
+  { to: '/admin/candidates', label: 'Hồ sơ ứng viên', icon: 'user' },
   { to: '/admin/companies', label: 'Xác thực doanh nghiệp', icon: 'verified' },
   { to: '/admin/jobs', label: 'Duyệt tin tuyển dụng', icon: 'clipboard' },
   { to: '/admin/skills', label: 'Danh mục kỹ năng', icon: 'skills' },

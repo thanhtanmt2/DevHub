@@ -86,5 +86,6 @@ router.delete('/saved-jobs/:type/:id', savedCtrl.unsaveJob);
 // Project Applications
 const projectJobCtrl = require('../controllers/projectJobController');
 router.get('/project-applications', projectJobCtrl.getMyProjectApplications);
+router.put('/project-applications/:id/interview-response', projectJobCtrl.candidateRespondInterview);
 
 module.exports = router;

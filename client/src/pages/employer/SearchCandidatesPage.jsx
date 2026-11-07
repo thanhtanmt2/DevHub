@@ -1,9 +1,10 @@
 import { RankBadge } from '@/components/candidate/RankBadge';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { companyApi } from '@/api/companyApi';
+import { adminApi } from '@/api/adminApi';
 import { skillApi } from '@/api/skillApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon, { IconBadge } from '@/components/common/Icon';
@@ -137,6 +138,8 @@ const FILTER_KEYS = ['keyword', 'skill_id', 'score_min', 'score_max', 'project_m
 
 export default function SearchCandidatesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminView = location.pathname.startsWith('/admin');
   const qc = useQueryClient();
   // Bộ lọc nằm trên đường dẫn: xem hồ sơ xong bấm "Quay lại" vẫn còn nguyên kết quả đang tìm
   const [params, setParams] = useSearchParams();
@@ -163,11 +166,13 @@ export default function SearchCandidatesPage() {
     return () => clearTimeout(t);
   }, [keyword]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const searchQueryKey = isAdminView ? 'admin-search-candidates' : 'employer-search-candidates';
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['employer-search-candidates', filters],
-    queryFn: () => companyApi.searchCandidates(
-      Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== '' && v !== null))
-    ),
+    queryKey: [searchQueryKey, filters],
+    queryFn: () => {
+      const cleanParams = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== '' && v !== null));
+      return isAdminView ? adminApi.searchCandidates(cleanParams) : companyApi.searchCandidates(cleanParams);
+    },
     keepPreviousData: true,
   });
 
@@ -177,11 +182,11 @@ export default function SearchCandidatesPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (candidateId) => companyApi.toggleSaveCandidate(candidateId),
+    mutationFn: (candidateId) => (isAdminView ? adminApi.toggleSaveCandidate(candidateId) : companyApi.toggleSaveCandidate(candidateId)),
     onSuccess: (res) => {
       toast.success(res.data?.message || 'Đã cập nhật danh sách lưu');
-      qc.invalidateQueries({ queryKey: ['employer-search-candidates'] });
-      qc.invalidateQueries({ queryKey: ['employer-candidate'] });
+      qc.invalidateQueries({ queryKey: [searchQueryKey] });
+      qc.invalidateQueries({ queryKey: [isAdminView ? 'admin-candidate' : 'employer-candidate'] });
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Không thể lưu ứng viên');
@@ -195,11 +200,20 @@ export default function SearchCandidatesPage() {
   const skills = skillsRes?.data?.data || [];
   const hasFilter = FILTER_KEYS.some((k) => filters[k]) || keyword;
 
-  const open = (profile) => navigate(`/employer/candidates/${profile.id}`);
+  const open = (profile) => navigate(isAdminView ? `/admin/candidates/${profile.id}` : `/employer/candidates/${profile.id}`);
 
   return (
     <div className="space-y-6">
-      <PageBanner compact icon="search" title="Tìm kiếm ứng viên" subtitle="Tìm ứng viên phù hợp dựa trên kỹ năng, điểm năng lực và các dự án đã làm trên DevHub">
+      <PageBanner
+        compact
+        icon={isAdminView ? 'user' : 'search'}
+        title={isAdminView ? 'Hồ sơ ứng viên trên hệ thống' : 'Tìm kiếm ứng viên'}
+        subtitle={
+          isAdminView
+            ? 'Tra cứu toàn bộ hồ sơ năng lực, kỹ năng, CV và lịch sử tham gia dự án của ứng viên trên DevHub'
+            : 'Tìm ứng viên phù hợp dựa trên kỹ năng, điểm năng lực và các dự án đã làm trên DevHub'
+        }
+      >
         {pagination && (
           <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/20 border border-white/30 text-sm font-medium">
             Tìm thấy <strong className="mx-1">{pagination.total}</strong> ứng viên
@@ -250,7 +264,7 @@ export default function SearchCandidatesPage() {
         <div className="flex flex-col md:flex-row gap-3">
           <input
             className="input-field flex-1"
-            placeholder="Tìm theo tên, chức danh, giới thiệu..."
+            placeholder={isAdminView ? 'Tìm theo tên, email, SĐT, chức danh, giới thiệu...' : 'Tìm theo tên, chức danh, giới thiệu...'}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
           />
@@ -366,9 +380,26 @@ export default function SearchCandidatesPage() {
                   <div className="flex items-start gap-3 mb-3">
                     <Avatar name={user?.full_name} src={profile.avatar_url} size="lg" />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 line-clamp-2 break-words">{user?.full_name}</h3>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h3 className="font-semibold text-gray-900 line-clamp-2 break-words">{user?.full_name}</h3>
+                        {isAdminView && profile.is_private && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-medium" title="Ứng viên đang tắt chế độ cho phép nhà tuyển dụng tìm kiếm">
+                            <Icon name="lock" className="w-3 h-3" />Riêng tư
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-primary-700 truncate">{profile.professional_title || 'Chưa cập nhật'}</p>
                       {profile.rank && <RankBadge rank={profile.rank} className="mt-1" />}
+                      {isAdminView && user?.email && (
+                        <p className="text-xs text-gray-500 mt-1 truncate">
+                          <Icon name="mail" className="w-3.5 h-3.5 mr-1 text-gray-400" />{user.email}
+                        </p>
+                      )}
+                      {isAdminView && profile.phone && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                          <Icon name="phone" className="w-3.5 h-3.5 mr-1 text-gray-400" />{profile.phone}
+                        </p>
+                      )}
                       {profile.address && <p className="text-xs text-gray-400 mt-0.5 truncate"><Icon name="mapPin" className="w-3.5 h-3.5 mr-1" />{profile.address}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1.5 flex-shrink-0">

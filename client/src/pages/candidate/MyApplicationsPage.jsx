@@ -33,6 +33,8 @@ export default function MyApplicationsPage() {
   const [activeTab, setActiveTab] = useState('projects');
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
+  const [rescheduleAppId, setRescheduleAppId] = useState(null);
+  const [rescheduleNote, setRescheduleNote] = useState('');
   const qc = useQueryClient();
 
   const { data: projectAppsRes, isLoading: loadingProjects } = useQuery({
@@ -67,6 +69,17 @@ export default function MyApplicationsPage() {
       setSelectedAppId(null);
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Không thể rút đơn'),
+  });
+
+  const respondInterviewMutation = useMutation({
+    mutationFn: ({ id, data }) => candidateApi.respondProjectInterview(id, data),
+    onSuccess: (res) => {
+      toast.success(res.data?.message || 'Đã gửi phản hồi lịch phỏng vấn');
+      qc.invalidateQueries({ queryKey: ['my-project-applications'] });
+      setRescheduleAppId(null);
+      setRescheduleNote('');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không thể gửi phản hồi'),
   });
 
   const handleWithdraw = async (e, appId) => {
@@ -214,7 +227,20 @@ export default function MyApplicationsPage() {
                           <div className="space-y-1">
                             {app.interview_time && (
                               <p className="text-sm text-primary-700">
-                                <span className="font-semibold">Thời gian:</span> {new Date(app.interview_time).toLocaleString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                <span className="font-semibold">Thời gian:</span>{' '}
+                                {new Date(app.interview_time).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                {' · '}
+                                <strong>
+                                  {new Date(app.interview_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                  {' – '}
+                                  {new Date(new Date(app.interview_time).getTime() + (app.interview_duration || 30) * 60000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                </strong>
+                                {' '}({app.interview_duration || 30} phút)
+                                {app.interviewer_name && (
+                                  <span className="block mt-1">
+                                    <span className="font-semibold">Người phỏng vấn:</span> <strong>{app.interviewer_name}</strong>
+                                  </span>
+                                )}
                               </p>
                             )}
                             {!app.interview_time && !app.meet_url && !app.interview_note && (
@@ -231,6 +257,109 @@ export default function MyApplicationsPage() {
                             {app.interview_note && (
                               <p className="text-sm text-primary-700 mt-2 bg-white/60 p-2 rounded-lg border border-primary-100/50">
                                 <span className="font-semibold">Ghi chú:</span> <span className="italic">{app.interview_note}</span>
+                              </p>
+                            )}
+
+                            {/* Phản hồi lịch phỏng vấn của ứng viên */}
+                            {app.interview_time && (
+                              <div className="pt-2.5 mt-2.5 border-t border-primary-200/70 space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-primary-800">Trạng thái xác nhận:</span>
+                                    {app.interview_response === 'CONFIRMED' ? (
+                                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white">
+                                        ✓ Bạn đã xác nhận tham gia
+                                      </span>
+                                    ) : app.interview_response === 'RESCHEDULE_REQUESTED' ? (
+                                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-600 text-white">
+                                        ⏳ Đã gửi yêu cầu đổi giờ phỏng vấn
+                                      </span>
+                                    ) : (
+                                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white text-primary-700 border border-primary-200">
+                                        Chờ bạn xác nhận
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {app.interview_response !== 'CONFIRMED' && (
+                                      <button
+                                        type="button"
+                                        disabled={respondInterviewMutation.isPending}
+                                        onClick={() =>
+                                          respondInterviewMutation.mutate({
+                                            id: app.id,
+                                            data: { response: 'CONFIRMED' },
+                                          })
+                                        }
+                                        className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors disabled:opacity-50"
+                                      >
+                                        ✓ Xác nhận tham gia
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (rescheduleAppId === app.id) {
+                                          setRescheduleAppId(null);
+                                        } else {
+                                          setRescheduleAppId(app.id);
+                                          setRescheduleNote(app.candidate_reschedule_note || '');
+                                        }
+                                      }}
+                                      className="px-3 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 transition-colors"
+                                    >
+                                      {app.interview_response === 'RESCHEDULE_REQUESTED' ? 'Cập nhật đề xuất giờ khác' : 'Xin dời lịch phỏng vấn'}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {app.interview_response === 'RESCHEDULE_REQUESTED' && app.candidate_reschedule_note && rescheduleAppId !== app.id && (
+                                  <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 italic">
+                                    Đề xuất bạn đã gửi: “{app.candidate_reschedule_note}”
+                                  </p>
+                                )}
+
+                                {rescheduleAppId === app.id && (
+                                  <div className="bg-white p-3 rounded-xl border border-amber-300 space-y-2">
+                                    <label className="block text-xs font-bold text-gray-700">
+                                      Lý do bận & khung giờ bạn có thể tham gia phỏng vấn: *
+                                    </label>
+                                    <textarea
+                                      rows={2}
+                                      className="input-field text-xs resize-none"
+                                      placeholder="VD: Em có lịch thi chiều thứ 5, xin phép đổi sang sáng thứ 6 (9h00 - 11h00) hoặc chiều thứ 6 ạ..."
+                                      value={rescheduleNote}
+                                      onChange={(e) => setRescheduleNote(e.target.value)}
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setRescheduleAppId(null)}
+                                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                      >
+                                        Hủy
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={respondInterviewMutation.isPending || !rescheduleNote.trim()}
+                                        onClick={() =>
+                                          respondInterviewMutation.mutate({
+                                            id: app.id,
+                                            data: { response: 'RESCHEDULE_REQUESTED', note: rescheduleNote },
+                                          })
+                                        }
+                                        className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+                                      >
+                                        {respondInterviewMutation.isPending ? 'Đang gửi...' : 'Gửi đề xuất đổi giờ'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {false && (
+                              <p>
                               </p>
                             )}
                           </div>

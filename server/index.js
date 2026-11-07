@@ -65,6 +65,24 @@ const startServer = async () => {
       };
     }
     await sequelize.authenticate();
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS interviewers (
+        id UUID PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        title VARCHAR(150),
+        default_meet_url VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      ALTER TABLE project_applications
+        ADD COLUMN IF NOT EXISTS interviewer_id UUID,
+        ADD COLUMN IF NOT EXISTS interview_duration INTEGER DEFAULT 30,
+        ADD COLUMN IF NOT EXISTS interviewer_name VARCHAR(150),
+        ADD COLUMN IF NOT EXISTS interview_response VARCHAR(30) DEFAULT 'PENDING',
+        ADD COLUMN IF NOT EXISTS candidate_reschedule_note TEXT,
+        ADD COLUMN IF NOT EXISTS interview_responded_at TIMESTAMP WITH TIME ZONE;
+    `).catch((err) => console.warn('Schema check warning:', err.message));
     console.log('✅ Database connected');
     if (process.env.NODE_ENV === 'development') {
       console.log('✅ Models synced');

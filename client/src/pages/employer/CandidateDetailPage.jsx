@@ -1,9 +1,10 @@
 import { RankBadge } from '@/components/candidate/RankBadge';
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { companyApi } from '@/api/companyApi';
+import { adminApi } from '@/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
@@ -24,6 +25,14 @@ const PROJECT_STATUS = {
   CANCELLED: { label: 'Đã hủy', cls: 'bg-red-50 text-red-600' },
 };
 const MEMBER_STATUS = { ACTIVE: 'Đang tham gia', COMPLETED: 'Đã hoàn thành phần việc', REMOVED: 'Đã rời dự án' };
+
+const PROJECT_APP_STATUS = {
+  PENDING:   { label: 'Chờ duyệt',      cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  REVIEWING: { label: 'Đang xét duyệt', cls: 'bg-primary-50 text-primary-700 border-primary-200' },
+  INTERVIEW: { label: 'Mời phỏng vấn',  cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+  ACCEPTED:  { label: 'Trúng tuyển',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  REJECTED:  { label: 'Từ chối',        cls: 'bg-red-50 text-red-600 border-red-200' },
+};
 
 const scoreTone = (s) => (s >= 8 ? 'text-emerald-600' : s >= 5 ? 'text-amber-600' : 'text-red-500');
 
@@ -206,28 +215,30 @@ function ContactRow({ icon, label, value, href }) {
 
 export default function CandidateDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const isAdminView = location.pathname.startsWith('/admin');
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['employer-candidate', id],
-    queryFn: () => companyApi.getCandidateProfile(id),
+    queryKey: [isAdminView ? 'admin-candidate' : 'employer-candidate', id],
+    queryFn: () => (isAdminView ? adminApi.getCandidateProfile(id) : companyApi.getCandidateProfile(id)),
     retry: false,
   });
   const c = data?.data?.data;
 
   const saveMutation = useMutation({
-    mutationFn: () => companyApi.toggleSaveCandidate(id),
+    mutationFn: () => (isAdminView ? adminApi.toggleSaveCandidate(id) : companyApi.toggleSaveCandidate(id)),
     onSuccess: (res) => {
       toast.success(res.data?.message || 'Đã cập nhật danh sách lưu');
-      qc.invalidateQueries({ queryKey: ['employer-candidate', id] });
-      qc.invalidateQueries({ queryKey: ['employer-search-candidates'] });
+      qc.invalidateQueries({ queryKey: [isAdminView ? 'admin-candidate' : 'employer-candidate', id] });
+      qc.invalidateQueries({ queryKey: [isAdminView ? 'admin-search-candidates' : 'employer-search-candidates'] });
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Không thể lưu ứng viên');
     },
   });
 
-  const back = () => (window.history.length > 1 ? navigate(-1) : navigate('/employer/candidates'));
+  const back = () => (window.history.length > 1 ? navigate(-1) : navigate(isAdminView ? '/admin/candidates' : '/employer/candidates'));
 
   if (isLoading) return <LoadingSpinner />;
   if (isError || !c) {
@@ -241,7 +252,9 @@ export default function CandidateDetailPage() {
         <p className="text-sm text-slate-500 mt-1">
           {error?.response?.data?.message || 'Hồ sơ có thể đã bị xóa hoặc đường dẫn không đúng.'}
         </p>
-        <Link to="/employer/candidates" className="btn-primary inline-block mt-4">← Về trang tìm ứng viên</Link>
+        <Link to={isAdminView ? '/admin/candidates' : '/employer/candidates'} className="btn-primary inline-block mt-4">
+          {isAdminView ? '← Về danh sách ứng viên' : '← Về trang tìm ứng viên'}
+        </Link>
       </div>
     );
   }
@@ -249,7 +262,7 @@ export default function CandidateDetailPage() {
   const score = parseFloat(c.competency_score) || 0;
   const s = c.summary;
   const hidden = c.hidden_sections || {};
-  const skills = [...c.skills].sort((a, b) => (b.evidence?.length > 0) - (a.evidence?.length > 0));
+  const skills = [...(c.skills || [])].sort((a, b) => (b.evidence?.length > 0) - (a.evidence?.length > 0));
   const mainCv = c.cvs?.[0]?.file_url || c.cv_url;
 
   return (
@@ -478,6 +491,40 @@ export default function CandidateDetailPage() {
                     <Icon name="external" className="w-4 h-4 text-slate-400 flex-shrink-0" />
                   </a>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {c.project_applications?.length > 0 && (
+            <div className="card !p-5 border-primary-200 bg-primary-50/30">
+              <h3 className="font-bold text-slate-900 mb-3">Đơn ứng tuyển dự án nội bộ ({c.project_applications.length})</h3>
+              <div className="space-y-2.5">
+                {c.project_applications.map((pa) => {
+                  const st = PROJECT_APP_STATUS[pa.status] || PROJECT_APP_STATUS.PENDING;
+                  return (
+                    <div key={pa.id} className="p-3 rounded-lg bg-white border border-slate-200 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{pa.job_title}</p>
+                          <p className="text-xs text-primary-700 truncate">{pa.project_name}</p>
+                          <p className="text-[11px] text-slate-400">Nộp {timeAgo(pa.applied_at)}</p>
+                        </div>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium flex-shrink-0 ${st.cls}`}>{st.label}</span>
+                      </div>
+                      {pa.cover_letter && (
+                        <p className="text-xs text-slate-600 italic bg-slate-50 rounded p-2 border border-slate-100 line-clamp-3">
+                          “{pa.cover_letter}”
+                        </p>
+                      )}
+                      {pa.cv_url && (
+                        <a href={pa.cv_url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary-700 hover:underline">
+                          <Icon name="document" className="w-3.5 h-3.5" />CV nộp kèm đơn ↗
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { body } = require('express-validator');
 const { protect, authorize } = require('../middleware/auth');
+const { uploadJD } = require('../middleware/upload');
 const validate = require('../middleware/validate');
 const jobCtrl = require('../controllers/jobController');
 const appCtrl = require('../controllers/applicationController');
@@ -21,6 +22,7 @@ router.post('/company/verify-email', [body('otp').notEmpty()], validate, compCtr
 
 // Job posts
 router.get('/jobs', jobCtrl.getEmployerJobs);
+router.post('/jobs/parse-file', uploadJD.single('file'), jobCtrl.parseJobFile);
 router.get('/jobs/:id', jobCtrl.getEmployerJobById);
 router.post('/jobs', [body('title').notEmpty()], validate, jobCtrl.createEmployerJob);
 router.put('/jobs/:id', jobCtrl.updateEmployerJob);

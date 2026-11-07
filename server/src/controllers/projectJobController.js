@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const { sequelize } = require('../models');
 const { 
   Project, ProjectJob, ProjectJobSkill, Skill, 
-  ProjectApplication, CandidateProfile, User, CandidateSkill,
+  ProjectApplication, Interviewer, CandidateProfile, User, CandidateSkill,
   CandidateEvaluation, WorkspaceMember, Workspace,
 } = require('../models');
 const AppError = require('../utils/AppError');
@@ -289,7 +289,7 @@ exports.adminGetProjectJobs = async (req, res, next) => {
           as: 'apps',
           include: [{ 
             model: CandidateProfile, 
-            attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name'],
+            attributes: ['id', 'professional_title', 'competency_score', 'github_url', 'portfolio_url', 'cv_url', 'cv_name', 'phone', 'address', 'avatar_url', 'introduction'],
             include: [
               { model: User, attributes: ['full_name', 'email'] },
               { 
@@ -498,7 +498,7 @@ exports.adminUpdateProjectApplicationStatus = async (req, res, next) => {
 // POST /api/admin/project-applications/:id/schedule-interview
 exports.adminScheduleInterview = async (req, res, next) => {
   try {
-    const { interview_time, meet_url, interview_note } = req.body;
+    const { interview_time, interview_duration = 30, interviewer_id, meet_url, interview_note } = req.body;
 
     if (!interview_time || !meet_url) {
       throw new AppError('Vui lòng điền đầy đủ thời gian và link Google Meet', 400);
@@ -519,9 +519,72 @@ exports.adminScheduleInterview = async (req, res, next) => {
 
     if (!application) throw new AppError('Không tìm thấy hồ sơ ứng tuyển', 404);
 
+    if (!interviewer_id) {
+      throw new AppError('Vui lòng chọn người phỏng vấn từ danh sách người phỏng vấn', 400);
+    }
+    const interviewer = await Interviewer.findByPk(interviewer_id);
+    if (!interviewer) {
+      throw new AppError('Người phỏng vấn không tồn tại trong hệ thống', 404);
+    }
+    const cleanInterviewer = interviewer.name;
+    const durationMin = Math.min(180, Math.max(15, parseInt(interview_duration, 10) || 30));
+    const startMs = new Date(interview_time).getTime();
+    if (isNaN(startMs)) throw new AppError('Thời gian phỏng vấn không hợp lệ', 400);
+    const endMs = startMs + durationMin * 60000;
+
+    // Kiểm tra trùng lịch phỏng vấn trong vòng ±24 giờ theo đúng interviewer_id và ứng viên
+    const nearbyInterviews = await ProjectApplication.findAll({
+      where: {
+        id: { [Op.ne]: application.id },
+        status: 'INTERVIEW',
+        interview_time: {
+          [Op.between]: [new Date(startMs - 86400000), new Date(endMs + 86400000)],
+        },
+      },
+      include: [
+        { model: ProjectJob, attributes: ['title'], include: [{ model: Project, attributes: ['name'] }] },
+        { model: CandidateProfile, attributes: ['id'], include: [{ model: User, attributes: ['full_name'] }] },
+      ],
+    });
+
+    for (const other of nearbyInterviews) {
+      const oStart = new Date(other.interview_time).getTime();
+      const oDur = other.interview_duration || 30;
+      const oEnd = oStart + oDur * 60000;
+      if (startMs < oEnd && endMs > oStart) {
+        const oStartStr = new Date(oStart).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const oEndStr = new Date(oEnd).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const otherCandidateName = other.CandidateProfile?.User?.full_name || 'ứng viên khác';
+        const otherPos = other.ProjectJob?.title || 'vị trí khác';
+        const otherInterviewer = (other.interviewer_name || '').trim();
+        const isSameInterviewer =
+          (other.interviewer_id && other.interviewer_id === interviewer.id) ||
+          (!other.interviewer_id && otherInterviewer && otherInterviewer.toLowerCase() === cleanInterviewer.toLowerCase());
+
+        if (isSameInterviewer) {
+          throw new AppError(
+            `Trùng lịch! Người phỏng vấn "${cleanInterviewer}" đã có ca phỏng vấn với ứng viên ${otherCandidateName} (${otherPos}) từ ${oStartStr} – ${oEndStr}.`,
+            409
+          );
+        }
+        if (other.candidate_profile_id === application.candidate_profile_id) {
+          throw new AppError(
+            `Trùng lịch! Ứng viên này đã có một lịch phỏng vấn khác (${otherPos}) từ ${oStartStr} – ${oEndStr}.`,
+            409
+          );
+        }
+      }
+    }
+
     // Save interview info to application
     await application.update({
       interview_time,
+      interview_duration: durationMin,
+      interviewer_id: interviewer.id,
+      interviewer_name: interviewer.name,
+      interview_response: 'PENDING',
+      candidate_reschedule_note: null,
+      interview_responded_at: null,
       meet_url,
       interview_note: interview_note || null,
       status: 'INTERVIEW'
@@ -577,7 +640,11 @@ exports.adminScheduleInterview = async (req, res, next) => {
                   </tr>
                   <tr>
                     <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">Giờ phỏng vấn:</td>
-                    <td style="padding: 6px 0; color: #111827; font-weight: 600; font-size: 14px;">${formattedTime}</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: 600; font-size: 14px;">${formattedTime} – ${new Date(endMs).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} (${durationMin} phút)</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">Người phỏng vấn:</td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: 600; font-size: 14px;">${escapeHtml(cleanInterviewer)}</td>
                   </tr>
                   <tr>
                     <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">Hình thức:</td>
@@ -639,6 +706,237 @@ exports.adminScheduleInterview = async (req, res, next) => {
       message: emailSent
         ? `Đã đặt lịch phỏng vấn và gửi email đến ${candidateEmail}`
         : 'Đã đặt lịch phỏng vấn (ứng viên nhận thông báo trong hệ thống) nhưng chưa gửi được email, hãy báo thêm cho ứng viên qua kênh khác'
+    });
+  } catch (error) { next(error); }
+};
+
+// Helper: đồng bộ các interviewer_name cũ (nếu có) thành bản ghi Interviewer thực thụ
+async function ensureInterviewersSynced(reqUser) {
+  let list = await Interviewer.findAll({ order: [['created_at', 'ASC']] });
+  if (list.length === 0 && reqUser?.full_name) {
+    const created = await Interviewer.create({
+      name: reqUser.full_name.trim(),
+      title: 'Ban quản lý dự án',
+      is_active: true,
+    });
+    list = [created];
+  }
+  // Nếu có lịch phỏng vấn cũ chỉ có interviewer_name mà chưa có interviewer_id -> tự động gắn hoặc tạo Interviewer
+  const unlinkedApps = await ProjectApplication.findAll({
+    where: {
+      interview_time: { [Op.ne]: null },
+      interviewer_id: null,
+    },
+  });
+  for (const app of unlinkedApps) {
+    const rawName = (app.interviewer_name || '').trim() || reqUser?.full_name?.trim() || 'Ban quản lý dự án';
+    let found = list.find((i) => i.name.toLowerCase() === rawName.toLowerCase());
+    if (!found) {
+      found = await Interviewer.create({ name: rawName, title: 'Người phỏng vấn', is_active: true });
+      list.push(found);
+    }
+    await app.update({ interviewer_id: found.id, interviewer_name: found.name });
+  }
+  return list;
+}
+
+// GET /api/admin/interviewers — Danh sách người phỏng vấn đã tạo
+exports.adminGetInterviewers = async (req, res, next) => {
+  try {
+    const interviewers = await ensureInterviewersSynced(req.user);
+    res.json({ success: true, data: interviewers });
+  } catch (error) { next(error); }
+};
+
+// POST /api/admin/interviewers — Tạo người phỏng vấn mới
+exports.adminCreateInterviewer = async (req, res, next) => {
+  try {
+    const { name, title, default_meet_url } = req.body;
+    const cleanName = (name || '').trim();
+    if (!cleanName) throw new AppError('Vui lòng nhập tên người phỏng vấn', 400);
+
+    const existing = await Interviewer.findOne({
+      where: sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), cleanName.toLowerCase()),
+    });
+    if (existing) {
+      throw new AppError(`Người phỏng vấn "${cleanName}" đã tồn tại trong danh sách`, 409);
+    }
+
+    const interviewer = await Interviewer.create({
+      name: cleanName,
+      title: (title || '').trim() || null,
+      default_meet_url: (default_meet_url || '').trim() || null,
+      is_active: true,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: interviewer,
+      message: `Đã thêm người phỏng vấn "${interviewer.name}"`,
+    });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/admin/interviewers/:id — Cập nhật thông tin người phỏng vấn
+exports.adminUpdateInterviewer = async (req, res, next) => {
+  try {
+    const interviewer = await Interviewer.findByPk(req.params.id);
+    if (!interviewer) throw new AppError('Không tìm thấy người phỏng vấn', 404);
+
+    const { name, title, default_meet_url, is_active } = req.body;
+    const cleanName = name !== undefined ? (name || '').trim() : interviewer.name;
+    if (!cleanName) throw new AppError('Tên người phỏng vấn không được để trống', 400);
+
+    if (cleanName.toLowerCase() !== interviewer.name.toLowerCase()) {
+      const dup = await Interviewer.findOne({
+        where: {
+          id: { [Op.ne]: interviewer.id },
+          [Op.and]: [sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), cleanName.toLowerCase())],
+        },
+      });
+      if (dup) throw new AppError(`Tên người phỏng vấn "${cleanName}" đã tồn tại`, 409);
+    }
+
+    await interviewer.update({
+      name: cleanName,
+      title: title !== undefined ? ((title || '').trim() || null) : interviewer.title,
+      default_meet_url: default_meet_url !== undefined ? ((default_meet_url || '').trim() || null) : interviewer.default_meet_url,
+      is_active: is_active !== undefined ? Boolean(is_active) : interviewer.is_active,
+    });
+
+    // Đồng bộ tên hiển thị trên các lịch phỏng vấn của người này
+    await ProjectApplication.update(
+      { interviewer_name: cleanName },
+      { where: { interviewer_id: interviewer.id } }
+    );
+
+    res.json({ success: true, data: interviewer, message: 'Đã cập nhật người phỏng vấn' });
+  } catch (error) { next(error); }
+};
+
+// DELETE /api/admin/interviewers/:id — Xóa người phỏng vấn
+exports.adminDeleteInterviewer = async (req, res, next) => {
+  try {
+    const interviewer = await Interviewer.findByPk(req.params.id);
+    if (!interviewer) throw new AppError('Không tìm thấy người phỏng vấn', 404);
+
+    const upcomingCount = await ProjectApplication.count({
+      where: {
+        interviewer_id: interviewer.id,
+        status: 'INTERVIEW',
+        interview_time: { [Op.gte]: new Date() },
+      },
+    });
+    if (upcomingCount > 0) {
+      throw new AppError(
+        `Người phỏng vấn "${interviewer.name}" đang có ${upcomingCount} ca phỏng vấn sắp diễn ra. Vui lòng đổi người phỏng vấn cho các ca đó trước khi xóa.`,
+        400
+      );
+    }
+
+    await interviewer.destroy();
+    res.json({ success: true, message: `Đã xóa người phỏng vấn "${interviewer.name}"` });
+  } catch (error) { next(error); }
+};
+
+// GET /api/admin/interviews — Lấy toàn bộ lịch phỏng vấn + danh sách người phỏng vấn
+exports.adminGetInterviewSchedule = async (req, res, next) => {
+  try {
+    const interviewers = await ensureInterviewersSynced(req.user);
+    const interviews = await ProjectApplication.findAll({
+      where: {
+        interview_time: { [Op.ne]: null },
+        status: { [Op.in]: ['INTERVIEW', 'ACCEPTED', 'REVIEWING'] },
+      },
+      include: [
+        { model: Interviewer },
+        {
+          model: ProjectJob,
+          attributes: ['id', 'title', 'project_id'],
+          include: [{ model: Project, attributes: ['id', 'name'] }],
+        },
+        {
+          model: CandidateProfile,
+          attributes: ['id'],
+          include: [{ model: User, attributes: ['id', 'full_name', 'email', 'avatar_url'] }],
+        },
+      ],
+      order: [['interview_time', 'ASC']],
+    });
+
+    res.json({
+      success: true,
+      data: interviews,
+      interviewers,
+    });
+  } catch (error) { next(error); }
+};
+
+// PUT /api/candidates/project-applications/:id/interview-response — Ứng viên xác nhận hoặc xin dời lịch phỏng vấn
+exports.candidateRespondInterview = async (req, res, next) => {
+  try {
+    const { response, note } = req.body;
+    if (!['CONFIRMED', 'RESCHEDULE_REQUESTED'].includes(response)) {
+      throw new AppError('Phản hồi lịch phỏng vấn không hợp lệ', 400);
+    }
+    if (response === 'RESCHEDULE_REQUESTED' && !(note || '').trim()) {
+      throw new AppError('Vui lòng nhập lý do hoặc khung giờ bạn có thể tham gia để Admin sắp xếp lại', 400);
+    }
+
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id } });
+    if (!profile) throw new AppError('Không tìm thấy hồ sơ ứng viên', 404);
+
+    const application = await ProjectApplication.findOne({
+      where: { id: req.params.id, candidate_profile_id: profile.id },
+      include: [
+        {
+          model: ProjectJob,
+          include: [{ model: Project, attributes: ['id', 'name'] }],
+        },
+        {
+          model: CandidateProfile,
+          include: [{ model: User, attributes: ['id', 'full_name', 'email'] }],
+        },
+      ],
+    });
+
+    if (!application) throw new AppError('Không tìm thấy đơn ứng tuyển dự án', 404);
+    if (!application.interview_time) {
+      throw new AppError('Đơn ứng tuyển này chưa có lịch phỏng vấn', 400);
+    }
+
+    await application.update({
+      interview_response: response,
+      candidate_reschedule_note: response === 'RESCHEDULE_REQUESTED' ? note.trim() : null,
+      interview_responded_at: new Date(),
+    });
+
+    const candidateName = application.CandidateProfile?.User?.full_name || 'Ứng viên';
+    const positionName = application.ProjectJob?.title || 'Vị trí dự án';
+    const projectName = application.ProjectJob?.Project?.name || 'Dự án';
+
+    if (response === 'CONFIRMED') {
+      await notifyAdmins({
+        title: 'Ứng viên đã xác nhận tham gia phỏng vấn',
+        message: `${candidateName} đã xác nhận tham gia buổi phỏng vấn vị trí "${positionName}" (${projectName}).`,
+        type: 'APPLICATION',
+        link: '/admin/projects',
+      });
+    } else {
+      await notifyAdmins({
+        title: 'Ứng viên xin dời lịch phỏng vấn',
+        message: `${candidateName} xin đổi lịch phỏng vấn vị trí "${positionName}" (${projectName}). Đề xuất: "${note.trim()}"`,
+        type: 'APPLICATION',
+        link: '/admin/projects',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: application,
+      message: response === 'CONFIRMED'
+        ? 'Đã xác nhận tham gia buổi phỏng vấn!'
+        : 'Đã gửi yêu cầu đổi giờ phỏng vấn tới Ban quản lý dự án.',
     });
   } catch (error) { next(error); }
 };

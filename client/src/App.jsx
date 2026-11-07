@@ -139,6 +139,8 @@ function AppRoutes() {
           <Route path="/admin/jobs" element={<AdminManageJobsPage />} />
           <Route path="/admin/companies" element={<ManageCompaniesPage />} />
           <Route path="/admin/projects" element={<InternalProjectsPage />} />
+          <Route path="/admin/candidates" element={<SearchCandidatesPage />} />
+          <Route path="/admin/candidates/:id" element={<CandidateDetailPage />} />
           <Route path="/admin/workspaces/:id" element={<WorkspacePage />} />
           <Route path="/admin/payments" element={<PaymentsPage />} />
           <Route path="/admin/stats" element={<StatsPage />} />

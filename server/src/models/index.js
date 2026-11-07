@@ -27,6 +27,7 @@ const Project = require('./Project')(sequelize, DataTypes);
 const ProjectJob = require('./ProjectJob')(sequelize, DataTypes);
 const ProjectJobSkill = require('./ProjectJobSkill')(sequelize, DataTypes);
 const ProjectApplication = require('./ProjectApplication')(sequelize, DataTypes);
+const Interviewer = require('./Interviewer')(sequelize, DataTypes);
 const SavedJob = require('./SavedJob')(sequelize, DataTypes);
 
 // Diễn đàn
@@ -138,6 +139,8 @@ ProjectApplication.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 
 CandidateProfile.hasMany(ProjectApplication, { foreignKey: 'candidate_profile_id' });
 ProjectApplication.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
+Interviewer.hasMany(ProjectApplication, { foreignKey: 'interviewer_id' });
+ProjectApplication.belongsTo(Interviewer, { foreignKey: 'interviewer_id' });
 
 // Việc làm đã lưu
 CandidateProfile.hasMany(SavedJob, { foreignKey: 'candidate_profile_id', onDelete: 'CASCADE' });
@@ -234,7 +237,7 @@ module.exports = {
   JobPost, JobPostSkill,
   Application, ApplicationStatusHistory,
   SavedCandidate,
-  Project, ProjectJob, ProjectJobSkill, ProjectApplication, SavedJob,
+  Project, ProjectJob, ProjectJobSkill, ProjectApplication, Interviewer, SavedJob,
   ForumCategory, ForumThread, ForumPost, ForumPostLike,
   ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage, ForumWarning,
   InternalProject, // alias

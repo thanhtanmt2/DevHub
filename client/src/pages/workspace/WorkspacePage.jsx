@@ -1876,7 +1876,7 @@ export default function WorkspacePage() {
                         <div key={c.candidate_profile_id} className="flex items-center gap-3 bg-white rounded-lg border px-3 py-2">
                           <Avatar name={c.full_name} size="sm" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{c.full_name}</p>
+                            <Link to={`/admin/candidates/${c.candidate_profile_id}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-900 hover:text-primary-700 hover:underline truncate block">{c.full_name}</Link>
                             <p className="text-xs text-gray-400 truncate">{c.email} · Vị trí: {c.job_title}</p>
                           </div>
                           <button
@@ -1912,13 +1912,29 @@ export default function WorkspacePage() {
                     <div key={m.id} className="flex items-center gap-3 px-5 py-3">
                       <Avatar name={name} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{name} {isMe && <span className="text-xs text-primary-700">(bạn)</span>}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {isAdmin() && (m.candidate_profile_id || m.CandidateProfile?.id) ? (
+                            <Link to={`/admin/candidates/${m.candidate_profile_id || m.CandidateProfile?.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary-700 hover:underline" title="Xem hồ sơ chi tiết ứng viên">{name}</Link>
+                          ) : name}{' '}
+                          {isMe && <span className="text-xs text-primary-700">(bạn)</span>}
+                        </p>
                         <p className="text-xs text-gray-400 truncate">{email}</p>
                       </div>
                       {/* Khối lượng việc hiện tại → để Lead/Admin chia việc đều */}
                       <span className="text-[11px] text-gray-500 flex-shrink-0" title="Số task đang thực hiện (chưa nghiệm thu)">
                         <Icon name="clipboard" className="w-3.5 h-3.5 mr-1" />{workload[m.id] || 0} task
                       </span>
+                      {isAdmin() && (m.candidate_profile_id || m.CandidateProfile?.id) && (
+                        <Link
+                          to={`/admin/candidates/${m.candidate_profile_id || m.CandidateProfile?.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary-700 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50 transition-colors flex-shrink-0"
+                          title="Xem hồ sơ năng lực chi tiết của thành viên"
+                        >
+                          <Icon name="user" className="w-3.5 h-3.5 mr-1" />Hồ sơ
+                        </Link>
+                      )}
                       {/* Cử / gỡ Lead nhanh */}
                       {canModify && m.role === 'MEMBER' && (
                         <button onClick={() => updateRoleMut.mutate({ memberId: m.id, role: 'LEAD' })} disabled={updateRoleMut.isPending}

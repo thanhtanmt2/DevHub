@@ -59,6 +59,7 @@ export default function ProjectsPage() {
     setFilterOpen(false);
   };
   const [activeDetailJob, setActiveDetailJob] = useState(null);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'grid' | 'by-project'
   const [filterOpen, setFilterOpen] = useState(false); // bộ lọc nâng cao trên điện thoại
   const [selectedJobForApply, setSelectedJobForApply] = useState(null);
   useEscapeKey(() => setSelectedJobForApply(null), !!selectedJobForApply);
@@ -162,6 +163,27 @@ export default function ProjectsPage() {
   const pagination = data?.data?.pagination;
   const skills = skillsRes?.data?.data || [];
 
+  // Gom các vị trí theo từng Dự án cho chế độ xem "Theo dự án"
+  const groupedProjects = Object.values(
+    projectJobs.reduce((acc, job) => {
+      const pid = job.Project?.id || job.project_id || 'unknown';
+      if (!acc[pid]) {
+        acc[pid] = {
+          id: pid,
+          name: job.Project?.name || 'Dự án DevHub',
+          description: job.Project?.description || '',
+          status: job.Project?.status || 'RECRUITING',
+          expected_end_date: job.Project?.expected_end_date || null,
+          jobs: [],
+          totalBudget: 0,
+        };
+      }
+      acc[pid].jobs.push(job);
+      acc[pid].totalBudget += parseFloat(job.budget) || 0;
+      return acc;
+    }, {})
+  );
+
   const activeFilterCount = ['skill_id', 'experience'].filter((k) => filters[k]).length + (filters.keyword ? 1 : 0);
   const resetFilters = () => {
     setDraft(pickDraft({ ...EMPTY_FILTERS, keyword: '' }));
@@ -223,6 +245,36 @@ export default function ProjectsPage() {
             sort={filters.sort} sortOptions={sorts} onSort={(v) => setFilter({ sort: v })}
             filtersOpen={filterOpen} onToggleFilters={() => setFilterOpen((o) => !o)} activeCount={activeFilterCount}
           />
+      {/* Chuyển đổi cách xem: Danh sách vị trí / Lưới thẻ / Gom theo Dự án */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <span className="text-xs text-slate-500">
+          {viewMode === 'by-project'
+            ? `Đang nhóm theo ${groupedProjects.length} dự án nội bộ`
+            : 'Chọn vào vị trí để xem nhanh chi tiết hoặc mở trang riêng'}
+        </span>
+        <div className="inline-flex items-center rounded-xl bg-slate-100 p-1 gap-0.5">
+          {[
+            { id: 'list', label: 'Danh sách', icon: 'list' },
+            { id: 'grid', label: 'Lưới thẻ', icon: 'grid' },
+            { id: 'by-project', label: 'Theo dự án', icon: 'folder' },
+          ].map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setViewMode(m.id)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === m.id
+                  ? 'bg-white text-primary-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Icon name={m.icon} className="w-3.5 h-3.5" />
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Results Section */}
       {isLoading ? (
         <LoadingSpinner />
@@ -238,6 +290,89 @@ export default function ProjectsPage() {
         <div className={`flex flex-col ${activeDetailJob ? 'lg:flex-row gap-6' : ''}`}>
           {/* Danh sách vị trí */}
           <div className={`${activeDetailJob ? 'w-full lg:w-[42%] flex-shrink-0' : 'w-full'} space-y-3`}>
+            {viewMode === 'by-project' ? (
+              <div className="space-y-4">
+                {groupedProjects.map((proj) => (
+                  <div key={proj.id} className="card !p-0 overflow-hidden border border-slate-200">
+                    <div className="bg-gradient-to-r from-primary-50/80 via-white to-slate-50 px-5 py-4 border-b border-slate-200 flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="w-8 h-8 rounded-lg bg-primary-600 text-white inline-flex items-center justify-center flex-shrink-0">
+                            <Icon name="folder" className="w-4 h-4" />
+                          </span>
+                          <h3 className="font-extrabold text-base sm:text-lg text-slate-900">{proj.name}</h3>
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+                            {proj.jobs.length} vị trí đang tuyển
+                          </span>
+                        </div>
+                        {proj.description && (
+                          <p className="text-xs sm:text-sm text-slate-600 mt-1.5 line-clamp-2">{proj.description}</p>
+                        )}
+                      </div>
+                      {proj.totalBudget > 0 && (
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-[11px] text-slate-400 uppercase font-semibold">Tổng thù lao các vị trí</p>
+                          <p className="text-base font-extrabold text-primary-700">{formatSalary(proj.totalBudget)}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {proj.jobs.map((job) => {
+                        const isSelected = activeDetailJob?.id === job.id;
+                        const isApplied = appliedJobIds.has(job.id);
+                        const expired = deadlineInfo(job.deadline).expired;
+                        return (
+                          <div
+                            key={job.id}
+                            onClick={() => openJob(job)}
+                            className={`p-4 cursor-pointer transition-colors hover:bg-primary-50/30 ${
+                              isSelected ? 'bg-primary-50/50 ring-1 ring-inset ring-primary-300' : ''
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-bold text-sm sm:text-base text-slate-900 hover:text-primary-700">{job.title}</h4>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                                  <MetaItem icon="globe">Làm việc từ xa</MetaItem>
+                                  <MetaItem icon="clock">{EXPERIENCE_LABELS[job.experience]}</MetaItem>
+                                  {job.quantity > 1 && <MetaItem icon="users">{job.quantity} người</MetaItem>}
+                                  <DeadlineChip deadline={job.deadline} />
+                                </div>
+                                {job.Skills?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {job.Skills.slice(0, 5).map((s) => <SkillTag key={s.id} name={s.name} />)}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                <span className="text-primary-700 font-bold text-sm sm:text-base">{formatSalary(job.budget)}</span>
+                                <div className="flex items-center gap-2">
+                                  <SaveJobButton type="project" id={job.id} className="!w-8 !h-8" />
+                                  {isApplied ? (
+                                    <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 inline-flex items-center gap-1">
+                                      <Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} /> Đã ứng tuyển
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => handleApplyClick(e, job)}
+                                      disabled={expired}
+                                      className="btn-primary text-xs py-1.5 px-3.5 whitespace-nowrap"
+                                    >
+                                      {expired ? 'Hết hạn' : 'Ứng tuyển'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+            <div className={viewMode === 'grid' && !activeDetailJob ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'}>
             {projectJobs.map((job) => {
               const isSelected = activeDetailJob?.id === job.id;
               const isApplied = appliedJobIds.has(job.id);
@@ -308,6 +443,9 @@ export default function ProjectsPage() {
                 </div>
               );
             })}
+
+            </div>
+            )}
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (

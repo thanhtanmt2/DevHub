@@ -11,6 +11,14 @@ export const jobApi = {
   // Employer
   getMyJobs: () => api.get('/employer/jobs'),
   getMyJob: (id) => api.get(`/employer/jobs/${id}`),
+  parseJobFile: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post('/employer/jobs/parse-file', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 65000,
+    });
+  },
   createJob: (data) => api.post('/employer/jobs', data),
   updateJob: (id, data) => api.put(`/employer/jobs/${id}`, data),
   reopenJob: (id, data) => api.put(`/employer/jobs/${id}/reopen`, data),

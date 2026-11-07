@@ -20,6 +20,10 @@ router.get('/dashboard', statsCtrl.getAdminDashboard);
 
 // Users
 router.get('/users', userCtrl.getUsers);
+const candidateCtrl = require('../controllers/candidateController');
+router.get('/candidates', candidateCtrl.searchAdminCandidates);
+router.get('/candidates/:id', candidateCtrl.getCandidateForAdmin);
+router.post('/candidates/:id/save', candidateCtrl.toggleSaveCandidate);
 router.put('/users/:id/toggle-status', userCtrl.toggleUserStatus);
 router.put('/users/:id/activate', userCtrl.activateUser);
 router.put('/users/:id/role', [require('express-validator').body('role').isIn(['CANDIDATE', 'EMPLOYER', 'ADMIN'])], validate, userCtrl.assignRole);
@@ -60,6 +64,11 @@ router.post('/projects/:projectId/jobs', [body('title').notEmpty()], validate, p
 router.put('/project-jobs/:id', projectJobCtrl.adminUpdateProjectJob);
 router.put('/project-applications/:id/status', [body('status').isIn(['REVIEWING', 'ACCEPTED', 'REJECTED', 'INTERVIEW'])], validate, projectJobCtrl.adminUpdateProjectApplicationStatus);
 router.post('/project-applications/:id/schedule-interview', [body('interview_time').notEmpty(), body('meet_url').notEmpty()], validate, projectJobCtrl.adminScheduleInterview);
+router.get('/interviews', projectJobCtrl.adminGetInterviewSchedule);
+router.get('/interviewers', projectJobCtrl.adminGetInterviewers);
+router.post('/interviewers', [body('name').notEmpty()], validate, projectJobCtrl.adminCreateInterviewer);
+router.put('/interviewers/:id', projectJobCtrl.adminUpdateInterviewer);
+router.delete('/interviewers/:id', projectJobCtrl.adminDeleteInterviewer);
 
 // Evaluations
 router.post('/workspaces/:workspaceId/members/:memberId/evaluate', [body('score').isFloat({ min: 0, max: 10 })], validate, evalCtrl.evaluateCandidate);

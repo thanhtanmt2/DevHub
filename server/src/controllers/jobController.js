@@ -4,6 +4,8 @@ const {
 } = require('../models');
 const AppError = require('../utils/AppError');
 const { createNotification, notifyAdmins } = require('./notificationController');
+const { parseJobDescriptionFile } = require('../utils/jdParser');
+const { normName } = require('../utils/cvParser');
 
 // Các trường tin tuyển dụng mà Nhà tuyển dụng / Admin được phép nhập (không cho sửa status, post_type...)
 const JOB_FIELDS = [
@@ -192,6 +194,37 @@ exports.getJobById = async (req, res, next) => {
     await job.increment('view_count');
     res.json({ success: true, data: job });
   } catch (error) { next(error); }
+};
+
+// POST /api/employer/jobs/parse-file — Đọc file JD bằng AI và trả về thông tin trích xuất
+exports.parseJobFile = async (req, res, next) => {
+  try {
+    const allSkills = await Skill.findAll({ attributes: ['id', 'name'] });
+    const extracted = await parseJobDescriptionFile(
+      req.file,
+      allSkills.map((s) => s.name)
+    );
+
+    const byName = new Map(allSkills.map((s) => [normName(s.name), s]));
+    const matchedSkills = [
+      ...new Set(
+        (extracted.skills || [])
+          .map((n) => byName.get(normName(n)))
+          .filter(Boolean)
+      ),
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        ...extracted,
+        skills: matchedSkills.map((s) => ({ id: s.id, name: s.name })),
+        skill_ids: matchedSkills.map((s) => s.id),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // POST /api/employer/jobs — employer creates job post (hoặc lưu nháp khi is_draft = true)

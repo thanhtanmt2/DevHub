@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companyApi } from '@/api/companyApi';
+import { authApi } from '@/api/authApi';
 import { uploadApi } from '@/api/uploadApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SafeImage from '@/components/common/SafeImage';
@@ -10,14 +11,15 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function CompanyPage() {
   const qc = useQueryClient();
-  const { updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
+  const initializedForId = useRef(null);
   const [form, setForm] = useState({
     name: '',
     tax_code: '',
     address: '',
     website: '',
     description: '',
-    logo_url: ''
+    logo_url: user?.avatar_url || '',
   });
   const [isUploading, setIsUploading] = useState(false);
 
@@ -35,26 +37,28 @@ export default function CompanyPage() {
   const company = data?.data?.data;
   const isUpdating = !!company;
 
-  // Đổ dữ liệu vào form khi fetch thành công
+  // Đổ dữ liệu vào form khi fetch lần đầu (tránh ghi đè dữ liệu đang gõ khi cửa sổ lấy lại tiêu điểm)
   useEffect(() => {
-    if (company) {
+    if (company && initializedForId.current !== company.id) {
+      initializedForId.current = company.id;
       setForm({
         name: company.name || '',
         tax_code: company.tax_code || '',
         address: company.address || '',
         website: company.website || '',
         description: company.description || '',
-        logo_url: company.logo_url || ''
+        logo_url: company.logo_url || user?.avatar_url || '',
       });
       setVerifyEmail(company.email || '');
     }
-  }, [company]);
+  }, [company, user?.avatar_url]);
 
   // Mutation lưu thông tin
   const mutation = useMutation({
     mutationFn: (payload) => isUpdating ? companyApi.updateCompany(payload) : companyApi.createCompany(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employer-company'] });
+      qc.invalidateQueries({ queryKey: ['my-company'] });
       updateUser({ avatar_url: form.logo_url || null }); // logo công ty cũng là ảnh đại diện trên header
       toast.success(isUpdating ? 'Cập nhật thành công!' : 'Tạo hồ sơ thành công!');
     },
@@ -93,30 +97,36 @@ export default function CompanyPage() {
     mutation.mutate(form);
   };
 
-  // Upload Logo
+  // Upload Logo và lưu ngay vào CSDL (cả bảng companies và users)
   const handleUploadLogo = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
+    e.target.value = ''; // cho phép chọn lại cùng một file
     if (!file) return;
 
-    // Kiểm tra định dạng và dung lượng
+    // Kiểm tra định dạng và dung lượng (tối đa 5MB đồng bộ với server)
     if (!file.type.startsWith('image/')) {
       toast.error('Chỉ hỗ trợ file hình ảnh');
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Dung lượng ảnh tối đa 2MB');
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Dung lượng ảnh tối đa 5MB');
       return;
     }
 
     try {
       setIsUploading(true);
-      const res = await uploadApi.uploadImage(file); // Giả định uploadApi.uploadImage trả về { success: true, url: '...' }
-      if (res.data?.success) {
-        setForm({ ...form, logo_url: res.data.data.url });
-        toast.success('Tải logo lên thành công');
+      const res = await uploadApi.uploadImage(file);
+      const newUrl = res.data?.data?.url;
+      if (res.data?.success && newUrl) {
+        await authApi.updateAvatar(newUrl);
+        setForm((prev) => ({ ...prev, logo_url: newUrl }));
+        updateUser({ avatar_url: newUrl });
+        qc.invalidateQueries({ queryKey: ['employer-company'] });
+        qc.invalidateQueries({ queryKey: ['my-company'] });
+        toast.success('Đã tải lên và lưu logo doanh nghiệp');
       }
     } catch (error) {
-      toast.error('Lỗi khi tải logo lên');
+      toast.error(error.response?.data?.message || 'Lỗi khi tải logo lên');
     } finally {
       setIsUploading(false);
     }
@@ -167,7 +177,7 @@ export default function CompanyPage() {
               </div>
               <label className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center cursor-pointer text-white font-medium text-sm backdrop-blur-sm shadow-inner">
                 {isUploading ? 'Đang tải...' : 'Đổi Logo'}
-                <input type="file" className="hidden" accept="image/*" onChange={handleUploadLogo} disabled={isUploading} />
+                <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" onChange={handleUploadLogo} disabled={isUploading} />
               </label>
             </div>
             <div className="pb-2">

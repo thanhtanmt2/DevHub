@@ -11,6 +11,11 @@ export const adminApi = {
   activateUser: (id) => api.put(`/admin/users/${id}/activate`),
   assignRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
   
+  // Candidates
+  searchCandidates: (params) => api.get('/admin/candidates', { params }),
+  getCandidateProfile: (id) => api.get(`/admin/candidates/${id}`),
+  toggleSaveCandidate: (id) => api.post(`/admin/candidates/${id}/save`),
+
   // Payments
   getPayments: () => api.get('/admin/payments'),
   getPayableMembers: () => api.get('/admin/payments/members'),

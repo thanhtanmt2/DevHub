@@ -110,7 +110,16 @@ export default function ManageJobsPage() {
   return (
     <div className="space-y-6">
       <PageBanner compact icon="briefcase" title="Tin tuyển dụng" subtitle="Đăng tin, xem nội dung tin và xử lý hồ sơ ứng viên ngay trong từng tin">
-        <button onClick={() => setForm({ job: null })} className="btn-light">+ Đăng tin mới</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setForm({ job: null, autoOpenFilePicker: true })}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-white/15 text-white border border-white/30 hover:bg-white/25 transition-colors"
+          >
+            <Icon name="sparkles" className="w-4 h-4" />
+            Tạo từ file JD (AI)
+          </button>
+          <button onClick={() => setForm({ job: null })} className="btn-light">+ Đăng tin mới</button>
+        </div>
       </PageBanner>
 
       {jobs.length > 0 && (
@@ -135,7 +144,16 @@ export default function ManageJobsPage() {
           <IconBadge name="briefcase" size="lg" className="mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-slate-900 mb-1">Bạn chưa có tin tuyển dụng nào</h3>
           <p className="text-slate-500 text-sm mb-4">Đăng tin đầu tiên để ứng viên IT bắt đầu nộp hồ sơ.</p>
-          <button onClick={() => setForm({ job: null })} className="btn-primary">+ Đăng tin mới</button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              onClick={() => setForm({ job: null, autoOpenFilePicker: true })}
+              className="btn-secondary inline-flex items-center gap-1.5"
+            >
+              <Icon name="sparkles" className="w-4 h-4 text-primary-600" />
+              Tạo từ file JD (AI)
+            </button>
+            <button onClick={() => setForm({ job: null })} className="btn-primary">+ Đăng tin mới</button>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -247,7 +265,14 @@ export default function ManageJobsPage() {
         </div>
       )}
 
-      {form && <JobFormModal job={form.job} mode={form.mode || (form.job ? 'edit' : 'create')} onClose={() => setForm(null)} />}
+      {form && (
+        <JobFormModal
+          job={form.job}
+          mode={form.mode || (form.job ? 'edit' : 'create')}
+          autoOpenFilePicker={Boolean(form.autoOpenFilePicker)}
+          onClose={() => setForm(null)}
+        />
+      )}
       {reopenJob && <ReopenJobModal job={reopenJob} onClose={() => setReopenJob(null)} />}
     </div>
   );
