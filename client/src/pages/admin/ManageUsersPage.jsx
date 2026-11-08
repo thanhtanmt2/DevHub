@@ -91,7 +91,7 @@ export default function ManageUsersPage() {
               return (
                 <tr key={u.id} className="border-b hover:bg-gray-50 transition-colors">
                   <td className="p-3 font-medium">
-                    <span className="inline-flex items-center gap-2.5"><Avatar name={u.full_name} size="sm" />{u.full_name}</span>
+                    <span className="inline-flex items-center gap-2.5"><Avatar name={u.full_name} src={u.avatar_url} size="sm" />{u.full_name}</span>
                   </td>
                   <td className="p-3 text-gray-500">{u.email}</td>
 

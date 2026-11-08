@@ -66,11 +66,11 @@ const HeadIcon = ({ title, onClick, active = false, activeCls = '', hoverCls = '
   >{children}</button>
 );
 
-// Nút cảm xúc nhỏ: hình tròn có biểu tượng ngón tay cái (lên = Thích, xuống = Không thích), kèm số lượt nếu có.
-// Bình thường viền xám; rê chuột sáng lên theo màu; đang chọn thì tô đặc màu và biểu tượng trắng.
+// Nút cảm xúc: chỉ có biểu tượng ngón tay cái (lên = Thích, xuống = Không thích), không khung, kèm số lượt nếu có.
+// Bình thường xám nhạt; rê chuột đổi màu; đang chọn thì tô màu (xanh = Thích, đỏ = Không thích) và nét đậm hơn.
 const REACTION_TONE = {
-  like: { on: 'bg-primary-600 text-white ring-primary-600', idle: 'hover:bg-primary-50 hover:text-primary-700 hover:ring-primary-200' },
-  dislike: { on: 'bg-red-500 text-white ring-red-500', idle: 'hover:bg-red-50 hover:text-red-600 hover:ring-red-200' },
+  like: { on: 'text-primary-600', idle: 'hover:text-primary-600' },
+  dislike: { on: 'text-red-500', idle: 'hover:text-red-500' },
 };
 function ReactionButton({ kind, icon, count, active, disabled, locked, title, label, onClick }) {
   const tone = REACTION_TONE[kind];
@@ -82,10 +82,10 @@ function ReactionButton({ kind, icon, count, active, disabled, locked, title, la
       title={title}
       aria-label={label}
       aria-pressed={active}
-      className={`inline-flex items-center justify-center gap-1 h-8 min-w-[2rem] rounded-full text-xs font-bold ring-1 ring-inset transition-colors disabled:cursor-not-allowed ${count > 0 ? 'px-2.5' : 'px-0'} ${active ? tone.on : `bg-white text-slate-500 ring-slate-200 ${locked ? 'opacity-50' : tone.idle}`}`}
+      className={`inline-flex items-center gap-1 h-8 px-1.5 rounded-md text-xs font-bold transition-colors disabled:cursor-not-allowed ${active ? tone.on : `text-slate-400 ${locked ? 'opacity-50' : tone.idle}`}`}
     >
-      <Icon name={icon} strokeWidth={active ? 2.2 : 1.8} className="w-[18px] h-[18px]" />
-      {count > 0 && <span>{count}</span>}
+      <Icon name={icon} strokeWidth={active ? 2.4 : 1.8} className="w-5 h-5" />
+      {count > 0 && <span className={active ? '' : 'text-slate-500'}>{count}</span>}
     </button>
   );
 }
@@ -170,7 +170,7 @@ function PostCard({ post, thread, onQuote, onChanged, canReply, onOpenAuthor, on
   return (
     <article id={`post-${post.id}`} className="card !p-0 overflow-hidden scroll-mt-24">
       <div className="grid md:grid-cols-[11.5rem_minmax(0,1fr)]">
-        <div className="p-4 md:border-r border-b md:border-b-0 border-slate-100 bg-slate-50/60"><AuthorPanel author={post.author} onOpen={post.author ? () => onOpenAuthor(post.author.id) : undefined} /></div>
+        <div className="p-4 md:border-r border-b md:border-b-0 border-primary-100 bg-primary-50/70"><AuthorPanel author={post.author} onOpen={post.author ? () => onOpenAuthor(post.author.id) : undefined} /></div>
         <div className="min-w-0 flex flex-col">
           <div className="p-4 sm:p-5 flex-1 flex flex-col">
             {/* Tiêu đề bài: thời gian bên trái; chia sẻ, lưu bài và số thứ tự bên phải */}
@@ -230,7 +230,7 @@ function PostCard({ post, thread, onQuote, onChanged, canReply, onOpenAuthor, on
                     </button>
                   )}
                   {/* Cảm xúc: hai nút tròn nhỏ Thích / Không thích. Mỗi người một cảm xúc cho mỗi bài; bấm cái còn lại để đổi, bấm lại để bỏ */}
-                  <span role="group" aria-label="Cảm xúc" className="inline-flex items-center gap-1.5">
+                  <span role="group" aria-label="Cảm xúc" className="inline-flex items-center gap-0.5">
                     <ReactionButton
                       kind="like"
                       icon="thumbUp"
