@@ -18,4 +18,11 @@ export const workspaceApi = {
   addMember: (workspaceId, data) => api.post(`/workspaces/${workspaceId}/members`, data),
   removeMember: (workspaceId, memberId) => api.delete(`/workspaces/${workspaceId}/members/${memberId}`),
   updateMemberRole: (workspaceId, memberId, role) => api.put(`/workspaces/${workspaceId}/members/${memberId}/role`, { role }),
+
+  // Tùy chỉnh bảng (Admin / Lead): đổi tên Workspace, thêm / sửa / sắp xếp / xóa cột
+  updateWorkspace: (workspaceId, data) => api.put(`/workspaces/${workspaceId}`, data),
+  createColumn: (workspaceId, data) => api.post(`/workspaces/${workspaceId}/columns`, data),
+  updateColumn: (workspaceId, columnId, data) => api.put(`/workspaces/${workspaceId}/columns/${columnId}`, data),
+  reorderColumns: (workspaceId, ids) => api.put(`/workspaces/${workspaceId}/columns-order`, { ids }),
+  deleteColumn: (workspaceId, columnId) => api.delete(`/workspaces/${workspaceId}/columns/${columnId}`),
 };

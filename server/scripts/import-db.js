@@ -102,6 +102,8 @@ const migrations = [
 END $$`,
   // Diễn đàn (bảng + chuyên mục mặc định)
   ...require('./forumSchema'),
+  // Cột tùy chỉnh của bảng Kanban trong Workspace
+  ...require('./workspaceColumnSchema'),
 ];
 
 console.log('Đang chạy migration patch...');

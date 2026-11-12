@@ -16,6 +16,15 @@ import { useConfirm } from '@/components/common/ConfirmDialog';
 import useEscapeKey from '@/hooks/useEscapeKey';
 import { stripEmoji } from '@/utils/stripEmoji';
 import WorkspaceForum from '@/components/forum/WorkspaceForum';
+import BoardSettingsModal from './BoardSettingsModal';
+import { COLUMN_COLORS, COLUMN_COLOR_KEYS, MAX_CUSTOM_COLUMNS, buildBoardColumns } from './boardColumns';
+
+// ─── Thu phóng khung làm việc ────────────────────────────────────
+// Phóng to / thu nhỏ thật (đổi cỡ chữ gốc của trang nên toàn bộ kích thước tính theo rem đổi theo), giữ nguyên kéo thả.
+// Chỉ áp dụng khi mở toàn màn hình, nên thanh điều hướng của trang không bị ảnh hưởng.
+const ZOOM_STEPS = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75];
+const ZOOM_KEY = 'devhub-workspace-zoom';
+const readZoom = () => { try { const v = Number(localStorage.getItem(ZOOM_KEY)); return ZOOM_STEPS.includes(v) ? v : 1; } catch { return 1; } };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
@@ -119,14 +128,13 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
       className={`bg-white rounded-xl border border-gray-100 border-l-4 ${pm.bar} shadow-sm p-3 cursor-pointer
         hover:shadow-md transition-all select-none
         ${isMine ? 'ring-1 ring-primary-300' : ''}
-        ${snapshot.isDragging ? 'shadow-xl ring-2 ring-primary-400 rotate-1' : ''}
-        ${task.status === 'DONE' ? 'opacity-75' : ''}`}
+        ${snapshot.isDragging ? 'shadow-xl ring-2 ring-primary-400 rotate-1' : ''}`}
     >
       {/* Labels */}
       {task.labels?.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
           {task.labels.map(l => (
-            <span key={l} className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${LABEL_COLORS[l] || 'bg-gray-100 text-gray-600'}`}>
+            <span key={l} className={`text-[0.625rem] px-1.5 py-0.5 rounded font-medium ${LABEL_COLORS[l] || 'bg-gray-100 text-gray-600'}`}>
               {l}
             </span>
           ))}
@@ -135,13 +143,13 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
 
       {/* Bị yêu cầu chỉnh sửa sau nghiệm thu */}
       {needsRevision && (
-        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold bg-orange-100 text-orange-700 mb-1.5">
+        <span className="inline-block text-[0.625rem] px-1.5 py-0.5 rounded font-semibold bg-orange-100 text-orange-700 mb-1.5">
           <Icon name="undo" className="w-3 h-3 mr-0.5" />Cần chỉnh sửa
         </span>
       )}
 
       {/* Title */}
-      {/* Không gạch ngang task Hoàn thành: cột + dấu "Xong" + thẻ hơi mờ đã đủ phân biệt */}
+      {/* Không gạch ngang task Hoàn thành: cột + dấu "Xong" đã đủ phân biệt (thẻ giữ nguyên màu như các cột khác) */}
       <p className="text-sm font-semibold text-gray-900 leading-snug mb-2">
         {task.title}
       </p>
@@ -162,7 +170,7 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
       {/* Sub-task progress */}
       {totalSubs > 0 && (
         <div className="mb-2.5">
-          <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
+          <div className="flex justify-between text-[0.625rem] text-gray-400 mb-0.5">
             <span>Công việc con</span>
             <span>{doneSubs}/{totalSubs}</span>
           </div>
@@ -187,15 +195,15 @@ function TaskCard({ task, onClick, provided, snapshot, isMine }) {
             />
           ))}
           {(task.Assignees?.length || 0) > 3 && (
-            <div className="w-7 h-7 bg-gray-200 rounded-full ring-2 ring-white flex items-center justify-center text-[10px] text-gray-600 font-bold">
+            <div className="w-7 h-7 bg-gray-200 rounded-full ring-2 ring-white flex items-center justify-center text-[0.625rem] text-gray-600 font-bold">
               +{task.Assignees.length - 3}
             </div>
           )}
           {(!task.Assignees?.length) && (
-            <span className="text-[10px] text-gray-400">Chưa giao</span>
+            <span className="text-[0.625rem] text-gray-400">Chưa giao</span>
           )}
         </div>
-        {task.status === 'DONE' && <span className="text-[10px] text-green-500 font-semibold"><Icon name="check" className="w-3 h-3 mr-0.5" strokeWidth={2.5} />Xong</span>}
+        {task.status === 'DONE' && <span className="text-[0.625rem] text-green-500 font-semibold"><Icon name="check" className="w-3 h-3 mr-0.5" strokeWidth={2.5} />Xong</span>}
       </div>
     </div>
   );
@@ -277,7 +285,7 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
       <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] flex flex-col animate-fade-in">
         <div className="flex items-start justify-between px-6 py-4 border-b">
           <div className="min-w-0">
@@ -325,7 +333,7 @@ function SubmitWorkModal({ task, workspaceId, nextVersion, onClose, onSubmitted 
             ) : (
               <label className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-gray-200 rounded-lg px-3 py-4 cursor-pointer hover:border-primary-300 hover:bg-primary-50/40 transition-colors">
                 <span className="text-sm text-gray-600"><Icon name="upload" className="w-4 h-4 mr-1" />Chọn file để tải lên</span>
-                <span className="text-[11px] text-gray-400">Tối đa 20MB · zip, rar, pdf, docx, xlsx, pptx, ảnh...</span>
+                <span className="text-[0.6875rem] text-gray-400">Tối đa 20MB · zip, rar, pdf, docx, xlsx, pptx, ảnh...</span>
                 <input type="file" className="hidden" accept={TASK_FILE_ACCEPT} onChange={handleFile} />
               </label>
             )}
@@ -542,7 +550,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
   if (!taskId) return null;
 
   const shell = (children) => createPortal(
-    <div className="fixed inset-0 z-40 bg-black/50 flex items-stretch sm:items-center justify-center sm:p-6" onClick={() => { if (!editMode) onClose(); }}>
+    <div className="fixed inset-0 z-[70] bg-black/50 flex items-stretch sm:items-center justify-center sm:p-6" onClick={() => { if (!editMode) onClose(); }}>
       <div className="bg-white w-full max-w-6xl h-full sm:h-[90vh] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}>
         {children}
@@ -694,7 +702,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                           onChange={() => setEditData(d => ({...d, assignee_ids: checked ? d.assignee_ids.filter(id => id !== m.id) : [...d.assignee_ids, m.id]}))} />
                         <Avatar name={name} size="sm" />
                         <span className="text-sm text-gray-800">{name}</span>
-                        <span className="ml-auto text-[10px] text-gray-400">{MEMBER_ROLE_LABELS[m.role]} · {workload?.[m.id] || 0} task</span>
+                        <span className="ml-auto text-[0.625rem] text-gray-400">{MEMBER_ROLE_LABELS[m.role]} · {workload?.[m.id] || 0} task</span>
                       </label>
                     );
                   })}
@@ -729,7 +737,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
             <div className="rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
               <p className="text-sm font-semibold text-orange-700 mb-1"><Icon name="pencil" className="w-4 h-4 mr-1" />Quản lý yêu cầu chỉnh sửa</p>
               <p className="text-sm text-orange-800 whitespace-pre-wrap">"{task.review_note}"</p>
-              <p className="text-[11px] text-orange-500 mt-1.5">
+              <p className="text-[0.6875rem] text-orange-500 mt-1.5">
                 {task.reviewed_at ? `${formatDateTime(task.reviewed_at)} · ` : ''}Hãy chỉnh sửa theo yêu cầu rồi nộp lại sản phẩm.
               </p>
             </div>
@@ -842,7 +850,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                       <div className="flex-1 min-w-0">
                         <a href={a.url} target="_blank" rel="noopener noreferrer" download={a.kind === 'FILE' ? a.name : undefined}
                           className="text-sm font-medium text-primary-700 hover:underline break-all">{a.name}</a>
-                        <p className="text-[11px] text-gray-400 mt-0.5">
+                        <p className="text-[0.6875rem] text-gray-400 mt-0.5">
                           {a.kind === 'LINK' ? 'Liên kết' : formatFileSize(a.size)}{a.size || a.kind === 'LINK' ? ' · ' : ''}
                           {a.uploaded_by_name || 'Thành viên'} · {formatDateTime(a.created_at)}
                         </p>
@@ -979,11 +987,11 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                       <div className="flex-1 min-w-0">
                         <p className="text-xs flex items-center gap-2">
                           <span className="font-semibold text-gray-800 text-sm">{authorName}</span>
-                          {isAdminComment && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">Quản trị viên</span>}
+                          {isAdminComment && <span className="text-[0.625rem] font-semibold px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">Quản trị viên</span>}
                           <span className="text-gray-400">{formatDateTime(c.created_at)}</span>
                           {canDeleteComment && (
                             <button onClick={async () => { if (await confirm({ title: 'Xóa bình luận', message: 'Xóa bình luận này?', confirmText: 'Xóa', tone: 'danger' })) deleteCommentMut.mutate(c.id); }}
-                              className="ml-auto text-[11px] text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                              className="ml-auto text-[0.6875rem] text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                               Xóa
                             </button>
                           )}
@@ -1001,7 +1009,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                       <p className="text-sm text-gray-700">{stripEmoji(a.description)}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">
+                      <p className="text-[0.6875rem] text-gray-400 mt-0.5">
                         {/* Không gắn thành viên = thao tác của Admin */}
                         {a.Actor?.CandidateProfile?.User?.full_name || 'Quản trị viên'} · {formatDateTime(a.created_at)}
                       </p>
@@ -1019,7 +1027,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
         </div>
 
         {/* ───────── Cột phải: trạng thái + chi tiết ───────── */}
-        <aside className="lg:w-[380px] lg:flex-shrink-0 lg:overflow-y-auto border-t lg:border-t-0 lg:border-l border-gray-200 bg-gray-50/70 p-5 space-y-5">
+        <aside className="lg:w-[23.75rem] lg:flex-shrink-0 lg:overflow-y-auto border-t lg:border-t-0 lg:border-l border-gray-200 bg-gray-50/70 p-5 space-y-5">
           {/* Trạng thái & thao tác */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1120,7 +1128,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                       <div key={a.id} className="flex items-center gap-2">
                         <Avatar name={a.CandidateProfile?.User?.full_name} size="sm" />
                         <span className="flex-1 min-w-0 break-words">{a.CandidateProfile?.User?.full_name}</span>
-                        {a.role === 'LEAD' && <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded flex-shrink-0">Lead</span>}
+                        {a.role === 'LEAD' && <span className="text-[0.625rem] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded flex-shrink-0">Lead</span>}
                       </div>
                     ))}
                   </div>
@@ -1161,7 +1169,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
                           />
                           <Avatar name={name} size="sm" />
                           <span className="text-sm text-gray-800 flex-1 truncate">{name}</span>
-                          <span className="text-[10px] text-gray-400">{workload?.[m.id] || 0} task</span>
+                          <span className="text-[0.625rem] text-gray-400">{workload?.[m.id] || 0} task</span>
                         </label>
                       );
                     })}
@@ -1227,7 +1235,7 @@ function TaskDetailDrawer({ taskId, members, canManage, onClose, workspaceId, wo
             </dl>
           </div>
 
-          <div className="text-[11px] text-gray-400 space-y-0.5 px-1">
+          <div className="text-[0.6875rem] text-gray-400 space-y-0.5 px-1">
             {(task.created_at || task.createdAt) && <p>Tạo lúc {formatDateTime(task.created_at || task.createdAt)}</p>}
             {(task.updated_at || task.updatedAt) && <p>Cập nhật lúc {formatDateTime(task.updated_at || task.updatedAt)}</p>}
           </div>
@@ -1277,7 +1285,7 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
       <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl max-h-[90vh] flex flex-col animate-fade-in">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-bold text-gray-900">Tạo Task Mới</h2>
@@ -1289,7 +1297,7 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tiêu đề *</label>
             <input className="input-field" placeholder="VD: Thiết kế màn hình Login" maxLength={255}
               value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
-            <p className="text-[11px] text-gray-400 mt-1">Task mới sẽ nằm ở cột "Cần làm"</p>
+            <p className="text-[0.6875rem] text-gray-400 mt-1">Task mới sẽ nằm ở cột "Cần làm"</p>
           </div>
 
           <div>
@@ -1340,7 +1348,7 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
                       onChange={() => setForm(f => ({ ...f, assignee_ids: checked ? f.assignee_ids.filter(id => id !== m.id) : [...f.assignee_ids, m.id] }))} />
                     <Avatar name={name} size="sm" />
                     <span className="text-sm text-gray-800 flex-1">{name}</span>
-                    <span className="text-[10px] text-gray-400">{MEMBER_ROLE_LABELS[m.role]} · {workload?.[m.id] || 0} task</span>
+                    <span className="text-[0.625rem] text-gray-400">{MEMBER_ROLE_LABELS[m.role]} · {workload?.[m.id] || 0} task</span>
                   </label>
                 );
               })}
@@ -1381,6 +1389,43 @@ function CreateTaskModal({ workspaceId, members, workload = {}, onClose, onCreat
 }
 
 // ─── Main WorkspacePage ───────────────────────────────────────────────────────
+// Ô "+ Thêm cột" ở cuối bảng (Admin / Lead): bấm để nhập tên và chọn màu ngay tại chỗ
+function AddColumnTile({ onAdd, busy }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('blue');
+  const submit = async (e) => {
+    e.preventDefault();
+    if (name.trim().length < 2 || busy) return;
+    const ok = await onAdd(name.trim(), color);
+    if (ok) { setName(''); setOpen(false); }
+  };
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)}
+        className="flex-shrink-0 w-[13.75rem] min-h-[12.5rem] rounded-2xl border-2 border-dashed border-gray-300 text-sm font-semibold text-gray-400 hover:text-primary-700 hover:border-primary-300 hover:bg-primary-50/40 transition-colors flex flex-col items-center justify-center gap-2">
+        <Icon name="plus" className="w-6 h-6" />Thêm cột
+      </button>
+    );
+  }
+  return (
+    <form onSubmit={submit} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }}
+      className="flex-shrink-0 w-[13.75rem] rounded-2xl border border-gray-200 bg-white p-3 space-y-3 self-start shadow-sm">
+      <input autoFocus className="input-field !py-1.5" placeholder="Tên cột, ví dụ: Đang kiểm thử" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} aria-label="Tên cột mới" />
+      <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Màu cột">
+        {COLUMN_COLOR_KEYS.map((k) => (
+          <button key={k} type="button" role="radio" aria-checked={color === k} aria-label={COLUMN_COLORS[k].name} title={COLUMN_COLORS[k].name} onClick={() => setColor(k)}
+            className={`w-5 h-5 rounded-full ${COLUMN_COLORS[k].dot} transition-transform ${color === k ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'hover:scale-110'}`} />
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" disabled={name.trim().length < 2 || busy} className="btn-primary text-xs !py-1.5 flex-1">Thêm</button>
+        <button type="button" onClick={() => setOpen(false)} className="btn-secondary text-xs !py-1.5">Hủy</button>
+      </div>
+    </form>
+  );
+}
+
 export default function WorkspacePage() {
   const confirm = useConfirm();
   const { id } = useParams();
@@ -1390,12 +1435,37 @@ export default function WorkspacePage() {
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list'
   const [activeSection, setActiveSection] = useState('board'); // 'board' | 'stats' | 'forum' | 'members' | 'logs'
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); // tùy chỉnh bảng (thêm cột, đổi tên Workspace)
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [reviewIntent, setReviewIntent] = useState(null); // 'APPROVE' | 'REVISION' khi kéo task ra khỏi "Chờ duyệt"
   const [filters, setFilters] = useState({ priority: '', assignee_id: '', label: '' });
   const [draggingTask, setDraggingTask] = useState(null);
   const [submitTarget, setSubmitTarget] = useState(null); // task đang mở form nộp sản phẩm (khi kéo sang "Chờ duyệt")
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Toàn màn hình + thu phóng
+  const [focus, setFocus] = useState(false);
+  const [zoom, setZoom] = useState(readZoom);
+  const stepZoom = (dir) => setZoom((z) => ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, ZOOM_STEPS.indexOf(z) + dir))]);
+  const zoomBy = (dir) => { setFocus(true); stepZoom(dir); }; // bấm thu phóng khi chưa toàn màn hình thì tự mở toàn màn hình
+  const shellRef = useRef(null);
+  useEscapeKey(() => setFocus(false), focus);
+  useEffect(() => { try { localStorage.setItem(ZOOM_KEY, String(zoom)); } catch { /* không lưu được thì thôi */ } }, [zoom]);
+  useEffect(() => {
+    if (!focus) return undefined;
+    const root = document.documentElement;
+    const prevOverflow = document.body.style.overflow;
+    root.style.fontSize = `${16 * zoom}px`;
+    document.body.style.overflow = 'hidden';
+    return () => { root.style.fontSize = ''; document.body.style.overflow = prevOverflow; };
+  }, [focus, zoom]);
+  useEffect(() => { // Ctrl + lăn chuột để thu phóng khi đang toàn màn hình
+    const el = shellRef.current;
+    if (!focus || !el) return undefined;
+    const onWheel = (e) => { if (e.ctrlKey) { e.preventDefault(); stepZoom(e.deltaY < 0 ? 1 : -1); } };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [focus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: wsData, isLoading: wsLoading, error: wsError } = useQuery({
     queryKey: ['workspace', id],
@@ -1500,11 +1570,19 @@ export default function WorkspacePage() {
     overdue: allTasks.filter(isTaskOverdue).length,
   };
 
-  // Group by status for kanban
-  const columns = STATUS_COLUMNS.reduce((acc, status) => {
-    acc[status] = filteredTasks.filter(t => t.status === status);
-    return acc;
-  }, {});
+  // Cột của bảng: 4 cột mặc định + các cột tùy chỉnh (nằm giữa "Đang làm" và "Chờ duyệt")
+  const customColumns = workspace?.Columns || [];
+  const customIds = new Set(customColumns.map(c => c.id));
+  const keyOf = (t) => (t.status === 'IN_PROGRESS' && t.column_id && customIds.has(t.column_id) ? `col:${t.column_id}` : t.status);
+  const boardColumns = buildBoardColumns(STATUS_META, customColumns);
+  const boardIndex = (key) => boardColumns.findIndex(c => c.key === key);
+  const columns = Object.fromEntries(boardColumns.map(c => [c.key, filteredTasks.filter(t => keyOf(t) === c.key)]));
+  const taskCounts = allTasks.reduce((acc, t) => { if (t.column_id) acc[t.column_id] = (acc[t.column_id] || 0) + 1; return acc; }, {});
+  const addColumnMut = useMutation({
+    mutationFn: ({ name, color }) => workspaceApi.createColumn(id, { name, color }),
+    onSuccess: (res) => { qc.invalidateQueries({ queryKey: ['workspace', id] }); toast.success(res.data.message); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Chưa thêm được cột'),
+  });
 
   // ─── Quy tắc kéo thả ───
   // Ai được kéo task này
@@ -1515,8 +1593,10 @@ export default function WorkspacePage() {
     return !!myMember && task.Assignees?.some(a => a.id === myMember.id);
   };
   // Task được thả vào cột nào
-  const canDropTo = (task, toStatus) => {
-    if (task.status === toStatus) return canManage;          // sắp xếp thứ tự trong cột: chỉ Quản lý
+  const canDropTo = (task, dest) => {
+    const toStatus = dest.status;
+    if (keyOf(task) === dest.key) return canManage;          // sắp xếp thứ tự trong cột: chỉ Quản lý
+    if (task.status === toStatus && toStatus === 'IN_PROGRESS') return true; // đổi giữa các cột "Đang làm" (quyền kéo đã kiểm tra ở canDragTask)
     if (task.status === 'REVIEW') return canManage && ['DONE', 'IN_PROGRESS'].includes(toStatus); // → mở bảng nghiệm thu
     if (!TRANSITIONS[task.status]?.includes(toStatus)) return false;
     if (toStatus !== 'TODO' && !task.Assignees?.length) return false; // chưa giao thì chỉ ở "Cần làm"
@@ -1534,7 +1614,9 @@ export default function WorkspacePage() {
 
     const task = allTasks.find(t => t.id === draggableId);
     if (!task) return;
-    const toStatus = destination.droppableId;
+    const dest = boardColumns.find(c => c.key === destination.droppableId);
+    if (!dest) return;
+    const toStatus = dest.status;
 
     // Kéo ra khỏi "Chờ duyệt" = nghiệm thu → mở bảng duyệt để Quản lý xác nhận/nhập nhận xét
     if (task.status === 'REVIEW' && toStatus !== 'REVIEW') {
@@ -1544,7 +1626,7 @@ export default function WorkspacePage() {
       }
       return;
     }
-    if (!canDropTo(task, toStatus)) return;
+    if (!canDropTo(task, dest)) return;
 
     // Kéo sang "Chờ duyệt" = nộp sản phẩm → mở form nộp (task chỉ chuyển cột sau khi nộp xong)
     if (toStatus === 'REVIEW') {
@@ -1553,8 +1635,8 @@ export default function WorkspacePage() {
     }
 
     // Vị trí trong toàn bộ cột đích (kể cả task đang bị bộ lọc ẩn)
-    const anchor = columns[toStatus].filter(t => t.id !== task.id)[destination.index]; // task đứng ngay sau
-    const fullColumn = allTasks.filter(t => t.status === toStatus && t.id !== task.id);
+    const anchor = columns[dest.key].filter(t => t.id !== task.id)[destination.index]; // task đứng ngay sau
+    const fullColumn = allTasks.filter(t => keyOf(t) === dest.key && t.id !== task.id);
     const position = anchor ? fullColumn.findIndex(t => t.id === anchor.id) : fullColumn.length;
 
     // Cập nhật giao diện ngay, lỗi thì hoàn tác
@@ -1566,15 +1648,15 @@ export default function WorkspacePage() {
       const rest = list.filter(t => t.id !== task.id);
       let insertAt = anchor ? rest.findIndex(t => t.id === anchor.id) : -1;
       if (insertAt === -1) {
-        const lastInColumn = rest.map(t => t.status).lastIndexOf(toStatus);
+        const lastInColumn = rest.map(keyOf).lastIndexOf(dest.key);
         insertAt = lastInColumn === -1 ? rest.length : lastInColumn + 1;
       }
-      rest.splice(insertAt, 0, { ...task, status: toStatus });
+      rest.splice(insertAt, 0, { ...task, status: toStatus, column_id: toStatus === 'IN_PROGRESS' ? dest.columnId : null });
       return { ...old, data: { ...old.data, data: rest } };
     });
 
     try {
-      await taskApi.updateTask(task.id, task.status === toStatus ? { position } : { status: toStatus, position });
+      await taskApi.updateTask(task.id, { position, ...(task.status !== toStatus ? { status: toStatus } : {}), ...(toStatus === 'IN_PROGRESS' ? { column_id: dest.columnId } : {}) });
     } catch (e) {
       qc.setQueryData(tasksQueryKey, previous);
       toast.error(e.response?.data?.message || 'Cập nhật thất bại');
@@ -1610,13 +1692,18 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col bg-gray-50/50 border border-gray-200 rounded-xl overflow-hidden min-w-0 w-full relative">
+    <div
+      ref={shellRef}
+      className={`flex flex-col overflow-hidden min-w-0 w-full ${focus
+        ? 'fixed inset-0 z-[60] bg-gray-50 animate-fade-in'
+        : 'relative h-[calc(100vh-120px)] bg-gray-50/50 border border-gray-200 rounded-xl'}`}
+    >
       <div className="h-1 flex-shrink-0 bg-gradient-to-r from-primary-500 to-primary-700" />
       {/* Header */}
       <div className="bg-white border-b px-5 pt-3 flex flex-col gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="mr-2">
-            <Link to={backLink.to} className="text-[11px] text-gray-400 hover:text-primary-700">← {backLink.label}</Link>
+            <Link to={backLink.to} className="text-[0.6875rem] text-gray-400 hover:text-primary-700">← {backLink.label}</Link>
             <h1 className="text-lg font-bold text-gray-900 leading-tight">{workspace?.name}</h1>
             <p className="text-xs text-gray-500">{workspace?.Project?.name}</p>
           </div>
@@ -1637,6 +1724,31 @@ export default function WorkspacePage() {
                 <Icon name="alert" className="w-3.5 h-3.5 mr-1" />{stats.overdue} quá hạn
               </div>
             )}
+          </div>
+
+          {/* Thu phóng + toàn màn hình */}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200" role="group" aria-label="Thu phóng">
+              <button type="button" onClick={() => zoomBy(-1)} disabled={zoom === ZOOM_STEPS[0]} title="Thu nhỏ (Ctrl + lăn chuột xuống)" aria-label="Thu nhỏ"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all">
+                <Icon name="minus" className="w-4 h-4" />
+              </button>
+              <button type="button" onClick={() => setZoom(1)} title="Về 100%" aria-label="Đặt lại về 100%"
+                className="min-w-[3rem] h-8 px-1 rounded-md text-xs font-semibold text-gray-700 hover:bg-white hover:shadow-sm transition-all tabular-nums">
+                {Math.round(zoom * 100)}%
+              </button>
+              <button type="button" onClick={() => zoomBy(1)} disabled={zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1]} title="Phóng to (Ctrl + lăn chuột lên)" aria-label="Phóng to"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all">
+                <Icon name="plus" className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Khung thường chỉ hiện biểu tượng cho gọn; toàn màn hình thì có chữ */}
+            <button type="button" onClick={() => setFocus((f) => !f)} aria-pressed={focus}
+              aria-label={focus ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+              title={focus ? 'Thu nhỏ về khung thường (Esc)' : 'Mở toàn màn hình để làm việc rộng hơn'}
+              className={`h-9 rounded-lg border text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors ${focus ? 'px-3 bg-primary-600 text-white border-primary-600 hover:bg-primary-700' : 'w-9 bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-700'}`}>
+              <Icon name={focus ? 'minimize' : 'maximize'} className="w-4 h-4" />{focus && 'Thu nhỏ'}
+            </button>
           </div>
 
         </div>
@@ -1686,9 +1798,15 @@ export default function WorkspacePage() {
             )}
 
             {canManage && activeSection === 'board' && (
-              <button onClick={() => setShowCreateModal(true)} className="btn-primary text-sm py-1.5 px-3">
-                <Icon name="plus" className="w-4 h-4" />Tạo Task
-              </button>
+              <>
+                <button type="button" onClick={() => setShowSettings(true)} title="Tùy chỉnh bảng: thêm cột, đổi tên Workspace" aria-label="Tùy chỉnh bảng"
+                  className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-primary-300 hover:text-primary-700 flex items-center justify-center transition-colors">
+                  <Icon name="cog" className="w-[1.125rem] h-[1.125rem]" />
+                </button>
+                <button onClick={() => setShowCreateModal(true)} className="btn-primary text-sm py-1.5 px-3">
+                  <Icon name="plus" className="w-4 h-4" />Tạo Task
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1732,7 +1850,7 @@ export default function WorkspacePage() {
           </select>
 
           {/* Members avatars */}
-          <div className="ml-auto flex -space-x-2">
+          <div className="ml-auto flex -space-x-1">
             {members.slice(0, 5).map(m => (
               <div key={m.id} title={`${m.CandidateProfile?.User?.full_name} (${MEMBER_ROLE_LABELS[m.role]})`}>
                 <Avatar name={m.CandidateProfile?.User?.full_name} size="sm" className="ring-2 ring-white cursor-pointer"
@@ -1740,7 +1858,7 @@ export default function WorkspacePage() {
               </div>
             ))}
             {members.length > 5 && (
-              <div className="w-7 h-7 bg-gray-200 rounded-full ring-2 ring-white flex items-center justify-center text-[10px] text-gray-600">
+              <div className="w-7 h-7 bg-gray-200 rounded-full ring-2 ring-white flex items-center justify-center text-[0.625rem] text-gray-600">
                 +{members.length - 5}
               </div>
             )}
@@ -1804,7 +1922,7 @@ export default function WorkspacePage() {
               {/* Khối lượng việc của từng người (giúp Admin/Lead chia việc đều) */}
               <div className="bg-white rounded-2xl border shadow-sm overflow-x-auto">
                 <h3 className="font-bold text-gray-800 px-4 pt-4 pb-2">Khối lượng công việc</h3>
-                <table className="w-full min-w-[560px] text-sm">
+                <table className="w-full min-w-[35rem] text-sm">
                   <thead>
                     <tr className="text-xs text-gray-500 border-b">
                       <th className="text-left font-semibold px-4 py-2">Thành viên</th>
@@ -1822,7 +1940,7 @@ export default function WorkspacePage() {
                           <span className="flex items-center gap-2">
                             <Avatar name={m.name} size="sm" />
                             <span className="font-medium text-gray-800">{m.name}</span>
-                            {m.role === 'LEAD' && <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded">Lead</span>}
+                            {m.role === 'LEAD' && <span className="text-[0.625rem] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded">Lead</span>}
                           </span>
                         </td>
                         <td className="text-center px-2 py-2.5 text-gray-600">{m.todo}</td>
@@ -1921,7 +2039,7 @@ export default function WorkspacePage() {
                         <p className="text-xs text-gray-400 truncate">{email}</p>
                       </div>
                       {/* Khối lượng việc hiện tại → để Lead/Admin chia việc đều */}
-                      <span className="text-[11px] text-gray-500 flex-shrink-0" title="Số task đang thực hiện (chưa nghiệm thu)">
+                      <span className="text-[0.6875rem] text-gray-500 flex-shrink-0" title="Số task đang thực hiện (chưa nghiệm thu)">
                         <Icon name="clipboard" className="w-3.5 h-3.5 mr-1" />{workload[m.id] || 0} task
                       </span>
                       {isAdmin() && (m.candidate_profile_id || m.CandidateProfile?.id) && (
@@ -1994,33 +2112,39 @@ export default function WorkspacePage() {
         /* ─── Kanban View ─── */
         <div className="flex-1 overflow-x-auto overflow-y-auto px-5 py-4 min-h-0 min-w-0">
           <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-            {/* 4 cột chia đều chiều rộng; màn hình quá hẹp (< ~930px) thì cuộn ngang */}
-            <div className="flex gap-4 h-full min-w-[928px]">
-              {STATUS_COLUMNS.map(statusId => {
+            {/* Các cột chia đều chiều rộng; hẹp quá thì cuộn ngang */}
+            <div className="flex gap-4 h-full" style={{ minWidth: `${(boardColumns.length + (canManage && customColumns.length < MAX_CUSTOM_COLUMNS ? 1 : 0)) * 14.5}rem` }}>
+              {boardColumns.map(col => {
                 // Khi đang kéo: cột không hợp lệ bị khóa và làm mờ
-                const dropBlocked = !!draggingTask && !canDropTo(draggingTask, statusId);
+                const dropBlocked = !!draggingTask && !canDropTo(draggingTask, col);
                 return (
-                <Droppable key={statusId} droppableId={statusId} isDropDisabled={dropBlocked}>
+                <Droppable key={col.key} droppableId={col.key} isDropDisabled={dropBlocked}>
                   {(provided, snapshot) => (
                     <div ref={provided.innerRef} {...provided.droppableProps}
-                      className={`flex flex-col rounded-2xl flex-1 min-w-[220px] min-h-[200px] transition-all
-                        ${snapshot.isDraggingOver ? 'bg-primary-50 ring-2 ring-primary-300' : STATUS_META[statusId].color}
-                        ${dropBlocked && draggingTask.status !== statusId ? 'opacity-40' : ''}`}>
-                      
+                      className={`flex flex-col rounded-2xl flex-1 min-w-[13.75rem] min-h-[12.5rem] transition-all
+                        ${snapshot.isDraggingOver ? 'bg-primary-50 ring-2 ring-primary-300' : col.color}
+                        ${dropBlocked && keyOf(draggingTask) !== col.key ? 'opacity-40' : ''}`}>
+
                       {/* Column header */}
                       <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_META[statusId].dot}`}></span>
-                        <h3 className={`text-sm font-bold flex-1 ${STATUS_META[statusId].text}`}>
-                          {STATUS_META[statusId].label}
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${col.dot}`}></span>
+                        <h3 className={`text-sm font-bold flex-1 truncate ${col.text}`} title={col.label}>
+                          {col.label}
                         </h3>
+                        {col.custom && canManage && (
+                          <button type="button" onClick={() => setShowSettings(true)} title="Tùy chỉnh cột" aria-label={`Tùy chỉnh cột ${col.label}`}
+                            className="w-6 h-6 rounded-md text-gray-400 hover:text-gray-700 hover:bg-white/70 flex items-center justify-center">
+                            <Icon name="cog" className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <span className="bg-white text-gray-600 text-xs px-2 py-0.5 rounded-full font-semibold shadow-sm">
-                          {columns[statusId].length}
+                          {columns[col.key].length}
                         </span>
                       </div>
 
                       {/* Cards */}
                       <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
-                        {columns[statusId].map((task, index) => (
+                        {columns[col.key].map((task, index) => (
                           <Draggable key={task.id} draggableId={task.id} index={index}
                             isDragDisabled={!canDragTask(task)}>
                             {(prov, snap) => (
@@ -2031,18 +2155,18 @@ export default function WorkspacePage() {
                         ))}
                         {provided.placeholder}
 
-                        {!columns[statusId].length && !snapshot.isDraggingOver && statusId !== 'TODO' && (
+                        {!columns[col.key].length && !snapshot.isDraggingOver && col.key !== 'TODO' && (
                           <p className="text-xs text-gray-400 text-center py-6">Chưa có task</p>
                         )}
 
                         {/* Task mới chỉ được tạo ở cột "Cần làm" */}
-                        {statusId === 'TODO' && canManage && (
+                        {col.key === 'TODO' && canManage && (
                           <button onClick={() => setShowCreateModal(true)}
                             className="w-full text-left text-xs text-gray-400 hover:text-gray-600 px-2 py-2 rounded-lg hover:bg-white/60 transition-colors">
                             + Thêm task...
                           </button>
                         )}
-                        {statusId === 'TODO' && !canManage && !columns[statusId].length && !snapshot.isDraggingOver && (
+                        {col.key === 'TODO' && !canManage && !columns[col.key].length && !snapshot.isDraggingOver && (
                           <p className="text-xs text-gray-400 text-center py-6">Chưa có task</p>
                         )}
                       </div>
@@ -2051,6 +2175,12 @@ export default function WorkspacePage() {
                 </Droppable>
                 );
               })}
+
+              {/* Admin / Lead: thêm cột ngay trên bảng */}
+              {canManage && customColumns.length < MAX_CUSTOM_COLUMNS && (
+                <AddColumnTile busy={addColumnMut.isPending}
+                  onAdd={(name, color) => addColumnMut.mutateAsync({ name, color }).then(() => true, () => false)} />
+              )}
             </div>
           </DragDropContext>
         </div>
@@ -2075,10 +2205,10 @@ export default function WorkspacePage() {
                 </div>
               ) : [...filteredTasks]
                 // Sắp theo thứ tự cột Kanban (giữ nguyên thứ tự trong từng cột)
-                .sort((a, b) => STATUS_COLUMNS.indexOf(a.status) - STATUS_COLUMNS.indexOf(b.status))
+                .sort((a, b) => boardIndex(keyOf(a)) - boardIndex(keyOf(b)))
                 .map(task => {
                 const pm = PRIORITY_META[task.priority] || PRIORITY_META.MEDIUM;
-                const sm = STATUS_META[task.status] || STATUS_META.TODO;
+                const sm = boardColumns[boardIndex(keyOf(task))] || STATUS_META.TODO;
                 const isOverdue = isTaskOverdue(task);
                 return (
                   <div key={task.id}
@@ -2087,14 +2217,14 @@ export default function WorkspacePage() {
                     
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <p className={`text-sm font-medium ${task.status === 'DONE' ? 'text-gray-500' : 'text-gray-900'}`}>
+                        <p className={`text-sm font-medium text-gray-900`}>
                           {task.title}
                         </p>
                       </div>
                       {task.labels?.length > 0 && (
                         <div className="flex gap-1">
                           {task.labels.slice(0,3).map(l => (
-                            <span key={l} className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${LABEL_COLORS[l] || 'bg-gray-100 text-gray-600'}`}>{l}</span>
+                            <span key={l} className={`text-[0.5625rem] px-1.5 py-0.5 rounded font-medium ${LABEL_COLORS[l] || 'bg-gray-100 text-gray-600'}`}>{l}</span>
                           ))}
                         </div>
                       )}
@@ -2128,6 +2258,11 @@ export default function WorkspacePage() {
           </div>
         </div>
       ) : null}
+
+      {/* Tùy chỉnh bảng (Admin / Lead) */}
+      {showSettings && canManage && (
+        <BoardSettingsModal workspace={workspace} columns={customColumns} taskCounts={taskCounts} onClose={() => setShowSettings(false)} />
+      )}
 
       {/* Task Detail Drawer */}
       {selectedTaskId && (

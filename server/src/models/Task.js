@@ -18,6 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     actual_hours: { type: DataTypes.DECIMAL(6, 2) },
     completion_rate: { type: DataTypes.SMALLINT, defaultValue: 0 },
     position: { type: DataTypes.INTEGER, defaultValue: 0 }, // for ordering in kanban
+    column_id: { type: DataTypes.UUID }, // cột tùy chỉnh đang đứng (chỉ khi IN_PROGRESS); null = cột mặc định
     review_note: { type: DataTypes.TEXT }, // manager's feedback on approve/reject
     reviewed_by: { type: DataTypes.UUID }, // workspace_member_id of reviewer
     reviewed_at: { type: DataTypes.DATE },

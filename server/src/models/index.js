@@ -47,6 +47,7 @@ const ForumWarning = require('./ForumWarning')(sequelize, DataTypes);
 const Workspace = require('./Workspace')(sequelize, DataTypes);
 const WorkspaceMember = require('./WorkspaceMember')(sequelize, DataTypes);
 const Task = require('./Task')(sequelize, DataTypes);
+const WorkspaceColumn = require('./WorkspaceColumn')(sequelize, DataTypes);
 const TaskAssignee = require('./TaskAssignee')(sequelize, DataTypes);
 const SubTask = require('./SubTask')(sequelize, DataTypes);
 const TaskComment = require('./TaskComment')(sequelize, DataTypes);
@@ -165,6 +166,8 @@ WorkspaceMember.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 
 // Task
 Workspace.hasMany(Task, { foreignKey: 'workspace_id' });
+Workspace.hasMany(WorkspaceColumn, { foreignKey: 'workspace_id', as: 'Columns', onDelete: 'CASCADE' });
+WorkspaceColumn.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 Task.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 
 // Task <-> WorkspaceMember (many-to-many via TaskAssignee)
@@ -241,7 +244,7 @@ module.exports = {
   ForumCategory, ForumThread, ForumPost, ForumPostLike,
   ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage, ForumWarning,
   InternalProject, // alias
-  Workspace, WorkspaceMember,
+  Workspace, WorkspaceMember, WorkspaceColumn,
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,
   CandidateEvaluation,
   Payment,

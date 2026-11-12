@@ -1,7 +1,8 @@
 const {
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,
-  WorkspaceMember, CandidateProfile, User
+  WorkspaceMember, WorkspaceColumn, CandidateProfile, User
 } = require('../models');
+const isUuid = (v) => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v);
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
 const fs = require('fs');
@@ -156,10 +157,10 @@ async function withSubmitters(task) {
   return json;
 }
 
-// Helper: sắp xếp lại cột `status`, đặt task vào vị trí `index` (null = cuối cột)
-async function placeInColumn(task, status, index = null) {
+// Helper: sắp xếp lại một cột (trạng thái + cột tùy chỉnh, null = cột mặc định), đặt task vào vị trí `index` (null = cuối cột)
+async function placeInColumn(task, status, columnId = null, index = null) {
   const others = await Task.findAll({
-    where: { workspace_id: task.workspace_id, status, id: { [Op.ne]: task.id } },
+    where: { workspace_id: task.workspace_id, status, column_id: columnId, id: { [Op.ne]: task.id } },
     order: [['position', 'ASC'], ['created_at', 'ASC']],
     attributes: ['id', 'position'],
   });
@@ -446,7 +447,7 @@ exports.updateTask = async (req, res, next) => {
 
     const access = await requireView(req, task.workspace_id);
     const { member, canManageTasks } = access;
-    const { title, description, priority, deadline, labels, status, assignee_ids, position } = req.body;
+    const { title, description, priority, deadline, labels, status, assignee_ids, position, column_id } = req.body;
 
     if (task.status === 'DONE') throw new AppError('Task đã được nghiệm thu, không thể chỉnh sửa', 400);
 
@@ -538,12 +539,31 @@ exports.updateTask = async (req, res, next) => {
       });
     }
 
+    // Cột tùy chỉnh của bảng Kanban: chỉ task "Đang làm" mới đứng được trong cột tùy chỉnh; đổi trạng thái thì về cột mặc định
+    let finalColumnId = task.column_id || null;
+    if (column_id !== undefined || statusChanged) {
+      let wanted = column_id !== undefined ? (column_id || null) : null;
+      if (finalStatus !== 'IN_PROGRESS') wanted = null;
+      if (wanted) {
+        const col = isUuid(wanted) ? await WorkspaceColumn.findOne({ where: { id: wanted, workspace_id: task.workspace_id } }) : null;
+        if (!col) throw new AppError('Cột không tồn tại trong Workspace này', 400);
+      }
+      finalColumnId = wanted;
+    }
+    const columnChanged = finalColumnId !== (task.column_id || null);
+    if (columnChanged) {
+      if (!canManageTasks && !isAssignedNow) throw new AppError('Bạn không được phân công task này', 403);
+      updateData.column_id = finalColumnId;
+      const colName = finalColumnId ? (await WorkspaceColumn.findByPk(finalColumnId, { attributes: ['name'] }))?.name : null;
+      if (!statusChanged) changes.push({ action: 'TASK_STATUS_CHANGED', activity: 'STATUS_CHANGED', old: task.status, new: task.status, desc: `Chuyển sang cột "${colName || STATUS_LABELS[finalStatus]}"` });
+    }
+
     // Vị trí trong cột (kéo thả). Sắp xếp trong cùng cột chỉ dành cho người quản lý task
     let targetIndex = null;
     if (position !== undefined) {
       targetIndex = Number(position);
       if (!Number.isInteger(targetIndex) || targetIndex < 0) throw new AppError('Vị trí không hợp lệ', 400);
-      if (!statusChanged && !canManageTasks) throw new AppError('Chỉ Admin hoặc Lead mới được sắp xếp thứ tự task', 403);
+      if (!statusChanged && !columnChanged && !canManageTasks) throw new AppError('Chỉ Admin hoặc Lead mới được sắp xếp thứ tự task', 403);
     }
 
     // ── 2. Ghi dữ liệu ────────────────────────────────────────────────────────
@@ -563,7 +583,7 @@ exports.updateTask = async (req, res, next) => {
     }
 
     if (Object.keys(updateData).length) await task.update(updateData);
-    if (statusChanged || targetIndex !== null) await placeInColumn(task, finalStatus, targetIndex);
+    if (statusChanged || columnChanged || targetIndex !== null) await placeInColumn(task, finalStatus, finalColumnId, targetIndex);
 
     // ── 3. Nhật ký + thông báo ───────────────────────────────────────────────
     for (const change of changes) {
@@ -675,12 +695,13 @@ exports.reviewTask = async (req, res, next) => {
     const newStatus = approve ? 'DONE' : 'IN_PROGRESS';
     await task.update({
       status: newStatus,
+      column_id: null, // nghiệm thu xong / yêu cầu chỉnh sửa → về cột mặc định của trạng thái
       review_status: approve ? 'APPROVED' : 'REVISION_REQUIRED',
       review_note: review_note || null,
       reviewed_by: member?.id || null,
       reviewed_at: new Date(),
     });
-    await placeInColumn(task, newStatus);
+    await placeInColumn(task, newStatus, null);
 
     // Ghi kết quả nghiệm thu vào lần nộp sản phẩm gần nhất
     const latestSubmission = await TaskSubmission.findOne({ where: { task_id: task.id }, order: [['version', 'DESC']] });
@@ -888,8 +909,8 @@ exports.submitTask = async (req, res, next) => {
       submitted_at: new Date(),
     });
 
-    await task.update({ status: 'REVIEW', review_status: 'PENDING' });
-    await placeInColumn(task, 'REVIEW');
+    await task.update({ status: 'REVIEW', review_status: 'PENDING', column_id: null });
+    await placeInColumn(task, 'REVIEW', null);
 
     await logInternalTaskActivity(task.id, access.member?.id, 'SUBMITTED', `Nộp sản phẩm lần ${version} và gửi duyệt`, null, version);
     await logActivity(req, {

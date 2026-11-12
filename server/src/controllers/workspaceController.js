@@ -1,4 +1,4 @@
-const { sequelize, Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, ProjectApplication, Skill, Payment } = require('../models');
+const { sequelize, Project, Workspace, WorkspaceMember, WorkspaceColumn, User, CandidateProfile, ProjectJob, ProjectApplication, Skill, Payment } = require('../models');
 const { Op } = require('sequelize');
 const AppError = require('../utils/AppError');
 const { logActivity } = require('../utils/activityLogger');
@@ -429,6 +429,7 @@ exports.getWorkspaceDetail = async (req, res, next) => {
     const workspace = await Workspace.findByPk(req.params.id, {
       include: [
         { model: Project },
+        { model: WorkspaceColumn, as: 'Columns', separate: true, order: [['position', 'ASC'], ['created_at', 'ASC']] },
         { 
           model: WorkspaceMember,
           include: [
