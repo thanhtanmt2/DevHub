@@ -13,6 +13,7 @@ import SanctionDialog from '@/components/forum/SanctionDialog';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { Pager, apiMessage, memberTitle } from '@/components/forum/ForumParts';
 import { Hero, Shell } from '@/pages/forum/ForumPages';
+import { ConversationMenu, EmojiPicker, MessageRow, PinnedBar, useOutside } from '@/components/forum/ChatParts';
 import { timeAgo } from '@/utils/timeAgo';
 
 const Crumb = ({ children }) => (
@@ -27,37 +28,125 @@ const MAX_MESSAGE = 2000;
 const timeOf = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 const dayOf = (v) => new Date(v).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
 
-// ─── /forum/messages — tin nhắn riêng ─────────────────────────────────────────
+// ─── /forum/messages — tin nhắn riêng (kiểu Zalo) ─────────────────────────────
+// Danh sách bên trái: tìm theo tên / nội dung (không phân biệt dấu), tab Tất cả / Chưa đọc.
+// Khung trò chuyện: emoji, thả cảm xúc, trả lời, sao chép, thu hồi, "Đã xem".
+const plain = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+
+// Cập nhật tạm số cảm xúc trên màn hình ngay khi bấm (server xác nhận sau)
+function applyReaction(r, reaction) {
+  const counts = { ...r.counts };
+  if (r.mine) counts[r.mine] = Math.max((counts[r.mine] || 1) - 1, 0);
+  if (reaction) counts[reaction] = (counts[reaction] || 0) + 1;
+  return { counts, mine: reaction };
+}
+
 function Chat({ peerId, onBack }) {
   const qc = useQueryClient();
+  const confirm = useConfirm();
+  const msgKey = ['forum-messages', 'with', peerId];
   const [text, setText] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [emoji, setEmoji] = useState(false);
+  const [highlight, setHighlight] = useState(null);
   const [memberId, setMemberId] = useState(null);
   const scroller = useRef(null);
+  const taRef = useRef(null);
+  const emojiWrap = useRef(null);
+  const closeEmoji = () => setEmoji(false);
+  useOutside(emojiWrap, emoji, closeEmoji);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['forum-messages', 'with', peerId],
+    queryKey: msgKey,
     queryFn: () => forumApi.getConversation(peerId).then((r) => r.data.data),
     refetchInterval: 6000, // trò chuyện gần như thời gian thực mà không cần mở kết nối riêng
     retry: false,
   });
   const send = useMutation({
-    mutationFn: (content) => forumApi.sendMessage(peerId, content),
+    mutationFn: ({ content, replyToId }) => forumApi.sendMessage(peerId, content, replyToId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['forum-messages'] });
       qc.invalidateQueries({ queryKey: ['forum-overview'] });
     },
-    onError: (err, content) => { toast.error(apiMessage(err, 'Chưa gửi được tin nhắn')); setText((cur) => cur || content); },
+    onError: (err, vars) => { toast.error(apiMessage(err, 'Chưa gửi được tin nhắn')); setText((cur) => cur || vars.content); },
+  });
+  const react = useMutation({
+    mutationFn: ({ m, reaction }) => forumApi.reactMessage(m.id, reaction),
+    onMutate: async ({ m, reaction }) => {
+      await qc.cancelQueries({ queryKey: msgKey });
+      const prev = qc.getQueryData(msgKey);
+      qc.setQueryData(msgKey, (old) => old && { ...old, messages: old.messages.map((x) => (x.id === m.id ? { ...x, reactions: applyReaction(x.reactions, reaction) } : x)) });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => { if (ctx?.prev) qc.setQueryData(msgKey, ctx.prev); toast.error(apiMessage(err, 'Chưa thả được cảm xúc')); },
+    onSettled: () => qc.invalidateQueries({ queryKey: msgKey }),
+  });
+  const recall = useMutation({
+    mutationFn: (m) => forumApi.recallMessage(m.id),
+    onSuccess: () => { toast.success('Đã thu hồi tin nhắn'); qc.invalidateQueries({ queryKey: ['forum-messages'] }); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa thu hồi được tin nhắn')),
+  });
+
+  const pinMsg = useMutation({
+    mutationFn: ({ m, pinned }) => forumApi.pinMessage(m.id, pinned),
+    onSuccess: (_r, v) => { toast.success(v.pinned ? 'Đã ghim tin nhắn' : 'Đã bỏ ghim tin nhắn'); qc.invalidateQueries({ queryKey: msgKey }); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa ghim được tin nhắn')),
+  });
+  const hideMsg = useMutation({
+    mutationFn: (m) => forumApi.deleteMessage(m.id),
+    onSuccess: () => { toast.success('Đã xóa tin nhắn ở phía bạn'); qc.invalidateQueries({ queryKey: ['forum-messages'] }); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa xóa được tin nhắn')),
+  });
+  const pinChat = useMutation({
+    mutationFn: (pinned) => forumApi.pinConversation(peerId, pinned),
+    onSuccess: (_r, pinned) => { toast.success(pinned ? 'Đã ghim hội thoại lên đầu danh sách' : 'Đã bỏ ghim hội thoại'); qc.invalidateQueries({ queryKey: ['forum-messages'] }); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa ghim được hội thoại')),
+  });
+  const delChat = useMutation({
+    mutationFn: () => forumApi.deleteConversation(peerId),
+    onSuccess: () => { toast.success('Đã xóa cuộc trò chuyện ở phía bạn'); qc.invalidateQueries({ queryKey: ['forum-messages'] }); qc.invalidateQueries({ queryKey: ['forum-overview'] }); onBack(); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa xóa được cuộc trò chuyện')),
   });
 
   const count = data?.messages.length || 0;
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight }); }, [count, peerId]);
-  useEffect(() => { setText(''); }, [peerId]);
+  useEffect(() => { setText(''); setReplyTo(null); setEmoji(false); }, [peerId]);
+  // Mở (hoặc nhận thêm tin trong) cuộc trò chuyện là server đã đánh dấu đã đọc → cập nhật ngay số chưa đọc ở danh sách và trang diễn đàn
+  const loaded = data ? count : -1;
+  useEffect(() => {
+    if (loaded < 0) return;
+    qc.invalidateQueries({ queryKey: ['forum-messages', 'list'] });
+    qc.invalidateQueries({ queryKey: ['forum-messages', 'unread'] });
+    qc.invalidateQueries({ queryKey: ['forum-overview'] });
+  }, [peerId, loaded, qc]);
 
   const submit = () => {
     const content = text.trim();
     if (!content || send.isPending) return;
     setText('');
-    send.mutate(content);
+    send.mutate({ content, replyToId: replyTo?.id });
+    setReplyTo(null);
+  };
+  const insertEmoji = (e) => {
+    const el = taRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? start;
+    setText((t) => (t.slice(0, start) + e + t.slice(end)).slice(0, MAX_MESSAGE));
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(start + e.length, start + e.length); });
+  };
+  const startReply = (m) => { setReplyTo(m); taRef.current?.focus(); };
+  const askRecall = async (m) => {
+    if (await confirm({ title: 'Thu hồi tin nhắn', message: 'Tin nhắn sẽ bị xóa với cả hai bên và không thể khôi phục.', confirmText: 'Thu hồi', tone: 'danger' })) recall.mutate(m);
+  };
+  const askHide = async (m) => {
+    if (await confirm({ title: 'Xóa tin nhắn ở phía bạn', message: 'Tin nhắn chỉ bị xóa ở phía bạn, người kia vẫn còn thấy.', confirmText: 'Xóa', tone: 'danger' })) hideMsg.mutate(m);
+  };
+  const jump = (id) => {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) { toast('Tin nhắn gốc nằm ngoài phần đang hiển thị'); return; }
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlight(id);
+    setTimeout(() => setHighlight(null), 1600);
   };
 
   if (isLoading) return <div className="flex-1 flex items-center justify-center"><LoadingSpinner /></div>;
@@ -71,8 +160,11 @@ function Chat({ peerId, onBack }) {
     );
   }
 
-  const { user: peer, messages, can_send } = data;
-  const lastMineIndex = messages.reduce((acc, m, i) => (m.mine ? i : acc), -1);
+  const { user: peer, messages, can_send, pinned, chat_pinned } = data;
+  const askDeleteChat = async () => {
+    if (await confirm({ title: 'Xóa cuộc trò chuyện', message: `Toàn bộ tin nhắn với ${peer.full_name} sẽ bị xóa ở phía bạn. ${peer.full_name} vẫn giữ nguyên cuộc trò chuyện; có tin nhắn mới thì cuộc trò chuyện hiện lại.`, confirmText: 'Xóa', tone: 'danger' })) delChat.mutate();
+  };
+  const lastMineIndex = messages.reduce((acc, m, i) => (m.mine && !m.recalled ? i : acc), -1);
   return (
     <>
       <header className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
@@ -84,9 +176,11 @@ function Chat({ peerId, onBack }) {
             <span className="block text-xs text-slate-500 truncate">{memberTitle(peer)}</span>
           </span>
         </button>
+        <ConversationMenu className="ml-auto flex-shrink-0" pinned={chat_pinned} onPin={() => pinChat.mutate(!chat_pinned)} onDelete={askDeleteChat} />
       </header>
+      <PinnedBar pinned={pinned} onJump={jump} onUnpin={(p) => pinMsg.mutate({ m: p, pinned: false })} />
 
-      <div ref={scroller} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-1 bg-slate-50/50">
+      <div ref={scroller} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 bg-slate-50/50">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-slate-500">
             <IconBadge name="mail" tone="blue" size="lg" />
@@ -101,12 +195,9 @@ function Chat({ peerId, onBack }) {
           return (
             <div key={m.id}>
               {newDay && <p className="py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">{dayOf(m.created_at)}</p>}
-              <div className={`flex ${m.mine ? 'justify-end' : 'justify-start'} ${groupStart ? 'mt-2' : ''}`}>
-                <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed break-words whitespace-pre-wrap ${m.mine ? 'bg-primary-600 text-white rounded-br-md' : 'bg-white text-slate-800 ring-1 ring-slate-200 rounded-bl-md'}`}>
-                  {m.content}
-                  <span className={`block mt-0.5 text-[10px] leading-none ${m.mine ? 'text-white/70 text-right' : 'text-slate-400'}`}>{timeOf(m.created_at)}</span>
-                </div>
-              </div>
+              <MessageRow m={m} groupStart={groupStart && !newDay} highlighted={highlight === m.id} peerName={peer.full_name}
+                onReply={startReply} onReact={(msg, reaction) => react.mutate({ m: msg, reaction })} onRecall={askRecall} onJump={jump}
+                onPin={(msg) => pinMsg.mutate({ m: msg, pinned: !msg.pinned })} onHide={askHide} />
               {i === lastMineIndex && m.read && <p className="mt-0.5 text-right text-[11px] text-slate-400">Đã xem</p>}
             </div>
           );
@@ -116,22 +207,42 @@ function Chat({ peerId, onBack }) {
       <footer className="border-t border-slate-100 p-3">
         {can_send ? (
           <>
+          {replyTo && (
+            <div className="mb-2 flex items-start gap-2 rounded-xl border-l-[3px] border-primary-500 bg-slate-50 px-3 py-1.5 text-xs">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-slate-700">Đang trả lời {replyTo.mine ? 'chính bạn' : peer.full_name}</p>
+                <p className="truncate text-slate-500">{replyTo.content}</p>
+              </div>
+              <button type="button" onClick={() => setReplyTo(null)} aria-label="Hủy trả lời" title="Hủy trả lời" className="w-6 h-6 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700 flex items-center justify-center flex-shrink-0"><Icon name="x" className="w-4 h-4" /></button>
+            </div>
+          )}
           <div className="flex items-end gap-2">
+            <div className="relative flex-shrink-0" ref={emojiWrap}>
+              <button type="button" onClick={() => setEmoji((v) => !v)} aria-label="Chọn emoji" title="Chọn emoji" aria-expanded={emoji}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${emoji ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <Icon name="smile" className="w-6 h-6" />
+              </button>
+              {emoji && <EmojiPicker onPick={insertEmoji} />}
+            </div>
             <textarea
+              ref={taRef}
               className="input-field !rounded-xl resize-none max-h-32 min-h-[2.5rem]"
               rows={1}
               placeholder="Nhập tin nhắn..."
               value={text}
               maxLength={MAX_MESSAGE}
               onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+                if (e.key === 'Escape' && replyTo) setReplyTo(null);
+              }}
               aria-label="Nội dung tin nhắn"
             />
             <button type="button" onClick={submit} disabled={!text.trim() || send.isPending} className="btn-primary !px-3.5 h-10 flex-shrink-0" aria-label="Gửi tin nhắn" title="Gửi">
               <Icon name="send" className="w-5 h-5" />
             </button>
           </div>
-          <p className="hidden sm:block mt-1.5 text-[11px] text-slate-400">Enter để gửi · Shift + Enter để xuống dòng</p>
+          <p className="hidden sm:block mt-1.5 text-[11px] text-slate-400">Enter để gửi · Shift + Enter để xuống dòng · rê chuột vào tin nhắn để thả cảm xúc, trả lời, ghim hoặc xóa</p>
           </>
         ) : (
           <p className="text-sm text-slate-500 text-center py-1.5 flex items-center justify-center gap-2"><Icon name="ban" className="w-4 h-4" />Thành viên này không nhận tin nhắn từ bạn.</p>
@@ -145,6 +256,8 @@ function Chat({ peerId, onBack }) {
 export function ForumMessagesPage() {
   const [params, setParams] = useSearchParams();
   const withId = params.get('with') || '';
+  const [q, setQ] = useState('');
+  const [tab, setTab] = useState('all'); // all | unread
   const { data, isLoading } = useQuery({
     queryKey: ['forum-messages', 'list'],
     queryFn: () => forumApi.getConversations().then((r) => r.data),
@@ -152,15 +265,49 @@ export function ForumMessagesPage() {
   });
   const open = (id) => setParams(id ? { with: id } : {});
   const list = data?.data || [];
+  const qc = useQueryClient();
+  const confirm = useConfirm();
+  const pinConv = useMutation({
+    mutationFn: ({ id, pinned }) => forumApi.pinConversation(id, pinned),
+    onSuccess: (_r, v) => { toast.success(v.pinned ? 'Đã ghim hội thoại lên đầu danh sách' : 'Đã bỏ ghim hội thoại'); qc.invalidateQueries({ queryKey: ['forum-messages'] }); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa ghim được hội thoại')),
+  });
+  const delConv = useMutation({
+    mutationFn: (id) => forumApi.deleteConversation(id),
+    onSuccess: (_r, id) => { toast.success('Đã xóa cuộc trò chuyện ở phía bạn'); qc.invalidateQueries({ queryKey: ['forum-messages'] }); qc.invalidateQueries({ queryKey: ['forum-overview'] }); if (withId === id) open(''); },
+    onError: (err) => toast.error(apiMessage(err, 'Chưa xóa được cuộc trò chuyện')),
+  });
+  const askDeleteConv = async (c) => {
+    if (await confirm({ title: 'Xóa cuộc trò chuyện', message: `Toàn bộ tin nhắn với ${c.user.full_name} sẽ bị xóa ở phía bạn. ${c.user.full_name} vẫn giữ nguyên cuộc trò chuyện; có tin nhắn mới thì cuộc trò chuyện hiện lại.`, confirmText: 'Xóa', tone: 'danger' })) delConv.mutate(c.user.id);
+  };
+  const needle = plain(q.trim());
+  const unreadChats = list.filter((c) => c.unread > 0).length;
+  const shown = list.filter((c) => (tab === 'all' || c.unread > 0) && (!needle || plain(c.user.full_name).includes(needle) || plain(c.last_message).includes(needle)));
 
   return (
     <Shell>
       <Crumb>Tin nhắn</Crumb>
       <div className="card !p-0 overflow-hidden grid md:grid-cols-[19rem_minmax(0,1fr)] h-[calc(100dvh-12rem)] min-h-[30rem]">
         <aside className={`${withId ? 'hidden md:flex' : 'flex'} flex-col min-h-0 md:border-r border-slate-100`}>
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-4 pt-3 pb-2 flex items-center justify-between">
             <h1 className="font-bold text-slate-900 flex items-center gap-2"><Icon name="mail" className="w-5 h-5 text-sky-600" />Tin nhắn</h1>
-            {data?.unread_total > 0 && <span className="px-2 py-0.5 rounded-full bg-primary-600 text-white text-xs font-bold">{data.unread_total} mới</span>}
+            {data?.unread_total > 0 && <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">{data.unread_total} mới</span>}
+          </div>
+          <div className="px-3 pb-2 space-y-2 border-b border-slate-100">
+            <div className="relative">
+              <Icon name="search" className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input className="input-field !py-2 !pl-9 !pr-8 !rounded-full text-sm" placeholder="Tìm theo tên hoặc nội dung" aria-label="Tìm trong tin nhắn"
+                value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') setQ(''); }} />
+              {q && <button type="button" onClick={() => setQ('')} aria-label="Xóa tìm kiếm" className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 flex items-center justify-center"><Icon name="x" className="w-3 h-3" strokeWidth={2.5} /></button>}
+            </div>
+            <div className="flex gap-1.5" role="tablist" aria-label="Lọc cuộc trò chuyện">
+              {[{ v: 'all', l: 'Tất cả' }, { v: 'unread', l: 'Chưa đọc', n: unreadChats }].map((t) => (
+                <button key={t.v} type="button" role="tab" aria-selected={tab === t.v} onClick={() => setTab(t.v)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${tab === t.v ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  {t.l}{t.n > 0 && <span className={`min-w-4 rounded-full px-1 text-center text-[10px] ${tab === t.v ? 'bg-white/25' : 'bg-red-500 text-white'}`}>{t.n}</span>}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto">
             {isLoading ? <div className="py-10"><LoadingSpinner /></div> : list.length === 0 ? (
@@ -169,23 +316,39 @@ export function ForumMessagesPage() {
                 <p className="mt-3 font-semibold text-slate-800">Chưa có tin nhắn nào</p>
                 <p className="mt-1">Bấm vào ảnh đại diện của một thành viên trong diễn đàn rồi chọn <strong>Gửi tin nhắn</strong> để bắt đầu.</p>
               </div>
+            ) : shown.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-slate-500">
+                <IconBadge name="search" tone="slate" size="lg" className="mx-auto" />
+                <p className="mt-3 font-semibold text-slate-800">{needle ? `Không tìm thấy "${q.trim()}"` : 'Không có tin nhắn chưa đọc'}</p>
+                <p className="mt-1">{needle ? 'Thử gõ tên khác, không cần gõ dấu.' : 'Bạn đã đọc hết tin nhắn.'}</p>
+              </div>
             ) : (
               <ul className="divide-y divide-slate-100">
-                {list.map((c) => (
-                  <li key={c.user.id}>
-                    <button type="button" onClick={() => open(c.user.id)} className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${withId === c.user.id ? 'bg-primary-50' : 'hover:bg-slate-50'}`}>
-                      <Avatar name={c.user.full_name} src={c.user.avatar_url} size="md" />
+                {shown.map((c) => (
+                  <li key={c.user.id} className="group relative">
+                    <button type="button" onClick={() => open(c.user.id)} className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${withId === c.user.id ? 'bg-primary-50' : c.pinned ? 'bg-slate-50/70 hover:bg-slate-100/70' : 'hover:bg-slate-50'}`}>
+                      <span className="relative flex-shrink-0">
+                        <Avatar name={c.user.full_name} src={c.user.avatar_url} size="md" />
+                        {c.unread > 0 && <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-red-500 ring-2 ring-white" aria-hidden="true" />}
+                      </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline justify-between gap-2">
-                          <span className={`truncate ${c.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}`}>{c.user.full_name}</span>
-                          <span className="text-[11px] text-slate-400 whitespace-nowrap">{timeAgo(c.last_at)}</span>
+                          <span className="flex min-w-0 items-center gap-1">
+                            <span className={`truncate ${c.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}`}>{c.user.full_name}</span>
+                            {c.pinned && <Icon name="pin" className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />}
+                          </span>
+                          <span className={`text-[11px] whitespace-nowrap ${c.unread ? 'font-semibold text-red-500' : 'text-slate-400'}`}>{timeAgo(c.last_at)}</span>
                         </span>
-                        <span className="flex items-center justify-between gap-2">
-                          <span className={`truncate text-sm ${c.unread ? 'font-semibold text-slate-700' : 'text-slate-500'}`}>{c.last_mine ? 'Bạn: ' : ''}{c.last_message}</span>
-                          {c.unread > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary-600 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">{c.unread}</span>}
+                        <span className="flex items-center justify-between gap-2 pr-7">
+                          <span className={`truncate text-sm ${c.last_recalled ? 'italic text-slate-400' : c.unread ? 'font-semibold text-slate-700' : 'text-slate-500'}`}>{c.last_mine ? 'Bạn: ' : ''}{c.last_message}</span>
+                          {c.unread > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">{c.unread > 99 ? '99+' : c.unread}</span>}
                         </span>
                       </span>
                     </button>
+                    <div className="absolute right-2 bottom-2.5">
+                      <ConversationMenu buttonClass="md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100"
+                        pinned={c.pinned} onPin={() => pinConv.mutate({ id: c.user.id, pinned: !c.pinned })} onDelete={() => askDeleteConv(c)} />
+                    </div>
                   </li>
                 ))}
               </ul>

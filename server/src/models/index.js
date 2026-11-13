@@ -41,6 +41,8 @@ const ForumIgnore = require('./ForumIgnore')(sequelize, DataTypes);
 const ForumBookmark = require('./ForumBookmark')(sequelize, DataTypes);
 const ForumReport = require('./ForumReport')(sequelize, DataTypes);
 const ForumMessage = require('./ForumMessage')(sequelize, DataTypes);
+const ForumMessageReaction = require('./ForumMessageReaction')(sequelize, DataTypes);
+const ForumConversationSetting = require('./ForumConversationSetting')(sequelize, DataTypes);
 const ForumWarning = require('./ForumWarning')(sequelize, DataTypes);
 
 // Workspace models
@@ -228,6 +230,9 @@ ForumPost.hasMany(ForumPostLike, { foreignKey: 'post_id', onDelete: 'CASCADE' })
 ForumPostLike.belongsTo(ForumPost, { foreignKey: 'post_id' });
 
 // Backwards compatibility alias
+ForumMessage.hasMany(ForumMessageReaction, { foreignKey: 'message_id', onDelete: 'CASCADE' });
+ForumMessageReaction.belongsTo(ForumMessage, { foreignKey: 'message_id' });
+
 const InternalProject = Project;
 
 module.exports = {
@@ -242,7 +247,7 @@ module.exports = {
   SavedCandidate,
   Project, ProjectJob, ProjectJobSkill, ProjectApplication, Interviewer, SavedJob,
   ForumCategory, ForumThread, ForumPost, ForumPostLike,
-  ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage, ForumWarning,
+  ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage, ForumMessageReaction, ForumConversationSetting, ForumWarning,
   InternalProject, // alias
   Workspace, WorkspaceMember, WorkspaceColumn,
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,

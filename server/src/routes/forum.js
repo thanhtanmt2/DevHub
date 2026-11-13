@@ -44,6 +44,12 @@ router.get('/messages/conversations', protect, messages.listConversations);
 router.get('/messages/unread-count', protect, messages.unreadCount);
 router.get('/messages/with/:userId', protect, messages.getConversation);
 router.post('/messages/with/:userId', protect, messages.sendMessage);
+router.delete('/messages/with/:userId', protect, messages.deleteConversation);
+router.put('/messages/with/:userId/pin', protect, messages.pinConversation);
+router.put('/messages/:id/reaction', protect, messages.reactMessage);
+router.post('/messages/:id/recall', protect, messages.recallMessage);
+router.put('/messages/:id/pin', protect, messages.pinMessage);
+router.delete('/messages/:id', protect, messages.deleteForMe);
 
 // Quản lý chuyên mục: Admin
 router.post('/categories', protect, authorize('ADMIN'), ctrl.createCategory);

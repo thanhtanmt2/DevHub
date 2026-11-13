@@ -32,7 +32,14 @@ export const forumApi = {
   // Tin nhắn riêng
   getConversations: () => api.get('/forum/messages/conversations'),
   getConversation: (userId) => api.get(`/forum/messages/with/${userId}`),
-  sendMessage: (userId, content) => api.post(`/forum/messages/with/${userId}`, { content }),
+  sendMessage: (userId, content, replyToId) => api.post(`/forum/messages/with/${userId}`, { content, ...(replyToId ? { reply_to_id: replyToId } : {}) }),
+  reactMessage: (messageId, reaction) => api.put(`/forum/messages/${messageId}/reaction`, { reaction }),
+  recallMessage: (messageId) => api.post(`/forum/messages/${messageId}/recall`),
+  deleteMessage: (messageId) => api.delete(`/forum/messages/${messageId}`), // xóa chỉ ở phía mình
+  pinMessage: (messageId, pinned) => api.put(`/forum/messages/${messageId}/pin`, { pinned }),
+  deleteConversation: (userId) => api.delete(`/forum/messages/with/${userId}`), // xóa cuộc trò chuyện chỉ ở phía mình
+  pinConversation: (userId, pinned) => api.put(`/forum/messages/with/${userId}/pin`, { pinned }),
+  getUnreadMessages: () => api.get('/forum/messages/unread-count'),
   // Admin: quản lý chuyên mục
   createCategory: (data) => api.post('/forum/categories', data),
   updateCategory: (id, data) => api.put(`/forum/categories/${id}`, data),

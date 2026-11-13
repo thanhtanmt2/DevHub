@@ -106,6 +106,8 @@ END $$`,
   `UPDATE payments SET status = 'PENDING' WHERE status IN ('PROCESSING', 'FAILED')`,
   // Cột tùy chỉnh của bảng Kanban trong Workspace
   ...require('./workspaceColumnSchema'),
+  // Tin nhắn kiểu Zalo: trả lời, thu hồi, thả cảm xúc
+  ...require('./messageSchema'),
 ];
 
 console.log('Đang chạy migration patch...');

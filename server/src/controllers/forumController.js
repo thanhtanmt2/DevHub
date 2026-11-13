@@ -129,7 +129,7 @@ exports.getOverview = async (req, res, next) => {
       listThreads({ publicOnly: true, sort: 'latest', limit: 10, offset: 0, excludeAuthorIds }),
       meId
         ? sequelize.query(
-          `SELECT (SELECT COUNT(*) FROM forum_messages WHERE recipient_id = :me AND read_at IS NULL) AS unread_messages,
+          `SELECT (SELECT COUNT(*) FROM forum_messages WHERE recipient_id = :me AND read_at IS NULL AND recalled_at IS NULL AND NOT hidden_for_recipient) AS unread_messages,
                   (SELECT COUNT(*) FROM forum_reports WHERE status = 'OPEN' AND :admin) AS open_reports`,
           { replacements: { me: meId, admin: isAdmin(req) }, type: sequelize.QueryTypes.SELECT }
         )

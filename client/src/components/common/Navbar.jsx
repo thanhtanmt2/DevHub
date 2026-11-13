@@ -4,6 +4,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationApi } from '@/api/notificationApi';
+import { forumApi } from '@/api/forumApi';
 import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
@@ -13,6 +14,68 @@ import { candidateApi } from '@/api/candidateApi';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { stripEmoji } from '@/utils/stripEmoji';
 import { SUPPORT, telHref, mailHref } from '@/config/support';
+
+// Biểu tượng tin nhắn kiểu Zalo: chấm đỏ kèm số tin chưa đọc, số tin hiện trên tiêu đề tab, và thông báo nổi khi có tin mới
+function MessageBell() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { data } = useQuery({
+    queryKey: ['forum-messages', 'unread'],
+    queryFn: () => forumApi.getUnreadMessages().then((r) => r.data.data),
+    refetchInterval: 15000, // hỏi lại mỗi 15 giây
+    refetchOnWindowFocus: true, // và ngay khi quay lại tab
+    staleTime: 0,
+  });
+  const unread = data?.unread || 0;
+  const onMessages = pathname.startsWith('/forum/messages');
+  const prev = useRef(null);
+
+  // "(2) DevHub" trên tiêu đề tab khi có tin chưa đọc
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\+?\)\s*/, '');
+    document.title = unread > 0 ? `(${unread > 99 ? '99+' : unread}) ${base}` : base;
+    return () => { document.title = document.title.replace(/^\(\d+\+?\)\s*/, ''); };
+  }, [unread]);
+
+  // Có tin mới (và bạn không đang ở trang Tin nhắn) thì hiện thông báo nổi, bấm vào để mở đúng cuộc trò chuyện
+  useEffect(() => {
+    if (!data) return;
+    const latest = data.latest;
+    if (prev.current !== null && data.unread > prev.current && latest && !onMessages) {
+      toast.custom((t) => (
+        <button
+          type="button"
+          onClick={() => { toast.dismiss(t.id); navigate(`/forum/messages?with=${latest.from_id}`); }}
+          className={`flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl bg-white p-3.5 text-left shadow-xl ring-1 ring-slate-200 transition-all ${t.visible ? 'animate-slide-up' : 'opacity-0'}`}
+        >
+          <Avatar name={latest.from_name} src={latest.from_avatar} size="md" />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-primary-700"><Icon name="chat" className="h-3.5 w-3.5" />Tin nhắn mới</span>
+            <span className="block truncate font-semibold text-slate-900">{latest.from_name}</span>
+            <span className="block truncate text-sm text-slate-500">{latest.preview}</span>
+          </span>
+        </button>
+      ), { id: `new-msg-${latest.id}`, duration: 6000, position: 'top-right' });
+    }
+    prev.current = data.unread;
+  }, [data, onMessages, navigate]);
+
+  return (
+    <Link
+      to="/forum/messages"
+      className="relative p-2 rounded-full text-slate-600 hover:bg-slate-100 hover:text-primary-700 transition-colors"
+      aria-label={unread > 0 ? `Tin nhắn, ${unread} tin chưa đọc` : 'Tin nhắn'}
+      title="Tin nhắn"
+    >
+      <Icon name="chat" className="w-5 h-5" strokeWidth={2} />
+      {unread > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center ring-2 ring-white">
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 // ─── Notification Bell ────────────────────────────────────────────────────────
 function NotificationBell() {
@@ -466,6 +529,7 @@ export default function Navbar({ topBar = false }) {
                   >
                     Dashboard
                   </Link>
+                  <MessageBell />
                   <NotificationBell />
                   <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-200">
                     {isCandidate() && <NavRank />}

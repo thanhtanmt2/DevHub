@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict tQcMeCuNMzTzRdnn95Z3E8kDiu4pmDm9i89yur5u9IUO9vpgIuiPDR5qqnMb0I2
+\restrict NGez2rFQVz4SCkmwJQFMdk8MTyIy2WpsEbRgoshPCzPUguLoVzTwkdQJe2HKZJF
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -76,13 +76,19 @@ ALTER TABLE IF EXISTS ONLY public.forum_posts DROP CONSTRAINT IF EXISTS forum_po
 ALTER TABLE IF EXISTS ONLY public.forum_post_likes DROP CONSTRAINT IF EXISTS forum_post_likes_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_post_likes DROP CONSTRAINT IF EXISTS forum_post_likes_post_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_sender_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_reply_to_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_recipient_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_pinned_by_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_message_reactions DROP CONSTRAINT IF EXISTS forum_message_reactions_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_message_reactions DROP CONSTRAINT IF EXISTS forum_message_reactions_message_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_member_activity DROP CONSTRAINT IF EXISTS forum_member_activity_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_member_activity DROP CONSTRAINT IF EXISTS forum_member_activity_thread_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_ignores DROP CONSTRAINT IF EXISTS forum_ignores_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_ignores DROP CONSTRAINT IF EXISTS forum_ignores_ignored_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_follows DROP CONSTRAINT IF EXISTS forum_follows_follower_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_follows DROP CONSTRAINT IF EXISTS forum_follows_followee_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_conversation_settings DROP CONSTRAINT IF EXISTS forum_conversation_settings_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.forum_conversation_settings DROP CONSTRAINT IF EXISTS forum_conversation_settings_peer_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_bookmarks DROP CONSTRAINT IF EXISTS forum_bookmarks_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.forum_bookmarks DROP CONSTRAINT IF EXISTS forum_bookmarks_post_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.experiences DROP CONSTRAINT IF EXISTS experiences_parent_id_fkey;
@@ -117,6 +123,7 @@ DROP INDEX IF EXISTS public.idx_forum_posts_thread;
 DROP INDEX IF EXISTS public.idx_forum_posts_author;
 DROP INDEX IF EXISTS public.idx_forum_messages_sender;
 DROP INDEX IF EXISTS public.idx_forum_messages_recipient;
+DROP INDEX IF EXISTS public.idx_forum_message_reactions_message;
 DROP INDEX IF EXISTS public.idx_forum_follows_followee;
 DROP INDEX IF EXISTS public.idx_experiences_parent;
 DROP INDEX IF EXISTS public.activity_logs_user_id;
@@ -167,9 +174,12 @@ ALTER TABLE IF EXISTS ONLY public.forum_reports DROP CONSTRAINT IF EXISTS forum_
 ALTER TABLE IF EXISTS ONLY public.forum_posts DROP CONSTRAINT IF EXISTS forum_posts_pkey;
 ALTER TABLE IF EXISTS ONLY public.forum_post_likes DROP CONSTRAINT IF EXISTS forum_post_likes_pkey;
 ALTER TABLE IF EXISTS ONLY public.forum_messages DROP CONSTRAINT IF EXISTS forum_messages_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_message_reactions DROP CONSTRAINT IF EXISTS forum_message_reactions_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_message_reactions DROP CONSTRAINT IF EXISTS forum_message_reactions_message_id_user_id_key;
 ALTER TABLE IF EXISTS ONLY public.forum_member_activity DROP CONSTRAINT IF EXISTS forum_member_activity_pkey;
 ALTER TABLE IF EXISTS ONLY public.forum_ignores DROP CONSTRAINT IF EXISTS forum_ignores_pkey;
 ALTER TABLE IF EXISTS ONLY public.forum_follows DROP CONSTRAINT IF EXISTS forum_follows_pkey;
+ALTER TABLE IF EXISTS ONLY public.forum_conversation_settings DROP CONSTRAINT IF EXISTS forum_conversation_settings_pkey;
 ALTER TABLE IF EXISTS ONLY public.forum_categories DROP CONSTRAINT IF EXISTS forum_categories_slug_key;
 ALTER TABLE IF EXISTS ONLY public.forum_categories DROP CONSTRAINT IF EXISTS forum_categories_pkey;
 ALTER TABLE IF EXISTS ONLY public.forum_bookmarks DROP CONSTRAINT IF EXISTS forum_bookmarks_pkey;
@@ -221,9 +231,11 @@ DROP TABLE IF EXISTS public.forum_reports;
 DROP TABLE IF EXISTS public.forum_posts;
 DROP TABLE IF EXISTS public.forum_post_likes;
 DROP TABLE IF EXISTS public.forum_messages;
+DROP TABLE IF EXISTS public.forum_message_reactions;
 DROP TABLE IF EXISTS public.forum_member_activity;
 DROP TABLE IF EXISTS public.forum_ignores;
 DROP TABLE IF EXISTS public.forum_follows;
+DROP TABLE IF EXISTS public.forum_conversation_settings;
 DROP TABLE IF EXISTS public.forum_categories;
 DROP TABLE IF EXISTS public.forum_bookmarks;
 DROP TABLE IF EXISTS public.experiences;
@@ -804,6 +816,21 @@ CREATE TABLE public.forum_categories (
 ALTER TABLE public.forum_categories OWNER TO postgres;
 
 --
+-- Name: forum_conversation_settings; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_conversation_settings (
+    user_id uuid NOT NULL,
+    peer_id uuid NOT NULL,
+    pinned_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.forum_conversation_settings OWNER TO postgres;
+
+--
 -- Name: forum_follows; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -845,6 +872,22 @@ CREATE TABLE public.forum_member_activity (
 ALTER TABLE public.forum_member_activity OWNER TO postgres;
 
 --
+-- Name: forum_message_reactions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.forum_message_reactions (
+    id uuid NOT NULL,
+    message_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    reaction character varying(12) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.forum_message_reactions OWNER TO postgres;
+
+--
 -- Name: forum_messages; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -855,6 +898,12 @@ CREATE TABLE public.forum_messages (
     content text NOT NULL,
     read_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    reply_to_id uuid,
+    recalled_at timestamp with time zone,
+    hidden_for_sender boolean DEFAULT false NOT NULL,
+    hidden_for_recipient boolean DEFAULT false NOT NULL,
+    pinned_at timestamp with time zone,
+    pinned_by uuid,
     CONSTRAINT chk_forum_messages_self CHECK ((sender_id <> recipient_id))
 );
 
@@ -4163,6 +4212,12 @@ INSERT INTO public.forum_categories VALUES ('0c1d0a10-0000-4000-8000-00000000000
 
 
 --
+-- Data for Name: forum_conversation_settings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
 -- Data for Name: forum_follows; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -4402,52 +4457,61 @@ INSERT INTO public.forum_member_activity VALUES ('af37aeee-f959-53cb-af71-e1782f
 INSERT INTO public.forum_member_activity VALUES ('75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-11-06 08:36:57.46107+07', NULL);
 INSERT INTO public.forum_member_activity VALUES ('f676e1a5-3807-4995-b14c-310100cd183a', '2026-11-08 15:12:54.828621+07', NULL);
 INSERT INTO public.forum_member_activity VALUES ('aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-11-12 16:31:10.569799+07', NULL);
-INSERT INTO public.forum_member_activity VALUES ('db7c670f-1493-4391-8c34-722b0e3a487e', '2026-11-13 09:41:57.305703+07', NULL);
+INSERT INTO public.forum_member_activity VALUES ('db7c670f-1493-4391-8c34-722b0e3a487e', '2026-11-13 11:20:20.773951+07', NULL);
+
+
+--
+-- Data for Name: forum_message_reactions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 
 
 --
 -- Data for Name: forum_messages; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.forum_messages VALUES ('88f37a0e-ba08-4a15-9aad-f576a87b6176', 'db7c670f-1493-4391-8c34-722b0e3a487e', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'bài viết này hay lắm', NULL, '2026-11-03 08:59:05.223+07');
-INSERT INTO public.forum_messages VALUES ('5b290895-0e0c-5f38-ad36-d1d8d8f67870', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Chào Trâm, mình là Mai bên Tiki. Mình đã xem hồ sơ và các dự án DevHub bạn hoàn thành, rất ấn tượng với điểm đánh giá 9/10.', '2026-10-29 15:08:07.275+07', '2026-10-29 15:05:06.53+07');
-INSERT INTO public.forum_messages VALUES ('e23d0706-9ce5-501e-b8ce-5ee5ad350760', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Dạ em chào chị Mai ạ, em cảm ơn chị đã để ý hồ sơ của em!', '2026-10-29 15:31:34.569+07', '2026-10-29 15:16:28.568+07');
-INSERT INTO public.forum_messages VALUES ('f932f39e-d6d7-5074-aa3a-71d44fed6faf', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Bên mình đang tuyển React Developer (fresher/junior) cho team mua sắm. Bạn có quan tâm không?', '2026-10-29 15:39:42.726+07', '2026-10-29 15:19:14.645+07');
-INSERT INTO public.forum_messages VALUES ('e1b45b45-38be-53a2-8b2a-44c15630b2ad', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Dạ có ạ. Em đang tìm công việc làm chính thức sau khi tốt nghiệp. Chị cho em xin mô tả chi tiết vị trí với ạ.', '2026-10-29 16:02:32.693+07', '2026-10-29 15:24:17.041+07');
-INSERT INTO public.forum_messages VALUES ('cfbb753d-eeb5-5d61-9804-681a3b6c7b20', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mình sẽ gửi JD qua mục ứng tuyển trên DevHub nhé. Bạn nộp hồ sơ thì bên mình sắp xếp phỏng vấn sớm.', '2026-10-29 15:39:25.151+07', '2026-10-29 15:33:50.53+07');
-INSERT INTO public.forum_messages VALUES ('0a5d0c5f-4e4e-5abf-987d-f48f18596dce', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'À, nếu tiện thì thứ Năm tuần này 14h bạn có thể phỏng vấn online được không?', NULL, '2026-10-29 15:46:20.582+07');
-INSERT INTO public.forum_messages VALUES ('07acc0e1-a1d6-50c6-aa1e-bf6bcdebc84b', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Chào anh Dũng, bên NashTech đang cần thêm một bạn backend Java cho dự án ngân hàng, thời vụ 3 tháng. Anh còn lịch trống không?', '2026-10-27 15:18:35.435+07', '2026-10-27 14:48:22.601+07');
-INSERT INTO public.forum_messages VALUES ('e4f85e8a-48a9-573c-87dd-c99eceb1609a', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Chào chị Hà, tháng sau mình mới xong dự án hiện tại. Chị cho mình xin thêm thông tin về công nghệ và mức thù lao nhé.', '2026-10-27 15:40:33.238+07', '2026-10-27 15:07:16.606+07');
-INSERT INTO public.forum_messages VALUES ('ac39196e-b21f-5625-8169-37e5bccbf136', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Spring Boot, PostgreSQL, có Kafka. Thù lao theo giờ, bên mình sẽ gửi chi tiết khi anh xác nhận tham gia.', '2026-10-27 19:50:35.309+07', '2026-10-27 19:35:34.324+07');
-INSERT INTO public.forum_messages VALUES ('54b0368f-025b-584e-875b-81e7c932ca2d', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Mình quen Spring Boot và Postgres, Kafka thì mới dùng ở mức cơ bản thôi, chị thấy ổn không?', '2026-10-27 20:16:57.959+07', '2026-10-27 19:45:19.614+07');
-INSERT INTO public.forum_messages VALUES ('7f4b8a3a-3707-5e78-b0c5-893e9fb8b4a0', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Ổn anh nhé, team có người hướng dẫn phần Kafka. Anh ứng tuyển dự án trên DevHub giúp em để Admin xét duyệt nhé.', '2026-10-27 20:00:38.635+07', '2026-10-27 19:49:09.618+07');
-INSERT INTO public.forum_messages VALUES ('71f23790-b276-5f0a-bc67-d810a08fb26f', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Chào chị Trâm, em đọc bài của chị về cách trình bày CV. Em là fresher, cho em hỏi nên để phần dự án ở trên hay phần học vấn ở trên ạ?', '2026-10-24 12:59:26.373+07', '2026-10-24 12:20:39.558+07');
-INSERT INTO public.forum_messages VALUES ('3209d516-48e3-585f-9388-d2657678b641', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Chào em! Fresher thì chị khuyên để dự án lên trên, kèm link GitHub hoặc demo, nhà tuyển dụng quan tâm em làm được gì hơn là em học ở đâu.', '2026-10-24 12:59:51.311+07', '2026-10-24 12:37:06.262+07');
-INSERT INTO public.forum_messages VALUES ('4b391a80-66bb-5fad-a1bb-15178dc64c87', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Dạ em hiểu rồi. Em có 2 đồ án trên trường và 1 dự án DevHub nữa, vậy em liệt kê cả 3 luôn ạ?', '2026-10-24 13:24:49.035+07', '2026-10-24 12:46:33.518+07');
-INSERT INTO public.forum_messages VALUES ('ce06f645-0114-568a-b3e2-e11a03921012', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Đúng rồi, ưu tiên dự án DevHub vì có điểm đánh giá thật. Mỗi dự án 2–3 gạch đầu dòng: em làm gì, công nghệ gì, kết quả ra sao.', '2026-10-24 12:58:57.463+07', '2026-10-24 12:55:08.368+07');
-INSERT INTO public.forum_messages VALUES ('898f521f-ab34-5af1-8402-313e7516b97b', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Dạ em cảm ơn chị nhiều lắm, em sửa CV ngay tối nay ạ!', '2026-10-24 13:35:04.019+07', '2026-10-24 13:04:01.762+07');
-INSERT INTO public.forum_messages VALUES ('defe5315-6dbc-53dc-b540-7b76cd5f8b2f', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Sửa xong em cứ gửi chị xem giúp cho, chị góp ý thêm.', '2026-10-24 13:53:54.842+07', '2026-10-24 13:14:58.913+07');
-INSERT INTO public.forum_messages VALUES ('0bfc1be2-2fbe-5fae-8ed6-70b870634536', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Sơn ơi, task trang đăng nhập bạn làm tới đâu rồi? Mình cần ghép với phần giỏ hàng.', '2026-10-31 15:41:10.92+07', '2026-10-31 15:21:57.912+07');
-INSERT INTO public.forum_messages VALUES ('cd979a26-637a-5d00-a61d-91e8d7a2673d', '582d4dba-f518-521b-84ee-9538f8c868d5', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình xong giao diện rồi, đang nối API. Chiều nay mình đẩy lên nhánh feature để bạn pull nhé.', '2026-10-31 15:56:30.973+07', '2026-10-31 15:37:40.84+07');
-INSERT INTO public.forum_messages VALUES ('21916b88-6e26-551e-84b5-8217ac5e159d', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Ok bạn. Nhớ xử lý trường hợp token hết hạn giúp mình, hôm qua demo bị văng ra màn hình đăng nhập.', NULL, '2026-10-31 15:56:58.294+07');
-INSERT INTO public.forum_messages VALUES ('363f82b3-513b-594c-9348-1f36f8d2a831', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Với lại tối nay họp nhóm 20h nhớ vào đúng giờ nha.', NULL, '2026-10-31 16:12:05.519+07');
-INSERT INTO public.forum_messages VALUES ('1e6d045a-407a-5961-a13e-406db686d9aa', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Chào bạn Hương, mình là Châu bên VNPAY. Bên mình đang tìm QA tester cho dự án ví điện tử, bạn có kinh nghiệm test API đúng không?', '2026-10-30 13:10:48.052+07', '2026-10-30 13:02:44.364+07');
-INSERT INTO public.forum_messages VALUES ('20793d08-6e45-5687-8344-da20ced44f0f', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Dạ em chào chị Châu. Em có làm test API bằng Postman và viết test case cho dự án DevHub ạ.', '2026-10-30 20:38:06.446+07', '2026-10-30 20:20:54.511+07');
-INSERT INTO public.forum_messages VALUES ('a6f69374-286a-5b59-8be3-863defe39136', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Rất phù hợp. Bạn nộp hồ sơ vào dự án "Kiểm thử phần mềm" trên DevHub nhé, bên mình sẽ ưu tiên xét.', '2026-10-30 23:12:16.554+07', '2026-10-30 22:56:35.528+07');
-INSERT INTO public.forum_messages VALUES ('52c3e495-cdfa-526c-bc7a-7688aa4edc8b', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Dạ em đã ứng tuyển rồi ạ. Em mong sớm nhận được tin từ chị.', '2026-10-30 23:24:56.381+07', '2026-10-30 23:10:48.412+07');
-INSERT INTO public.forum_messages VALUES ('da27e854-86c8-55ca-aaac-31bb6903c2cf', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Mình đã xem hồ sơ rồi, mai Admin sẽ liên hệ bạn để sắp xếp buổi phỏng vấn nhé.', NULL, '2026-10-30 23:25:09.78+07');
-INSERT INTO public.forum_messages VALUES ('f111d9de-cc0a-52b4-a588-bb7d794a1f30', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '429535c5-5df7-5e12-b135-1572e5931035', 'Anh Đạt ơi, em thấy anh trả lời bài hỏi về React Query. Cho em hỏi cách làm phân trang mà giữ dữ liệu trang cũ khi chuyển trang với ạ?', '2026-10-28 16:01:56.268+07', '2026-10-28 15:55:54.329+07');
-INSERT INTO public.forum_messages VALUES ('633d6268-f1e1-5034-9660-e66d832f22ff', '429535c5-5df7-5e12-b135-1572e5931035', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Chào Oanh. Với React Query v5 em dùng placeholderData: keepPreviousData, trang mới chưa về thì vẫn hiện dữ liệu cũ, không bị nháy màn hình trống.', '2026-10-28 16:10:46.028+07', '2026-10-28 16:08:13.961+07');
-INSERT INTO public.forum_messages VALUES ('e022f7d8-139d-5114-becb-55c572c4ecb1', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '429535c5-5df7-5e12-b135-1572e5931035', 'Dạ, em đang dùng v4 với keepPreviousData: true, vậy em nâng lên v5 rồi đổi theo là được ạ?', '2026-10-28 20:16:13.129+07', '2026-10-28 20:06:22.826+07');
-INSERT INTO public.forum_messages VALUES ('d79cfbe7-86b7-5127-a1b7-d36e89537706', '429535c5-5df7-5e12-b135-1572e5931035', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Đúng rồi, v5 đổi tên option đó. Nhớ đổi cả isLoading thành isPending ở mutation nữa nhé.', '2026-10-28 20:37:02.353+07', '2026-10-28 20:10:15.64+07');
-INSERT INTO public.forum_messages VALUES ('f04f9ae7-5082-5fea-b7b9-3c65828b10cf', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Chào Kiên, mình là Tâm bên MISA. Cảm ơn bạn đã ứng tuyển vị trí .NET Developer.', NULL, '2026-11-01 12:06:57.01+07');
-INSERT INTO public.forum_messages VALUES ('b23c3a5c-7199-5c19-97ae-27c65caf5441', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Bên mình muốn mời bạn phỏng vấn kỹ thuật vào 9h sáng thứ Sáu tuần này, hình thức online qua Google Meet.', NULL, '2026-11-01 14:45:34.905+07');
-INSERT INTO public.forum_messages VALUES ('68aa8ade-cbea-5a40-9f96-52da602db724', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Bạn xác nhận giúp mình lịch này nhé, nếu bận mình sẽ dời sang buổi chiều cùng ngày.', NULL, '2026-11-01 15:03:31.449+07');
-INSERT INTO public.forum_messages VALUES ('c7167900-cfb7-5794-a2bf-e480843b423a', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Chào Lan, mình đang lập nhóm học React cuối tuần, mỗi tuần một buổi trên Discord. Bạn tham gia không?', '2026-10-26 15:13:39.067+07', '2026-10-26 15:08:51.894+07');
-INSERT INTO public.forum_messages VALUES ('bbe4e599-8705-5e2e-82d4-bfc6d1cc5531', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Hay quá Ánh ơi, mình tham gia! Buổi đầu học gì vậy bạn?', '2026-10-26 15:29:02.263+07', '2026-10-26 15:16:21.055+07');
-INSERT INTO public.forum_messages VALUES ('2905a819-5dd2-5b25-8fa4-aa0694bd6799', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Buổi đầu mình ôn hooks với bài tập nhỏ: todo list có lọc và lưu localStorage. Tối Chủ nhật 20h nhé.', '2026-10-26 15:35:01.854+07', '2026-10-26 15:31:16.039+07');
-INSERT INTO public.forum_messages VALUES ('131438e8-f847-5904-9243-b8c5d604b14a', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Ok bạn, mình sẽ vào đúng giờ. Bạn gửi link Discord cho mình nha.', '2026-10-26 16:23:37.577+07', '2026-10-26 15:46:15.124+07');
-INSERT INTO public.forum_messages VALUES ('b55285c2-94b0-5f43-a1cb-fc864549cd63', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình gửi link ở tin nhắn sau nhé, bạn nhớ bật micro để trao đổi cho nhanh.', '2026-10-26 16:05:49.832+07', '2026-10-26 15:54:23.671+07');
+INSERT INTO public.forum_messages VALUES ('d6d51762-29b6-4704-87a2-9c2870b2c084', 'db7c670f-1493-4391-8c34-722b0e3a487e', '9a8807b0-2378-5793-aaa0-f5883de745a8', '', NULL, '2026-11-13 10:39:39.284+07', NULL, '2026-11-13 10:55:38.334+07', false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('15f5e93e-07ce-486f-8ed6-16013cf15448', 'db7c670f-1493-4391-8c34-722b0e3a487e', '9a8807b0-2378-5793-aaa0-f5883de745a8', '', NULL, '2026-11-13 10:55:42.764+07', NULL, '2026-11-13 10:55:52.85+07', false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('88f37a0e-ba08-4a15-9aad-f576a87b6176', 'db7c670f-1493-4391-8c34-722b0e3a487e', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'bài viết này hay lắm', NULL, '2026-11-03 08:59:05.223+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('ba0eab62-0401-461a-8f24-650034624023', 'db7c670f-1493-4391-8c34-722b0e3a487e', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'em làm ok lắm', NULL, '2026-11-13 10:42:24.143+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('5b290895-0e0c-5f38-ad36-d1d8d8f67870', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Chào Trâm, mình là Mai bên Tiki. Mình đã xem hồ sơ và các dự án DevHub bạn hoàn thành, rất ấn tượng với điểm đánh giá 9/10.', '2026-10-29 15:08:07.275+07', '2026-10-29 15:05:06.53+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('e23d0706-9ce5-501e-b8ce-5ee5ad350760', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Dạ em chào chị Mai ạ, em cảm ơn chị đã để ý hồ sơ của em!', '2026-10-29 15:31:34.569+07', '2026-10-29 15:16:28.568+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('f932f39e-d6d7-5074-aa3a-71d44fed6faf', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Bên mình đang tuyển React Developer (fresher/junior) cho team mua sắm. Bạn có quan tâm không?', '2026-10-29 15:39:42.726+07', '2026-10-29 15:19:14.645+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('e1b45b45-38be-53a2-8b2a-44c15630b2ad', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '9a8807b0-2378-5793-aaa0-f5883de745a8', 'Dạ có ạ. Em đang tìm công việc làm chính thức sau khi tốt nghiệp. Chị cho em xin mô tả chi tiết vị trí với ạ.', '2026-10-29 16:02:32.693+07', '2026-10-29 15:24:17.041+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('cfbb753d-eeb5-5d61-9804-681a3b6c7b20', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Mình sẽ gửi JD qua mục ứng tuyển trên DevHub nhé. Bạn nộp hồ sơ thì bên mình sắp xếp phỏng vấn sớm.', '2026-10-29 15:39:25.151+07', '2026-10-29 15:33:50.53+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('0a5d0c5f-4e4e-5abf-987d-f48f18596dce', '9a8807b0-2378-5793-aaa0-f5883de745a8', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'À, nếu tiện thì thứ Năm tuần này 14h bạn có thể phỏng vấn online được không?', NULL, '2026-10-29 15:46:20.582+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('07acc0e1-a1d6-50c6-aa1e-bf6bcdebc84b', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Chào anh Dũng, bên NashTech đang cần thêm một bạn backend Java cho dự án ngân hàng, thời vụ 3 tháng. Anh còn lịch trống không?', '2026-10-27 15:18:35.435+07', '2026-10-27 14:48:22.601+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('e4f85e8a-48a9-573c-87dd-c99eceb1609a', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Chào chị Hà, tháng sau mình mới xong dự án hiện tại. Chị cho mình xin thêm thông tin về công nghệ và mức thù lao nhé.', '2026-10-27 15:40:33.238+07', '2026-10-27 15:07:16.606+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('ac39196e-b21f-5625-8169-37e5bccbf136', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Spring Boot, PostgreSQL, có Kafka. Thù lao theo giờ, bên mình sẽ gửi chi tiết khi anh xác nhận tham gia.', '2026-10-27 19:50:35.309+07', '2026-10-27 19:35:34.324+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('54b0368f-025b-584e-875b-81e7c932ca2d', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2c6e3aea-f5ab-54de-959f-26806e04783a', 'Mình quen Spring Boot và Postgres, Kafka thì mới dùng ở mức cơ bản thôi, chị thấy ổn không?', '2026-10-27 20:16:57.959+07', '2026-10-27 19:45:19.614+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('7f4b8a3a-3707-5e78-b0c5-893e9fb8b4a0', '2c6e3aea-f5ab-54de-959f-26806e04783a', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Ổn anh nhé, team có người hướng dẫn phần Kafka. Anh ứng tuyển dự án trên DevHub giúp em để Admin xét duyệt nhé.', '2026-10-27 20:00:38.635+07', '2026-10-27 19:49:09.618+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('71f23790-b276-5f0a-bc67-d810a08fb26f', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Chào chị Trâm, em đọc bài của chị về cách trình bày CV. Em là fresher, cho em hỏi nên để phần dự án ở trên hay phần học vấn ở trên ạ?', '2026-10-24 12:59:26.373+07', '2026-10-24 12:20:39.558+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('3209d516-48e3-585f-9388-d2657678b641', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Chào em! Fresher thì chị khuyên để dự án lên trên, kèm link GitHub hoặc demo, nhà tuyển dụng quan tâm em làm được gì hơn là em học ở đâu.', '2026-10-24 12:59:51.311+07', '2026-10-24 12:37:06.262+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('4b391a80-66bb-5fad-a1bb-15178dc64c87', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Dạ em hiểu rồi. Em có 2 đồ án trên trường và 1 dự án DevHub nữa, vậy em liệt kê cả 3 luôn ạ?', '2026-10-24 13:24:49.035+07', '2026-10-24 12:46:33.518+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('ce06f645-0114-568a-b3e2-e11a03921012', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Đúng rồi, ưu tiên dự án DevHub vì có điểm đánh giá thật. Mỗi dự án 2–3 gạch đầu dòng: em làm gì, công nghệ gì, kết quả ra sao.', '2026-10-24 12:58:57.463+07', '2026-10-24 12:55:08.368+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('898f521f-ab34-5af1-8402-313e7516b97b', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Dạ em cảm ơn chị nhiều lắm, em sửa CV ngay tối nay ạ!', '2026-10-24 13:35:04.019+07', '2026-10-24 13:04:01.762+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('defe5315-6dbc-53dc-b540-7b76cd5f8b2f', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Sửa xong em cứ gửi chị xem giúp cho, chị góp ý thêm.', '2026-10-24 13:53:54.842+07', '2026-10-24 13:14:58.913+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('0bfc1be2-2fbe-5fae-8ed6-70b870634536', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Sơn ơi, task trang đăng nhập bạn làm tới đâu rồi? Mình cần ghép với phần giỏ hàng.', '2026-10-31 15:41:10.92+07', '2026-10-31 15:21:57.912+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('cd979a26-637a-5d00-a61d-91e8d7a2673d', '582d4dba-f518-521b-84ee-9538f8c868d5', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Mình xong giao diện rồi, đang nối API. Chiều nay mình đẩy lên nhánh feature để bạn pull nhé.', '2026-10-31 15:56:30.973+07', '2026-10-31 15:37:40.84+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('21916b88-6e26-551e-84b5-8217ac5e159d', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Ok bạn. Nhớ xử lý trường hợp token hết hạn giúp mình, hôm qua demo bị văng ra màn hình đăng nhập.', NULL, '2026-10-31 15:56:58.294+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('363f82b3-513b-594c-9348-1f36f8d2a831', 'af37aeee-f959-53cb-af71-e1782f1cabee', '582d4dba-f518-521b-84ee-9538f8c868d5', 'Với lại tối nay họp nhóm 20h nhớ vào đúng giờ nha.', NULL, '2026-10-31 16:12:05.519+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('1e6d045a-407a-5961-a13e-406db686d9aa', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Chào bạn Hương, mình là Châu bên VNPAY. Bên mình đang tìm QA tester cho dự án ví điện tử, bạn có kinh nghiệm test API đúng không?', '2026-10-30 13:10:48.052+07', '2026-10-30 13:02:44.364+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('20793d08-6e45-5687-8344-da20ced44f0f', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Dạ em chào chị Châu. Em có làm test API bằng Postman và viết test case cho dự án DevHub ạ.', '2026-10-30 20:38:06.446+07', '2026-10-30 20:20:54.511+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('a6f69374-286a-5b59-8be3-863defe39136', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Rất phù hợp. Bạn nộp hồ sơ vào dự án "Kiểm thử phần mềm" trên DevHub nhé, bên mình sẽ ưu tiên xét.', '2026-10-30 23:12:16.554+07', '2026-10-30 22:56:35.528+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('52c3e495-cdfa-526c-bc7a-7688aa4edc8b', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', '5367db5d-eba6-5298-8218-1cfbf437a638', 'Dạ em đã ứng tuyển rồi ạ. Em mong sớm nhận được tin từ chị.', '2026-10-30 23:24:56.381+07', '2026-10-30 23:10:48.412+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('da27e854-86c8-55ca-aaac-31bb6903c2cf', '5367db5d-eba6-5298-8218-1cfbf437a638', 'f0181fc5-1977-508c-b6d2-1cc0bbad5d3a', 'Mình đã xem hồ sơ rồi, mai Admin sẽ liên hệ bạn để sắp xếp buổi phỏng vấn nhé.', NULL, '2026-10-30 23:25:09.78+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('f111d9de-cc0a-52b4-a588-bb7d794a1f30', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '429535c5-5df7-5e12-b135-1572e5931035', 'Anh Đạt ơi, em thấy anh trả lời bài hỏi về React Query. Cho em hỏi cách làm phân trang mà giữ dữ liệu trang cũ khi chuyển trang với ạ?', '2026-10-28 16:01:56.268+07', '2026-10-28 15:55:54.329+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('633d6268-f1e1-5034-9660-e66d832f22ff', '429535c5-5df7-5e12-b135-1572e5931035', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Chào Oanh. Với React Query v5 em dùng placeholderData: keepPreviousData, trang mới chưa về thì vẫn hiện dữ liệu cũ, không bị nháy màn hình trống.', '2026-10-28 16:10:46.028+07', '2026-10-28 16:08:13.961+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('e022f7d8-139d-5114-becb-55c572c4ecb1', '5d4c39b1-c708-566e-b938-1f07ecb049c5', '429535c5-5df7-5e12-b135-1572e5931035', 'Dạ, em đang dùng v4 với keepPreviousData: true, vậy em nâng lên v5 rồi đổi theo là được ạ?', '2026-10-28 20:16:13.129+07', '2026-10-28 20:06:22.826+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('d79cfbe7-86b7-5127-a1b7-d36e89537706', '429535c5-5df7-5e12-b135-1572e5931035', '5d4c39b1-c708-566e-b938-1f07ecb049c5', 'Đúng rồi, v5 đổi tên option đó. Nhớ đổi cả isLoading thành isPending ở mutation nữa nhé.', '2026-10-28 20:37:02.353+07', '2026-10-28 20:10:15.64+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('f04f9ae7-5082-5fea-b7b9-3c65828b10cf', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Chào Kiên, mình là Tâm bên MISA. Cảm ơn bạn đã ứng tuyển vị trí .NET Developer.', NULL, '2026-11-01 12:06:57.01+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('b23c3a5c-7199-5c19-97ae-27c65caf5441', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Bên mình muốn mời bạn phỏng vấn kỹ thuật vào 9h sáng thứ Sáu tuần này, hình thức online qua Google Meet.', NULL, '2026-11-01 14:45:34.905+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('68aa8ade-cbea-5a40-9f96-52da602db724', 'bfdd4f7f-aacc-5d43-ad40-6b5d97c4a166', 'e3fd00ba-34d4-5dae-bb50-e4282488a189', 'Bạn xác nhận giúp mình lịch này nhé, nếu bận mình sẽ dời sang buổi chiều cùng ngày.', NULL, '2026-11-01 15:03:31.449+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('c7167900-cfb7-5794-a2bf-e480843b423a', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Chào Lan, mình đang lập nhóm học React cuối tuần, mỗi tuần một buổi trên Discord. Bạn tham gia không?', '2026-10-26 15:13:39.067+07', '2026-10-26 15:08:51.894+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('bbe4e599-8705-5e2e-82d4-bfc6d1cc5531', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Hay quá Ánh ơi, mình tham gia! Buổi đầu học gì vậy bạn?', '2026-10-26 15:29:02.263+07', '2026-10-26 15:16:21.055+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('2905a819-5dd2-5b25-8fa4-aa0694bd6799', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Buổi đầu mình ôn hooks với bài tập nhỏ: todo list có lọc và lưu localStorage. Tối Chủ nhật 20h nhé.', '2026-10-26 15:35:01.854+07', '2026-10-26 15:31:16.039+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('131438e8-f847-5904-9243-b8c5d604b14a', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Ok bạn, mình sẽ vào đúng giờ. Bạn gửi link Discord cho mình nha.', '2026-10-26 16:23:37.577+07', '2026-10-26 15:46:15.124+07', NULL, NULL, false, false, NULL, NULL);
+INSERT INTO public.forum_messages VALUES ('b55285c2-94b0-5f43-a1cb-fc864549cd63', 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Mình gửi link ở tin nhắn sau nhé, bạn nhớ bật micro để trao đổi cho nhanh.', '2026-10-26 16:05:49.832+07', '2026-10-26 15:54:23.671+07', NULL, NULL, false, false, NULL, NULL);
 
 
 --
@@ -5925,10 +5989,10 @@ INSERT INTO public.forum_threads VALUES ('c09bfce6-4bee-5234-a3f8-61b5ad4fc903',
 INSERT INTO public.forum_threads VALUES ('3074bf77-7e22-5ae7-a037-a3f3c0aef634', NULL, 'fac54513-13fa-534b-acd1-121a0b2702c0', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 5, 2, '2026-10-29 20:18:10.798+07', 'cff0dd25-d9cf-5481-96ed-d440a500e764', '2026-10-29 11:42:04.302+07', '2026-10-29 20:18:10.798+07');
 INSERT INTO public.forum_threads VALUES ('44012eeb-0ab5-5656-bacf-1ab56137c7ed', NULL, 'fac54513-13fa-534b-acd1-121a0b2702c0', '71d52e51-4f4b-525c-9fd7-098e1919fbab', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 19, 3, '2026-11-01 05:10:26.91+07', '71d52e51-4f4b-525c-9fd7-098e1919fbab', '2026-10-31 15:41:47.279+07', '2026-11-01 05:10:26.91+07');
 INSERT INTO public.forum_threads VALUES ('4eba5d6f-0a69-53d6-9021-c5a7843b4b92', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 22, 3, '2026-10-24 21:53:55.124+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-24 10:48:26.231+07', '2026-10-24 21:53:55.124+07');
-INSERT INTO public.forum_threads VALUES ('85dcf9b8-a181-5c20-8878-9bd8af9148ae', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 25, 3, '2026-10-26 23:07:08.526+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-26 12:51:12.639+07', '2026-10-26 23:07:08.526+07');
 INSERT INTO public.forum_threads VALUES ('c3651837-cd72-5bdb-a0f2-4e006d5b7528', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 26, 3, '2026-10-28 15:50:10.736+07', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-28 12:22:14.817+07', '2026-10-28 15:50:10.736+07');
 INSERT INTO public.forum_threads VALUES ('aac6cc75-7d6e-5e5b-b97d-d7bcc3df20a2', '0c1d0a10-0000-4000-8000-000000000005', NULL, 'f224b438-95de-581f-ac10-c3d2e50e1a30', 'Có nên đầu tư học tiếng Anh giao tiếp khi mới đi làm IT?', false, false, 521, 3, '2026-10-16 05:04:57.222+07', 'f224b438-95de-581f-ac10-c3d2e50e1a30', '2026-10-15 11:43:43.224+07', '2026-11-06 08:37:12.016+07');
 INSERT INTO public.forum_threads VALUES ('bb3a8d08-a2c9-5cf2-9d47-2428d78c7039', '0c1d0a10-0000-4000-8000-000000000007', NULL, 'cff0dd25-d9cf-5481-96ed-d440a500e764', 'Giới thiệu bản thân: mới tham gia diễn đàn DevHub', false, false, 126, 3, '2026-11-02 02:01:31.859+07', 'db7c670f-1493-4391-8c34-722b0e3a487e', '2026-11-01 11:50:53.978+07', '2026-11-06 08:37:36.512+07');
+INSERT INTO public.forum_threads VALUES ('85dcf9b8-a181-5c20-8878-9bd8af9148ae', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 26, 3, '2026-10-26 23:07:08.526+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-26 12:51:12.639+07', '2026-11-13 10:42:14.009+07');
 INSERT INTO public.forum_threads VALUES ('c1e92046-6025-54f8-b9a9-78af4384c208', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 29, 2, '2026-10-30 04:44:49.089+07', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', '2026-10-29 14:01:22.083+07', '2026-10-30 04:44:49.089+07');
 INSERT INTO public.forum_threads VALUES ('ceb225be-a1ae-5d5e-b124-b439aa2a50f4', NULL, '4d2227c3-6d0a-5638-8708-017c4c5fcbcb', '4645dc90-a73d-5129-ae38-c91df8305fa7', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 14, 3, '2026-11-01 15:15:20.117+07', '4645dc90-a73d-5129-ae38-c91df8305fa7', '2026-10-31 15:15:33.599+07', '2026-11-01 15:15:20.117+07');
 INSERT INTO public.forum_threads VALUES ('65647ac3-606a-5f48-a8a1-9c702da47d74', NULL, '50d6cf25-9a87-57bb-aa93-7e90017ae094', 'b984662f-f458-5f25-a070-76b789a8d9d4', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 21, 3, '2026-10-25 08:44:53.399+07', 'b984662f-f458-5f25-a070-76b789a8d9d4', '2026-10-24 12:49:06.188+07', '2026-10-25 08:44:53.399+07');
@@ -5952,11 +6016,11 @@ INSERT INTO public.forum_threads VALUES ('82fa1252-a210-5b56-be33-b59ebc0a428c',
 INSERT INTO public.forum_threads VALUES ('dbcd2cd0-2b61-5feb-b00b-ec1632477c73', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 19, 2, '2026-10-29 16:15:01.482+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-29 10:14:29.735+07', '2026-10-29 16:15:01.482+07');
 INSERT INTO public.forum_threads VALUES ('5d4bf3c3-a69f-58d7-bdc0-5ab88e824970', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 15, 3, '2026-11-01 10:45:06.208+07', 'aa1af617-5227-4f42-a47b-7c4dd00250dd', '2026-10-31 13:44:02.595+07', '2026-11-01 10:45:06.208+07');
 INSERT INTO public.forum_threads VALUES ('f86b96d6-c65d-51db-8849-6367cfa9bb53', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Họp nhóm đầu tuần: thống nhất kế hoạch sprint', false, false, 13, 3, '2026-10-24 16:37:34.856+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-24 12:16:43.949+07', '2026-10-24 16:37:34.856+07');
-INSERT INTO public.forum_threads VALUES ('80623bbd-74fe-5bef-8bda-07927780f0c5', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 16, 3, '2026-10-26 22:24:43.813+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-26 15:00:54.649+07', '2026-10-26 22:24:43.813+07');
-INSERT INTO public.forum_threads VALUES ('cb63750e-43b2-5cfb-98f2-29604965dc84', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 6, 3, '2026-10-28 20:17:27.88+07', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-28 10:04:51.757+07', '2026-10-28 20:17:27.88+07');
 INSERT INTO public.forum_threads VALUES ('302b3dde-7a04-54e1-b9d5-2bcce4c1ba97', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'Nhắc nhở: cập nhật trạng thái task và nghiệm thu đúng hạn', false, false, 6, 2, '2026-10-30 03:14:14.898+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-29 12:45:52.476+07', '2026-10-30 03:14:14.898+07');
 INSERT INTO public.forum_threads VALUES ('2416e335-8f20-5601-b188-9046286c786d', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', 'Chia sẻ tài liệu: hướng dẫn chạy dự án trên máy cá nhân', false, false, 6, 3, '2026-11-01 16:32:42.507+07', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-31 13:26:03.108+07', '2026-11-01 16:32:42.507+07');
 INSERT INTO public.forum_threads VALUES ('dd25d243-fe3e-523b-be17-187138eec206', NULL, '5308bacc-baeb-4e27-a2ae-a7d777efdb66', '4e332674-295d-444c-a507-2d60b50f1be1', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 24, 3, '2026-10-26 21:55:59.236+07', '4e332674-295d-444c-a507-2d60b50f1be1', '2026-10-26 10:18:38.159+07', '2026-11-12 17:01:27.209+07');
+INSERT INTO public.forum_threads VALUES ('cb63750e-43b2-5cfb-98f2-29604965dc84', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'e5457bad-b9c4-5188-8f44-c730bbbcdb51', 'Hỏi về API đăng nhập: trả về token như thế nào?', false, false, 7, 3, '2026-10-28 20:17:27.88+07', '5acc1a9a-eae7-50af-a54c-9d1f736780c1', '2026-10-28 10:04:51.757+07', '2026-11-13 10:39:13.879+07');
+INSERT INTO public.forum_threads VALUES ('80623bbd-74fe-5bef-8bda-07927780f0c5', NULL, 'cf68b260-0ac6-5dcc-879b-f222364b0707', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', 'Quy ước đặt tên nhánh và commit của dự án', true, false, 17, 3, '2026-10-26 22:24:43.813+07', 'd60911d7-419e-5c8c-a572-52fabb20ee3d', '2026-10-26 15:00:54.649+07', '2026-11-13 10:40:52.595+07');
 
 
 --
@@ -7386,6 +7450,7 @@ INSERT INTO public.notifications VALUES ('1eae9f2e-6222-465b-908e-7d83c62dd236',
 INSERT INTO public.notifications VALUES ('89cda49a-b772-5455-b06c-ef133d98e512', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Dương Mai Quỳnh vừa nộp hồ sơ vào vị trí "PHP Laravel Developer".', '/employer/jobs/14bb2fc2-756f-5d17-8d8a-f351d7a06601?tab=applications', true, '{"demo": true, "job_post_id": "14bb2fc2-756f-5d17-8d8a-f351d7a06601", "application_id": "0ba38563-67f7-5699-a80f-c1a5d7ba4a70"}', '2026-10-23 22:13:34.549+07');
 INSERT INTO public.notifications VALUES ('6db707ea-d5ee-5de6-8195-a23dd501f738', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Hồ Minh Nam vừa nộp hồ sơ vào vị trí "PHP Laravel Developer".', '/employer/jobs/14bb2fc2-756f-5d17-8d8a-f351d7a06601?tab=applications', true, '{"demo": true, "job_post_id": "14bb2fc2-756f-5d17-8d8a-f351d7a06601", "application_id": "fcc18517-217b-5415-afd7-fc28e3471a6b"}', '2026-10-23 03:09:33.101+07');
 INSERT INTO public.notifications VALUES ('c539eb01-a21c-523f-8494-4e807864388f', 'db7c670f-1493-4391-8c34-722b0e3a487e', 'TASK_STATUS_CHANGED', 'Task chờ nghiệm thu', 'Đặng Thị Nga đã nộp "Kiểm thử API đăng nhập và phân quyền" và chờ bạn duyệt.', '/admin/workspaces/50d6cf25-9a87-57bb-aa93-7e90017ae094', true, '{"demo": true, "workspace_id": "50d6cf25-9a87-57bb-aa93-7e90017ae094"}', '2026-10-29 10:04:56.352+07');
+INSERT INTO public.notifications VALUES ('bfdfe0ea-f72e-46b9-a706-9750e31e2733', '75f3a4ef-8606-5bd6-8ae8-02ea1d82b2bb', 'FORUM_MESSAGE', 'Bạn có tin nhắn mới', 'DevHub Admin: em làm ok lắm', '/forum/messages?with=db7c670f-1493-4391-8c34-722b0e3a487e', false, '{"from": "db7c670f-1493-4391-8c34-722b0e3a487e"}', '2026-11-13 10:42:24.145+07');
 INSERT INTO public.notifications VALUES ('072fcef9-84a5-59a4-9d2b-2ec108e80ac7', 'e7dbd809-2b8d-53e8-a72b-87456ecffa90', 'APPLICATION_SUBMITTED', 'Có hồ sơ ứng tuyển mới', 'Ngô Minh Thịnh vừa nộp hồ sơ vào vị trí "Junior Fullstack Developer".', '/employer/jobs/eaf031cd-6561-52d6-bb0a-9eea254f7055?tab=applications', true, '{"demo": true, "job_post_id": "eaf031cd-6561-52d6-bb0a-9eea254f7055", "application_id": "800ba703-6ab7-5a2d-863e-ec74f0b55f98"}', '2026-10-22 18:11:47.55+07');
 INSERT INTO public.notifications VALUES ('214ad614-2062-42a2-b7e5-4ad9324dce16', '8ec61d09-a425-5d54-a53a-90d541a198c5', 'FORUM_FOLLOW', 'Thành viên bạn theo dõi vừa mở chủ đề mới', 'Vũ Bảo Lan đã mở chủ đề "[Thử chế tài] Quảng cáo khóa học giảm giá" ở chuyên mục Hỏi đáp kỹ thuật.', '/forum/t/2d7e3054-53d4-4ea7-82e2-35722ccfe5b2', false, '{"author_id": "e5457bad-b9c4-5188-8f44-c730bbbcdb51", "thread_id": "2d7e3054-53d4-4ea7-82e2-35722ccfe5b2"}', '2026-11-03 09:17:02.43+07');
 INSERT INTO public.notifications VALUES ('dd905da2-a7af-4b35-8ebe-b52e58f779ed', 'af37aeee-f959-53cb-af71-e1782f1cabee', 'FORUM_FOLLOW', 'Thành viên bạn theo dõi vừa mở chủ đề mới', 'Vũ Bảo Lan đã mở chủ đề "[Thử chế tài] Quảng cáo khóa học giảm giá" ở chuyên mục Hỏi đáp kỹ thuật.', '/forum/t/2d7e3054-53d4-4ea7-82e2-35722ccfe5b2', false, '{"author_id": "e5457bad-b9c4-5188-8f44-c730bbbcdb51", "thread_id": "2d7e3054-53d4-4ea7-82e2-35722ccfe5b2"}', '2026-11-03 09:17:02.431+07');
@@ -9219,6 +9284,14 @@ ALTER TABLE ONLY public.forum_categories
 
 
 --
+-- Name: forum_conversation_settings forum_conversation_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_conversation_settings
+    ADD CONSTRAINT forum_conversation_settings_pkey PRIMARY KEY (user_id, peer_id);
+
+
+--
 -- Name: forum_follows forum_follows_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9240,6 +9313,22 @@ ALTER TABLE ONLY public.forum_ignores
 
 ALTER TABLE ONLY public.forum_member_activity
     ADD CONSTRAINT forum_member_activity_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: forum_message_reactions forum_message_reactions_message_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_message_reactions
+    ADD CONSTRAINT forum_message_reactions_message_id_user_id_key UNIQUE (message_id, user_id);
+
+
+--
+-- Name: forum_message_reactions forum_message_reactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_message_reactions
+    ADD CONSTRAINT forum_message_reactions_pkey PRIMARY KEY (id);
 
 
 --
@@ -9637,6 +9726,13 @@ CREATE INDEX idx_forum_follows_followee ON public.forum_follows USING btree (fol
 
 
 --
+-- Name: idx_forum_message_reactions_message; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_forum_message_reactions_message ON public.forum_message_reactions USING btree (message_id);
+
+
+--
 -- Name: idx_forum_messages_recipient; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9889,6 +9985,22 @@ ALTER TABLE ONLY public.forum_bookmarks
 
 
 --
+-- Name: forum_conversation_settings forum_conversation_settings_peer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_conversation_settings
+    ADD CONSTRAINT forum_conversation_settings_peer_id_fkey FOREIGN KEY (peer_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_conversation_settings forum_conversation_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_conversation_settings
+    ADD CONSTRAINT forum_conversation_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: forum_follows forum_follows_followee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9937,11 +10049,43 @@ ALTER TABLE ONLY public.forum_member_activity
 
 
 --
+-- Name: forum_message_reactions forum_message_reactions_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_message_reactions
+    ADD CONSTRAINT forum_message_reactions_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.forum_messages(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_message_reactions forum_message_reactions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_message_reactions
+    ADD CONSTRAINT forum_message_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_messages forum_messages_pinned_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_messages
+    ADD CONSTRAINT forum_messages_pinned_by_fkey FOREIGN KEY (pinned_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: forum_messages forum_messages_recipient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.forum_messages
     ADD CONSTRAINT forum_messages_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forum_messages forum_messages_reply_to_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.forum_messages
+    ADD CONSTRAINT forum_messages_reply_to_id_fkey FOREIGN KEY (reply_to_id) REFERENCES public.forum_messages(id) ON DELETE SET NULL;
 
 
 --
@@ -10404,5 +10548,5 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
-\unrestrict tQcMeCuNMzTzRdnn95Z3E8kDiu4pmDm9i89yur5u9IUO9vpgIuiPDR5qqnMb0I2
+\unrestrict NGez2rFQVz4SCkmwJQFMdk8MTyIy2WpsEbRgoshPCzPUguLoVzTwkdQJe2HKZJF
 
