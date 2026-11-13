@@ -501,8 +501,8 @@ export default function CandidateDetailPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           {targetUrl ? (
-                            <Link to={targetUrl} className="block text-sm font-semibold text-slate-900 hover:text-primary-700 hover:underline truncate">
-                              {pa.job_title}
+                            <Link to={targetUrl} target="_blank" rel="noopener noreferrer" className="block text-sm font-semibold text-slate-900 hover:text-primary-700 hover:underline truncate">
+                              {pa.job_title} ↗
                             </Link>
                           ) : (
                             <p className="text-sm font-semibold text-slate-900 truncate">{pa.job_title}</p>

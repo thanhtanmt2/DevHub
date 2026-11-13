@@ -175,10 +175,12 @@ export default function InternalProjectsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/admin/projects/interviewers"
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-light flex items-center gap-1.5"
           >
             <Icon name="users" className="w-4 h-4" />
-            Quản lý người phỏng vấn
+            Quản lý người phỏng vấn ↗
           </Link>
           <button onClick={() => setShowAddProject(!showAddProject)} className="btn-light">
             + Tạo dự án mới
@@ -354,10 +356,12 @@ export default function InternalProjectsPage() {
                         <td className="p-3.5 max-w-xs">
                           <Link
                             to={`/admin/projects/${project.id}/jobs`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="font-bold text-gray-900 hover:text-primary-700 hover:underline truncate block"
-                            title={project.name}
+                            title={`${project.name} (Mở tab mới)`}
                           >
-                            {project.name}
+                            {project.name} ↗
                           </Link>
                           {project.description && (
                             <p className="text-xs text-gray-500 line-clamp-1 mt-0.5" title={project.description}>{project.description}</p>
@@ -383,6 +387,8 @@ export default function InternalProjectsPage() {
                         <td className="p-3.5 whitespace-nowrap">
                           <Link
                             to={`/admin/projects/${project.id}/jobs`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-semibold transition-colors"
                           >
                             <Icon name="briefcase" className="w-3.5 h-3.5" />
@@ -393,6 +399,7 @@ export default function InternalProjectsPage() {
                                 {as.pending} mới
                               </span>
                             )}
+                            <span>↗</span>
                           </Link>
                         </td>
                         <td className="p-3.5 whitespace-nowrap text-xs">
@@ -415,10 +422,12 @@ export default function InternalProjectsPage() {
                           <div className="inline-flex items-center justify-end gap-1.5">
                             <Link
                               to={`/admin/projects/${project.id}/jobs/new`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium"
-                              title="Thêm vị trí tuyển dụng"
+                              title="Thêm vị trí tuyển dụng (Mở tab mới)"
                             >
-                              + Vị trí
+                              + Vị trí ↗
                             </Link>
                             {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
                               <button
@@ -502,9 +511,11 @@ export default function InternalProjectsPage() {
                           <div className="flex items-start justify-between gap-2">
                             <Link
                               to={`/admin/projects/${project.id}/jobs`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="font-bold text-sm text-gray-900 hover:text-primary-700 hover:underline leading-snug"
                             >
-                              {project.name}
+                              {project.name} ↗
                             </Link>
                             <button
                               type="button"
@@ -543,6 +554,8 @@ export default function InternalProjectsPage() {
                           <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1">
                             <Link
                               to={`/admin/projects/${project.id}/jobs`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium inline-flex items-center gap-1"
                             >
                               <span>Vị trí & UV ({project.ProjectJobs?.length || 0})</span>
@@ -551,12 +564,15 @@ export default function InternalProjectsPage() {
                                   {as.pending}
                                 </span>
                               )}
+                              <span>↗</span>
                             </Link>
                             <Link
                               to={`/admin/projects/${project.id}/jobs/new`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium"
                             >
-                              + Vị trí
+                              + Vị trí ↗
                             </Link>
                             {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
                               <button
@@ -615,9 +631,11 @@ export default function InternalProjectsPage() {
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <Link
                       to={`/admin/projects/${project.id}/jobs`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="font-bold text-lg text-gray-900 hover:text-primary-700 hover:underline"
                     >
-                      {project.name}
+                      {project.name} ↗
                     </Link>
                     <div className="flex gap-2 items-center flex-shrink-0">
                       <select
@@ -674,17 +692,21 @@ export default function InternalProjectsPage() {
                           <Link
                             key={j.id}
                             to={`/admin/projects/${project.id}/jobs?job=${j.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="px-2 py-0.5 rounded-md bg-white border border-gray-200 hover:border-primary-300 text-gray-700 hover:text-primary-700 font-medium transition-colors"
                           >
-                            {j.title}
+                            {j.title} ↗
                           </Link>
                         ))}
                         {project.ProjectJobs.length > 4 && (
                           <Link
                             to={`/admin/projects/${project.id}/jobs`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="px-1.5 py-0.5 text-gray-400 hover:text-primary-700"
                           >
-                            +{project.ProjectJobs.length - 4} vị trí khác
+                            +{project.ProjectJobs.length - 4} vị trí khác ↗
                           </Link>
                         )}
                       </div>
@@ -739,6 +761,8 @@ export default function InternalProjectsPage() {
                   <div className="flex flex-wrap gap-2">
                     <Link
                       to={`/admin/projects/${project.id}/jobs`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className={`px-3 py-1.5 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition-colors ${
                         as.pending > 0
                           ? 'bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200'
@@ -752,12 +776,15 @@ export default function InternalProjectsPage() {
                           {as.pending} mới
                         </span>
                       )}
+                      <Icon name="external" className="w-3 h-3 opacity-70" />
                     </Link>
                     <Link
                       to={`/admin/projects/${project.id}/jobs/new`}
-                      className="px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium inline-flex items-center"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium inline-flex items-center gap-1"
                     >
-                      + Thêm Vị Trí
+                      + Thêm Vị Trí ↗
                     </Link>
                     {project.Workspace && ['PLANNING', 'RECRUITING', 'IN_PROGRESS'].includes(project.status) && (
                       <button

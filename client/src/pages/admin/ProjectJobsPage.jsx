@@ -780,10 +780,12 @@ export default function ProjectJobsPage() {
                               {profile?.id ? (
                                 <Link
                                   to={`/admin/candidates/${profile.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="font-bold text-base text-slate-900 hover:text-primary-700 hover:underline"
-                                  title="Mở trang hồ sơ năng lực đầy đủ của ứng viên"
+                                  title="Mở trang hồ sơ năng lực đầy đủ của ứng viên (tab mới)"
                                 >
-                                  {fullName}
+                                  {fullName} ↗
                                 </Link>
                               ) : (
                                 <span className="font-bold text-base text-slate-900">{fullName}</span>
@@ -1023,10 +1025,12 @@ export default function ProjectJobsPage() {
                             {profile?.id && (
                               <Link
                                 to={`/admin/candidates/${profile.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="btn-primary text-xs !py-2 !px-3 inline-flex items-center justify-center gap-1.5"
                               >
                                 <Icon name="user" className="w-3.5 h-3.5" />
-                                Hồ sơ năng lực đầy đủ
+                                Hồ sơ năng lực đầy đủ ↗
                               </Link>
                             )}
 
