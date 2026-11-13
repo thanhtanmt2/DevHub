@@ -7,8 +7,6 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon from '@/components/common/Icon';
 import PageBanner from '@/components/common/PageBanner';
 import { useConfirm } from '@/components/common/ConfirmDialog';
-import ProjectJobFormModal from '@/components/admin/ProjectJobFormModal';
-import { ManageInterviewersModal } from '@/components/admin/ProjectInterviewModals';
 import { PROJECT_STATUS_META, formatDate, formatMoney } from '@/utils/jobMeta';
 
 export default function InternalProjectsPage() {
@@ -22,10 +20,6 @@ export default function InternalProjectsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-
-  // Modals
-  const [activeProjectForJob, setActiveProjectForJob] = useState(null);
-  const [showManageInterviewers, setShowManageInterviewers] = useState(false);
 
   const { data: projectsRes, isLoading } = useQuery({
     queryKey: ['admin-projects'],
@@ -179,14 +173,13 @@ export default function InternalProjectsPage() {
         subtitle="Quản lý các dự án nội bộ và vị trí tuyển dụng thời vụ"
       >
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowManageInterviewers(true)}
+          <Link
+            to="/admin/projects/interviewers"
             className="btn-light flex items-center gap-1.5"
           >
             <Icon name="users" className="w-4 h-4" />
             Quản lý người phỏng vấn
-          </button>
+          </Link>
           <button onClick={() => setShowAddProject(!showAddProject)} className="btn-light">
             + Tạo dự án mới
           </button>
@@ -420,14 +413,13 @@ export default function InternalProjectsPage() {
                         </td>
                         <td className="p-3.5 whitespace-nowrap text-right">
                           <div className="inline-flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setActiveProjectForJob(project)}
+                            <Link
+                              to={`/admin/projects/${project.id}/jobs/new`}
                               className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium"
                               title="Thêm vị trí tuyển dụng"
                             >
                               + Vị trí
-                            </button>
+                            </Link>
                             {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
                               <button
                                 type="button"
@@ -560,13 +552,12 @@ export default function InternalProjectsPage() {
                                 </span>
                               )}
                             </Link>
-                            <button
-                              type="button"
-                              onClick={() => setActiveProjectForJob(project)}
+                            <Link
+                              to={`/admin/projects/${project.id}/jobs/new`}
                               className="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium"
                             >
                               + Vị trí
-                            </button>
+                            </Link>
                             {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
                               <button
                                 type="button"
@@ -762,13 +753,12 @@ export default function InternalProjectsPage() {
                         </span>
                       )}
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setActiveProjectForJob(project)}
-                      className="px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium"
+                    <Link
+                      to={`/admin/projects/${project.id}/jobs/new`}
+                      className="px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded text-xs font-medium inline-flex items-center"
                     >
                       + Thêm Vị Trí
-                    </button>
+                    </Link>
                     {project.Workspace && ['PLANNING', 'RECRUITING', 'IN_PROGRESS'].includes(project.status) && (
                       <button
                         onClick={() => handleCloseProject(project)}
@@ -819,19 +809,6 @@ export default function InternalProjectsPage() {
             );
           })}
         </div>
-      )}
-
-      {/* Modal Thêm Vị Trí (ProjectJob) dùng chung */}
-      {activeProjectForJob && (
-        <ProjectJobFormModal
-          project={activeProjectForJob}
-          onClose={() => setActiveProjectForJob(null)}
-        />
-      )}
-
-      {/* Manage Interviewers Modal dùng chung */}
-      {showManageInterviewers && (
-        <ManageInterviewersModal onClose={() => setShowManageInterviewers(false)} />
       )}
     </div>
   );

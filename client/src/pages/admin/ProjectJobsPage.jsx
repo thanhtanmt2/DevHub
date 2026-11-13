@@ -10,8 +10,6 @@ import Avatar from '@/components/common/Avatar';
 import PageBanner from '@/components/common/PageBanner';
 import { SkillTag } from '@/components/common/Badges';
 import { useConfirm } from '@/components/common/ConfirmDialog';
-import ProjectJobFormModal from '@/components/admin/ProjectJobFormModal';
-import { ManageInterviewersModal, ScheduleInterviewModal } from '@/components/admin/ProjectInterviewModals';
 import { PROJECT_APPLICATION_STATUS } from '@/utils/applicationStatus';
 import {
   EXPERIENCE_LABELS,
@@ -46,11 +44,6 @@ export default function ProjectJobsPage() {
   const [sortBy, setSortBy] = useState('priority'); // 'priority' | 'newest' | 'competency' | 'avg_eval'
   const [showJobInfo, setShowJobInfo] = useState(false);
   const [expandedLetters, setExpandedLetters] = useState({});
-
-  // Modals state
-  const [jobModal, setJobModal] = useState(null); // null | { job: null | ProjectJob }
-  const [interviewApp, setInterviewApp] = useState(null);
-  const [showManageInterviewers, setShowManageInterviewers] = useState(false);
 
   const { data: projectRes, isLoading: projectLoading, isError: projectError } = useQuery({
     queryKey: ['admin-project', projectId],
@@ -288,14 +281,13 @@ export default function ProjectJobsPage() {
             <Icon name="chevronLeft" className="w-4 h-4" />
             Về danh sách dự án
           </button>
-          <button
-            type="button"
-            onClick={() => setShowManageInterviewers(true)}
+          <Link
+            to="/admin/projects/interviewers"
             className="btn-glass inline-flex items-center gap-1.5"
           >
             <Icon name="users" className="w-4 h-4" />
             Người phỏng vấn
-          </button>
+          </Link>
           {project.Workspace && (
             <Link
               to={`/admin/workspaces/${project.Workspace.id}`}
@@ -305,13 +297,12 @@ export default function ProjectJobsPage() {
               Workspace →
             </Link>
           )}
-          <button
-            type="button"
-            onClick={() => setJobModal({ job: null })}
+          <Link
+            to={`/admin/projects/${projectId}/jobs/new`}
             className="btn-light inline-flex items-center gap-1.5"
           >
             + Thêm vị trí tuyển dụng
-          </button>
+          </Link>
         </div>
       </PageBanner>
 
@@ -325,74 +316,83 @@ export default function ProjectJobsPage() {
           <p className="text-sm text-slate-500 max-w-md mx-auto mb-5">
             Hãy thêm các vị trí công việc cần tuyển cho dự án <strong>{project.name}</strong> để ứng viên IT bắt đầu nộp hồ sơ.
           </p>
-          <button
-            type="button"
-            onClick={() => setJobModal({ job: null })}
+          <Link
+            to={`/admin/projects/${projectId}/jobs/new`}
             className="btn-primary inline-flex items-center gap-1.5"
           >
             + Tạo vị trí tuyển dụng đầu tiên
-          </button>
+          </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[21rem_minmax(0,1fr)] gap-6 items-start">
-          {/* ─── CỘT TRÁI: Danh sách vị trí tuyển dụng của dự án ─── */}
-          <aside className="space-y-3 lg:sticky lg:top-20">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Vị trí trong dự án ({projectJobs.length})
-              </h2>
-              <button
-                type="button"
-                onClick={() => setJobModal({ job: null })}
-                className="text-xs font-semibold text-primary-700 hover:text-primary-800 hover:underline"
+        <div className="space-y-6">
+          {/* ─── PHẦN 1: Danh sách vị trí tuyển dụng rộng rãi trên toàn chiều ngang ─── */}
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+                  1. Chọn vị trí tuyển dụng ({projectJobs.length} vị trí)
+                </h2>
+                <span className="text-xs text-slate-500">
+                  — Bấm vào 1 vị trí để lọc ứng viên hoặc quản lý vị trí đó
+                </span>
+              </div>
+              <Link
+                to={`/admin/projects/${projectId}/jobs/new`}
+                className="btn-primary text-xs !py-2 !px-3.5 inline-flex items-center gap-1.5"
               >
-                + Thêm vị trí
-              </button>
+                + Thêm vị trí mới
+              </Link>
             </div>
 
-            {/* Thẻ "Tất cả vị trí" */}
-            <button
-              type="button"
-              onClick={() => setSelectedJobId('ALL')}
-              className={`w-full text-left rounded-2xl border p-3.5 transition-all ${
-                !selectedJob
-                  ? 'bg-primary-50/80 border-primary-600 ring-2 ring-primary-200 shadow-sm'
-                  : 'bg-white border-slate-200 hover:border-primary-300 hover:bg-slate-50/60'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      !selectedJob ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    <Icon name="folder" className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className={`text-sm font-bold truncate ${!selectedJob ? 'text-primary-900' : 'text-slate-900'}`}>
-                      Tất cả vị trí ({projectJobs.length})
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Xem toàn bộ ứng viên của dự án
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {/* Thẻ "Tất cả vị trí" */}
+              <button
+                type="button"
+                onClick={() => setSelectedJobId('ALL')}
+                className={`text-left rounded-2xl border p-4 transition-all flex flex-col justify-between ${
+                  !selectedJob
+                    ? 'bg-primary-50/80 border-primary-600 ring-2 ring-primary-200 shadow-sm'
+                    : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        !selectedJob ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      <Icon name="folder" className="w-5 h-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className={`text-base font-bold truncate ${!selectedJob ? 'text-primary-900' : 'text-slate-900'}`}>
+                        Tất cả vị trí ({projectJobs.length})
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Hiển thị toàn bộ ứng viên của dự án
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 flex-shrink-0">
                     {totalAppsAll} hồ sơ
                   </span>
-                  {totalPendingAll > 0 && (
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary-600 text-white">
-                      {totalPendingAll} mới
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="text-slate-600 font-medium">
+                    Tổng hợp mọi vị trí trong dự án
+                  </span>
+                  {totalPendingAll > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-600 text-white">
+                      {totalPendingAll} hồ sơ chờ duyệt
                     </span>
+                  ) : (
+                    <span className="text-emerald-700 font-semibold">Đã xử lý hết hồ sơ mới</span>
                   )}
                 </div>
-              </div>
-            </button>
+              </button>
 
-            {/* Danh sách từng vị trí */}
-            <div className="space-y-2.5 max-h-[calc(100vh-14rem)] overflow-y-auto pr-0.5">
+              {/* Danh sách từng vị trí */}
               {projectJobs.map((job) => {
                 const isSelected = selectedJob?.id === job.id;
                 const apps = job.ProjectApplications || [];
@@ -416,89 +416,92 @@ export default function ProjectJobsPage() {
                         setSelectedJobId(job.id);
                       }
                     }}
-                    className={`rounded-2xl border p-3.5 transition-all cursor-pointer ${
+                    className={`rounded-2xl border p-4 transition-all cursor-pointer flex flex-col justify-between ${
                       isSelected
                         ? 'bg-primary-50/70 border-primary-600 ring-2 ring-primary-200 shadow-sm'
                         : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className={`font-bold text-sm leading-snug ${isSelected ? 'text-primary-900' : 'text-slate-900'}`}>
-                        {job.title}
-                      </h3>
-                      <span
-                        className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                          isClosed
-                            ? 'bg-red-100 text-red-700'
-                            : dl.expired
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-emerald-100 text-emerald-800'
-                        }`}
-                      >
-                        {isClosed ? 'Đã đóng' : dl.expired ? 'Hết hạn' : 'Đang mở'}
-                      </span>
-                    </div>
-
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                      <span className="font-bold text-emerald-700">{formatMoney(job.budget)}</span>
-                      <span>· Cần {job.quantity || 1} người</span>
-                      {job.deadline && <span>· Hạn {formatDate(job.deadline)}</span>}
-                    </div>
-
-                    {job.Skills?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {job.Skills.slice(0, 4).map((s) => (
-                          <span
-                            key={s.id}
-                            className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium"
-                          >
-                            {s.name}
-                          </span>
-                        ))}
-                        {job.Skills.length > 4 && (
-                          <span className="text-[10px] text-slate-400 self-center">+{job.Skills.length - 4}</span>
-                        )}
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className={`font-bold text-base leading-snug ${isSelected ? 'text-primary-900' : 'text-slate-900'}`}>
+                          {job.title}
+                        </h3>
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-0.5 rounded-full flex-shrink-0 ${
+                            isClosed
+                              ? 'bg-red-100 text-red-700'
+                              : dl.expired
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}
+                        >
+                          {isClosed ? 'Đã đóng' : dl.expired ? 'Hết hạn' : 'Đang mở'}
+                        </span>
                       </div>
-                    )}
 
-                    {/* Số liệu ứng viên của vị trí */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-1.5">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                        <span className="font-bold text-emerald-700">{formatMoney(job.budget)}</span>
+                        <span>· Cần {job.quantity || 1} người</span>
+                        {job.deadline && <span>· Hạn {formatDate(job.deadline)}</span>}
+                      </div>
+
+                      {job.Skills?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2.5">
+                          {job.Skills.slice(0, 5).map((s) => (
+                            <span
+                              key={s.id}
+                              className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-medium"
+                            >
+                              {s.name}
+                            </span>
+                          ))}
+                          {job.Skills.length > 5 && (
+                            <span className="text-[11px] text-slate-400 self-center">+{job.Skills.length - 5}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Số liệu ứng viên & thao tác nhanh của vị trí */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="font-semibold text-slate-700">
+                        <span className="font-bold text-slate-700">
                           {apps.length} hồ sơ
                         </span>
-                        {acceptedCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold text-[11px]">
-                            {acceptedCount}/{job.quantity || 1} trúng tuyển
-                          </span>
-                        )}
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold text-[11px]">
+                          {acceptedCount}/{job.quantity || 1} đạt
+                        </span>
                         {pendingCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-primary-600 text-white font-bold text-[10px]">
+                          <span className="px-2 py-0.5 rounded-full bg-primary-600 text-white font-bold text-[11px]">
                             {pendingCount} mới
                           </span>
                         )}
                         {rescheduleCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px]">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[11px]">
                             ⚠ {rescheduleCount} dời lịch
                           </span>
                         )}
                       </div>
 
                       <div
-                        className="flex items-center gap-2 text-xs font-medium"
+                        className="flex items-center gap-2 text-xs font-semibold"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button
-                          type="button"
-                          onClick={() => setJobModal({ job })}
-                          className="text-primary-700 hover:underline"
+                        <Link
+                          to={`/admin/projects/${projectId}/jobs/${job.id}/edit`}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-primary-50 text-primary-700 transition-colors"
                         >
-                          Sửa
-                        </button>
+                          Sửa / Gia hạn
+                        </Link>
                         <button
                           type="button"
                           onClick={() => toggleJobStatus(job)}
-                          className={job.status === 'OPEN' ? 'text-amber-700 hover:underline' : 'text-emerald-700 hover:underline'}
+                          className={`px-2.5 py-1 rounded-lg transition-colors ${
+                            job.status === 'OPEN'
+                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                          }`}
                         >
                           {job.status === 'OPEN' ? 'Đóng' : 'Mở lại'}
                         </button>
@@ -508,16 +511,19 @@ export default function ProjectJobsPage() {
                 );
               })}
             </div>
-          </aside>
+          </section>
 
-          {/* ─── CỘT PHẢI: Chi tiết vị trí & Danh sách hồ sơ ứng viên ─── */}
-          <div className="space-y-4 min-w-0">
+          {/* ─── PHẦN 2: Chi tiết vị trí đang chọn & Danh sách ứng viên toàn chiều ngang ─── */}
+          <section className="space-y-4">
             {/* Thẻ thông tin vị trí đang chọn */}
             {selectedJob && (
-              <div className="card !p-5 space-y-4">
+              <div className="card !p-5 space-y-4 border-primary-200 bg-primary-50/20">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary-700 bg-primary-100 px-2.5 py-0.5 rounded-md">
+                        Đang lọc theo vị trí
+                      </span>
                       <h2 className="text-xl font-extrabold text-slate-900">{selectedJob.title}</h2>
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
@@ -560,24 +566,23 @@ export default function ProjectJobsPage() {
                       to={`/projects/${selectedJob.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-secondary text-xs !py-1.5 !px-3 inline-flex items-center gap-1.5"
+                      className="btn-secondary text-xs !py-1.5 !px-3 inline-flex items-center gap-1.5 bg-white"
                     >
                       <Icon name="external" className="w-3.5 h-3.5" />
                       Xem như ứng viên
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setJobModal({ job: selectedJob })}
-                      className="btn-secondary text-xs !py-1.5 !px-3 inline-flex items-center gap-1.5"
+                    <Link
+                      to={`/admin/projects/${projectId}/jobs/${selectedJob.id}/edit`}
+                      className="btn-secondary text-xs !py-1.5 !px-3 inline-flex items-center gap-1.5 bg-white"
                     >
                       <Icon name="pencil" className="w-3.5 h-3.5" />
                       Sửa / Gia hạn
-                    </button>
+                    </Link>
                     <button
                       type="button"
                       onClick={() => toggleJobStatus(selectedJob)}
                       disabled={updateJobMutation.isPending}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors inline-flex items-center gap-1.5 ${
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors inline-flex items-center gap-1.5 bg-white ${
                         selectedJob.status === 'OPEN'
                           ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
                           : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
@@ -590,7 +595,7 @@ export default function ProjectJobsPage() {
                 </div>
 
                 {/* Nút bật/tắt xem chi tiết mô tả & yêu cầu của vị trí */}
-                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                <div className="pt-3 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-1.5">
                     {selectedJob.Skills?.map((s) => (
                       <SkillTag key={s.id} name={s.name} />
@@ -607,8 +612,8 @@ export default function ProjectJobsPage() {
                 </div>
 
                 {showJobInfo && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-100 text-sm animate-fade-in">
-                    <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200/70 text-sm animate-fade-in">
+                    <div className="bg-white rounded-xl p-3.5 border border-slate-200/80">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Mô tả công việc
                       </h4>
@@ -616,7 +621,7 @@ export default function ProjectJobsPage() {
                         {selectedJob.description || 'Chưa cập nhật mô tả công việc.'}
                       </p>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80">
+                    <div className="bg-white rounded-xl p-3.5 border border-slate-200/80">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Yêu cầu ứng viên
                       </h4>
@@ -624,7 +629,7 @@ export default function ProjectJobsPage() {
                         {selectedJob.requirements || 'Chưa cập nhật yêu cầu ứng viên.'}
                       </p>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80">
+                    <div className="bg-white rounded-xl p-3.5 border border-slate-200/80">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                         Quyền lợi được hưởng
                       </h4>
@@ -639,6 +644,21 @@ export default function ProjectJobsPage() {
 
             {/* Thanh công cụ lọc trạng thái & tìm kiếm ứng viên */}
             <div className="card !p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+                  2. Danh sách hồ sơ ứng viên ({filteredApps.length}/{scopedApps.length})
+                </h3>
+                {selectedJob && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJobId('ALL')}
+                    className="text-xs font-semibold text-primary-700 hover:underline"
+                  >
+                    ← Xem tất cả ứng viên của mọi vị trí ({totalAppsAll})
+                  </button>
+                )}
+              </div>
+
               <div className="flex flex-wrap items-center gap-1.5">
                 {STATUS_FILTERS.map((f) => {
                   const count = statusCounts[f.key] || 0;
@@ -750,7 +770,7 @@ export default function ProjectJobsPage() {
                           : ''
                       }`}
                     >
-                      <div className="flex flex-col xl:flex-row gap-4 xl:gap-6">
+                      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
                         {/* Cột thông tin chính của ứng viên */}
                         <div className="flex gap-4 flex-1 min-w-0">
                           <Avatar name={fullName} src={profile?.avatar_url} size="lg" className="flex-shrink-0" />
@@ -874,12 +894,12 @@ export default function ProjectJobsPage() {
                             {/* Dòng 4: Kỹ năng */}
                             {skills.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                {skills.slice(0, 8).map((s) => (
+                                {skills.slice(0, 10).map((s) => (
                                   <SkillTag key={s.id} name={s.name} />
                                 ))}
-                                {skills.length > 8 && (
+                                {skills.length > 10 && (
                                   <span className="px-1.5 py-0.5 text-slate-400 text-xs self-center">
-                                    +{skills.length - 8}
+                                    +{skills.length - 10}
                                   </span>
                                 )}
                               </div>
@@ -983,13 +1003,12 @@ export default function ProjectJobsPage() {
                                       <span className="italic">
                                         Đề xuất của ứng viên: “{app.candidate_reschedule_note}”
                                       </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => setInterviewApp(app)}
+                                      <Link
+                                        to={`/admin/projects/${projectId}/applications/${app.id}/interview`}
                                         className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[11px] flex-shrink-0"
                                       >
                                         Đặt lại giờ ngay
-                                      </button>
+                                      </Link>
                                     </div>
                                   )}
                                 </div>
@@ -999,8 +1018,8 @@ export default function ProjectJobsPage() {
                         </div>
 
                         {/* Cột nút hành động bên phải */}
-                        <div className="flex flex-row flex-wrap xl:flex-col items-center xl:items-end justify-between gap-2.5 xl:w-52 xl:flex-shrink-0 pt-3 xl:pt-0 border-t xl:border-t-0 border-slate-100">
-                          <div className="flex flex-wrap xl:flex-col items-center xl:items-stretch gap-2 w-full">
+                        <div className="flex flex-row flex-wrap lg:flex-col items-center lg:items-end justify-between gap-2.5 lg:w-56 lg:flex-shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                          <div className="flex flex-wrap lg:flex-col items-center lg:items-stretch gap-2 w-full">
                             {profile?.id && (
                               <Link
                                 to={`/admin/candidates/${profile.id}`}
@@ -1028,19 +1047,18 @@ export default function ProjectJobsPage() {
                             )}
 
                             {app.status !== 'ACCEPTED' && app.status !== 'REJECTED' && (
-                              <button
-                                type="button"
-                                onClick={() => setInterviewApp(app)}
+                              <Link
+                                to={`/admin/projects/${projectId}/applications/${app.id}/interview`}
                                 className="px-3 py-2 rounded-lg text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 transition-colors inline-flex items-center justify-center gap-1.5"
                               >
                                 <Icon name="calendar" className="w-3.5 h-3.5" />
                                 {app.interview_time ? 'Đổi lịch phỏng vấn' : 'Đặt lịch phỏng vấn'}
-                              </button>
+                              </Link>
                             )}
                           </div>
 
                           <div className="w-full">
-                            <label className="block text-[11px] font-semibold text-slate-500 mb-1 xl:text-right">
+                            <label className="block text-[11px] font-semibold text-slate-500 mb-1 lg:text-right">
                               Trạng thái duyệt hồ sơ
                             </label>
                             <select
@@ -1070,36 +1088,8 @@ export default function ProjectJobsPage() {
                 })}
               </div>
             )}
-          </div>
+          </section>
         </div>
-      )}
-
-      {/* Modal Thêm / Sửa vị trí tuyển dụng */}
-      {jobModal && (
-        <ProjectJobFormModal
-          project={project}
-          job={jobModal.job}
-          onClose={() => setJobModal(null)}
-        />
-      )}
-
-      {/* Modal Đặt lịch phỏng vấn */}
-      {interviewApp && (
-        <ScheduleInterviewModal
-          app={interviewApp}
-          onClose={() => setInterviewApp(null)}
-          onManageInterviewers={() => setShowManageInterviewers(true)}
-          onSuccess={() => {
-            setInterviewApp(null);
-            qc.invalidateQueries({ queryKey: ['admin-project-jobs', projectId] });
-            qc.invalidateQueries({ queryKey: ['admin-projects'] });
-          }}
-        />
-      )}
-
-      {/* Modal Quản lý danh sách Người phỏng vấn */}
-      {showManageInterviewers && (
-        <ManageInterviewersModal onClose={() => setShowManageInterviewers(false)} />
       )}
     </div>
   );
