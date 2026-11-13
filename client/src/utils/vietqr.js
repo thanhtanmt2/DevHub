@@ -82,7 +82,7 @@ export function buildVietQrUrl({ bankName, accountNumber, accountHolderName, amo
   if (description) params.set('addInfo', stripAccents(description).slice(0, 50));
   if (accountHolderName) params.set('accountName', stripAccents(accountHolderName).toUpperCase());
 
-  return `https://img.vietqr.io/image/${bank.bin}-${cleanAcc}-compact2.png?${params.toString()}`;
+  return `https://img.vietqr.io/image/${bank.bin}-${cleanAcc}-compact2.svg?${params.toString()}`;
 }
 
 // ── Giải mã chuỗi EMVCo VietQR (chuẩn NAPAS 247) ────────────────────────────

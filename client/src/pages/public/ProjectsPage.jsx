@@ -175,11 +175,9 @@ export default function ProjectsPage() {
           status: job.Project?.status || 'RECRUITING',
           expected_end_date: job.Project?.expected_end_date || null,
           jobs: [],
-          totalBudget: 0,
         };
       }
       acc[pid].jobs.push(job);
-      acc[pid].totalBudget += parseFloat(job.budget) || 0;
       return acc;
     }, {})
   );
@@ -309,12 +307,6 @@ export default function ProjectsPage() {
                           <p className="text-xs sm:text-sm text-slate-600 mt-1.5 line-clamp-2">{proj.description}</p>
                         )}
                       </div>
-                      {proj.totalBudget > 0 && (
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-[11px] text-slate-400 uppercase font-semibold">Tổng thù lao các vị trí</p>
-                          <p className="text-base font-extrabold text-primary-700">{formatSalary(proj.totalBudget)}</p>
-                        </div>
-                      )}
                     </div>
                     <div className="divide-y divide-slate-100">
                       {proj.jobs.map((job) => {

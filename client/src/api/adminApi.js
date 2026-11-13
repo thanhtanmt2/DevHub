@@ -27,6 +27,9 @@ export const adminApi = {
   
   // Evaluation
   evaluateCandidate: (workspaceId, memberId, data) => api.post(`/admin/workspaces/${workspaceId}/members/${memberId}/evaluate`, data),
+  // Chấm điểm năng lực cả dự án sau khi đóng dự án
+  getProjectEvaluations: (projectId) => api.get(`/admin/projects/${projectId}/evaluations`),
+  saveProjectEvaluations: (projectId, evaluations) => api.post(`/admin/projects/${projectId}/evaluations`, { evaluations }),
   
   // Jobs moderation
   getJobs: (params) => api.get('/admin/jobs', { params }),

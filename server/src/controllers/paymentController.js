@@ -55,7 +55,7 @@ exports.getPayableMembers = async (req, res, next) => {
       include: [
         {
           model: CandidateProfile,
-          attributes: ['id', 'professional_title', 'user_id'],
+          attributes: ['id', 'professional_title', 'user_id', 'avatar_url'],
           include: [
             { model: User, attributes: ['id', 'full_name', 'email'] },
             { model: PaymentInformation, attributes: ['bank_name', 'account_number', 'account_holder_name'] },
@@ -64,7 +64,7 @@ exports.getPayableMembers = async (req, res, next) => {
         {
           model: Workspace,
           attributes: ['id', 'name', 'status', 'project_id'],
-          include: [{ model: InternalProject, attributes: ['id', 'name', 'status', 'budget'] }],
+          include: [{ model: InternalProject, attributes: ['id', 'name', 'status'] }],
         },
         {
           model: ProjectJob,
@@ -146,42 +146,9 @@ exports.createPayment = async (req, res, next) => {
           409
         );
       }
-      if (existing.status === 'PENDING' || existing.status === 'PROCESSING') {
-        throw new AppError(
-          `Thành viên ${member.CandidateProfile?.User?.full_name || ''} đã có khoản thanh toán đang chờ xử lý trong dự án "${projectName}". Bạn có thể sửa số tiền trực tiếp trên khoản thanh toán đó.`,
-          409
-        );
-      }
-      // Nếu khoản cũ ở trạng thái FAILED → khôi phục lại về PENDING với số tiền mới (không tạo bản ghi trùng)
-      await existing.update({
-        amount: numericAmount,
-        payment_method: payment_method || 'VIETQR',
-        status: 'PENDING',
-        transaction_code: null,
-        paid_at: null,
-      });
-
-      const u = member.CandidateProfile?.User;
-      if (u) {
-        await logActivity(req, {
-          action: 'PAYMENT_CREATED',
-          entity_type: 'payment',
-          entity_id: existing.id,
-          entity_name: `Khôi phục thanh toán ${numericAmount.toLocaleString('vi-VN')}đ cho ${u.full_name}`,
-          description: `Khôi phục yêu cầu thanh toán ${numericAmount.toLocaleString('vi-VN')} VND cho ${u.full_name} (${projectName})`,
-          metadata: { workspace_member_id, workspace_id: member.workspace_id },
-        });
-        await createNotification({
-          user_id: u.id,
-          type: 'PAYMENT_UPDATE',
-          title: 'Yêu cầu thanh toán được tạo lại',
-          message: `Khoản thanh toán ${numericAmount.toLocaleString('vi-VN')}đ tại "${projectName}" đã được đưa vào danh sách chờ xử lý lại.`,
-          link: '/candidate/profile?tab=payment',
-          metadata: { payment_id: existing.id },
-        });
-      }
-
-      return res.status(200).json({ success: true, data: existing, restored: true });
+      // Đã có khoản chưa thanh toán: chỉ cập nhật số tiền (không báo trùng), để thao tác lặp lại vẫn an toàn
+      if (Number(existing.amount) !== numericAmount) await existing.update({ amount: numericAmount });
+      return res.status(200).json({ success: true, data: existing, existing: true });
     }
 
     const payment = await Payment.create({
@@ -247,7 +214,7 @@ exports.createBatchProjectPayments = async (req, res, next) => {
 
     for (const m of members) {
       const existing = m.Payments?.[0] || null;
-      if (existing && ['PENDING', 'PROCESSING', 'PAID'].includes(existing.status)) {
+      if (existing) {
         skippedPaidOrPending += 1;
         continue;
       }
@@ -258,23 +225,12 @@ exports.createBatchProjectPayments = async (req, res, next) => {
         continue;
       }
 
-      let payment;
-      if (existing && existing.status === 'FAILED') {
-        payment = await existing.update({
-          amount: budget,
-          payment_method: 'VIETQR',
-          status: 'PENDING',
-          transaction_code: null,
-          paid_at: null,
-        });
-      } else {
-        payment = await Payment.create({
-          workspace_member_id: m.id,
-          amount: budget,
-          payment_method: 'VIETQR',
-          status: 'PENDING',
-        });
-      }
+      const payment = await Payment.create({
+        workspace_member_id: m.id,
+        amount: budget,
+        payment_method: 'VIETQR',
+        status: 'PENDING',
+      });
       createdCount += 1;
 
       const u = m.CandidateProfile?.User;
@@ -313,7 +269,7 @@ exports.createBatchProjectPayments = async (req, res, next) => {
   }
 };
 
-// PUT /api/admin/payments/:id — Sửa số tiền khi khoản thanh toán đang ở PENDING hoặc FAILED
+// PUT /api/admin/payments/:id — Sửa số tiền khi khoản chưa thanh toán
 exports.updatePayment = async (req, res, next) => {
   try {
     const { amount } = req.body;
@@ -332,11 +288,8 @@ exports.updatePayment = async (req, res, next) => {
     });
     if (!payment) throw new AppError('Không tìm thấy khoản thanh toán', 404);
 
-    if (payment.status === 'PAID' || payment.status === 'PROCESSING') {
-      throw new AppError(
-        'Chỉ có thể điều chỉnh số tiền khi khoản thanh toán đang ở trạng thái "Chờ xử lý" hoặc "Thất bại"',
-        400
-      );
+    if (payment.status === 'PAID') {
+      throw new AppError('Khoản này đã thanh toán. Hãy hoàn tác (đánh dấu chưa thanh toán) trước khi sửa số tiền', 400);
     }
 
     const oldAmount = Number(payment.amount);
@@ -362,7 +315,7 @@ exports.updatePayment = async (req, res, next) => {
   }
 };
 
-// DELETE /api/admin/payments/:id — Hủy / Xóa khoản thanh toán tạo nhầm (chỉ cho phép khi PENDING hoặc FAILED)
+// DELETE /api/admin/payments/:id — Hủy / Xóa khoản thanh toán tạo nhầm (chỉ khi chưa thanh toán)
 exports.deletePayment = async (req, res, next) => {
   try {
     const payment = await Payment.findByPk(req.params.id, {
@@ -375,11 +328,8 @@ exports.deletePayment = async (req, res, next) => {
     });
     if (!payment) throw new AppError('Không tìm thấy khoản thanh toán', 404);
 
-    if (payment.status === 'PAID' || payment.status === 'PROCESSING') {
-      throw new AppError(
-        'Không thể xóa khoản thanh toán đang xử lý hoặc đã thanh toán hoàn tất',
-        400
-      );
+    if (payment.status === 'PAID') {
+      throw new AppError('Không thể xóa khoản đã thanh toán. Hãy hoàn tác trước nếu cần', 400);
     }
 
     const u = payment.WorkspaceMember?.CandidateProfile?.User;
@@ -402,11 +352,13 @@ exports.deletePayment = async (req, res, next) => {
   }
 };
 
-// PUT /api/admin/payments/:id/process
+// PUT /api/admin/payments/:id/process { status: 'PAID' | 'PENDING', amount?, transaction_code? }
+// Chỉ hai trạng thái: chưa thanh toán (PENDING) và đã thanh toán (PAID). Admin tự chuyển khoản (quét QR), rồi đánh dấu đã thanh toán;
+// có thể sửa số tiền ngay lúc đó. PENDING dùng để hoàn tác khi đánh dấu nhầm. Không bắt buộc mã giao dịch.
 exports.processPayment = async (req, res, next) => {
   try {
-    const { status, transaction_code, payment_method } = req.body;
-    if (!['PROCESSING', 'PAID', 'FAILED'].includes(status)) {
+    const { status, amount, transaction_code } = req.body;
+    if (!['PAID', 'PENDING'].includes(status)) {
       throw new AppError('Trạng thái thanh toán không hợp lệ', 400);
     }
 
@@ -415,13 +367,7 @@ exports.processPayment = async (req, res, next) => {
         {
           model: WorkspaceMember,
           include: [
-            {
-              model: CandidateProfile,
-              include: [
-                { model: User, attributes: ['id', 'full_name'] },
-                { model: PaymentInformation, attributes: ['bank_name', 'account_number', 'account_holder_name'] },
-              ],
-            },
+            { model: CandidateProfile, include: [{ model: User, attributes: ['id', 'full_name'] }] },
             {
               model: Workspace,
               attributes: ['id', 'name'],
@@ -433,96 +379,53 @@ exports.processPayment = async (req, res, next) => {
     });
     if (!payment) throw new AppError('Không tìm thấy khoản thanh toán', 404);
 
-    if (payment.status === 'PAID') {
-      throw new AppError('Khoản thanh toán này đã được tất toán, không thể thay đổi trạng thái', 400);
-    }
-
-    const cleanTx = transaction_code !== undefined ? String(transaction_code).trim() : '';
-
-    if (status === 'PAID') {
-      if (!cleanTx) {
-        throw new AppError('Vui lòng nhập mã giao dịch ngân hàng để xác nhận đã thanh toán', 400);
-      }
-
-      // Kiểm tra ứng viên đã có thông tin ngân hàng chưa
-      const profileId = payment.WorkspaceMember?.candidate_profile_id || payment.WorkspaceMember?.CandidateProfile?.id;
-      const bankInfo =
-        payment.WorkspaceMember?.CandidateProfile?.PaymentInformation ||
-        (profileId ? await PaymentInformation.findOne({ where: { candidate_profile_id: profileId } }) : null);
-      if (!bankInfo?.account_number) {
-        throw new AppError(
-          'Ứng viên chưa cập nhật số tài khoản ngân hàng, không thể xác nhận đã chuyển khoản',
-          400
-        );
-      }
-
-      // Chống trùng mã giao dịch ngân hàng với khoản thanh toán khác
-      const duplicateTx = await Payment.findOne({
-        where: {
-          transaction_code: cleanTx,
-          id: { [Op.ne]: payment.id },
-        },
-      });
-      if (duplicateTx) {
-        throw new AppError(
-          `Mã giao dịch "${cleanTx}" đã được sử dụng cho một khoản thanh toán khác. Vui lòng kiểm tra lại.`,
-          409
-        );
-      }
+    if (payment.status === status) {
+      throw new AppError(status === 'PAID' ? 'Khoản này đã được đánh dấu là đã thanh toán' : 'Khoản này đang ở trạng thái chưa thanh toán', 400);
     }
 
     const updateData = { status };
-    if (transaction_code !== undefined) {
-      updateData.transaction_code = cleanTx || null;
-    }
-    if (payment_method !== undefined) {
-      updateData.payment_method = payment_method;
-    } else if (status === 'PAID' && !payment.payment_method) {
-      updateData.payment_method = 'VIETQR';
+    if (amount !== undefined) {
+      if (payment.status === 'PAID') throw new AppError('Khoản này đã thanh toán. Hãy hoàn tác trước khi sửa số tiền', 400);
+      const n = Number(amount);
+      if (!Number.isFinite(n) || n < 1000) throw new AppError('Số tiền thanh toán phải từ 1.000đ trở lên', 400);
+      updateData.amount = n;
     }
     if (status === 'PAID') {
       updateData.paid_at = new Date();
+      updateData.payment_method = payment.payment_method || 'BANK_TRANSFER';
+      if (transaction_code !== undefined) updateData.transaction_code = String(transaction_code).trim() || null;
+    } else {
+      updateData.paid_at = null;
+      updateData.transaction_code = null;
     }
 
     await payment.update(updateData);
 
     const u = payment.WorkspaceMember?.CandidateProfile?.User;
-    const projectName =
-      payment.WorkspaceMember?.Workspace?.Project?.name ||
-      payment.WorkspaceMember?.Workspace?.name ||
-      '';
+    const projectName = payment.WorkspaceMember?.Workspace?.Project?.name || payment.WorkspaceMember?.Workspace?.name || '';
+    const money = `${Number(payment.amount).toLocaleString('vi-VN')}đ`;
     if (u) {
       await logActivity(req, {
         action: 'PAYMENT_PROCESSED',
         entity_type: 'payment',
         entity_id: payment.id,
-        entity_name: `Thanh toán ${Number(payment.amount).toLocaleString('vi-VN')}đ cho ${u.full_name}`,
+        entity_name: `Thanh toán ${money} cho ${u.full_name}`,
         new_value: status,
-        description: `Cập nhật trạng thái thanh toán của ${u.full_name} thành ${status}${
-          updateData.transaction_code ? ` (Mã GD: ${updateData.transaction_code})` : ''
-        }`,
+        description: status === 'PAID'
+          ? `Đánh dấu đã thanh toán ${money} cho ${u.full_name}${projectName ? ` (${projectName})` : ''}`
+          : `Hoàn tác thanh toán ${money} của ${u.full_name}${projectName ? ` (${projectName})` : ''}`,
         metadata: { workspace_member_id: payment.workspace_member_id },
       });
-      const PAY_NOTICE = {
-        PROCESSING: ['Khoản thanh toán đang được xử lý', 'đang được xử lý'],
-        PAID: ['Bạn đã được thanh toán thù lao', 'đã được chuyển khoản thành công'],
-        FAILED: [
-          'Thanh toán không thành công',
-          'chưa thanh toán được, vui lòng kiểm tra lại thông tin tài khoản ngân hàng trong hồ sơ',
-        ],
-      };
-      await createNotification({
-        user_id: u.id,
-        type: 'PAYMENT_UPDATE',
-        title: PAY_NOTICE[status][0],
-        message: `Khoản thanh toán ${Number(payment.amount).toLocaleString('vi-VN')}đ của bạn${
-          projectName ? ` (${projectName})` : ''
-        } ${PAY_NOTICE[status][1]}.${
-          updateData.transaction_code ? ` Mã giao dịch: ${updateData.transaction_code}.` : ''
-        }`,
-        link: '/candidate/profile?tab=payment',
-        metadata: { payment_id: payment.id, status },
-      });
+      if (status === 'PAID') {
+        await createNotification({
+          user_id: u.id,
+          type: 'PAYMENT_UPDATE',
+          title: 'Bạn đã được thanh toán thù lao',
+          message: `Khoản thù lao ${money} của bạn${projectName ? ` (${projectName})` : ''} đã được chuyển khoản.`,
+          link: '/candidate/profile?tab=payment',
+          metadata: { payment_id: payment.id, status },
+        });
+      }
     }
 
     res.json({ success: true, data: payment });
@@ -541,7 +444,7 @@ exports.getAllPayments = async (req, res, next) => {
           include: [
             {
               model: CandidateProfile,
-              attributes: ['id', 'user_id', 'professional_title'],
+              attributes: ['id', 'user_id', 'professional_title', 'avatar_url'],
               include: [
                 { model: User, attributes: ['full_name', 'email'] },
                 { model: PaymentInformation, attributes: ['bank_name', 'account_number', 'account_holder_name'] },

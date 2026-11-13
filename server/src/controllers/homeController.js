@@ -137,7 +137,7 @@ exports.getRecommendedProjects = async (req, res, next) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 3, 1), 12);
     const where = openJobWhere();
     const include = [
-      { model: Project, attributes: ['id', 'name', 'budget', 'status'] },
+      { model: Project, attributes: ['id', 'name', 'status'] },
       { model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] },
     ];
     const newest = (extraWhere = [], n = limit) => ProjectJob.findAll({

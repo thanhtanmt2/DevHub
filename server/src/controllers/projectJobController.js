@@ -17,6 +17,12 @@ const PROJECT_JOB_FIELDS = [
   'title', 'description', 'requirements', 'benefits', 'budget', 'quantity', 'deadline',
   'experience',
 ];
+// Mỗi vị trí tuyển phải nêu rõ thù lao (không còn ngân sách chung của dự án). Dưới mức này hệ thống cũng không tạo được khoản thanh toán.
+const MIN_POSITION_PAY = 1000;
+const assertPositionPay = (budget) => {
+  const n = Number(budget);
+  if (!Number.isFinite(n) || n < MIN_POSITION_PAY) throw new AppError(`Hãy nhập thù lao cho vị trí này (tối thiểu ${MIN_POSITION_PAY.toLocaleString('vi-VN')}đ)`, 400);
+};
 const pickProjectJobFields = (body) => {
   const out = {};
   for (const f of PROJECT_JOB_FIELDS) {
@@ -50,7 +56,7 @@ exports.getProjectJobs = async (req, res, next) => {
     const include = [
       {
         model: Project,
-        attributes: ['id', 'name', 'description', 'budget', 'status', 'start_date', 'expected_end_date']
+        attributes: ['id', 'name', 'description', 'status', 'start_date', 'expected_end_date']
       },
       {
         model: Skill,
@@ -124,7 +130,7 @@ exports.getProjectJobById = async (req, res, next) => {
       include: [
         {
           model: Project,
-          attributes: ['id', 'name', 'description', 'budget', 'status', 'start_date', 'expected_end_date']
+          attributes: ['id', 'name', 'description', 'status', 'start_date', 'expected_end_date']
         },
         {
           model: Skill,
@@ -233,6 +239,7 @@ exports.adminCreateProjectJob = async (req, res, next) => {
   try {
     const { skill_ids } = req.body;
     const fields = pickProjectJobFields(req.body);
+    assertPositionPay(fields.budget);
     if (fields.deadline && new Date(fields.deadline) < new Date()) throw new AppError('Hạn nộp hồ sơ phải sau thời điểm hiện tại', 400);
     const project = await Project.findByPk(req.params.projectId);
     if (!project) throw new AppError('Không tìm thấy dự án', 404);
@@ -260,6 +267,7 @@ exports.adminUpdateProjectJob = async (req, res, next) => {
     if (!job) throw new AppError('Không tìm thấy vị trí dự án', 404);
     const { skill_ids, status } = req.body;
     const fields = pickProjectJobFields(req.body);
+    if (fields.budget !== undefined) assertPositionPay(fields.budget);
     const oldDeadline = job.deadline ? job.deadline.toISOString() : '';
     if (fields.deadline !== undefined && String(fields.deadline ? new Date(fields.deadline).toISOString() : '') !== oldDeadline
         && fields.deadline && new Date(fields.deadline) < new Date()) {

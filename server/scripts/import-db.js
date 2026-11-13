@@ -102,6 +102,8 @@ const migrations = [
 END $$`,
   // Diễn đàn (bảng + chuyên mục mặc định)
   ...require('./forumSchema'),
+  // Thanh toán chỉ còn 2 trạng thái: chưa thanh toán / đã thanh toán
+  `UPDATE payments SET status = 'PENDING' WHERE status IN ('PROCESSING', 'FAILED')`,
   // Cột tùy chỉnh của bảng Kanban trong Workspace
   ...require('./workspaceColumnSchema'),
 ];

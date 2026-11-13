@@ -9,6 +9,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Icon from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
+import MoneyInput from '@/components/common/MoneyInput';
 import { RankBadge } from '@/components/candidate/RankBadge';
 import { VerifiedSkillTag, SkillTag } from '@/components/common/Badges';
 import ExperienceTimeline from '@/components/candidate/ExperienceTimeline';
@@ -1398,7 +1399,7 @@ export default function InternalProjectsPage() {
   const confirm = useConfirm();
   const qc = useQueryClient();
   const [showAddProject, setShowAddProject] = useState(false);
-  const [projectForm, setProjectForm] = useState({ name: '', description: '', budget: '', expected_end_date: '' });
+  const [projectForm, setProjectForm] = useState({ name: '', description: '', expected_end_date: '' });
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table' | 'kanban'
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1417,13 +1418,9 @@ export default function InternalProjectsPage() {
   const [interviewApp, setInterviewApp] = useState(null);
   const [showManageInterviewers, setShowManageInterviewers] = useState(false);
 
-  // Evaluation state: { app, workspaceId, memberId }
-  const [evaluateTarget, setEvaluateTarget] = useState(null);
-  const [evalForm, setEvalForm] = useState({ score: '', comment: '' });
   const closeJobModal = () => { setActiveProjectForJob(null); setEditingJob(null); setJobForm(EMPTY_JOB_FORM); };
   useEscapeKey(closeJobModal, !!activeProjectForJob);
   useEscapeKey(() => setViewJobsProject(null), !!viewJobsProject);
-  useEscapeKey(() => setEvaluateTarget(null), !!evaluateTarget);
 
   const { data: projectsRes, isLoading } = useQuery({
     queryKey: ['admin-projects'],
@@ -1444,11 +1441,11 @@ export default function InternalProjectsPage() {
 
   // Create Project
   const createProjectMutation = useMutation({
-    mutationFn: (data) => workspaceApi.createProject({ ...data, budget: parseFloat(data.budget) || 0 }),
+    mutationFn: (data) => workspaceApi.createProject(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-projects'] });
       setShowAddProject(false);
-      setProjectForm({ name: '', description: '', budget: '', expected_end_date: '' });
+      setProjectForm({ name: '', description: '', expected_end_date: '' });
       toast.success('Đã tạo dự án & Workspace!');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi khi tạo dự án'),
@@ -1478,14 +1475,15 @@ export default function InternalProjectsPage() {
   const navigate = useNavigate();
   const closeProjectMutation = useMutation({
     mutationFn: ({ id, force }) => workspaceApi.closeProject(id, { force }),
-    onSuccess: (res) => {
+    onSuccess: (res, vars) => {
       qc.invalidateQueries({ queryKey: ['admin-projects'] });
       qc.invalidateQueries({ queryKey: ['admin-payments'] });
       qc.invalidateQueries({ queryKey: ['admin-payable-members'] });
+      qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
       const n = res.data?.auto_created_payments || 0;
       toast.success(n > 0 ? `Đã đóng dự án và tạo ${n} khoản thanh toán thù lao` : 'Đã đóng dự án');
-      const ws = res.data?.workspace_id;
-      navigate(`/admin/payments?view=projects${ws ? `&project=${ws}` : ''}`);
+      // Đóng dự án xong thì mở trang chấm điểm năng lực cho từng thành viên, rồi mới sang trang thanh toán
+      navigate(`/admin/projects/${vars.id}/evaluations?then=pay`);
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Không đóng được dự án'),
   });
@@ -1494,8 +1492,8 @@ export default function InternalProjectsPage() {
     const open = ps.open_tasks || 0;
     const ok = await confirm({
       title: 'Đóng dự án và chuyển sang thanh toán',
-      message: `Dự án "${project.name}" sẽ được nghiệm thu hoàn thành. Hệ thống tự tạo khoản thù lao (theo mức thù lao vị trí) cho ${ps.members || 0} thành viên và chuyển bạn sang trang thanh toán của dự án này.${open > 0 ? ` Lưu ý: còn ${open} công việc chưa hoàn thành.` : ''}`,
-      confirmText: 'Đóng dự án & thanh toán',
+      message: `Dự án "${project.name}" sẽ được nghiệm thu hoàn thành. Hệ thống tự tạo khoản thù lao (theo mức thù lao vị trí) cho ${ps.members || 0} thành viên. Sau đó bạn chấm điểm năng lực cho từng thành viên rồi chuyển sang trang thanh toán của dự án này.${open > 0 ? ` Lưu ý: còn ${open} công việc chưa hoàn thành.` : ''}`,
+      confirmText: 'Đóng dự án & chấm điểm',
       tone: open > 0 ? 'danger' : 'primary',
     });
     if (ok) closeProjectMutation.mutate({ id: project.id, force: open > 0 });
@@ -1504,10 +1502,12 @@ export default function InternalProjectsPage() {
   // Update Project Status (including Project Completion & Auto-create Payments)
   const updateProjectStatusMutation = useMutation({
     mutationFn: ({ id, status }) => workspaceApi.updateProject(id, { status }),
-    onSuccess: (res) => {
+    onSuccess: (res, vars) => {
       qc.invalidateQueries({ queryKey: ['admin-projects'] });
       qc.invalidateQueries({ queryKey: ['admin-payments'] });
       qc.invalidateQueries({ queryKey: ['admin-payable-members'] });
+      qc.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      if (vars.status === 'COMPLETED') navigate(`/admin/projects/${vars.id}/evaluations`); // nghiệm thu xong thì chấm điểm năng lực cho thành viên
       const createdCount = res.data?.auto_created_payments || 0;
       if (createdCount > 0) {
         toast.success(`Đã nghiệm thu dự án và tự động tạo ${createdCount} khoản thanh toán thù lao!`);
@@ -1591,25 +1591,6 @@ export default function InternalProjectsPage() {
     onError: (err) => toast.error(err.response?.data?.message || 'Lỗi duyệt hồ sơ'),
   });
 
-  // Evaluate Candidate
-  const evaluateMutation = useMutation({
-    mutationFn: async ({ workspaceId, candidateProfileId, data }) => {
-      // Tìm workspace member từ workspace + candidate profile
-      const wsRes = await workspaceApi.getWorkspaceDetail(workspaceId);
-      const members = wsRes?.data?.data?.WorkspaceMembers || [];
-      const member = members.find(m => m.candidate_profile_id === candidateProfileId);
-      if (!member) throw new Error('Không tìm thấy thành viên trong workspace. Ứng viên có thể chưa được thêm vào workspace.');
-      return adminApi.evaluateCandidate(workspaceId, member.id, data);
-    },
-    onSuccess: (res) => {
-      if (viewJobsProject) qc.invalidateQueries({ queryKey: ['admin-project-jobs', viewJobsProject.id] });
-      toast.success(`Đã đánh giá thành công! Điểm TB mới: ${res.data?.new_avg_score?.toFixed(1) ?? ''}/10`);
-      setEvaluateTarget(null);
-      setEvalForm({ score: '', comment: '' });
-    },
-    onError: (err) => toast.error(err.message || err.response?.data?.message || 'Lỗi khi lưu đánh giá'),
-  });
-
   const projects = projectsRes?.data?.data || [];
   const skills = skillsRes?.data?.data || [];
   const projectJobs = projectJobsRes?.data?.data || [];
@@ -1619,7 +1600,7 @@ export default function InternalProjectsPage() {
     if (nextStatus === 'COMPLETED') {
       const ok = await confirm({
         title: 'Nghiệm thu hoàn thành dự án',
-        message: `Xác nhận nghiệm thu hoàn thành dự án "${project.name}"? Hệ thống sẽ tự động tạo yêu cầu thanh toán thù lao (trạng thái Chờ xử lý) cho các thành viên trong Workspace theo mức thù lao vị trí.`,
+        message: `Xác nhận nghiệm thu hoàn thành dự án "${project.name}"? Hệ thống sẽ tự động tạo khoản thanh toán thù lao (trạng thái Chưa thanh toán) cho các thành viên trong Workspace theo mức thù lao vị trí.`,
         confirmText: 'Nghiệm thu & Tạo thanh toán',
         tone: 'primary',
       });
@@ -1652,8 +1633,6 @@ export default function InternalProjectsPage() {
       return true;
     })
     .sort((a, b) => {
-      if (sortBy === 'budget_desc') return (parseFloat(b.budget) || 0) - (parseFloat(a.budget) || 0);
-      if (sortBy === 'budget_asc') return (parseFloat(a.budget) || 0) - (parseFloat(b.budget) || 0);
       if (sortBy === 'deadline_asc') {
         const da = a.expected_end_date ? new Date(a.expected_end_date).getTime() : Infinity;
         const db = b.expected_end_date ? new Date(b.expected_end_date).getTime() : Infinity;
@@ -1696,16 +1675,6 @@ export default function InternalProjectsPage() {
                 placeholder="VD: Nền tảng E-commerce B2B"
                 value={projectForm.name}
                 onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tổng ngân sách dự án (VNĐ)</label>
-              <input
-                type="number"
-                className="input-field"
-                placeholder="30000000"
-                value={projectForm.budget}
-                onChange={(e) => setProjectForm({ ...projectForm, budget: e.target.value })}
               />
             </div>
             <div>
@@ -1815,8 +1784,6 @@ export default function InternalProjectsPage() {
               className="input-field w-auto text-sm !py-2"
             >
               <option value="newest">Mới tạo nhất</option>
-              <option value="budget_desc">Ngân sách cao → thấp</option>
-              <option value="budget_asc">Ngân sách thấp → cao</option>
               <option value="deadline_asc">Hạn dự kiến gần nhất</option>
               <option value="jobs_desc">Nhiều vị trí tuyển nhất</option>
               <option value="members_desc">Nhiều thành viên nhất</option>
@@ -1848,7 +1815,6 @@ export default function InternalProjectsPage() {
                   <tr>
                     <th className="p-3.5">Dự án</th>
                     <th className="p-3.5">Trạng thái</th>
-                    <th className="p-3.5">Ngân sách</th>
                     <th className="p-3.5">Hạn dự kiến</th>
                     <th className="p-3.5">Vị trí tuyển</th>
                     <th className="p-3.5">Nhân sự & Thanh toán</th>
@@ -1881,9 +1847,6 @@ export default function InternalProjectsPage() {
                               ))}
                           </select>
                         </td>
-                        <td className="p-3.5 font-semibold text-gray-800 whitespace-nowrap">
-                          {formatCurrency(project.budget)}
-                        </td>
                         <td className="p-3.5 text-xs text-gray-600 whitespace-nowrap">
                           {project.expected_end_date ? formatDate(project.expected_end_date) : '—'}
                         </td>
@@ -1907,6 +1870,11 @@ export default function InternalProjectsPage() {
                               Đã trả {ps.paid || 0}/{ps.members || 0} ({formatCurrency(ps.paid_amount)})
                             </div>
                           )}
+                          {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
+                            <div className={`text-[11px] mt-0.5 ${project.evaluation_summary.evaluated < project.evaluation_summary.members ? 'text-amber-600 font-semibold' : 'text-emerald-700'}`}>
+                              Đã chấm điểm {project.evaluation_summary.evaluated}/{project.evaluation_summary.members}
+                            </div>
+                          )}
                         </td>
                         <td className="p-3.5 whitespace-nowrap text-right">
                           <div className="inline-flex items-center justify-end gap-1.5">
@@ -1918,6 +1886,16 @@ export default function InternalProjectsPage() {
                             >
                               + Vị trí
                             </button>
+                            {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/projects/${project.id}/evaluations`)}
+                                className={`px-2.5 py-1 rounded text-xs font-semibold inline-flex items-center gap-1 ${project.evaluation_summary.evaluated < project.evaluation_summary.members ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-amber-50 hover:bg-amber-100 text-amber-700'}`}
+                                title="Chấm điểm năng lực cho thành viên của dự án"
+                              >
+                                <Icon name="star" className="w-3.5 h-3.5" />Chấm điểm
+                              </button>
+                            )}
                             {project.Workspace ? (
                               <Link
                                 to={`/admin/workspaces/${project.Workspace.id}`}
@@ -1961,7 +1939,6 @@ export default function InternalProjectsPage() {
         <div className="flex gap-4 overflow-x-auto pb-3">
           {Object.entries(PROJECT_STATUS_META).map(([statusKey, statusMeta]) => {
             const colProjects = filteredProjects.filter((p) => p.status === statusKey);
-            const colBudget = colProjects.reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0);
             return (
               <div
                 key={statusKey}
@@ -1974,11 +1951,6 @@ export default function InternalProjectsPage() {
                     </span>
                     <span className="text-xs font-bold text-gray-500">({colProjects.length})</span>
                   </div>
-                  {colBudget > 0 && (
-                    <span className="text-[11px] font-semibold text-gray-500 truncate" title="Tổng ngân sách cột này">
-                      {formatCurrency(colBudget)}
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-3 pr-1">
@@ -2010,10 +1982,6 @@ export default function InternalProjectsPage() {
 
                           <div className="text-xs text-gray-600 space-y-1 bg-gray-50 rounded-lg p-2.5 border border-gray-100">
                             <p className="flex items-center justify-between">
-                              <span className="text-gray-500">Ngân sách:</span>
-                              <strong className="text-gray-900">{formatCurrency(project.budget)}</strong>
-                            </p>
-                            <p className="flex items-center justify-between">
                               <span className="text-gray-500">Vị trí tuyển:</span>
                               <strong>{project.ProjectJobs?.length || 0} vị trí</strong>
                             </p>
@@ -2044,6 +2012,15 @@ export default function InternalProjectsPage() {
                             >
                               + Vị trí
                             </button>
+                            {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/admin/projects/${project.id}/evaluations`)}
+                                className={`px-2 py-1 rounded text-xs font-semibold inline-flex items-center gap-1 ${project.evaluation_summary.evaluated < project.evaluation_summary.members ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-amber-50 hover:bg-amber-100 text-amber-700'}`}
+                              >
+                                <Icon name="star" className="w-3.5 h-3.5" />Chấm điểm ({project.evaluation_summary.evaluated}/{project.evaluation_summary.members})
+                              </button>
+                            )}
                             {project.Workspace ? (
                               <Link
                                 to={`/admin/workspaces/${project.Workspace.id}`}
@@ -2100,7 +2077,7 @@ export default function InternalProjectsPage() {
                       if (nextStatus === 'COMPLETED') {
                         const ok = await confirm({
                           title: 'Nghiệm thu hoàn thành dự án',
-                          message: `Xác nhận nghiệm thu hoàn thành dự án "${project.name}"? Hệ thống sẽ tự động tạo yêu cầu thanh toán thù lao (trạng thái Chờ xử lý) cho các thành viên trong Workspace theo mức thù lao vị trí.`,
+                          message: `Xác nhận nghiệm thu hoàn thành dự án "${project.name}"? Hệ thống sẽ tự động tạo khoản thanh toán thù lao (trạng thái Chưa thanh toán) cho các thành viên trong Workspace theo mức thù lao vị trí.`,
                           confirmText: 'Nghiệm thu & Tạo thanh toán',
                           tone: 'primary',
                         });
@@ -2135,7 +2112,6 @@ export default function InternalProjectsPage() {
               <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
 
               <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-1 text-gray-600 mb-4 border border-gray-100">
-                <p><Icon name="cash" className="w-4 h-4 mr-1" /><strong>Ngân sách:</strong> {formatCurrency(project.budget)}</p>
                 <p><Icon name="users" className="w-4 h-4 mr-1" /><strong>Vị trí tuyển dụng:</strong> {project.ProjectJobs?.length || 0} vị trí</p>
               </div>
 
@@ -2152,10 +2128,24 @@ export default function InternalProjectsPage() {
                     <div className="h-1.5 rounded-full bg-emerald-100 overflow-hidden"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} /></div>
                     <p className="mt-1.5 text-[11px] text-slate-600">
                       Đã trả {formatCurrency(ps.paid_amount)} / {formatCurrency(ps.total_amount)}
-                      {ps.pending > 0 && <> · {ps.pending} chờ thanh toán</>}
-                      {ps.failed > 0 && <> · {ps.failed} thất bại</>}
-                      {ps.none > 0 && <> · {ps.none} chưa tạo</>}
+                      {(ps.pending > 0 || ps.failed > 0) && <> · {(ps.pending || 0) + (ps.failed || 0)} chưa thanh toán</>}
+                      {ps.none > 0 && <> · {ps.none} chưa có khoản</>}
                     </p>
+                  </div>
+                );
+              })()}
+
+              {/* Tình hình chấm điểm năng lực: nhắc Admin chấm điểm các thành viên sau khi đóng dự án */}
+              {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (() => {
+                const es = project.evaluation_summary;
+                const left = es.members - es.evaluated;
+                return (
+                  <div className={`mb-4 rounded-lg border p-3 ${left > 0 ? 'border-amber-200 bg-amber-50/60' : 'border-emerald-100 bg-emerald-50/50'}`}>
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className={`font-semibold inline-flex items-center gap-1 ${left > 0 ? 'text-amber-800' : 'text-emerald-800'}`}><Icon name="star" className="w-3.5 h-3.5" />Chấm điểm năng lực</span>
+                      <span className={`font-bold ${left > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>{es.evaluated}/{es.members} thành viên đã chấm</span>
+                    </div>
+                    {left > 0 && <p className="mt-1 text-[11px] text-slate-600">Còn {left} thành viên chưa được chấm điểm.</p>}
                   </div>
                 );
               })()}
@@ -2183,6 +2173,15 @@ export default function InternalProjectsPage() {
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-xs font-semibold inline-flex items-center gap-1"
                   >
                     <Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} /> Đóng dự án
+                  </button>
+                )}
+                {project.status === 'COMPLETED' && project.evaluation_summary?.members > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/admin/projects/${project.id}/evaluations`)}
+                    className={`px-3 py-1.5 rounded text-xs font-medium inline-flex items-center gap-1 ${project.evaluation_summary.evaluated < project.evaluation_summary.members ? 'bg-amber-500 hover:bg-amber-600 text-white font-semibold' : 'bg-amber-50 hover:bg-amber-100 text-amber-700'}`}
+                  >
+                    <Icon name="star" className="w-3.5 h-3.5" /> {project.evaluation_summary.evaluated < project.evaluation_summary.members ? 'Chấm điểm thành viên' : 'Xem điểm & thống kê'}
                   </button>
                 )}
                 {project.status === 'COMPLETED' && (
@@ -2239,15 +2238,18 @@ export default function InternalProjectsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Thù lao vị trí (VNĐ)</label>
-                  <input
-                    type="number"
-                    min="0"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Thù lao vị trí (VNĐ) <span className="text-red-500">*</span></label>
+                  <MoneyInput
+                    required
                     className="input-field"
-                    placeholder="10000000"
+                    placeholder="10.000.000"
                     value={jobForm.budget}
-                    onChange={(e) => setJobForm({ ...jobForm, budget: e.target.value })}
+                    onChange={(v) => setJobForm({ ...jobForm, budget: v })}
+                    aria-invalid={Number(jobForm.budget) > 0 && Number(jobForm.budget) < 1000}
                   />
+                  {Number(jobForm.budget) > 0 && Number(jobForm.budget) < 1000
+                    ? <p role="alert" className="mt-1 text-xs font-semibold text-red-600">Thù lao tối thiểu 1.000đ.</p>
+                    : <p className="mt-1 text-xs text-gray-500">Thù lao cho mỗi người nhận vị trí này, hiển thị cho ứng viên khi ứng tuyển.</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng tuyển</label>
@@ -2350,7 +2352,7 @@ export default function InternalProjectsPage() {
               <button
                 type="button"
                 onClick={submitJob}
-                disabled={!jobForm.title || createJobMutation.isPending || updateJobMutation.isPending}
+                disabled={!jobForm.title || !(Number(jobForm.budget) >= 1000) || createJobMutation.isPending || updateJobMutation.isPending}
                 className="btn-primary"
               >
                 {(createJobMutation.isPending || updateJobMutation.isPending) ? 'Đang lưu...' : editingJob ? 'Lưu thay đổi' : 'Tạo vị trí tuyển dụng'}
@@ -2650,26 +2652,6 @@ export default function InternalProjectsPage() {
                                     </button>
                                   )}
 
-                                  {/* Evaluate — chỉ hiển thị cho ứng viên đã ACCEPTED */}
-                                  {app.status === 'ACCEPTED' && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEvaluateTarget({
-                                          app,
-                                          workspaceId: viewJobsProject?.Workspace?.id,
-                                          candidateProfileId: app.candidate_profile_id,
-                                          candidateName: app.CandidateProfile?.User?.full_name,
-                                          currentScore: app.CandidateProfile?.competency_score,
-                                        });
-                                        setEvalForm({ score: '', comment: '' });
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-medium border border-amber-200 transition-colors"
-                                    >
-                                      <Icon name="star" className="w-3.5 h-3.5" />Đánh giá năng lực
-                                    </button>
-                                  )}
-
                                   {/* Status Dropdown */}
                                   <select
                                     value={app.status}
@@ -2739,84 +2721,6 @@ export default function InternalProjectsPage() {
         <ManageInterviewersModal onClose={() => setShowManageInterviewers(false)} />
       )}
 
-      {/* Evaluate Candidate Modal */}
-      {evaluateTarget && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl p-6 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900"><Icon name="star" className="w-5 h-5 mr-1.5" />Đánh giá năng lực</h3>
-                <p className="text-sm text-primary-700 font-medium">{evaluateTarget.candidateName}</p>
-              </div>
-              <button onClick={() => setEvaluateTarget(null)} aria-label="Đóng" className="text-gray-400 hover:text-gray-600"><Icon name="x" className="w-5 h-5" /></button>
-            </div>
-
-            {evaluateTarget.currentScore > 0 && (
-              <div className="mb-4 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2 text-sm text-primary-700">
-                Điểm năng lực hiện tại: <strong>{parseFloat(evaluateTarget.currentScore).toFixed(1)}/10</strong>
-                <span className="text-xs text-primary-400 ml-1">(TB tất cả dự án)</span>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Điểm đánh giá <span className="text-red-500">*</span>
-                  <span className="text-xs font-normal text-gray-400 ml-1">(thang điểm 0 – 10)</span>
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range" min="0" max="10" step="0.5"
-                    className="flex-1 accent-amber-500"
-                    value={evalForm.score || 0}
-                    onChange={e => setEvalForm(p => ({ ...p, score: e.target.value }))}
-                  />
-                  <span className={`text-2xl font-bold w-12 text-center ${
-                    parseFloat(evalForm.score) >= 8 ? 'text-emerald-600' :
-                    parseFloat(evalForm.score) >= 5 ? 'text-amber-600' : 'text-gray-400'
-                  }`}>
-                    {evalForm.score || '—'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>Kém (0)</span><span>Trung bình (5)</span><span>Xuất sắc (10)</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Nhận xét</label>
-                <textarea
-                  className="input-field resize-none"
-                  rows={3}
-                  placeholder="Nhận xét về chất lượng công việc, thái độ, kỹ năng..."
-                  value={evalForm.comment}
-                  onChange={e => setEvalForm(p => ({ ...p, comment: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end mt-5">
-              <button onClick={() => setEvaluateTarget(null)} className="btn-secondary">Hủy</button>
-              <button
-                onClick={() => {
-                  if (!evalForm.score) return toast.error('Vui lòng chọn điểm đánh giá');
-                  const score = parseFloat(evalForm.score);
-                  if (score < 0 || score > 10) return toast.error('Điểm phải từ 0 đến 10');
-                  evaluateMutation.mutate({
-                    workspaceId: evaluateTarget.workspaceId,
-                    candidateProfileId: evaluateTarget.candidateProfileId,
-                    data: { score, comment: evalForm.comment },
-                  });
-                }}
-                disabled={evaluateMutation.isPending || !evalForm.score}
-                className="btn-primary flex items-center gap-2"
-              >
-                {evaluateMutation.isPending ? 'Đang lưu...' : <><Icon name="check" className="w-4 h-4" strokeWidth={2.5} />Lưu đánh giá</>}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

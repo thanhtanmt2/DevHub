@@ -982,10 +982,10 @@ function SkillsTab({ mySkills, publicSkills, qc }) {
 
 // ── Payment Tab ───────────────────────────────────────
 const PAYMENT_STATUS_META = {
-  PENDING:    { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
-  PROCESSING: { label: 'Đang xử lý', color: 'bg-primary-100 text-primary-700' },
-  PAID:       { label: 'Đã nhận tiền', color: 'bg-emerald-100 text-emerald-700' },
-  FAILED:     { label: 'Thất bại', color: 'bg-red-100 text-red-700' },
+  PENDING:    { label: 'Chưa thanh toán', color: 'bg-yellow-100 text-yellow-700' },
+  PROCESSING: { label: 'Chưa thanh toán', color: 'bg-yellow-100 text-yellow-700' }, // trạng thái cũ, nay gộp vào chưa thanh toán
+  PAID:       { label: 'Đã thanh toán', color: 'bg-emerald-100 text-emerald-700' },
+  FAILED:     { label: 'Chưa thanh toán', color: 'bg-yellow-100 text-yellow-700' }, // trạng thái cũ, nay gộp vào chưa thanh toán
 };
 
 const formatVnd = (n) => (n ? `${new Intl.NumberFormat('vi-VN').format(n)}đ` : '0đ');

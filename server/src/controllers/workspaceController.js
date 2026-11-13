@@ -23,7 +23,7 @@ const assertEndNotBeforeStart = (start, end, label) => {
 // POST /api/admin/projects
 exports.createProject = async (req, res, next) => {
   try {
-    const { name, description, budget, expected_end_date } = req.body;
+    const { name, description, expected_end_date } = req.body;
 
     // Dự án bắt đầu từ hôm nay nên hạn hoàn thành dự kiến không thể ở quá khứ
     assertEndNotBeforeStart(new Date(), expected_end_date, 'Hạn hoàn thành dự kiến');
@@ -31,7 +31,6 @@ exports.createProject = async (req, res, next) => {
     const project = await Project.create({
       name,
       description,
-      budget,
       expected_end_date,
       start_date: new Date(),
       status: 'RECRUITING',
@@ -132,6 +131,23 @@ async function paymentSummaries(projectIds) {
   return map;
 }
 
+// Tình hình chấm điểm năng lực theo dự án: bao nhiêu thành viên đã được chấm (để nhắc Admin chấm sau khi đóng dự án)
+async function evaluationSummaries(projectIds) {
+  const map = new Map();
+  if (!projectIds.length) return map;
+  const rows = await sequelize.query(
+    `SELECT w.project_id AS pid, COUNT(wm.id) AS members, COUNT(ce.id) AS evaluated
+       FROM workspaces w
+       JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.status IN ('ACTIVE', 'COMPLETED')
+       LEFT JOIN candidate_evaluations ce ON ce.workspace_member_id = wm.id
+      WHERE w.project_id IN (:ids)
+      GROUP BY w.project_id`,
+    { replacements: { ids: projectIds }, type: sequelize.QueryTypes.SELECT }
+  );
+  rows.forEach((r) => map.set(r.pid, { members: Number(r.members), evaluated: Number(r.evaluated) }));
+  return map;
+}
+
 // GET /api/admin/projects
 exports.getProjects = async (req, res, next) => {
   try {
@@ -145,10 +161,15 @@ exports.getProjects = async (req, res, next) => {
       ],
       order: [['created_at', 'DESC']]
     });
-    const summaries = await paymentSummaries(projects.map((p) => p.id));
+    const ids = projects.map((p) => p.id);
+    const [summaries, evaluations] = await Promise.all([paymentSummaries(ids), evaluationSummaries(ids)]);
     res.json({
       success: true,
-      data: projects.map((p) => ({ ...p.toJSON(), payment_summary: summaries.get(p.id) || emptyPaymentSummary() })),
+      data: projects.map((p) => ({
+        ...p.toJSON(),
+        payment_summary: summaries.get(p.id) || emptyPaymentSummary(),
+        evaluation_summary: evaluations.get(p.id) || { members: 0, evaluated: 0 },
+      })),
     });
   } catch (error) { next(error); }
 };
@@ -178,7 +199,7 @@ exports.updateProject = async (req, res, next) => {
 
     // Chỉ nhận các trường cho phép sửa (không nhận id, người tạo, tỷ lệ hoàn thành do hệ thống tính...)
     const data = {};
-    ['name', 'description', 'budget', 'status', 'start_date', 'expected_end_date', 'actual_end_date']
+    ['name', 'description', 'status', 'start_date', 'expected_end_date', 'actual_end_date']
       .forEach((k) => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
 
     // Ngày kết thúc không được trước ngày bắt đầu (chỉ kiểm tra khi có sửa ngày, không chặn các thay đổi khác)

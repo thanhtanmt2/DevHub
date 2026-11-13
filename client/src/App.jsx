@@ -50,6 +50,7 @@ import ManageSkillsPage from '@/pages/admin/ManageSkillsPage';
 import AdminManageJobsPage from '@/pages/admin/ManageJobsPage';
 import ManageCompaniesPage from '@/pages/admin/ManageCompaniesPage';
 import InternalProjectsPage from '@/pages/admin/InternalProjectsPage';
+import ProjectEvaluationPage from '@/pages/admin/ProjectEvaluationPage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
 import StatsPage from '@/pages/admin/StatsPage';
 import SystemLogsPage from '@/pages/admin/SystemLogsPage';
@@ -139,6 +140,7 @@ function AppRoutes() {
           <Route path="/admin/jobs" element={<AdminManageJobsPage />} />
           <Route path="/admin/companies" element={<ManageCompaniesPage />} />
           <Route path="/admin/projects" element={<InternalProjectsPage />} />
+          <Route path="/admin/projects/:projectId/evaluations" element={<ProjectEvaluationPage />} />
           <Route path="/admin/candidates" element={<SearchCandidatesPage />} />
           <Route path="/admin/candidates/:id" element={<CandidateDetailPage />} />
           <Route path="/admin/workspaces/:id" element={<WorkspacePage />} />
