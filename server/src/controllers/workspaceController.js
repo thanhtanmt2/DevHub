@@ -148,6 +148,32 @@ async function evaluationSummaries(projectIds) {
   return map;
 }
 
+// Tình hình hồ sơ ứng tuyển theo dự án: tổng số hồ sơ, hồ sơ chờ duyệt, xin dời lịch phỏng vấn, đã trúng tuyển
+const emptyApplicationSummary = () => ({ total: 0, pending: 0, reschedule: 0, accepted: 0 });
+async function applicationSummaries(projectIds) {
+  const map = new Map();
+  if (!projectIds.length) return map;
+  const rows = await sequelize.query(
+    `SELECT pj.project_id AS pid,
+            COUNT(pa.id) AS total,
+            COUNT(pa.id) FILTER (WHERE pa.status = 'PENDING') AS pending,
+            COUNT(pa.id) FILTER (WHERE pa.status = 'INTERVIEW' AND pa.interview_response = 'RESCHEDULE_REQUESTED') AS reschedule,
+            COUNT(pa.id) FILTER (WHERE pa.status = 'ACCEPTED') AS accepted
+       FROM project_jobs pj
+       JOIN project_applications pa ON pa.project_job_id = pj.id
+      WHERE pj.project_id IN (:ids)
+      GROUP BY pj.project_id`,
+    { replacements: { ids: projectIds }, type: sequelize.QueryTypes.SELECT }
+  );
+  rows.forEach((r) => map.set(r.pid, {
+    total: Number(r.total),
+    pending: Number(r.pending),
+    reschedule: Number(r.reschedule),
+    accepted: Number(r.accepted),
+  }));
+  return map;
+}
+
 // GET /api/admin/projects
 exports.getProjects = async (req, res, next) => {
   try {
@@ -162,13 +188,18 @@ exports.getProjects = async (req, res, next) => {
       order: [['created_at', 'DESC']]
     });
     const ids = projects.map((p) => p.id);
-    const [summaries, evaluations] = await Promise.all([paymentSummaries(ids), evaluationSummaries(ids)]);
+    const [summaries, evaluations, applications] = await Promise.all([
+      paymentSummaries(ids),
+      evaluationSummaries(ids),
+      applicationSummaries(ids),
+    ]);
     res.json({
       success: true,
       data: projects.map((p) => ({
         ...p.toJSON(),
         payment_summary: summaries.get(p.id) || emptyPaymentSummary(),
         evaluation_summary: evaluations.get(p.id) || { members: 0, evaluated: 0 },
+        application_summary: applications.get(p.id) || emptyApplicationSummary(),
       })),
     });
   } catch (error) { next(error); }

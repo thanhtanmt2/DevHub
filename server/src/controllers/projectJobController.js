@@ -196,8 +196,8 @@ exports.applyProjectJob = async (req, res, next) => {
       type: 'PROJECT_APPLICATION',
       title: 'Có ứng viên mới ứng tuyển dự án',
       message: `${req.user.full_name || 'Một ứng viên'} vừa ứng tuyển vị trí "${projectJob.title}".`,
-      link: '/admin/projects',
-      metadata: { project_job_id: projectJob.id, application_id: application.id },
+      link: `/admin/projects/${projectJob.project_id}/jobs?job=${projectJob.id}`,
+      metadata: { project_job_id: projectJob.id, project_id: projectJob.project_id, application_id: application.id },
     });
     await createNotification({
       user_id: req.user.id,
@@ -923,19 +923,23 @@ exports.candidateRespondInterview = async (req, res, next) => {
     const positionName = application.ProjectJob?.title || 'Vị trí dự án';
     const projectName = application.ProjectJob?.Project?.name || 'Dự án';
 
+    const targetLink = application.ProjectJob?.project_id
+      ? `/admin/projects/${application.ProjectJob.project_id}/jobs?job=${application.project_job_id}`
+      : '/admin/projects';
+
     if (response === 'CONFIRMED') {
       await notifyAdmins({
         title: 'Ứng viên đã xác nhận tham gia phỏng vấn',
         message: `${candidateName} đã xác nhận tham gia buổi phỏng vấn vị trí "${positionName}" (${projectName}).`,
         type: 'APPLICATION',
-        link: '/admin/projects',
+        link: targetLink,
       });
     } else {
       await notifyAdmins({
         title: 'Ứng viên xin dời lịch phỏng vấn',
         message: `${candidateName} xin đổi lịch phỏng vấn vị trí "${positionName}" (${projectName}). Đề xuất: "${note.trim()}"`,
         type: 'APPLICATION',
-        link: '/admin/projects',
+        link: targetLink,
       });
     }
 

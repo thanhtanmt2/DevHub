@@ -110,3 +110,12 @@ export const JOB_STATUS_META = {
   HIDDEN: { label: 'Bị từ chối', cls: 'bg-rose-100 text-rose-700' },
   CLOSED: { label: 'Đã đóng', cls: 'bg-red-100 text-red-700 ring-1 ring-inset ring-red-200' },
 };
+
+// Trạng thái dự án thời vụ (dùng ở trang quản lý dự án của Admin)
+export const PROJECT_STATUS_META = {
+  PLANNING:    { label: 'Lập kế hoạch', color: 'bg-gray-100 text-gray-700' },
+  RECRUITING:  { label: 'Đang tuyển dụng', color: 'bg-primary-100 text-primary-700' },
+  IN_PROGRESS: { label: 'Đang triển khai', color: 'bg-amber-100 text-amber-700' },
+  COMPLETED:   { label: 'Đã nghiệm thu', color: 'bg-emerald-100 text-emerald-700' },
+  CANCELLED:   { label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
+};

@@ -10,7 +10,7 @@ import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
 import { SkillTag, VerifiedSkillTag } from '@/components/common/Badges';
 import ExperienceTimeline from '@/components/candidate/ExperienceTimeline';
-import { EMPLOYER_APPLICATION_STATUS } from '@/utils/applicationStatus';
+import { EMPLOYER_APPLICATION_STATUS, PROJECT_APPLICATION_STATUS } from '@/utils/applicationStatus';
 import { formatDate } from '@/utils/jobMeta';
 import { formatFileSize } from '@/utils/fileHelper';
 import { timeAgo } from '@/utils/timeAgo';
@@ -25,14 +25,6 @@ const PROJECT_STATUS = {
   CANCELLED: { label: 'Đã hủy', cls: 'bg-red-50 text-red-600' },
 };
 const MEMBER_STATUS = { ACTIVE: 'Đang tham gia', COMPLETED: 'Đã hoàn thành phần việc', REMOVED: 'Đã rời dự án' };
-
-const PROJECT_APP_STATUS = {
-  PENDING:   { label: 'Chờ duyệt',      cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  REVIEWING: { label: 'Đang xét duyệt', cls: 'bg-primary-50 text-primary-700 border-primary-200' },
-  INTERVIEW: { label: 'Mời phỏng vấn',  cls: 'bg-sky-50 text-sky-700 border-sky-200' },
-  ACCEPTED:  { label: 'Trúng tuyển',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  REJECTED:  { label: 'Từ chối',        cls: 'bg-red-50 text-red-600 border-red-200' },
-};
 
 const scoreTone = (s) => (s >= 8 ? 'text-emerald-600' : s >= 5 ? 'text-amber-600' : 'text-red-500');
 
@@ -500,12 +492,21 @@ export default function CandidateDetailPage() {
               <h3 className="font-bold text-slate-900 mb-3">Đơn ứng tuyển dự án nội bộ ({c.project_applications.length})</h3>
               <div className="space-y-2.5">
                 {c.project_applications.map((pa) => {
-                  const st = PROJECT_APP_STATUS[pa.status] || PROJECT_APP_STATUS.PENDING;
+                  const st = PROJECT_APPLICATION_STATUS[pa.status] || PROJECT_APPLICATION_STATUS.PENDING;
+                  const targetUrl = pa.project_id
+                    ? `/admin/projects/${pa.project_id}/jobs${pa.project_job_id ? `?job=${pa.project_job_id}` : ''}`
+                    : null;
                   return (
                     <div key={pa.id} className="p-3 rounded-lg bg-white border border-slate-200 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{pa.job_title}</p>
+                          {targetUrl ? (
+                            <Link to={targetUrl} className="block text-sm font-semibold text-slate-900 hover:text-primary-700 hover:underline truncate">
+                              {pa.job_title}
+                            </Link>
+                          ) : (
+                            <p className="text-sm font-semibold text-slate-900 truncate">{pa.job_title}</p>
+                          )}
                           <p className="text-xs text-primary-700 truncate">{pa.project_name}</p>
                           <p className="text-[11px] text-slate-400">Nộp {timeAgo(pa.applied_at)}</p>
                         </div>
