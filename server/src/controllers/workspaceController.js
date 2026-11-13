@@ -1,4 +1,4 @@
-const { Project, Workspace, WorkspaceMember, User, CandidateProfile, ProjectJob, ProjectApplication, Skill, Payment } = require('../models');
+const { sequelize, Project, Workspace, WorkspaceMember, WorkspaceColumn, User, CandidateProfile, ProjectJob, ProjectApplication, Skill, Payment } = require('../models');
 const { Op } = require('sequelize');
 const AppError = require('../utils/AppError');
 const { logActivity } = require('../utils/activityLogger');
@@ -23,7 +23,7 @@ const assertEndNotBeforeStart = (start, end, label) => {
 // POST /api/admin/projects
 exports.createProject = async (req, res, next) => {
   try {
-    const { name, description, budget, expected_end_date } = req.body;
+    const { name, description, expected_end_date } = req.body;
 
     // Dự án bắt đầu từ hôm nay nên hạn hoàn thành dự kiến không thể ở quá khứ
     assertEndNotBeforeStart(new Date(), expected_end_date, 'Hạn hoàn thành dự kiến');
@@ -31,7 +31,6 @@ exports.createProject = async (req, res, next) => {
     const project = await Project.create({
       name,
       description,
-      budget,
       expected_end_date,
       start_date: new Date(),
       status: 'RECRUITING',
@@ -91,6 +90,64 @@ exports.createProjectWorkspace = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// Tình hình thanh toán thù lao theo dự án: bao nhiêu thành viên đã được trả / chưa trả, tổng tiền, và số công việc chưa xong
+const emptyPaymentSummary = () => ({ members: 0, paid: 0, pending: 0, failed: 0, none: 0, total_amount: 0, paid_amount: 0, open_tasks: 0 });
+async function paymentSummaries(projectIds) {
+  const map = new Map();
+  if (!projectIds.length) return map;
+  const [rows, taskRows] = await Promise.all([
+    sequelize.query(
+      `SELECT w.project_id AS pid,
+              COUNT(wm.id) AS members,
+              COUNT(wm.id) FILTER (WHERE pay.status = 'PAID') AS paid,
+              COUNT(wm.id) FILTER (WHERE pay.status IN ('PENDING', 'PROCESSING')) AS pending,
+              COUNT(wm.id) FILTER (WHERE pay.status = 'FAILED') AS failed,
+              COUNT(wm.id) FILTER (WHERE pay.id IS NULL) AS none,
+              COALESCE(SUM(pay.amount), 0) AS total_amount,
+              COALESCE(SUM(pay.amount) FILTER (WHERE pay.status = 'PAID'), 0) AS paid_amount
+         FROM workspaces w
+         JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.status IN ('ACTIVE', 'COMPLETED')
+         LEFT JOIN payments pay ON pay.workspace_member_id = wm.id
+        WHERE w.project_id IN (:ids)
+        GROUP BY w.project_id`,
+      { replacements: { ids: projectIds }, type: sequelize.QueryTypes.SELECT }
+    ),
+    sequelize.query(
+      `SELECT w.project_id AS pid, COUNT(*) AS open_tasks
+         FROM tasks t JOIN workspaces w ON w.id = t.workspace_id
+        WHERE w.project_id IN (:ids) AND t.status NOT IN ('DONE', 'CANCELLED')
+        GROUP BY w.project_id`,
+      { replacements: { ids: projectIds }, type: sequelize.QueryTypes.SELECT }
+    ),
+  ]);
+  const openBy = new Map(taskRows.map((r) => [r.pid, Number(r.open_tasks)]));
+  for (const r of rows) {
+    map.set(r.pid, {
+      members: Number(r.members), paid: Number(r.paid), pending: Number(r.pending), failed: Number(r.failed), none: Number(r.none),
+      total_amount: Number(r.total_amount), paid_amount: Number(r.paid_amount), open_tasks: openBy.get(r.pid) || 0,
+    });
+  }
+  for (const [pid, n] of openBy) if (!map.has(pid)) map.set(pid, { ...emptyPaymentSummary(), open_tasks: n });
+  return map;
+}
+
+// Tình hình chấm điểm năng lực theo dự án: bao nhiêu thành viên đã được chấm (để nhắc Admin chấm sau khi đóng dự án)
+async function evaluationSummaries(projectIds) {
+  const map = new Map();
+  if (!projectIds.length) return map;
+  const rows = await sequelize.query(
+    `SELECT w.project_id AS pid, COUNT(wm.id) AS members, COUNT(ce.id) AS evaluated
+       FROM workspaces w
+       JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.status IN ('ACTIVE', 'COMPLETED')
+       LEFT JOIN candidate_evaluations ce ON ce.workspace_member_id = wm.id
+      WHERE w.project_id IN (:ids)
+      GROUP BY w.project_id`,
+    { replacements: { ids: projectIds }, type: sequelize.QueryTypes.SELECT }
+  );
+  rows.forEach((r) => map.set(r.pid, { members: Number(r.members), evaluated: Number(r.evaluated) }));
+  return map;
+}
+
 // GET /api/admin/projects
 exports.getProjects = async (req, res, next) => {
   try {
@@ -104,7 +161,16 @@ exports.getProjects = async (req, res, next) => {
       ],
       order: [['created_at', 'DESC']]
     });
-    res.json({ success: true, data: projects });
+    const ids = projects.map((p) => p.id);
+    const [summaries, evaluations] = await Promise.all([paymentSummaries(ids), evaluationSummaries(ids)]);
+    res.json({
+      success: true,
+      data: projects.map((p) => ({
+        ...p.toJSON(),
+        payment_summary: summaries.get(p.id) || emptyPaymentSummary(),
+        evaluation_summary: evaluations.get(p.id) || { members: 0, evaluated: 0 },
+      })),
+    });
   } catch (error) { next(error); }
 };
 
@@ -133,7 +199,7 @@ exports.updateProject = async (req, res, next) => {
 
     // Chỉ nhận các trường cho phép sửa (không nhận id, người tạo, tỷ lệ hoàn thành do hệ thống tính...)
     const data = {};
-    ['name', 'description', 'budget', 'status', 'start_date', 'expected_end_date', 'actual_end_date']
+    ['name', 'description', 'status', 'start_date', 'expected_end_date', 'actual_end_date']
       .forEach((k) => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
 
     // Ngày kết thúc không được trước ngày bắt đầu (chỉ kiểm tra khi có sửa ngày, không chặn các thay đổi khác)
@@ -221,7 +287,31 @@ exports.updateProject = async (req, res, next) => {
       }
     }
 
-    res.json({ success: true, data: project, auto_created_payments: autoCreatedPayments });
+    res.json({ success: true, data: project, auto_created_payments: autoCreatedPayments, workspace_id: workspace?.id || null });
+  } catch (error) { next(error); }
+};
+
+// POST /api/admin/projects/:id/close — Đóng dự án (nghiệm thu hoàn thành) và chuyển sang luồng thanh toán:
+// tự khởi tạo khoản thù lao cho từng thành viên theo mức thù lao vị trí. Còn công việc chưa xong thì phải xác nhận (force).
+exports.closeProject = async (req, res, next) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) throw new AppError('Không tìm thấy dự án', 404);
+    if (project.status === 'COMPLETED') throw new AppError('Dự án đã được đóng và nghiệm thu trước đó', 400);
+    if (project.status === 'CANCELLED') throw new AppError('Dự án đã bị hủy nên không thể đóng', 400);
+    const workspace = await Workspace.findOne({ where: { project_id: project.id } });
+    if (!workspace) throw new AppError('Dự án chưa có Workspace nên chưa có thành viên để thanh toán', 400);
+
+    const [{ n }] = await sequelize.query(
+      "SELECT COUNT(*)::int AS n FROM tasks WHERE workspace_id = :w AND status NOT IN ('DONE', 'CANCELLED')",
+      { replacements: { w: workspace.id }, type: sequelize.QueryTypes.SELECT }
+    );
+    if (n > 0 && !req.body?.force) {
+      throw new AppError(`Dự án còn ${n} công việc chưa hoàn thành. Hãy xác nhận nếu vẫn muốn đóng dự án.`, 409, 'OPEN_TASKS');
+    }
+
+    req.body = { status: 'COMPLETED' };
+    return exports.updateProject(req, res, next);
   } catch (error) { next(error); }
 };
 
@@ -360,6 +450,7 @@ exports.getWorkspaceDetail = async (req, res, next) => {
     const workspace = await Workspace.findByPk(req.params.id, {
       include: [
         { model: Project },
+        { model: WorkspaceColumn, as: 'Columns', separate: true, order: [['position', 'ASC'], ['created_at', 'ASC']] },
         { 
           model: WorkspaceMember,
           include: [

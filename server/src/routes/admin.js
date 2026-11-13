@@ -20,6 +20,10 @@ router.get('/dashboard', statsCtrl.getAdminDashboard);
 
 // Users
 router.get('/users', userCtrl.getUsers);
+const candidateCtrl = require('../controllers/candidateController');
+router.get('/candidates', candidateCtrl.searchAdminCandidates);
+router.get('/candidates/:id', candidateCtrl.getCandidateForAdmin);
+router.post('/candidates/:id/save', candidateCtrl.toggleSaveCandidate);
 router.put('/users/:id/toggle-status', userCtrl.toggleUserStatus);
 router.put('/users/:id/activate', userCtrl.activateUser);
 router.put('/users/:id/role', [require('express-validator').body('role').isIn(['CANDIDATE', 'EMPLOYER', 'ADMIN'])], validate, userCtrl.assignRole);
@@ -49,6 +53,7 @@ router.get('/projects', wsCtrl.getProjects);
 router.post('/projects', [body('name').notEmpty()], validate, wsCtrl.createProject);
 router.get('/projects/:id', wsCtrl.getProjectById);
 router.put('/projects/:id', wsCtrl.updateProject);
+router.post('/projects/:id/close', wsCtrl.closeProject);
 router.delete('/projects/:id', wsCtrl.deleteProject);
 router.post('/projects/:id/workspace', wsCtrl.createProjectWorkspace);
 
@@ -59,9 +64,22 @@ router.post('/projects/:projectId/jobs', [body('title').notEmpty()], validate, p
 router.put('/project-jobs/:id', projectJobCtrl.adminUpdateProjectJob);
 router.put('/project-applications/:id/status', [body('status').isIn(['REVIEWING', 'ACCEPTED', 'REJECTED', 'INTERVIEW'])], validate, projectJobCtrl.adminUpdateProjectApplicationStatus);
 router.post('/project-applications/:id/schedule-interview', [body('interview_time').notEmpty(), body('meet_url').notEmpty()], validate, projectJobCtrl.adminScheduleInterview);
+router.get('/interviews', projectJobCtrl.adminGetInterviewSchedule);
+router.get('/interviewers', projectJobCtrl.adminGetInterviewers);
+router.post('/interviewers', [body('name').notEmpty()], validate, projectJobCtrl.adminCreateInterviewer);
+router.put('/interviewers/:id', projectJobCtrl.adminUpdateInterviewer);
+router.delete('/interviewers/:id', projectJobCtrl.adminDeleteInterviewer);
 
 // Evaluations
 router.post('/workspaces/:workspaceId/members/:memberId/evaluate', [body('score').isFloat({ min: 0, max: 10 })], validate, evalCtrl.evaluateCandidate);
+// Chấm điểm cả dự án sau khi đóng dự án: xem danh sách thành viên + điểm hiện có, rồi lưu điểm cho nhiều người một lần
+router.get('/projects/:projectId/evaluations', evalCtrl.getProjectEvaluations);
+router.post('/projects/:projectId/evaluations', [
+  body('evaluations').isArray({ min: 1, max: 100 }),
+  body('evaluations.*.member_id').isUUID(),
+  body('evaluations.*.score').isFloat({ min: 0, max: 10 }),
+  body('evaluations.*.comment').optional({ nullable: true }).isString().isLength({ max: 2000 }),
+], validate, evalCtrl.saveProjectEvaluations);
 
 // Payments
 router.get('/payments', payCtrl.getAllPayments);
@@ -70,7 +88,7 @@ router.post('/payments', [body('amount').isNumeric(), body('workspace_member_id'
 router.post('/payments/batch-project', [body('workspace_id').isUUID()], validate, payCtrl.createBatchProjectPayments);
 router.put('/payments/:id', [body('amount').isNumeric()], validate, payCtrl.updatePayment);
 router.delete('/payments/:id', payCtrl.deletePayment);
-router.put('/payments/:id/process', [body('status').isIn(['PROCESSING', 'PAID', 'FAILED'])], validate, payCtrl.processPayment);
+router.put('/payments/:id/process', [body('status').isIn(['PAID', 'PENDING'])], validate, payCtrl.processPayment);
 
 // Logs
 const logCtrl = require('../controllers/activityLogController');

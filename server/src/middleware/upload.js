@@ -110,4 +110,22 @@ const uploadTaskFile = multer({
   fileFilter: taskFileFilter
 });
 
-module.exports = { uploadCV, uploadImage, uploadTaskFile, TASK_FILE_EXTENSIONS };
+// ─── File JD (Mô tả công việc) để AI đọc & lọc thông tin ──────────────────────
+const JD_FILE_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md', '.png', '.jpg', '.jpeg', '.webp'];
+
+const jdFileFilter = (req, file, cb) => {
+  const ext = path.extname(Buffer.from(file.originalname, 'latin1').toString('utf8')).toLowerCase();
+  if (JD_FILE_EXTENSIONS.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new AppError(`Chỉ chấp nhận file định dạng: ${JD_FILE_EXTENSIONS.join(', ')}`, 400), false);
+  }
+};
+
+const uploadJD = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: jdFileFilter,
+});
+
+module.exports = { uploadCV, uploadImage, uploadTaskFile, uploadJD, TASK_FILE_EXTENSIONS, JD_FILE_EXTENSIONS };

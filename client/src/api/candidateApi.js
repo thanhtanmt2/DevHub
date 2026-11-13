@@ -16,6 +16,8 @@ export const candidateApi = {
   addExperience: (data) => api.post('/candidates/experiences', data),
   updateExperience: (id, data) => api.put(`/candidates/experiences/${id}`, data),
   deleteExperience: (id) => api.delete(`/candidates/experiences/${id}`),
+  // Danh hiệu: hạng theo số dự án đã hoàn thành + huy hiệu thành tích
+  getMyRank: () => api.get('/candidates/rank'),
   // Dự án thật đã tham gia trên DevHub (hiện tự động trên sơ đồ kinh nghiệm)
   getDevhubProjects: () => api.get('/candidates/devhub-projects'),
   
@@ -45,6 +47,7 @@ export const candidateApi = {
   getMyPayments: () => api.get('/candidates/payments'),
   getMyApplications: () => api.get('/applications/mine'),
   getMyProjectApplications: () => api.get('/candidates/project-applications'),
+  respondProjectInterview: (id, data) => api.put(`/candidates/project-applications/${id}/interview-response`, data),
   getApplicationDetail: (id) => api.get(`/applications/${id}`),
   withdrawApplication: (id) => api.delete(`/applications/${id}`),
 };

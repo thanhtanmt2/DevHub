@@ -45,6 +45,11 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+/* Mở rộng dần từ chiều cao 0 (dùng cho phần chi tiết bung ra ngay dưới một dòng; bọc ngoài là grid) */
+@keyframes expand-rows {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
@@ -105,6 +110,9 @@
   .animate-slide-up {
     animation: slide-up 0.3s ease-out;
   }
+  .animate-expand {
+    animation: expand-rows 0.26s ease-out;
+  }
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
@@ -157,7 +165,7 @@
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
   .animate-float, .animate-float-slow, .animate-marquee, .animate-ring, .animate-pulse-dot, .animate-hero-in, .animate-grow-x,
-  .animate-fab-ring, .animate-panel-in, .animate-pulse-dot-light, .skeleton::after {
+  .animate-fab-ring, .animate-panel-in, .animate-pulse-dot-light, .animate-expand, .skeleton::after {
     animation: none !important;
   }
   .circuit-pulse { animation: none !important; opacity: 0; }

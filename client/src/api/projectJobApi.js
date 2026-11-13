@@ -15,4 +15,10 @@ export const projectJobApi = {
   updateAdminProjectJob: (id, data) => api.put(`/admin/project-jobs/${id}`, data),
   updateProjectApplicationStatus: (id, data) => api.put(`/admin/project-applications/${id}/status`, data),
   scheduleInterview: (id, data) => api.post(`/admin/project-applications/${id}/schedule-interview`, data),
+  getAdminInterviews: (params) => api.get('/admin/interviews', { params }),
+  getInterviewers: () => api.get('/admin/interviewers'),
+  createInterviewer: (data) => api.post('/admin/interviewers', data),
+  updateInterviewer: (id, data) => api.put(`/admin/interviewers/${id}`, data),
+  deleteInterviewer: (id) => api.delete(`/admin/interviewers/${id}`),
+  respondProjectInterview: (id, data) => api.put(`/candidates/project-applications/${id}/interview-response`, data),
 };

@@ -23,9 +23,18 @@ if (!fs.existsSync(backupFile)) {
   process.exit(1);
 }
 
+const pgEnv = {
+  ...process.env,
+  PGPASSWORD: DB_PASSWORD || '',
+  PGCLIENTENCODING: 'UTF8',
+};
+
 try {
   console.log('Đang nạp dữ liệu từ file vào Database...');
-  execSync(`set PGPASSWORD=${DB_PASSWORD}&& ${psqlPath} -U ${DB_USER} -h ${DB_HOST} -p ${DB_PORT} -d ${DB_NAME} -f "${backupFile}" -q`, { stdio: 'inherit' });
+  execSync(`${psqlPath} -U ${DB_USER} -h ${DB_HOST} -p ${DB_PORT} -d ${DB_NAME} -f "${backupFile}" -q`, {
+    stdio: 'inherit',
+    env: pgEnv,
+  });
   console.log(`\n✅ Nạp dữ liệu thành công!`);
 } catch (error) {
   console.error('❌ Lỗi khi nạp dữ liệu:', error.message);
@@ -91,16 +100,27 @@ const migrations = [
     UPDATE job_posts SET approved_at = COALESCE(posted_at, created_at) WHERE status IN ('OPEN', 'CLOSED');
   END IF;
 END $$`,
+  // Diễn đàn (bảng + chuyên mục mặc định)
+  ...require('./forumSchema'),
+  // Thanh toán chỉ còn 2 trạng thái: chưa thanh toán / đã thanh toán
+  `UPDATE payments SET status = 'PENDING' WHERE status IN ('PROCESSING', 'FAILED')`,
+  // Cột tùy chỉnh của bảng Kanban trong Workspace
+  ...require('./workspaceColumnSchema'),
+  // Tin nhắn kiểu Zalo: trả lời, thu hồi, thả cảm xúc
+  ...require('./messageSchema'),
 ];
 
 console.log('Đang chạy migration patch...');
-const pgPath = psqlPath; // dùng lại psql đã tìm được ở trên
 let migrationErrors = 0;
 for (const sql of migrations) {
   try {
-    execSync(`set PGPASSWORD=${DB_PASSWORD}&& ${pgPath} -U ${DB_USER} -h ${DB_HOST} -p ${DB_PORT} -d ${DB_NAME} -c "${sql}"`, { stdio: 'pipe' });
+    execSync(`${psqlPath} -U ${DB_USER} -h ${DB_HOST} -p ${DB_PORT} -d ${DB_NAME} -v ON_ERROR_STOP=1 -q`, {
+      input: Buffer.from(sql, 'utf8'),
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: pgEnv,
+    });
   } catch (err) {
-    console.error(`  ⚠️  Migration lỗi: ${sql.substring(0, 60)}...`);
+    console.error(`  ⚠️  Migration lỗi: ${sql.replace(/\s+/g, ' ').substring(0, 60)}...`);
     migrationErrors++;
   }
 }
@@ -110,4 +130,3 @@ if (migrationErrors === 0) {
 } else {
   console.warn(`⚠️  ${migrationErrors} migration(s) thất bại. Kiểm tra lỗi ở trên.\n`);
 }
-

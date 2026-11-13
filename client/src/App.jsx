@@ -28,6 +28,8 @@ import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
 import ProfilePage from '@/pages/candidate/ProfilePage';
 import MyApplicationsPage from '@/pages/candidate/MyApplicationsPage';
 import SavedJobsPage from '@/pages/candidate/SavedJobsPage';
+import { ForumHomePage, ForumCategoryPage, ForumThreadPage, ForumNewThreadPage } from '@/pages/forum/ForumPages';
+import { ForumMessagesPage, ForumSavedPage, ForumReportsPage } from '@/pages/forum/ForumSocialPages';
 import MyWorkspacesPage from '@/pages/candidate/MyWorkspacesPage';
 
 // Workspace (dùng chung cho Ứng viên và Admin, quyền được kiểm tra bên trong)
@@ -48,6 +50,7 @@ import ManageSkillsPage from '@/pages/admin/ManageSkillsPage';
 import AdminManageJobsPage from '@/pages/admin/ManageJobsPage';
 import ManageCompaniesPage from '@/pages/admin/ManageCompaniesPage';
 import InternalProjectsPage from '@/pages/admin/InternalProjectsPage';
+import ProjectEvaluationPage from '@/pages/admin/ProjectEvaluationPage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
 import StatsPage from '@/pages/admin/StatsPage';
 import SystemLogsPage from '@/pages/admin/SystemLogsPage';
@@ -79,6 +82,10 @@ function AppRoutes() {
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/jobs/:id" element={<JobDetailPage />} />
         <Route path="/projects/:id" element={<ProjectJobDetailPage />} />
+        {/* Diễn đàn: ai cũng đọc được diễn đàn chung; đăng bài cần đăng nhập */}
+        <Route path="/forum" element={<ForumHomePage />} />
+        <Route path="/forum/c/:slug" element={<ForumCategoryPage />} />
+        <Route path="/forum/t/:id" element={<ForumThreadPage />} />
       </Route>
 
       {/* Auth */}
@@ -86,6 +93,10 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<PublicLayout />}>
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/forum/new" element={<ForumNewThreadPage />} />
+          <Route path="/forum/messages" element={<ForumMessagesPage />} />
+          <Route path="/forum/saved" element={<ForumSavedPage />} />
+          <Route path="/forum/reports" element={<ForumReportsPage />} />
         </Route>
       </Route>
 
@@ -129,6 +140,9 @@ function AppRoutes() {
           <Route path="/admin/jobs" element={<AdminManageJobsPage />} />
           <Route path="/admin/companies" element={<ManageCompaniesPage />} />
           <Route path="/admin/projects" element={<InternalProjectsPage />} />
+          <Route path="/admin/projects/:projectId/evaluations" element={<ProjectEvaluationPage />} />
+          <Route path="/admin/candidates" element={<SearchCandidatesPage />} />
+          <Route path="/admin/candidates/:id" element={<CandidateDetailPage />} />
           <Route path="/admin/workspaces/:id" element={<WorkspacePage />} />
           <Route path="/admin/payments" element={<PaymentsPage />} />
           <Route path="/admin/stats" element={<StatsPage />} />

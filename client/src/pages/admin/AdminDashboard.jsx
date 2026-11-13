@@ -15,6 +15,7 @@ const TODO_CARDS = [
   { key: 'pending_jobs', label: 'Tin tuyển dụng chờ duyệt', icon: 'clipboard', tone: 'blue', to: '/admin/jobs' },
   { key: 'pending_project_applications', label: 'Ứng viên dự án chờ duyệt', icon: 'users', tone: 'blue', to: '/admin/projects' },
   { key: 'tasks_in_review', label: 'Task chờ nghiệm thu', icon: 'clipboardCheck', tone: 'blue', to: '/admin/projects' },
+  { key: 'unevaluated_members', label: 'Thành viên chờ chấm điểm', icon: 'star', tone: 'amber', to: '/admin/projects' },
   { key: 'pending_payments', label: 'Thanh toán chờ xử lý', icon: 'card', tone: 'blue', to: '/admin/payments' },
   { key: 'overdue_tasks', label: 'Task quá hạn', icon: 'alert', tone: 'red', to: '/admin/projects' },
 ];

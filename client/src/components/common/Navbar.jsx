@@ -4,13 +4,78 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationApi } from '@/api/notificationApi';
+import { forumApi } from '@/api/forumApi';
 import toast from 'react-hot-toast';
 import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
 import Logo from '@/components/common/Logo';
+import { RankHeaderPill } from '@/components/candidate/RankBadge';
+import { candidateApi } from '@/api/candidateApi';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { stripEmoji } from '@/utils/stripEmoji';
 import { SUPPORT, telHref, mailHref } from '@/config/support';
+
+// Biểu tượng tin nhắn kiểu Zalo: chấm đỏ kèm số tin chưa đọc, số tin hiện trên tiêu đề tab, và thông báo nổi khi có tin mới
+function MessageBell() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { data } = useQuery({
+    queryKey: ['forum-messages', 'unread'],
+    queryFn: () => forumApi.getUnreadMessages().then((r) => r.data.data),
+    refetchInterval: 15000, // hỏi lại mỗi 15 giây
+    refetchOnWindowFocus: true, // và ngay khi quay lại tab
+    staleTime: 0,
+  });
+  const unread = data?.unread || 0;
+  const onMessages = pathname.startsWith('/forum/messages');
+  const prev = useRef(null);
+
+  // "(2) DevHub" trên tiêu đề tab khi có tin chưa đọc
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\+?\)\s*/, '');
+    document.title = unread > 0 ? `(${unread > 99 ? '99+' : unread}) ${base}` : base;
+    return () => { document.title = document.title.replace(/^\(\d+\+?\)\s*/, ''); };
+  }, [unread]);
+
+  // Có tin mới (và bạn không đang ở trang Tin nhắn) thì hiện thông báo nổi, bấm vào để mở đúng cuộc trò chuyện
+  useEffect(() => {
+    if (!data) return;
+    const latest = data.latest;
+    if (prev.current !== null && data.unread > prev.current && latest && !onMessages) {
+      toast.custom((t) => (
+        <button
+          type="button"
+          onClick={() => { toast.dismiss(t.id); navigate(`/forum/messages?with=${latest.from_id}`); }}
+          className={`flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl bg-white p-3.5 text-left shadow-xl ring-1 ring-slate-200 transition-all ${t.visible ? 'animate-slide-up' : 'opacity-0'}`}
+        >
+          <Avatar name={latest.from_name} src={latest.from_avatar} size="md" />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-primary-700"><Icon name="chat" className="h-3.5 w-3.5" />Tin nhắn mới</span>
+            <span className="block truncate font-semibold text-slate-900">{latest.from_name}</span>
+            <span className="block truncate text-sm text-slate-500">{latest.preview}</span>
+          </span>
+        </button>
+      ), { id: `new-msg-${latest.id}`, duration: 6000, position: 'top-right' });
+    }
+    prev.current = data.unread;
+  }, [data, onMessages, navigate]);
+
+  return (
+    <Link
+      to="/forum/messages"
+      className="relative p-2 rounded-full text-slate-600 hover:bg-slate-100 hover:text-primary-700 transition-colors"
+      aria-label={unread > 0 ? `Tin nhắn, ${unread} tin chưa đọc` : 'Tin nhắn'}
+      title="Tin nhắn"
+    >
+      <Icon name="chat" className="w-5 h-5" strokeWidth={2} />
+      {unread > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center ring-2 ring-white">
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 // ─── Notification Bell ────────────────────────────────────────────────────────
 function NotificationBell() {
@@ -68,6 +133,11 @@ function NotificationBell() {
     COMPANY_VERIFIED: { name: 'verified', tone: 'green' },
     COMPANY_REJECTED: { name: 'xCircle', tone: 'red' },
     PAYMENT_UPDATE: { name: 'cash', tone: 'green' },
+    FORUM_REPLY: { name: 'chat', tone: 'blue' },
+    FORUM_FOLLOW: { name: 'userPlus', tone: 'emerald' },
+    FORUM_MESSAGE: { name: 'mail', tone: 'blue' },
+    FORUM_REPORT: { name: 'flag', tone: 'red' },
+    FORUM_WARNING: { name: 'alert', tone: 'amber' },
   };
   const notifIcon = (type, size) => {
     const i = NOTIF_ICONS[type] || { name: 'bell', tone: 'gray' };
@@ -189,6 +259,23 @@ function NotificationBell() {
   );
 }
 
+// Huy hiệu hạng của ứng viên cạnh ảnh đại diện: bấm vào để xem thẻ danh hiệu ở dashboard
+function NavRank() {
+  const { user } = useAuth();
+  const { data } = useQuery({
+    queryKey: ['my-rank', user?.id],
+    queryFn: () => candidateApi.getMyRank(),
+    staleTime: 60 * 1000,
+  });
+  const rank = data?.data?.data;
+  if (!rank) return null;
+  return (
+    <Link to="/candidate" aria-label={`Danh hiệu ${rank.tier.name}`}>
+      <RankHeaderPill rank={rank} className="hover:brightness-105 transition" />
+    </Link>
+  );
+}
+
 // ─── Menu tài khoản (ảnh đại diện) ────────────────────────────────────────────
 // Chỉ liên kết tới các trang đã có. Mỗi vai trò có nhóm mục riêng + nhóm "Tài khoản & bảo mật" dùng chung.
 const CANDIDATE_MENU = [
@@ -230,6 +317,9 @@ const accountMenu = (user, candidate) => ({
     { to: '/account?tab=password', icon: 'lock', text: 'Đổi mật khẩu' },
     { to: '/account?tab=twofa', icon: 'shield', text: 'Xác minh 2 bước', hint: user?.two_factor_enabled ? 'Đã bật' : 'Chưa kích hoạt' },
     { to: '/account?tab=devices', icon: 'laptop', text: 'Thiết bị đăng nhập' },
+    { to: '/forum?me=1', icon: 'document', text: 'Bài viết diễn đàn của tôi' },
+    { to: '/forum/saved', icon: 'bookmark', text: 'Bài viết đã lưu' },
+    { to: '/forum/messages', icon: 'mail', text: 'Tin nhắn diễn đàn' },
     ...(candidate ? [{ to: '/candidate/profile', icon: 'eye', text: 'Quyền riêng tư hồ sơ', hint: 'Chọn thông tin nhà tuyển dụng được xem' }] : []),
     { href: mailHref(SUPPORT.email), icon: 'headset', text: 'Trợ giúp & hỗ trợ' },
   ],
@@ -427,6 +517,7 @@ export default function Navbar({ topBar = false }) {
                 <NavLink to="/" end className={navLinkClass}>Trang chủ</NavLink>
                 <NavLink to="/jobs" className={navLinkClass}>Việc làm</NavLink>
                 <NavLink to="/projects" className={navLinkClass}>Dự án thời vụ</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>Diễn đàn</NavLink>
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
@@ -438,8 +529,10 @@ export default function Navbar({ topBar = false }) {
                   >
                     Dashboard
                   </Link>
+                  <MessageBell />
                   <NotificationBell />
                   <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-200">
+                    {isCandidate() && <NavRank />}
                     <UserMenu
                       user={user}
                       roleLabel={isAdmin() ? 'Quản trị viên' : isEmployer() ? 'Nhà tuyển dụng' : 'Ứng viên'}
@@ -487,6 +580,7 @@ export default function Navbar({ topBar = false }) {
             <NavLink to="/" end className={mobileLinkClass}>Trang chủ</NavLink>
             <NavLink to="/jobs" className={mobileLinkClass}>Việc làm</NavLink>
             <NavLink to="/projects" className={mobileLinkClass}>Dự án thời vụ</NavLink>
+            <NavLink to="/forum" className={mobileLinkClass}>Diễn đàn</NavLink>
             {user ? (
               <>
                 <NavLink to={profileLink} className={mobileLinkClass}>Hồ sơ cá nhân</NavLink>

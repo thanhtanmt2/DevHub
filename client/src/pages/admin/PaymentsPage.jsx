@@ -1,1344 +1,393 @@
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '@/api/adminApi';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import Icon from '@/components/common/Icon';
+import { adminApi } from '@/api/adminApi';
+import Avatar from '@/components/common/Avatar';
+import Icon, { IconBadge } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import MoneyInput from '@/components/common/MoneyInput';
+import PageBanner from '@/components/common/PageBanner';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import useEscapeKey from '@/hooks/useEscapeKey';
-import PageBanner from '@/components/common/PageBanner';
 import { VIETQR_BANKS, resolveVietQrBank, buildVietQrUrl, buildTransferContent } from '@/utils/vietqr';
 
-const STATUS_LABELS = {
-  PENDING: 'Chờ xử lý',
-  PROCESSING: 'Đang xử lý',
-  PAID: 'Đã thanh toán',
-  FAILED: 'Thất bại',
-};
+// Thanh toán thù lao: đóng dự án xong thì admin vào đây, kiểm tra số tiền (có sẵn theo thù lao vị trí, sửa được),
+// quét QR chuyển khoản bằng điện thoại rồi bấm "Đã chuyển khoản xong". Chỉ có 2 trạng thái: chưa thanh toán / đã thanh toán.
 
-const STATUS_COLORS = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  PROCESSING: 'bg-primary-100 text-primary-700',
-  PAID: 'bg-emerald-100 text-emerald-700',
-  FAILED: 'bg-red-100 text-red-700',
-};
-
-const METHOD_LABELS = {
-  VIETQR: 'VietQR',
-  BANK_TRANSFER: 'Chuyển khoản',
-};
-
-const formatCurrency = (n) =>
-  n ? `${new Intl.NumberFormat('vi-VN').format(n)}đ` : '0đ';
-
-const getProjectName = (ws) =>
-  ws?.Project?.name || ws?.InternalProject?.name || ws?.name || '—';
-
-const copyText = (text, label = 'thông tin') => {
+const MIN_AMOUNT = 1000; // đồng; mọi số nguyên từ mức này trở lên đều hợp lệ (ngân hàng chuyển được là nhập được)
+const formatMoney = (n) => `${new Intl.NumberFormat('vi-VN').format(Math.round(Number(n) || 0))}đ`;
+const copyText = (text, label) => {
   if (!text) return;
-  navigator.clipboard.writeText(String(text));
-  toast.success(`Đã sao chép ${label}`);
+  navigator.clipboard?.writeText(String(text)).then(() => toast.success(`Đã sao chép ${label}`), () => toast.error('Không sao chép được'));
 };
+
+// Chuẩn hóa một thành viên dự án thành một dòng thanh toán
+const toRow = (m) => {
+  const pay = m.Payments?.[0] || null;
+  const ws = m.Workspace;
+  return {
+    m,
+    pay,
+    user: m.CandidateProfile?.User,
+    avatar: m.CandidateProfile?.avatar_url,
+    bank: m.CandidateProfile?.PaymentInformation,
+    position: m.ProjectJob?.title || 'Thành viên dự án',
+    amount: pay ? Math.round(Number(pay.amount)) : Math.round(Number(m.ProjectJob?.budget) || 0), // chưa có khoản thì lấy thù lao vị trí làm số tiền mặc định
+    paid: pay?.status === 'PAID',
+    hasPay: !!pay,
+    wsId: ws?.id,
+    project: ws?.Project?.name || ws?.InternalProject?.name || ws?.name || '—',
+    closed: (ws?.Project?.status || ws?.InternalProject?.status) === 'COMPLETED',
+  };
+};
+
+const Chip = ({ paid }) => (
+  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${paid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200'}`}>
+    <Icon name={paid ? 'check' : 'clock'} className="w-3.5 h-3.5" strokeWidth={2.2} />{paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
+  </span>
+);
+
+// Số tiền: bấm vào để sửa ngay tại chỗ (chỉ khi chưa thanh toán)
+function AmountCell({ row, onSave, saving }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  if (row.paid) return <span className="font-extrabold text-gray-900">{formatMoney(row.amount)}</span>;
+  if (!editing) {
+    return (
+      <div>
+        <button type="button" onClick={() => { setValue(row.amount ? String(row.amount) : ''); setEditing(true); }} title="Sửa số tiền" aria-label={`Sửa số tiền${row.amount ? `, hiện là ${formatMoney(row.amount)}` : ''}`}
+          className="group inline-flex items-center gap-1.5 font-extrabold text-gray-900 hover:text-primary-700 transition-colors">
+          {row.amount ? formatMoney(row.amount) : <span className="text-sm font-semibold text-amber-600">Nhập số tiền</span>}
+          <Icon name="pencil" className="w-3.5 h-3.5 text-gray-300 group-hover:text-primary-600" />
+        </button>
+        {!row.hasPay && row.amount > 0 && <p className="text-[0.6875rem] text-gray-400 leading-none mt-0.5">theo thù lao vị trí</p>}
+      </div>
+    );
+  }
+  const n = Math.round(Number(value) || 0);
+  const submit = async (e) => { e.preventDefault(); if (n >= MIN_AMOUNT && (await onSave(n))) setEditing(false); };
+  return (
+    <form onSubmit={submit} onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false); }} className="relative flex items-center gap-1">
+      <MoneyInput autoFocus value={value} onChange={setValue} aria-label="Số tiền" aria-invalid={n > 0 && n < MIN_AMOUNT}
+        className="input-field !py-1 !px-2 w-32 text-sm font-bold" />
+      <button type="submit" disabled={n < MIN_AMOUNT || saving} aria-label="Lưu số tiền" title={n < MIN_AMOUNT ? 'Số tiền tối thiểu 1.000đ' : 'Lưu'} className="w-8 h-8 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center"><Icon name="check" className="w-4 h-4" strokeWidth={2.4} /></button>
+      <button type="button" onClick={() => setEditing(false)} aria-label="Hủy" title="Hủy" className="w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 flex items-center justify-center"><Icon name="x" className="w-4 h-4" /></button>
+      {n > 0 && n < MIN_AMOUNT && <span role="alert" className="absolute mt-14 text-[0.6875rem] font-semibold text-red-600">Tối thiểu 1.000đ</span>}
+    </form>
+  );
+}
+
+const InfoLine = ({ label, value, copyLabel }) => (
+  <div className="flex items-center gap-2 py-2 border-b border-gray-100 last:border-0">
+    <span className="w-28 flex-shrink-0 text-xs text-gray-500">{label}</span>
+    <span className="min-w-0 flex-1 text-sm font-semibold text-gray-900 break-words">{value || '—'}</span>
+    {copyLabel && value && (
+      <button type="button" onClick={() => copyText(value, copyLabel)} aria-label={`Sao chép ${copyLabel}`} title={`Sao chép ${copyLabel}`}
+        className="w-8 h-8 rounded-lg text-gray-400 hover:text-primary-700 hover:bg-primary-50 flex items-center justify-center flex-shrink-0"><Icon name="copy" className="w-4 h-4" /></button>
+    )}
+  </div>
+);
+
+// Giá trị trễ: chỉ đổi sau khi người dùng ngừng gõ một lúc (tránh gọi dịch vụ tạo mã QR cho từng chữ số, dễ bị chặn vì gọi quá nhiều)
+function useDebounced(value, ms = 600) {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t); }, [value, ms]);
+  return v;
+}
+
+// Hộp thoại chuyển khoản: thông tin người nhận + mã QR; sửa được số tiền; xong thì bấm "Đã chuyển khoản xong"
+function PayModal({ row, onClose, onPaid, pending }) {
+  useEscapeKey(onClose);
+  const [amount, setAmount] = useState(row.amount ? String(row.amount) : '');
+  const [bankCode, setBankCode] = useState('');
+  const { bank } = row;
+  const bankName = bankCode || bank?.bank_name || '';
+  const detected = resolveVietQrBank(bankName);
+  const n = Math.round(Number(amount) || 0);
+  const nQr = useDebounced(n); // mã QR cập nhật sau khi ngừng gõ ~0,6 giây
+  const settling = n !== nQr;
+  const content = buildTransferContent({ id: row.pay?.id || row.m.id, WorkspaceMember: { CandidateProfile: row.m.CandidateProfile } });
+  const qr = bank?.account_number && detected && nQr >= MIN_AMOUNT
+    ? buildVietQrUrl({ bankName, accountNumber: bank.account_number, accountHolderName: bank.account_holder_name, amount: nQr, description: content })
+    : null;
+  // Kết quả tải ảnh QR gắn với đúng địa chỉ ảnh đã yêu cầu: đổi số tiền/Thử lại thì tự về "đang tải", không dính kết quả cũ
+  const [retry, setRetry] = useState(0);
+  const qrKey = `${qr}|${retry}`;
+  const [qrRes, setQrRes] = useState({ key: null, status: 'loading' });
+  const qrState = qrRes.key === qrKey ? qrRes.status : 'loading'; // loading | ready | error
+  const qrLoading = settling || qrState === 'loading';
+  const qrFailed = !settling && qrState === 'error';
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} role="dialog" aria-modal="true" aria-label="Chuyển khoản thù lao">
+      <div className="bg-white w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl shadow-2xl animate-fade-in">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <Avatar name={row.user?.full_name} src={row.avatar} size="md" />
+          <div className="min-w-0 flex-1">
+            <h2 className="font-bold text-gray-900 leading-tight">Chuyển khoản thù lao cho {row.user?.full_name}</h2>
+            <p className="text-xs text-gray-500 truncate">{row.position} · {row.project}</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Đóng" className="w-8 h-8 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 flex items-center justify-center"><Icon name="x" className="w-5 h-5" /></button>
+        </div>
+
+        <div className="p-5 grid gap-5 md:grid-cols-[15rem_minmax(0,1fr)]">
+          {/* Mã QR */}
+          <div className="flex flex-col items-center">
+            {qr ? (
+              <div className="relative w-60 min-h-[15rem] rounded-xl border border-gray-200 bg-white overflow-hidden">
+                <img key={qrKey} src={retry ? `${qr}&r=${retry}` : qr} alt={`Mã QR chuyển khoản ${formatMoney(nQr)}`}
+                  onLoad={() => setQrRes({ key: qrKey, status: 'ready' })} onError={() => setQrRes({ key: qrKey, status: 'error' })}
+                  className={`w-60 h-auto transition-opacity ${qrState === 'ready' && !settling ? 'opacity-100' : 'opacity-30'}`} />
+                {qrLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center" role="status" aria-label="Đang tạo mã QR">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-600 shadow">
+                      <span className="w-3.5 h-3.5 rounded-full border-2 border-primary-500 border-t-transparent animate-spin" />Đang tạo mã QR...
+                    </span>
+                  </div>
+                )}
+                {qrFailed && (
+                  <div className="absolute inset-0 bg-white flex flex-col items-center justify-center gap-2 p-4 text-center">
+                    <IconBadge name="alert" tone="amber" />
+                    <p className="text-sm font-semibold text-gray-800">Chưa tải được mã QR</p>
+                    <p className="text-xs text-gray-500">Dịch vụ tạo mã đang bận hoặc mạng chậm. Thử lại sau vài giây, hoặc chuyển khoản theo thông tin bên cạnh.</p>
+                    <button type="button" onClick={() => setRetry((r) => r + 1)} className="btn-secondary text-xs !py-1.5">Thử lại</button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-60 min-h-[15rem] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 flex flex-col items-center justify-center text-center gap-2 text-sm text-gray-500">
+                <IconBadge name="card" tone="amber" />
+                {!bank?.account_number ? <p>Ứng viên chưa cập nhật tài khoản ngân hàng nên chưa có mã QR.</p>
+                  : !detected ? <p>Chưa nhận ra ngân hàng "{bank.bank_name}". Hãy chọn ngân hàng bên phải.</p>
+                    : <p>Nhập số tiền từ 1.000đ để tạo mã QR.</p>}
+              </div>
+            )}
+            <p className="mt-2 text-xs text-gray-400 text-center">Mở app ngân hàng, quét mã, kiểm tra số tiền rồi chuyển.</p>
+          </div>
+
+          {/* Thông tin + số tiền */}
+          <div className="min-w-0">
+            <label htmlFor="pay-amount" className="block text-xs font-semibold text-gray-500 mb-1">Số tiền chuyển (sửa được)</label>
+            <div className="relative">
+              <MoneyInput id="pay-amount" value={amount} onChange={setAmount} aria-invalid={n > 0 && n < MIN_AMOUNT} aria-describedby="pay-amount-hint"
+                className="input-field !py-2.5 !pr-10 text-xl font-extrabold text-primary-700" placeholder="Nhập số tiền" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">đ</span>
+            </div>
+            <p id="pay-amount-hint" className={`mt-1 text-xs ${n > 0 && n < MIN_AMOUNT ? 'font-semibold text-red-600' : 'text-gray-400'}`} role={n > 0 && n < MIN_AMOUNT ? 'alert' : undefined}>
+              {n > 0 && n < MIN_AMOUNT ? 'Số tiền tối thiểu 1.000đ.' : 'Chỉ nhập chữ số, số nào ngân hàng chuyển được đều nhập được.'}
+            </p>
+            {row.pay === null && row.amount > 0 && Number(amount) === row.amount && <p className="mt-1 text-xs text-gray-400">Số tiền mặc định theo thù lao của vị trí.</p>}
+
+            <div className="mt-3">
+              <InfoLine label="Người nhận" value={bank?.account_holder_name || row.user?.full_name} />
+              <InfoLine label="Ngân hàng" value={detected ? detected.shortName : bank?.bank_name} />
+              <InfoLine label="Số tài khoản" value={bank?.account_number} copyLabel="số tài khoản" />
+              <InfoLine label="Nội dung" value={content} copyLabel="nội dung chuyển khoản" />
+            </div>
+
+            {bank?.account_number && !detected && (
+              <select className="input-field mt-2 text-sm" value={bankCode} onChange={(e) => setBankCode(e.target.value)} aria-label="Chọn ngân hàng để tạo mã QR">
+                <option value="">Chọn ngân hàng để tạo mã QR...</option>
+                {VIETQR_BANKS.map((b) => <option key={b.code} value={b.code}>{b.shortName}</option>)}
+              </select>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2 px-5 py-3.5 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
+          <button type="button" onClick={onClose} className="btn-secondary text-sm">Đóng</button>
+          <button type="button" onClick={() => onPaid(n)} disabled={n < MIN_AMOUNT || pending} className="btn-primary text-sm !bg-none !bg-emerald-600 hover:!bg-emerald-700">
+            <Icon name="check" className="w-4 h-4" strokeWidth={2.4} />{pending ? 'Đang lưu...' : `Đã chuyển khoản xong (${formatMoney(n)})`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TABS = [{ v: 'UNPAID', l: 'Chưa thanh toán' }, { v: 'PAID', l: 'Đã thanh toán' }, { v: 'ALL', l: 'Tất cả' }];
 
 export default function PaymentsPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState('UNPAID');
+  const [projectFilter, setProjectFilter] = useState(params.get('project') || ''); // mở từ nút "Đóng dự án" thì vào thẳng dự án đó
+  const [showOpen, setShowOpen] = useState(false); // mặc định chỉ hiện dự án đã đóng (đến lúc thanh toán)
+  const [search, setSearch] = useState('');
+  const [payTarget, setPayTarget] = useState(null);
 
-  // Chế độ xem: 'transactions' (Giao dịch thanh toán) | 'members' (Theo dõi theo thành viên dự án)
-  const [activeView, setActiveView] = useState('transactions');
+  const { data: members, isLoading } = useQuery({ queryKey: ['admin-payable-members'], queryFn: () => adminApi.getPayableMembers().then((r) => r.data.data) });
+  const rows = useMemo(() => (members || []).map(toRow), [members]);
 
-  // Bộ lọc chung
-  const [statusFilter, setStatusFilter] = useState('');
-  const [projectFilter, setProjectFilter] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const refresh = () => qc.invalidateQueries({ predicate: (q) => /payment|payable|project|stats|dashboard/i.test(String(q.queryKey[0])) });
+  const fail = (fallback) => (e) => toast.error(e.response?.data?.message || fallback);
 
-  // Modal tạo thanh toán
-  const [showCreate, setShowCreate] = useState(false);
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
-  const [createForm, setCreateForm] = useState({
-    workspace_member_id: '',
-    amount: '',
-    payment_method: 'VIETQR',
+  // Khoản chưa có thì tạo (số tiền mặc định lấy từ thù lao vị trí), có rồi thì sửa
+  const saveAmount = useMutation({
+    mutationFn: ({ row, amount }) => (row.pay ? adminApi.updatePayment(row.pay.id, { amount }) : adminApi.createPayment({ workspace_member_id: row.m.id, amount })),
+    onSuccess: () => { refresh(); toast.success('Đã lưu số tiền'); },
+    onError: fail('Chưa lưu được số tiền'),
+  });
+  const markPaid = useMutation({
+    mutationFn: async ({ row, amount }) => {
+      let pay = row.pay;
+      if (!pay) pay = (await adminApi.createPayment({ workspace_member_id: row.m.id, amount })).data.data;
+      return adminApi.processPayment(pay.id, { status: 'PAID', amount });
+    },
+    onSuccess: (_, { row }) => { refresh(); setPayTarget(null); toast.success(`Đã đánh dấu đã thanh toán cho ${row.user?.full_name || 'thành viên'}`); },
+    onError: fail('Chưa đánh dấu được'),
+  });
+  const undo = useMutation({
+    mutationFn: ({ row }) => adminApi.processPayment(row.pay.id, { status: 'PENDING' }),
+    onSuccess: () => { refresh(); toast.success('Đã chuyển về chưa thanh toán'); },
+    onError: fail('Chưa hoàn tác được'),
   });
 
-  // Modal sửa số tiền (chỉ cho PENDING / FAILED)
-  const [editTarget, setEditTarget] = useState(null); // payment object
-  const [editAmount, setEditAmount] = useState('');
-
-  // Modal thanh toán & quét VietQR
-  const [txModal, setTxModal] = useState(null);
-  const [txCode, setTxCode] = useState('');
-  const [overrideBankCode, setOverrideBankCode] = useState('');
-
-  useEscapeKey(() => setTxModal(null), !!txModal);
-  useEscapeKey(() => setShowCreate(false), showCreate);
-  useEscapeKey(() => setEditTarget(null), !!editTarget);
-
-  const { data: paymentsRes, isLoading } = useQuery({
-    queryKey: ['admin-payments'],
-    queryFn: () => adminApi.getPayments(),
-  });
-
-  // Luôn lấy danh sách thành viên dự án để đối chiếu trạng thái thanh toán & ngăn tạo trùng
-  const { data: membersRes, isLoading: membersLoading } = useQuery({
-    queryKey: ['admin-payable-members'],
-    queryFn: () => adminApi.getPayableMembers(),
-  });
-
-  const allPayments = paymentsRes?.data?.data || [];
-  const payableMembers = membersRes?.data?.data || [];
-
-  const invalidateAll = () => {
-    qc.invalidateQueries({ queryKey: ['admin-payments'] });
-    qc.invalidateQueries({ queryKey: ['admin-payable-members'] });
+  const onUndo = async (row) => {
+    const ok = await confirm({ title: 'Hoàn tác thanh toán', message: `Chuyển khoản ${formatMoney(row.amount)} của ${row.user?.full_name} về "Chưa thanh toán"? Dùng khi bạn lỡ đánh dấu nhầm.`, confirmText: 'Hoàn tác', tone: 'danger' });
+    if (ok) undo.mutate({ row });
   };
-
-  // Danh sách các Workspace/Dự án
-  const workspaceOptions = useMemo(() => {
-    const map = new Map();
-    for (const m of payableMembers) {
-      const ws = m.Workspace;
-      if (ws && !map.has(ws.id)) {
-        map.set(ws.id, {
-          id: ws.id,
-          name: getProjectName(ws),
-          wsName: ws.name,
-          projectStatus: ws.Project?.status || ws.InternalProject?.status,
-        });
-      }
-    }
-    return Array.from(map.values());
-  }, [payableMembers]);
-
-  // Thành viên trong modal Tạo thanh toán (lọc theo dự án đã chọn)
-  const modalMembers = useMemo(() => {
-    if (!selectedWorkspaceId) return payableMembers;
-    return payableMembers.filter((m) => m.Workspace?.id === selectedWorkspaceId);
-  }, [payableMembers, selectedWorkspaceId]);
-
-  // Số thành viên chưa có thanh toán hợp lệ
-  const unpaidMembersCount = useMemo(
-    () =>
-      payableMembers.filter((m) => {
-        const p = m.Payments?.[0];
-        return !p || p.status === 'FAILED';
-      }).length,
-    [payableMembers]
-  );
-
-  const selectedMember = useMemo(
-    () => payableMembers.find((m) => m.id === createForm.workspace_member_id) || null,
-    [payableMembers, createForm.workspace_member_id]
-  );
-
-  const handleSelectMember = (memberId) => {
-    const member = payableMembers.find((m) => m.id === memberId);
-    const suggestedBudget = member?.ProjectJob?.budget
-      ? String(Math.round(Number(member.ProjectJob.budget)))
-      : '';
-    setCreateForm((prev) => ({
-      ...prev,
-      workspace_member_id: memberId,
-      amount: suggestedBudget || prev.amount,
-    }));
-  };
-
-  const openCreateForMember = (member) => {
-    setSelectedWorkspaceId(member.Workspace?.id || '');
-    setCreateForm({
-      workspace_member_id: member.id,
-      amount: member.ProjectJob?.budget
-        ? String(Math.round(Number(member.ProjectJob.budget)))
-        : '',
-      payment_method: 'VIETQR',
-    });
-    setShowCreate(true);
-  };
-
-  const processMutation = useMutation({
-    mutationFn: ({ id, status, transaction_code, payment_method }) =>
-      adminApi.processPayment(id, { status, transaction_code, payment_method }),
-    onSuccess: () => {
-      invalidateAll();
-      toast.success('Đã cập nhật trạng thái thanh toán');
-      setTxModal(null);
-      setTxCode('');
-      setOverrideBankCode('');
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra'),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (payload) => adminApi.createPayment(payload),
-    onSuccess: (res) => {
-      invalidateAll();
-      toast.success(
-        res.data?.restored
-          ? 'Đã khôi phục yêu cầu thanh toán'
-          : 'Đã tạo yêu cầu thanh toán mới'
-      );
-      setShowCreate(false);
-      setCreateForm({ workspace_member_id: '', amount: '', payment_method: 'VIETQR' });
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Không thể tạo thanh toán'),
-  });
-
-  const batchCreateMutation = useMutation({
-    mutationFn: (workspaceId) => adminApi.createBatchProjectPayments(workspaceId),
-    onSuccess: (res) => {
-      invalidateAll();
-      toast.success(res.data?.message || 'Đã tạo thanh toán theo dự án');
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Không thể tạo thanh toán hàng loạt'),
-  });
-
-  const updateAmountMutation = useMutation({
-    mutationFn: ({ id, amount }) => adminApi.updatePayment(id, { amount }),
-    onSuccess: () => {
-      invalidateAll();
-      toast.success('Đã cập nhật số tiền thanh toán');
-      setEditTarget(null);
-      setEditAmount('');
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Không thể cập nhật số tiền'),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => adminApi.deletePayment(id),
-    onSuccess: () => {
-      invalidateAll();
-      toast.success('Đã hủy yêu cầu thanh toán');
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Không thể xóa khoản thanh toán'),
-  });
 
   if (isLoading) return <LoadingSpinner />;
 
-  // Lọc danh sách giao dịch
-  const payments = allPayments.filter((p) => {
-    if (statusFilter && p.status !== statusFilter) return false;
-    if (projectFilter && p.WorkspaceMember?.Workspace?.id !== projectFilter) return false;
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
-      const user = p.WorkspaceMember?.CandidateProfile?.User;
-      const wsName = getProjectName(p.WorkspaceMember?.Workspace);
-      const jobTitle = p.WorkspaceMember?.ProjectJob?.title || '';
-      const tx = p.transaction_code || '';
-      const match =
-        user?.full_name?.toLowerCase().includes(q) ||
-        user?.email?.toLowerCase().includes(q) ||
-        wsName.toLowerCase().includes(q) ||
-        jobTitle.toLowerCase().includes(q) ||
-        tx.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    return true;
+  // Phạm vi hiển thị: chỉ dự án đã đóng; bật "hiện cả dự án chưa đóng" hoặc chọn đích danh một dự án thì hiện hết
+  const inScope = rows.filter((r) => (projectFilter ? r.wsId === projectFilter : (showOpen || r.closed)));
+  const hiddenProjects = !projectFilter && !showOpen ? new Set(rows.filter((r) => !r.closed).map((r) => r.wsId)).size : 0;
+  const unpaid = inScope.filter((r) => !r.paid);
+  const paid = inScope.filter((r) => r.paid);
+  const sum = (list) => list.reduce((s, r) => s + r.amount, 0);
+
+  const q = search.trim().toLowerCase();
+  const visible = inScope.filter((r) => {
+    if (tab === 'UNPAID' && r.paid) return false;
+    if (tab === 'PAID' && !r.paid) return false;
+    if (!q) return true;
+    return [r.user?.full_name, r.user?.email, r.position, r.project].some((t) => t?.toLowerCase().includes(q));
   });
 
-  // Lọc danh sách thành viên ở tab "Theo dõi theo thành viên"
-  const filteredMemberRows = payableMembers.filter((m) => {
-    if (projectFilter && m.Workspace?.id !== projectFilter) return false;
-    const pStatus = m.Payments?.[0]?.status || 'UNCREATED';
-    if (statusFilter) {
-      if (statusFilter === 'UNCREATED' && pStatus !== 'UNCREATED') return false;
-      if (statusFilter !== 'UNCREATED' && pStatus !== statusFilter) return false;
+  const groups = (() => {
+    const map = new Map();
+    for (const r of rows) {
+      if (!map.has(r.wsId)) map.set(r.wsId, { id: r.wsId, name: r.project, closed: r.closed, all: [], rows: [] });
+      map.get(r.wsId).all.push(r);
     }
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
-      const user = m.CandidateProfile?.User;
-      const wsName = getProjectName(m.Workspace);
-      const jobTitle = m.ProjectJob?.title || '';
-      const match =
-        user?.full_name?.toLowerCase().includes(q) ||
-        user?.email?.toLowerCase().includes(q) ||
-        wsName.toLowerCase().includes(q) ||
-        jobTitle.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    return true;
-  });
-
-  // Summary stats
-  const totalPaid = allPayments
-    .filter((p) => p.status === 'PAID')
-    .reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-  const totalPendingAmount = allPayments
-    .filter((p) => p.status === 'PENDING' || p.status === 'PROCESSING')
-    .reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-  const totalPending = allPayments.filter((p) => p.status === 'PENDING').length;
-  const totalProcessing = allPayments.filter((p) => p.status === 'PROCESSING').length;
-
-  const openQrModal = (payment) => {
-    setTxModal(payment);
-    setTxCode(payment.transaction_code || '');
-    setOverrideBankCode('');
-  };
-
-  // Tính toán thông tin VietQR cho modal đang mở
-  const modalBankInfo = txModal?.WorkspaceMember?.CandidateProfile?.PaymentInformation;
-  const effectiveBankName = overrideBankCode || modalBankInfo?.bank_name || '';
-  const detectedBank = resolveVietQrBank(effectiveBankName);
-  const transferContent = txModal ? buildTransferContent(txModal) : '';
-  const qrImageUrl =
-    txModal && modalBankInfo?.account_number
-      ? buildVietQrUrl({
-          bankName: effectiveBankName,
-          accountNumber: modalBankInfo.account_number,
-          accountHolderName: modalBankInfo.account_holder_name,
-          amount: txModal.amount,
-          description: transferContent,
-        })
-      : null;
+    for (const r of visible) map.get(r.wsId)?.rows.push(r);
+    return [...map.values()].filter((g) => g.rows.length).sort((a, b) => Number(a.all.every((r) => r.paid)) - Number(b.all.every((r) => r.paid)));
+  })();
+  const projectOptions = (() => { const m = new Map(); rows.forEach((r) => m.set(r.wsId, r.project)); return [...m].map(([id, name]) => ({ id, name })); })();
 
   return (
-    <div className="space-y-6">
-      <PageBanner
-        compact
-        icon="card"
-        title="Quản lý thanh toán thù lao"
-        subtitle="Mỗi thành viên trong một dự án được quyết toán 1 lần duy nhất dựa trên tiến độ nghiệm thu công việc"
-      >
-        <button
-          onClick={() => {
-            setSelectedWorkspaceId(projectFilter || '');
-            setCreateForm({ workspace_member_id: '', amount: '', payment_method: 'VIETQR' });
-            setShowCreate(true);
-          }}
-          className="btn-light"
-        >
-          <Icon name="plus" className="w-4 h-4" /> Tạo thanh toán ({unpaidMembersCount} chưa tạo)
-        </button>
-      </PageBanner>
+    <div className="space-y-5">
+      <PageBanner compact icon="card" title="Thanh toán thù lao" subtitle="Kiểm tra số tiền, quét mã QR để chuyển khoản, rồi bấm đã thanh toán." />
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-emerald-50 border-emerald-100 border text-center py-3">
-          <p className="text-xl font-bold text-emerald-700">{formatCurrency(totalPaid)}</p>
-          <p className="text-xs text-emerald-600 mt-0.5">
-            Tổng đã giải ngân ({allPayments.filter((p) => p.status === 'PAID').length} thành viên)
-          </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="card !p-4 flex items-center gap-4 border-amber-100 bg-amber-50/60">
+          <span className="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0"><Icon name="clock" className="w-6 h-6" /></span>
+          <div><p className="text-xs font-semibold text-amber-700">Chưa thanh toán</p><p className="text-xl font-extrabold text-gray-900 leading-tight">{formatMoney(sum(unpaid))}</p><p className="text-xs text-gray-500">{unpaid.length} người</p></div>
         </div>
-        <div className="card bg-amber-50 border-amber-100 border text-center py-3">
-          <p className="text-xl font-bold text-amber-700">{formatCurrency(totalPendingAmount)}</p>
-          <p className="text-xs text-amber-600 mt-0.5">
-            Tổng chờ thanh toán ({totalPending + totalProcessing} khoản)
-          </p>
-        </div>
-        <div className="card bg-yellow-50 border-yellow-100 border text-center py-3">
-          <p className="text-xl font-bold text-yellow-700">{unpaidMembersCount}</p>
-          <p className="text-xs text-yellow-600 mt-0.5">Thành viên chưa khởi tạo TT</p>
-        </div>
-        <div className="card bg-primary-50 border-primary-100 border text-center py-3">
-          <p className="text-xl font-bold text-primary-700">{payableMembers.length}</p>
-          <p className="text-xs text-primary-700 mt-0.5">Tổng thành viên các dự án</p>
+        <div className="card !p-4 flex items-center gap-4 border-emerald-100 bg-emerald-50/60">
+          <span className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0"><Icon name="check" className="w-6 h-6" strokeWidth={2.2} /></span>
+          <div><p className="text-xs font-semibold text-emerald-700">Đã thanh toán</p><p className="text-xl font-extrabold text-gray-900 leading-tight">{formatMoney(sum(paid))}</p><p className="text-xs text-gray-500">{paid.length} người</p></div>
         </div>
       </div>
 
-      {/* View Switcher & Filters */}
-      <div className="card p-4 space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3">
-          {/* Chuyển chế độ xem */}
-          <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
-            <button
-              onClick={() => {
-                setActiveView('transactions');
-                if (statusFilter === 'UNCREATED') setStatusFilter('');
-              }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeView === 'transactions'
-                  ? 'bg-white text-primary-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Giao dịch thanh toán ({allPayments.length})
-            </button>
-            <button
-              onClick={() => setActiveView('members')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeView === 'members'
-                  ? 'bg-white text-primary-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Theo dõi theo Thành viên dự án ({payableMembers.length})
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Lọc theo dự án */}
-            <select
-              className="input-field py-1.5 text-xs w-full sm:w-56"
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-            >
-              <option value="">Tất cả dự án ({workspaceOptions.length})</option>
-              {workspaceOptions.map((ws) => (
-                <option key={ws.id} value={ws.id}>
-                  {ws.name} {ws.projectStatus === 'COMPLETED' ? '(Đã nghiệm thu)' : ''}
-                </option>
-              ))}
-            </select>
-
-            {/* Nút khởi tạo hàng loạt cho dự án đang lọc */}
-            {projectFilter && (
-              <button
-                type="button"
-                onClick={async () => {
-                  const wsObj = workspaceOptions.find((w) => w.id === projectFilter);
-                  const ok = await confirm({
-                    title: 'Khởi tạo thanh toán cho cả dự án',
-                    message: `Tự động tạo yêu cầu thanh toán (theo mức thù lao vị trí) cho tất cả thành viên chưa có thanh toán trong dự án "${wsObj?.name || ''}"? Các thành viên đã thanh toán hoặc đang chờ xử lý sẽ được bỏ qua.`,
-                    confirmText: 'Khởi tạo hàng loạt',
-                    tone: 'primary',
-                  });
-                  if (ok) batchCreateMutation.mutate(projectFilter);
-                }}
-                disabled={batchCreateMutation.isPending}
-                className="px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg text-xs font-semibold border border-primary-200 transition-colors"
-              >
-                + Tạo TT cho cả dự án này
-              </button>
-            )}
-
-            {/* Tìm kiếm */}
-            <div className="relative w-full sm:w-64">
-              <Icon
-                name="search"
-                className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
-              />
-              <input
-                type="text"
-                className="input-field pl-9 py-1.5 text-xs"
-                placeholder="Tìm ứng viên, vị trí, mã GD..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Filter pills theo trạng thái */}
-        <div className="flex gap-2 flex-wrap">
-          {(activeView === 'transactions'
-            ? ['', 'PENDING', 'PROCESSING', 'PAID', 'FAILED']
-            : ['', 'UNCREATED', 'PENDING', 'PROCESSING', 'PAID', 'FAILED']
-          ).map((s) => {
-            const count =
-              activeView === 'transactions'
-                ? s === ''
-                  ? allPayments.length
-                  : allPayments.filter((p) => p.status === s).length
-                : s === ''
-                ? payableMembers.length
-                : s === 'UNCREATED'
-                ? payableMembers.filter((m) => !m.Payments?.length).length
-                : payableMembers.filter((m) => m.Payments?.[0]?.status === s).length;
-
-            const label =
-              s === ''
-                ? `Tất cả (${count})`
-                : s === 'UNCREATED'
-                ? `Chưa tạo TT (${count})`
-                : `${STATUS_LABELS[s]} (${count})`;
-
+      <div className="card !p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-2" role="tablist">
+          {TABS.map((t) => {
+            const count = t.v === 'UNPAID' ? unpaid.length : t.v === 'PAID' ? paid.length : inScope.length;
             return (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  statusFilter === s
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {label}
+              <button key={t.v} type="button" role="tab" aria-selected={tab === t.v} onClick={() => setTab(t.v)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${tab === t.v ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-700'}`}>
+                {t.l} <span className={tab === t.v ? 'text-white/80' : 'text-gray-400'}>{count}</span>
               </button>
             );
           })}
+          <div className="ml-auto flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <select className="input-field !py-2 text-sm lg:w-56" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} aria-label="Lọc theo dự án">
+              <option value="">Tất cả dự án</option>
+              {projectOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <div className="relative flex-1 lg:w-56">
+              <Icon name="search" className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input className="input-field !py-2 !pl-9 text-sm" placeholder="Tìm ứng viên, vị trí..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </div>
         </div>
+        {!projectFilter && (
+          <label className="inline-flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+            <input type="checkbox" checked={showOpen} onChange={(e) => setShowOpen(e.target.checked)} className="accent-primary-600" />
+            Hiện cả dự án chưa đóng{hiddenProjects > 0 ? ` (đang ẩn ${hiddenProjects} dự án)` : ''}
+          </label>
+        )}
       </div>
 
-      {/* ─── VIEW 1: DANH SÁCH GIAO DỊCH THANH TOÁN ─── */}
-      {activeView === 'transactions' && (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ứng viên</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thông tin ngân hàng</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Dự án & Vị trí</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Số tiền (VNĐ)</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Mã GD</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Trạng thái</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ngày TT</th>
-                <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.length === 0 && (
-                <tr>
-                  <td colSpan="8" className="p-8 text-center text-gray-400">
-                    {statusFilter
-                      ? `Không có giao dịch ở trạng thái "${STATUS_LABELS[statusFilter]}"`
-                      : 'Chưa có giao dịch thanh toán nào'}
-                  </td>
-                </tr>
-              )}
-              {payments.map((p) => {
-                const candidate = p.WorkspaceMember?.CandidateProfile;
-                const bankInfo = candidate?.PaymentInformation;
-                const user = candidate?.User;
-                const ws = p.WorkspaceMember?.Workspace;
-                const projectName = getProjectName(ws);
-                const job = p.WorkspaceMember?.ProjectJob;
-                const evalInfo = p.WorkspaceMember?.CandidateEvaluation;
-                const isEditable = p.status === 'PENDING' || p.status === 'FAILED';
-
-                return (
-                  <tr key={p.id} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="p-3">
-                      <p className="font-medium text-gray-800">{user?.full_name || '—'}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
-                    </td>
-                    <td className="p-3">
-                      {bankInfo?.account_number ? (
-                        <div className="text-xs space-y-0.5">
-                          <p className="font-semibold text-gray-700">{bankInfo.bank_name}</p>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-gray-600 font-mono">{bankInfo.account_number}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyText(bankInfo.account_number, 'số tài khoản')}
-                              className="text-[10px] text-primary-700 hover:underline"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                          <p className="text-gray-400 uppercase">{bankInfo.account_holder_name}</p>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          <Icon name="alert" className="w-3.5 h-3.5" /> Chưa có STK
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <p className="font-medium text-gray-800 text-xs">{projectName}</p>
-                      {job?.title && (
-                        <p className="text-xs text-primary-700 mt-0.5">
-                          {job.title}
-                          {job.budget ? ` (${formatCurrency(job.budget)})` : ''}
-                        </p>
-                      )}
-                      {evalInfo && (
-                        <span className="inline-block mt-1 text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded">
-                          Đánh giá: {parseFloat(evalInfo.score).toFixed(1)}/10
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-gray-900 text-base">
-                          {formatCurrency(p.amount)}
-                        </span>
-                        {isEditable && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditTarget(p);
-                              setEditAmount(String(Math.round(Number(p.amount || 0))));
-                            }}
-                            title="Điều chỉnh số tiền"
-                            className="text-gray-400 hover:text-primary-700 p-1 rounded hover:bg-gray-100"
-                          >
-                            <Icon name="pencil" className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      {p.transaction_code ? (
-                        <div>
-                          <p className="font-mono text-xs text-gray-700 font-medium">
-                            {p.transaction_code}
-                          </p>
-                          {p.payment_method && (
-                            <span className="text-[10px] text-gray-400">
-                              {METHOD_LABELS[p.payment_method] || p.payment_method}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`badge text-xs font-semibold px-2 py-1 whitespace-nowrap ${
-                          STATUS_COLORS[p.status] || 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {STATUS_LABELS[p.status] || p.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-xs text-gray-500 whitespace-nowrap">
-                      {p.paid_at ? (
-                        <div>
-                          <p className="font-medium text-emerald-700">
-                            {new Date(p.paid_at).toLocaleDateString('vi-VN')}
-                          </p>
-                          <p className="text-[10px] text-gray-400">
-                            {new Date(p.paid_at).toLocaleTimeString('vi-VN', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {p.status === 'PAID' ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400">
-                          <Icon name="lock" className="w-3.5 h-3.5" /> Đã tất toán
-                        </span>
-                      ) : (
-                        <div className="flex gap-1.5 flex-wrap items-center">
-                          {(p.status === 'PENDING' || p.status === 'PROCESSING') && (
-                            <button
-                              onClick={() => openQrModal(p)}
-                              disabled={processMutation.isPending}
-                              className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-medium transition-colors shadow-sm"
-                            >
-                              <Icon name="card" className="w-3.5 h-3.5" />
-                              Thanh toán QR
-                            </button>
-                          )}
-                          {p.status === 'PENDING' && (
-                            <button
-                              onClick={() => processMutation.mutate({ id: p.id, status: 'PROCESSING' })}
-                              disabled={processMutation.isPending}
-                              className="text-xs px-2.5 py-1.5 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg font-medium transition-colors"
-                            >
-                              Đang xử lý
-                            </button>
-                          )}
-                          {p.status === 'PROCESSING' && (
-                            <button
-                              onClick={() => processMutation.mutate({ id: p.id, status: 'FAILED' })}
-                              disabled={processMutation.isPending}
-                              className="text-xs px-2.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium transition-colors"
-                            >
-                              Báo lỗi
-                            </button>
-                          )}
-                          {p.status === 'FAILED' && (
-                            <button
-                              onClick={() => openQrModal(p)}
-                              disabled={processMutation.isPending}
-                              className="text-xs px-2.5 py-1.5 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg font-medium transition-colors"
-                            >
-                              Thanh toán lại
-                            </button>
-                          )}
-                          {isEditable && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const ok = await confirm({
-                                  title: 'Hủy yêu cầu thanh toán',
-                                  message: `Hủy yêu cầu thanh toán ${formatCurrency(
-                                    p.amount
-                                  )} của "${user?.full_name || ''}"? Sau khi hủy bạn có thể tạo lại nếu cần.`,
-                                  confirmText: 'Hủy thanh toán',
-                                  tone: 'danger',
-                                });
-                                if (ok) deleteMutation.mutate(p.id);
-                              }}
-                              disabled={deleteMutation.isPending}
-                              title="Hủy yêu cầu thanh toán tạo nhầm"
-                              className="text-xs px-2 py-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Icon name="trash" className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {groups.length === 0 ? (
+        <div className="card text-center py-14">
+          <IconBadge name={tab === 'UNPAID' ? 'verified' : 'card'} tone={tab === 'UNPAID' ? 'green' : 'slate'} size="lg" className="mx-auto" />
+          <p className="mt-3 font-semibold text-gray-800">{tab === 'UNPAID' ? 'Không còn khoản nào chưa thanh toán' : 'Chưa có khoản nào ở mục này'}</p>
+          {hiddenProjects > 0 && <p className="text-sm text-gray-500 mt-1">Đang ẩn {hiddenProjects} dự án chưa đóng. Tick "Hiện cả dự án chưa đóng" nếu cần xem.</p>}
         </div>
-      )}
-
-      {/* ─── VIEW 2: THEO DÕI THÙ LAO THEO THÀNH VIÊN DỰ ÁN ─── */}
-      {activeView === 'members' && (
-        <div className="card overflow-x-auto">
-          {membersLoading ? (
-            <div className="py-10 flex justify-center">
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thành viên</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Dự án & Vị trí</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Tiến độ công việc</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thù lao vị trí</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Ngân hàng</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Trạng thái TT</th>
-                  <th className="p-3 font-semibold text-gray-600 whitespace-nowrap">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMemberRows.length === 0 && (
-                  <tr>
-                    <td colSpan="7" className="p-8 text-center text-gray-400">
-                      Không có thành viên nào khớp bộ lọc
-                    </td>
-                  </tr>
-                )}
-                {filteredMemberRows.map((m) => {
-                  const user = m.CandidateProfile?.User;
-                  const bankInfo = m.CandidateProfile?.PaymentInformation;
-                  const projectName = getProjectName(m.Workspace);
-                  const projStatus = m.Workspace?.Project?.status || m.Workspace?.InternalProject?.status;
-                  const job = m.ProjectJob;
-                  const payment = m.Payments?.[0] || null;
-                  const ts = m.task_stats || { total_tasks: 0, done_tasks: 0 };
-                  const allDone = ts.total_tasks > 0 && ts.done_tasks === ts.total_tasks;
-                  const evalScore = m.CandidateEvaluation?.score;
-
-                  return (
-                    <tr key={m.id} className="border-b hover:bg-gray-50 transition-colors">
-                      <td className="p-3">
-                        <p className="font-medium text-gray-800">{user?.full_name || '—'}</p>
-                        <p className="text-xs text-gray-400">{user?.email}</p>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-gray-800 text-xs">{projectName}</span>
-                          {projStatus === 'COMPLETED' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">
-                              Đã nghiệm thu
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-primary-700 mt-0.5">{job?.title || 'Thành viên'}</p>
-                      </td>
-                      <td className="p-3 text-xs">
-                        {ts.total_tasks > 0 ? (
-                          <div>
-                            <span
-                              className={`font-semibold ${
-                                allDone ? 'text-emerald-700' : 'text-amber-600'
-                              }`}
-                            >
-                              {ts.done_tasks}/{ts.total_tasks} task hoàn thành
-                            </span>
-                            <div className="w-28 bg-gray-100 h-1.5 rounded-full mt-1">
-                              <div
-                                className={`h-1.5 rounded-full ${
-                                  allDone ? 'bg-emerald-500' : 'bg-amber-500'
-                                }`}
-                                style={{
-                                  width: `${Math.round((ts.done_tasks / ts.total_tasks) * 100)}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">Chưa giao task</span>
-                        )}
-                        {evalScore != null && (
-                          <p className="text-[11px] text-gray-500 mt-1">
-                            Đánh giá: <strong className="text-amber-600">{parseFloat(evalScore).toFixed(1)}/10</strong>
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-3 font-bold text-gray-900 whitespace-nowrap">
-                        {job?.budget ? formatCurrency(job.budget) : '—'}
-                      </td>
-                      <td className="p-3 text-xs">
-                        {bankInfo?.account_number ? (
-                          <div>
-                            <p className="font-semibold text-gray-700">{bankInfo.bank_name}</p>
-                            <p className="font-mono text-gray-500">{bankInfo.account_number}</p>
-                          </div>
-                        ) : (
-                          <span className="text-amber-600">Chưa có STK</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {payment ? (
-                          <div>
-                            <span
-                              className={`badge text-xs font-semibold px-2 py-1 ${
-                                STATUS_COLORS[payment.status] || 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              {STATUS_LABELS[payment.status] || payment.status}
-                            </span>
-                            <p className="text-[11px] text-gray-500 mt-1 font-medium">
-                              {formatCurrency(payment.amount)}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="badge text-xs bg-gray-100 text-gray-600 px-2 py-1">
-                            Chưa tạo TT
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {!payment ? (
-                          <button
-                            type="button"
-                            onClick={() => openCreateForMember(m)}
-                            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-primary-600 text-white hover:bg-primary-700 rounded-lg font-medium transition-colors shadow-sm"
-                          >
-                            <Icon name="plus" className="w-3.5 h-3.5" /> Khởi tạo TT
-                          </button>
-                        ) : payment.status === 'PAID' ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
-                            <Icon name="lock" className="w-3.5 h-3.5" /> Đã tất toán
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const fullPayment = allPayments.find((p) => p.id === payment.id);
-                              if (fullPayment) openQrModal(fullPayment);
-                            }}
-                            className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-medium transition-colors"
-                          >
-                            <Icon name="card" className="w-3.5 h-3.5" /> Thanh toán QR
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      {/* Modal Điều chỉnh số tiền (chỉ cho PENDING / FAILED) */}
-      {editTarget && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
-            <h3 className="font-bold text-lg text-gray-900 mb-1">Điều chỉnh số tiền thanh toán</h3>
-            <p className="text-xs text-gray-500 mb-4">
-              Ứng viên: <strong>{editTarget.WorkspaceMember?.CandidateProfile?.User?.full_name}</strong> ·{' '}
-              {getProjectName(editTarget.WorkspaceMember?.Workspace)}
-            </p>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Số tiền mới (VNĐ) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="1000"
-                step="1000"
-                className="input-field"
-                value={editAmount}
-                onChange={(e) => setEditAmount(e.target.value)}
-              />
-              {editAmount && (
-                <p className="text-xs font-semibold text-primary-700 mt-1">
-                  = {formatCurrency(editAmount)}
-                </p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button onClick={() => setEditTarget(null)} className="btn-secondary">
-                Hủy
-              </button>
-              <button
-                onClick={() => {
-                  if (!editAmount || Number(editAmount) < 1000) {
-                    return toast.error('Số tiền phải từ 1.000đ trở lên');
-                  }
-                  updateAmountMutation.mutate({ id: editTarget.id, amount: Number(editAmount) });
-                }}
-                disabled={updateAmountMutation.isPending}
-                className="btn-primary"
-              >
-                {updateAmountMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Quét mã VietQR & Xác nhận chuyển khoản */}
-      {txModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8 animate-fade-in">
-            {/* Header */}
-            <div className="bg-brand-gradient px-6 py-4 text-white flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Icon name="card" className="w-5 h-5" />
-                  Thanh toán thù lao & Quét mã VietQR
-                </h3>
-                <p className="text-xs text-white/80 mt-0.5">
-                  Quét mã QR bằng ứng dụng Ngân hàng để chuyển khoản chính xác số tiền và nội dung
-                </p>
+      ) : groups.map((g) => {
+        const paidCount = g.all.filter((r) => r.paid).length;
+        const pct = Math.round((paidCount / g.all.length) * 100);
+        const left = sum(g.all.filter((r) => !r.paid));
+        return (
+          <section key={g.id} className="card !p-0 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3.5 bg-gray-50/70 border-b border-gray-100">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <h2 className="font-bold text-gray-900 flex flex-wrap items-center gap-2">
+                  {g.name}
+                  <span className={`px-2 py-0.5 rounded-full text-[0.6875rem] font-semibold ${g.closed ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>{g.closed ? 'Đã đóng dự án' : 'Chưa đóng dự án'}</span>
+                </h2>
+                <p className="text-sm text-gray-600">Đã thanh toán <strong className="text-emerald-700">{paidCount}/{g.all.length}</strong>{left > 0 && <> · còn lại <strong className="text-gray-900">{formatMoney(left)}</strong></>}</p>
               </div>
-              <button
-                onClick={() => setTxModal(null)}
-                aria-label="Đóng"
-                className="text-white/80 hover:text-white"
-              >
-                <Icon name="x" className="w-5 h-5" />
-              </button>
+              <div className="mt-2 h-1.5 rounded-full bg-gray-200 overflow-hidden"><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} /></div>
             </div>
 
-            <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6">
-              {/* Cột trái: Mã VietQR */}
-              <div className="md:col-span-5 flex flex-col items-center justify-center bg-gray-50 rounded-xl p-4 border border-gray-200">
-                {qrImageUrl ? (
-                  <>
-                    <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 mb-3">
-                      <img
-                        src={qrImageUrl}
-                        alt="VietQR"
-                        className="w-56 h-auto rounded-lg object-contain mx-auto"
-                      />
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                      <Icon name="verified" className="w-3.5 h-3.5" /> Mã VietQR tự động
-                    </span>
-                    <p className="text-[11px] text-gray-400 text-center mt-1.5">
-                      Đã điền sẵn số tài khoản, số tiền & nội dung chuyển khoản
-                    </p>
-                  </>
-                ) : modalBankInfo?.account_number ? (
-                  <div className="text-center space-y-3 py-4 px-2">
-                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
-                      <Icon name="alert" className="w-6 h-6" />
-                    </div>
-                    <p className="text-xs font-semibold text-gray-700">
-                      Chưa nhận diện được mã ngân hàng "{modalBankInfo.bank_name}"
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Chọn ngân hàng tương ứng bên dưới để tạo mã VietQR:
-                    </p>
-                    <select
-                      className="input-field text-xs"
-                      value={overrideBankCode}
-                      onChange={(e) => setOverrideBankCode(e.target.value)}
-                    >
-                      <option value="">-- Chọn ngân hàng để tạo QR --</option>
-                      {VIETQR_BANKS.map((b) => (
-                        <option key={b.code} value={b.code}>
-                          {b.shortName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-2 py-8 px-3">
-                    <div className="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto">
-                      <Icon name="alert" className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-semibold text-gray-800">Chưa có thông tin ngân hàng</p>
-                    <p className="text-xs text-gray-500">
-                      Ứng viên chưa khai báo số tài khoản nhận thù lao trong hồ sơ cá nhân.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Cột phải: Thông tin chi tiết & Xác nhận */}
-              <div className="md:col-span-7 flex flex-col justify-between space-y-4">
-                <div className="space-y-3">
-                  <div className="bg-primary-50/60 border border-primary-100 rounded-xl p-3.5">
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <p className="text-xs text-gray-500">Người thụ hưởng (Ứng viên)</p>
-                        <p className="font-bold text-gray-900">
-                          {txModal.WorkspaceMember?.CandidateProfile?.User?.full_name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {getProjectName(txModal.WorkspaceMember?.Workspace)}
-                          {txModal.WorkspaceMember?.ProjectJob?.title
-                            ? ` · ${txModal.WorkspaceMember.ProjectJob.title}`
-                            : ''}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">Số tiền thanh toán</p>
-                        <p className="text-lg font-extrabold text-primary-700">
-                          {formatCurrency(txModal.amount)}
-                        </p>
-                      </div>
+            <ul className="divide-y divide-gray-100">
+              {g.rows.map((r) => (
+                <li key={r.m.id} className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 sm:px-5 py-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 basis-52">
+                    <Avatar name={r.user?.full_name} src={r.avatar} size="md" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{r.user?.full_name || '—'}</p>
+                      <p className="text-xs text-gray-500 truncate">{r.position}</p>
                     </div>
                   </div>
 
-                  {modalBankInfo?.account_number && (
-                    <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 text-xs">
-                      <div className="flex items-center justify-between px-3.5 py-2">
-                        <span className="text-gray-500">Ngân hàng:</span>
-                        <span className="font-semibold text-gray-800">
-                          {detectedBank ? detectedBank.shortName : modalBankInfo.bank_name}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between px-3.5 py-2">
-                        <span className="text-gray-500">Chủ tài khoản:</span>
-                        <span className="font-semibold text-gray-800 uppercase">
-                          {modalBankInfo.account_holder_name}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between px-3.5 py-2">
-                        <span className="text-gray-500">Số tài khoản:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-gray-900 text-sm">
-                            {modalBankInfo.account_number}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => copyText(modalBankInfo.account_number, 'số tài khoản')}
-                            className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-medium text-gray-700"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between px-3.5 py-2">
-                        <span className="text-gray-500">Nội dung CK:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-gray-800">{transferContent}</span>
-                          <button
-                            type="button"
-                            onClick={() => copyText(transferContent, 'nội dung chuyển khoản')}
-                            className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-medium text-gray-700"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-semibold text-gray-700">
-                        Mã giao dịch ngân hàng (Transaction Code) <span className="text-red-500">*</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setTxCode(
-                            `FT${new Date().toISOString().slice(2, 10).replace(/-/g, '')}${String(
-                              txModal.id
-                            )
-                              .slice(0, 6)
-                              .toUpperCase()}`
-                          )
-                        }
-                        className="text-[11px] text-primary-700 hover:underline font-medium"
-                      >
-                        + Điền mã tham chiếu tự động
+                  <div className="w-40 flex-shrink-0 min-w-0 text-xs">
+                    {r.bank?.account_number ? (
+                      <button type="button" onClick={() => copyText(r.bank.account_number, 'số tài khoản')} title="Sao chép số tài khoản" className="text-left group">
+                        <p className="font-semibold text-gray-700 truncate">{resolveVietQrBank(r.bank.bank_name)?.shortName || r.bank.bank_name}</p>
+                        <p className="text-gray-500 group-hover:text-primary-700">{r.bank.account_number} <Icon name="copy" className="w-3 h-3 ml-0.5 opacity-60" /></p>
                       </button>
-                    </div>
-                    <input
-                      className="input-field text-sm font-mono"
-                      placeholder="Nhập mã giao dịch sau khi chuyển khoản (VD: FT2630291823)"
-                      value={txCode}
-                      onChange={(e) => setTxCode(e.target.value)}
-                    />
+                    ) : <p className="text-amber-600 font-medium">Chưa có tài khoản</p>}
                   </div>
-                </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      processMutation.mutate({ id: txModal.id, status: 'FAILED' });
-                    }}
-                    disabled={processMutation.isPending}
-                    className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                  >
-                    Báo lỗi STK
-                  </button>
+                  <div className="w-36 flex-shrink-0"><AmountCell row={r} saving={saveAmount.isPending} onSave={(amount) => saveAmount.mutateAsync({ row: r, amount }).then(() => true, () => false)} /></div>
 
-                  <div className="flex gap-2 ml-auto">
-                    <button
-                      type="button"
-                      onClick={() => setTxModal(null)}
-                      className="btn-secondary text-sm"
-                    >
-                      Đóng
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!modalBankInfo?.account_number) {
-                          return toast.error(
-                            'Ứng viên chưa có số tài khoản ngân hàng, không thể xác nhận đã chuyển khoản'
-                          );
-                        }
-                        if (!txCode.trim()) {
-                          return toast.error('Vui lòng nhập mã giao dịch ngân hàng để đối soát');
-                        }
-                        processMutation.mutate({
-                          id: txModal.id,
-                          status: 'PAID',
-                          transaction_code: txCode.trim(),
-                          payment_method: qrImageUrl ? 'VIETQR' : 'BANK_TRANSFER',
-                        });
-                      }}
-                      disabled={processMutation.isPending || !modalBankInfo?.account_number}
-                      className="btn-primary text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Icon name="check" className="w-4 h-4" strokeWidth={2.5} />
-                      {processMutation.isPending ? 'Đang lưu...' : 'Xác nhận đã chuyển khoản'}
-                    </button>
+                  <div className="w-36 flex-shrink-0 flex flex-col items-start gap-0.5">
+                    <Chip paid={r.paid} />
+                    {r.paid && r.pay?.paid_at && <span className="text-[0.6875rem] text-gray-400">{new Date(r.pay.paid_at).toLocaleDateString('vi-VN')}</span>}
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Modal Tạo yêu cầu thanh toán mới (Chặn chọn thành viên đã thanh toán hoặc đang chờ xử lý) */}
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl my-8 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b mb-4">
-              <div>
-                <h3 className="font-bold text-lg text-gray-900">Tạo yêu cầu thanh toán thù lao</h3>
-                <p className="text-xs text-gray-500">
-                  Mỗi thành viên chỉ được tạo 1 khoản quyết toán thù lao cho mỗi dự án tham gia
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreate(false)}
-                aria-label="Đóng"
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <Icon name="x" className="w-5 h-5" />
-              </button>
-            </div>
-
-            {membersLoading ? (
-              <div className="py-8 flex justify-center">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Bước 1: Lọc theo Dự án / Workspace */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    1. Lọc theo Dự án / Workspace
-                  </label>
-                  <select
-                    className="input-field text-sm"
-                    value={selectedWorkspaceId}
-                    onChange={(e) => {
-                      setSelectedWorkspaceId(e.target.value);
-                      setCreateForm((p) => ({ ...p, workspace_member_id: '', amount: '' }));
-                    }}
-                  >
-                    <option value="">-- Tất cả dự án ({payableMembers.length} thành viên) --</option>
-                    {workspaceOptions.map((ws) => (
-                      <option key={ws.id} value={ws.id}>
-                        {ws.name} {ws.projectStatus === 'COMPLETED' ? '(Đã nghiệm thu)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Bước 2: Chọn thành viên (Khóa các thành viên đã PAID hoặc đang PENDING/PROCESSING) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    2. Thành viên nhận thù lao <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="input-field text-sm"
-                    value={createForm.workspace_member_id}
-                    onChange={(e) => handleSelectMember(e.target.value)}
-                  >
-                    <option value="">-- Chọn ứng viên chưa thanh toán --</option>
-                    {modalMembers.map((m) => {
-                      const u = m.CandidateProfile?.User;
-                      const projName = getProjectName(m.Workspace);
-                      const jobTitle = m.ProjectJob?.title || 'Thành viên';
-                      const budget = m.ProjectJob?.budget
-                        ? formatCurrency(m.ProjectJob.budget)
-                        : 'Chưa đặt mức thù lao';
-                      const existing = m.Payments?.[0] || null;
-                      const isLocked =
-                        existing && ['PAID', 'PENDING', 'PROCESSING'].includes(existing.status);
-                      const statusTag =
-                        existing?.status === 'PAID'
-                          ? ' — [ĐÃ THANH TOÁN - Không thể tạo lại]'
-                          : existing?.status === 'PENDING' || existing?.status === 'PROCESSING'
-                          ? ' — [ĐANG CHỜ XỬ LÝ - Đã tạo]'
-                          : existing?.status === 'FAILED'
-                          ? ' — [LỖI TT - Chọn để khôi phục]'
-                          : '';
-
-                      return (
-                        <option key={m.id} value={m.id} disabled={isLocked}>
-                          {u?.full_name} — {jobTitle} ({projName}) · {budget}
-                          {statusTag}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Những thành viên đã thanh toán hoặc đã có yêu cầu chờ xử lý sẽ bị khóa để tránh tạo trùng.
-                  </p>
-                </div>
-
-                {/* Thông tin chi tiết & kiểm tra điều kiện nghiệm thu của thành viên đang chọn */}
-                {selectedMember && (
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3.5 space-y-2.5 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Dự án & Vị trí:</span>
-                      <span className="font-semibold text-gray-800">
-                        {getProjectName(selectedMember.Workspace)} ·{' '}
-                        {selectedMember.ProjectJob?.title || 'Thành viên'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Thù lao vị trí công bố:</span>
-                      <span className="font-bold text-primary-700">
-                        {selectedMember.ProjectJob?.budget
-                          ? formatCurrency(selectedMember.ProjectJob.budget)
-                          : 'Chưa thiết lập'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Tiến độ công việc trong dự án:</span>
-                      <span className="font-semibold text-gray-800">
-                        {selectedMember.task_stats?.total_tasks > 0
-                          ? `${selectedMember.task_stats.done_tasks}/${selectedMember.task_stats.total_tasks} task đã nghiệm thu`
-                          : 'Chưa có task được giao'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Đánh giá năng lực:</span>
-                      <span className="font-semibold text-gray-800">
-                        {selectedMember.CandidateEvaluation
-                          ? `${parseFloat(selectedMember.CandidateEvaluation.score).toFixed(1)}/10`
-                          : 'Chưa đánh giá'}
-                      </span>
-                    </div>
-
-                    {/* Cảnh báo nếu thành viên chưa hoàn thành hết các task được giao */}
-                    {selectedMember.task_stats?.total_tasks > 0 &&
-                      selectedMember.task_stats.done_tasks <
-                        selectedMember.task_stats.total_tasks && (
-                        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-2">
-                          <Icon name="alert" className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                          <span>
-                            Thành viên này còn{' '}
-                            <strong>
-                              {selectedMember.task_stats.total_tasks -
-                                selectedMember.task_stats.done_tasks}{' '}
-                              task chưa được nghiệm thu hoàn thành
-                            </strong>
-                            . Hãy chắc chắn bạn muốn tạo thanh toán ngay lúc này.
-                          </span>
-                        </div>
-                      )}
-
-                    <div className="pt-2 border-t border-gray-200">
-                      {selectedMember.CandidateProfile?.PaymentInformation?.account_number ? (
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-gray-500">Tài khoản nhận tiền:</span>
-                          <div className="text-right">
-                            <p className="font-semibold text-emerald-700">
-                              {selectedMember.CandidateProfile.PaymentInformation.bank_name}
-                            </p>
-                            <p className="font-mono text-gray-800">
-                              {selectedMember.CandidateProfile.PaymentInformation.account_number} ·{' '}
-                              {selectedMember.CandidateProfile.PaymentInformation.account_holder_name}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-amber-600 font-medium flex items-center gap-1">
-                          <Icon name="alert" className="w-4 h-4" />
-                          Ứng viên chưa cập nhật số tài khoản ngân hàng (hệ thống sẽ gửi thông báo nhắc ứng viên cập nhật).
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Bước 3: Số tiền */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      3. Số tiền thanh toán (VNĐ) <span className="text-red-500">*</span>
-                    </label>
-                    {selectedMember?.ProjectJob?.budget && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCreateForm((p) => ({
-                            ...p,
-                            amount: String(Math.round(Number(selectedMember.ProjectJob.budget))),
-                          }))
-                        }
-                        className="text-xs text-primary-700 hover:underline font-medium"
-                      >
-                        Điền theo thù lao vị trí ({formatCurrency(selectedMember.ProjectJob.budget)})
-                      </button>
+                  <div className="w-32 flex-shrink-0 flex justify-end">
+                    {r.paid ? (
+                      <button type="button" onClick={() => onUndo(r)} disabled={undo.isPending} className="text-xs font-medium text-gray-400 hover:text-red-600 hover:underline">Hoàn tác</button>
+                    ) : (
+                      <button type="button" onClick={() => setPayTarget(r)} className="btn-primary text-sm !py-2 !px-3.5 whitespace-nowrap"><Icon name="card" className="w-4 h-4" />Thanh toán</button>
                     )}
                   </div>
-                  <input
-                    type="number"
-                    min="1000"
-                    step="1000"
-                    className="input-field"
-                    placeholder="VD: 5000000"
-                    value={createForm.amount}
-                    onChange={(e) => setCreateForm((p) => ({ ...p, amount: e.target.value }))}
-                  />
-                  {createForm.amount && (
-                    <p className="text-xs font-semibold text-primary-700 mt-1">
-                      = {formatCurrency(createForm.amount)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
 
-            <div className="flex gap-3 justify-end mt-6 pt-4 border-t">
-              <button onClick={() => setShowCreate(false)} className="btn-secondary">
-                Hủy
-              </button>
-              <button
-                onClick={() => {
-                  if (!createForm.workspace_member_id) {
-                    return toast.error('Vui lòng chọn thành viên nhận thanh toán');
-                  }
-                  if (!createForm.amount || parseFloat(createForm.amount) < 1000) {
-                    return toast.error('Số tiền phải từ 1.000đ trở lên');
-                  }
-                  createMutation.mutate(createForm);
-                }}
-                disabled={createMutation.isPending || !createForm.workspace_member_id}
-                className="btn-primary disabled:opacity-50"
-              >
-                {createMutation.isPending ? 'Đang tạo...' : 'Tạo yêu cầu thanh toán'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {payTarget && <PayModal row={payTarget} pending={markPaid.isPending} onClose={() => setPayTarget(null)} onPaid={(amount) => markPaid.mutate({ row: payTarget, amount })} />}
     </div>
   );
 }

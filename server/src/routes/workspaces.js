@@ -3,12 +3,20 @@ const { body } = require('express-validator');
 const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const ctrl = require('../controllers/workspaceController');
+const cols = require('../controllers/workspaceColumnController');
 
 router.use(protect);
 
 // Mọi người đã đăng nhập (quyền xem được kiểm tra trong controller: Admin hoặc thành viên Workspace)
 router.get('/:id', ctrl.getWorkspaceDetail);
 router.get('/:id/stats', ctrl.getWorkspaceStats);
+
+// Tùy chỉnh bảng Kanban + đổi tên Workspace (Admin hoặc Lead; quyền kiểm tra trong controller)
+router.put('/:id', cols.updateWorkspace);
+router.post('/:id/columns', cols.createColumn);
+router.put('/:id/columns-order', cols.reorderColumns);
+router.put('/:id/columns/:columnId', cols.updateColumn);
+router.delete('/:id/columns/:columnId', cols.deleteColumn);
 
 // Nhật ký hoạt động: Admin và Lead (kiểm tra trong controller)
 const logCtrl = require('../controllers/activityLogController');

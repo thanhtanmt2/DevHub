@@ -27,12 +27,29 @@ const Project = require('./Project')(sequelize, DataTypes);
 const ProjectJob = require('./ProjectJob')(sequelize, DataTypes);
 const ProjectJobSkill = require('./ProjectJobSkill')(sequelize, DataTypes);
 const ProjectApplication = require('./ProjectApplication')(sequelize, DataTypes);
+const Interviewer = require('./Interviewer')(sequelize, DataTypes);
 const SavedJob = require('./SavedJob')(sequelize, DataTypes);
+
+// Diễn đàn
+const ForumCategory = require('./ForumCategory')(sequelize, DataTypes);
+const ForumThread = require('./ForumThread')(sequelize, DataTypes);
+const ForumPost = require('./ForumPost')(sequelize, DataTypes);
+const ForumPostLike = require('./ForumPostLike')(sequelize, DataTypes);
+const ForumMemberActivity = require('./ForumMemberActivity')(sequelize, DataTypes);
+const ForumFollow = require('./ForumFollow')(sequelize, DataTypes);
+const ForumIgnore = require('./ForumIgnore')(sequelize, DataTypes);
+const ForumBookmark = require('./ForumBookmark')(sequelize, DataTypes);
+const ForumReport = require('./ForumReport')(sequelize, DataTypes);
+const ForumMessage = require('./ForumMessage')(sequelize, DataTypes);
+const ForumMessageReaction = require('./ForumMessageReaction')(sequelize, DataTypes);
+const ForumConversationSetting = require('./ForumConversationSetting')(sequelize, DataTypes);
+const ForumWarning = require('./ForumWarning')(sequelize, DataTypes);
 
 // Workspace models
 const Workspace = require('./Workspace')(sequelize, DataTypes);
 const WorkspaceMember = require('./WorkspaceMember')(sequelize, DataTypes);
 const Task = require('./Task')(sequelize, DataTypes);
+const WorkspaceColumn = require('./WorkspaceColumn')(sequelize, DataTypes);
 const TaskAssignee = require('./TaskAssignee')(sequelize, DataTypes);
 const SubTask = require('./SubTask')(sequelize, DataTypes);
 const TaskComment = require('./TaskComment')(sequelize, DataTypes);
@@ -125,6 +142,8 @@ ProjectApplication.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 
 CandidateProfile.hasMany(ProjectApplication, { foreignKey: 'candidate_profile_id' });
 ProjectApplication.belongsTo(CandidateProfile, { foreignKey: 'candidate_profile_id' });
+Interviewer.hasMany(ProjectApplication, { foreignKey: 'interviewer_id' });
+ProjectApplication.belongsTo(Interviewer, { foreignKey: 'interviewer_id' });
 
 // Việc làm đã lưu
 CandidateProfile.hasMany(SavedJob, { foreignKey: 'candidate_profile_id', onDelete: 'CASCADE' });
@@ -149,6 +168,8 @@ WorkspaceMember.belongsTo(ProjectJob, { foreignKey: 'project_job_id' });
 
 // Task
 Workspace.hasMany(Task, { foreignKey: 'workspace_id' });
+Workspace.hasMany(WorkspaceColumn, { foreignKey: 'workspace_id', as: 'Columns', onDelete: 'CASCADE' });
+WorkspaceColumn.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 Task.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 
 // Task <-> WorkspaceMember (many-to-many via TaskAssignee)
@@ -196,7 +217,22 @@ Notification.belongsTo(User, { foreignKey: 'user_id' });
 User.hasMany(ActivityLog, { foreignKey: 'user_id', as: 'ActivityLogs' });
 ActivityLog.belongsTo(User, { foreignKey: 'user_id' });
 
+// Diễn đàn
+ForumCategory.hasMany(ForumThread, { foreignKey: 'category_id', onDelete: 'CASCADE' });
+ForumThread.belongsTo(ForumCategory, { foreignKey: 'category_id' });
+Workspace.hasMany(ForumThread, { foreignKey: 'workspace_id', onDelete: 'CASCADE' });
+ForumThread.belongsTo(Workspace, { foreignKey: 'workspace_id' });
+ForumThread.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
+ForumThread.hasMany(ForumPost, { foreignKey: 'thread_id', onDelete: 'CASCADE' });
+ForumPost.belongsTo(ForumThread, { foreignKey: 'thread_id' });
+ForumPost.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
+ForumPost.hasMany(ForumPostLike, { foreignKey: 'post_id', onDelete: 'CASCADE' });
+ForumPostLike.belongsTo(ForumPost, { foreignKey: 'post_id' });
+
 // Backwards compatibility alias
+ForumMessage.hasMany(ForumMessageReaction, { foreignKey: 'message_id', onDelete: 'CASCADE' });
+ForumMessageReaction.belongsTo(ForumMessage, { foreignKey: 'message_id' });
+
 const InternalProject = Project;
 
 module.exports = {
@@ -209,9 +245,11 @@ module.exports = {
   JobPost, JobPostSkill,
   Application, ApplicationStatusHistory,
   SavedCandidate,
-  Project, ProjectJob, ProjectJobSkill, ProjectApplication, SavedJob,
+  Project, ProjectJob, ProjectJobSkill, ProjectApplication, Interviewer, SavedJob,
+  ForumCategory, ForumThread, ForumPost, ForumPostLike,
+  ForumMemberActivity, ForumFollow, ForumIgnore, ForumBookmark, ForumReport, ForumMessage, ForumMessageReaction, ForumConversationSetting, ForumWarning,
   InternalProject, // alias
-  Workspace, WorkspaceMember,
+  Workspace, WorkspaceMember, WorkspaceColumn,
   Task, TaskAssignee, SubTask, TaskComment, TaskActivity, TaskSubmission, TaskAttachment,
   CandidateEvaluation,
   Payment,

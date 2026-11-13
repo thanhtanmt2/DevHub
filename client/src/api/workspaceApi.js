@@ -6,6 +6,8 @@ export const workspaceApi = {
   getProjectById: (id) => api.get(`/admin/projects/${id}`),
   createProject: (data) => api.post('/admin/projects', data),
   updateProject: (id, data) => api.put(`/admin/projects/${id}`, data),
+  // Đóng dự án (nghiệm thu) và tự tạo các khoản thanh toán thù lao; force = vẫn đóng dù còn công việc chưa xong
+  closeProject: (id, data = {}) => api.post(`/admin/projects/${id}/close`, data),
   deleteProject: (id) => api.delete(`/admin/projects/${id}`),
   createWorkspace: (projectId) => api.post(`/admin/projects/${projectId}/workspace`),
 
@@ -16,4 +18,11 @@ export const workspaceApi = {
   addMember: (workspaceId, data) => api.post(`/workspaces/${workspaceId}/members`, data),
   removeMember: (workspaceId, memberId) => api.delete(`/workspaces/${workspaceId}/members/${memberId}`),
   updateMemberRole: (workspaceId, memberId, role) => api.put(`/workspaces/${workspaceId}/members/${memberId}/role`, { role }),
+
+  // Tùy chỉnh bảng (Admin / Lead): đổi tên Workspace, thêm / sửa / sắp xếp / xóa cột
+  updateWorkspace: (workspaceId, data) => api.put(`/workspaces/${workspaceId}`, data),
+  createColumn: (workspaceId, data) => api.post(`/workspaces/${workspaceId}/columns`, data),
+  updateColumn: (workspaceId, columnId, data) => api.put(`/workspaces/${workspaceId}/columns/${columnId}`, data),
+  reorderColumns: (workspaceId, ids) => api.put(`/workspaces/${workspaceId}/columns-order`, { ids }),
+  deleteColumn: (workspaceId, columnId) => api.delete(`/workspaces/${workspaceId}/columns/${columnId}`),
 };

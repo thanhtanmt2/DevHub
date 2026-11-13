@@ -463,6 +463,8 @@ exports.getMe = async (req, res, next) => {
     // Ứng viên: số điện thoại / địa chỉ lấy từ hồ sơ năng lực (nơi họ vẫn sửa)
     const profile = await CandidateProfile.findOne({ where: { user_id: user.id }, attributes: ['phone', 'address'] });
     if (profile) Object.assign(data, { phone: profile.phone, address: profile.address });
+    const company = await Company.findOne({ where: { user_id: user.id }, attributes: ['logo_url'] });
+    if (company?.logo_url && !data.avatar_url) data.avatar_url = company.logo_url;
     res.json({ success: true, data });
   } catch (error) { next(error); }
 };

@@ -32,6 +32,7 @@ function pickCompanyFields(body, current) {
 exports.getMyCompany = async (req, res, next) => {
   try {
     const company = await Company.findOne({ where: { user_id: req.user.id } });
+    if (company && !company.logo_url && req.user.avatar_url) await company.update({ logo_url: req.user.avatar_url });
     res.json({ success: true, data: company });
   } catch (error) { next(error); }
 };
@@ -60,6 +61,7 @@ exports.createCompany = async (req, res, next) => {
 exports.updateCompany = async (req, res, next) => {
   try {
     const company = await Company.findOne({ where: { user_id: req.user.id } });
+    if (company && !company.logo_url && req.user.avatar_url) await company.update({ logo_url: req.user.avatar_url });
     if (!company) throw new AppError('Không tìm thấy hồ sơ doanh nghiệp', 404);
     const { email } = req.body;
     const data = pickCompanyFields(req.body, company);
@@ -94,6 +96,7 @@ exports.sendCompanyVerifyEmail = async (req, res, next) => {
     }
 
     const company = await Company.findOne({ where: { user_id: req.user.id } });
+    if (company && !company.logo_url && req.user.avatar_url) await company.update({ logo_url: req.user.avatar_url });
     if (!company) throw new AppError('Vui lòng tạo hồ sơ công ty trước', 400);
 
     const otp = generateOTP();

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { User, JobPost, InternalProject, Application, Payment, Company, Role, ProjectApplication, Task, Workspace, ActivityLog } = require('../models');
+const { sequelize, User, JobPost, InternalProject, Application, Payment, Company, Role, ProjectApplication, Task, Workspace, ActivityLog } = require('../models');
 
 // Dashboard Admin: những việc đang chờ Admin xử lý + task chờ nghiệm thu + hoạt động gần đây
 exports.getAdminDashboard = async (req, res, next) => {
@@ -37,6 +37,17 @@ exports.getAdminDashboard = async (req, res, next) => {
       }),
     ]);
 
+    // Thành viên của dự án đã đóng mà chưa được chấm điểm năng lực
+    const [{ n: unevaluatedMembers }] = await sequelize.query(
+      `SELECT COUNT(*)::int AS n
+         FROM workspace_members wm
+         JOIN workspaces w ON w.id = wm.workspace_id
+         JOIN projects p ON p.id = w.project_id
+         LEFT JOIN candidate_evaluations ce ON ce.workspace_member_id = wm.id
+        WHERE p.status = 'COMPLETED' AND wm.status IN ('ACTIVE', 'COMPLETED') AND ce.id IS NULL`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+
     // Cùng quy ước với trang Workspace: deadline tính hết ngày, chỉ task chưa gửi duyệt mới bị coi là quá hạn
     const now = new Date();
     const overdueTasks = openTasksWithDeadline.filter((t) => {
@@ -55,6 +66,7 @@ exports.getAdminDashboard = async (req, res, next) => {
           pending_payments: pendingPayments + processingPayments,
           tasks_in_review: tasksInReview,
           overdue_tasks: overdueTasks,
+          unevaluated_members: unevaluatedMembers,
         },
         review_tasks: reviewTasks,
         recent_activity: recentActivity,

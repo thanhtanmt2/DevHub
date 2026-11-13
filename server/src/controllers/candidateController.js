@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 // nạp class AppError để hiển thị lỗi 
 const AppError = require('../utils/AppError');
 const { getEvidenceForProfiles, syncProjectSkills } = require('../utils/skillEvidence');
+const { computeRank, computeRanks, TIERS } = require('../utils/candidateRank');
 const { extractSkillsFromCv } = require('../utils/cvSkillExtractor');
 
 const DEFAULT_PRIVACY = CandidateProfile.DEFAULT_PRIVACY_SETTINGS || {
@@ -251,6 +252,15 @@ async function loadDevhubProjects(profileId) {
     };
   });
 }
+
+// GET /api/candidates/rank — danh hiệu của tôi (hạng theo số dự án đã hoàn thành và được đánh giá đạt) và bảng các hạng
+exports.getMyRank = async (req, res, next) => {
+  try {
+    const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id }, attributes: ['id'] });
+    if (!profile) throw new AppError('Chưa có hồ sơ ứng viên', 404);
+    res.json({ success: true, data: { ...(await computeRank(profile.id)), tiers: TIERS } });
+  } catch (error) { next(error); }
+};
 
 // GET /api/candidates/devhub-projects
 exports.getMyDevhubProjects = async (req, res, next) => {
@@ -595,9 +605,13 @@ exports.searchCandidates = async (req, res, next) => {
         model: Skill,
         through: { attributes: ['source'] },
         attributes: ['id', 'name'],
-        ...(skill_id ? { where: { id: skill_id }, required: true } : {}),
       },
     ];
+    if (skill_id) {
+      andConditions.push(sequelize.literal(
+        `"CandidateProfile"."id" IN (SELECT candidate_profile_id FROM candidate_skills WHERE skill_id = ${sequelize.escape(skill_id)})`,
+      ));
+    }
 
     if (keyword) {
       where[Op.or] = [
@@ -614,8 +628,21 @@ exports.searchCandidates = async (req, res, next) => {
     where[Op.and] = andConditions;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    const { count, rows } = await CandidateProfile.findAndCountAll({
+    // Bước 1: lấy đúng một trang id ứng viên (chỉ join bảng User là quan hệ 1-1 nên LIMIT áp dụng trên từng ứng viên);
+    // join cả danh sách kỹ năng ngay ở đây thì LIMIT bị tính trên từng dòng kỹ năng và mỗi trang chỉ còn vài ứng viên.
+    const { count, rows: idRows } = await CandidateProfile.findAndCountAll({
       where,
+      attributes: ['id'],
+      include: [{ model: User, attributes: [] }],
+      limit: parseInt(limit),
+      offset,
+      order: [['competency_score', 'DESC'], ['id', 'ASC']],
+      subQuery: false,
+    });
+    const pageIds = idRows.map((r) => r.id);
+    // Bước 2: nạp đầy đủ thông tin (kỹ năng, số dự án...) cho các ứng viên của trang
+    const loaded = pageIds.length ? await CandidateProfile.findAll({
+      where: { id: { [Op.in]: pageIds } },
       // Kèm số dự án đã tham gia + số task đã được nghiệm thu để nhà tuyển dụng nhìn thẻ là biết kinh nghiệm thực chiến
       attributes: {
         include: [
@@ -627,12 +654,9 @@ exports.searchCandidates = async (req, res, next) => {
         ],
       },
       include,
-      limit: parseInt(limit),
-      offset,
-      order: [['competency_score', 'DESC']],
-      distinct: true,
-      subQuery: false,
-    });
+    }) : [];
+    const byId = new Map(loaded.map((r) => [r.id, r]));
+    const rows = pageIds.map((id) => byId.get(id)).filter(Boolean);
 
     const profileIds = rows.map((r) => r.id);
     // Gắn minh chứng dự án cho từng kỹ năng + điểm đánh giá từng dự án để thẻ ứng viên hiển thị trực tiếp
@@ -677,9 +701,11 @@ exports.searchCandidates = async (req, res, next) => {
     // Số điện thoại chỉ hiện với doanh nghiệp đã được xác thực và khi ứng viên cho phép (giống trang chi tiết)
     const searcherCompany = await Company.findOne({ where: { user_id: req.user.id }, attributes: ['verification_status'] });
     const contactAllowed = searcherCompany?.verification_status === 'VERIFIED';
+    const ranks = await computeRanks(rows.map((r) => r.id));
     const data = rows.map((r) => {
       const j = r.toJSON();
       const privacy = normalizePrivacySettings(j.privacy_settings);
+      j.rank = privacy.show_devhub_projects ? summarizeRank(ranks.get(r.id)) : null;
       if (!(contactAllowed && privacy.show_phone)) j.phone = null;
       const ev = evidenceByProfile.get(r.id) || new Map();
       if (!privacy.show_address) j.address = null;
@@ -721,6 +747,12 @@ exports.searchCandidates = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+
+// Phần danh hiệu hiển thị cho nhà tuyển dụng: hạng, số dự án được tính, điểm trung bình và xếp loại
+function summarizeRank(r) {
+  if (!r) return null;
+  return { tier: r.tier, points: r.points, joined_projects: r.joined_projects, completed_projects: r.completed_projects, avg_score: r.avg_score, grade: r.grade };
+}
 
 // Tổng số tháng kinh nghiệm từ các mốc làm việc (gộp phần thời gian chồng nhau để không tính trùng)
 function totalExperienceMonths(experiences) {
@@ -845,6 +877,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
     }), { total: 0, done: 0, on_time: 0 });
 
     const p = profile.toJSON();
+    const rank = effectivePrivacy.show_devhub_projects ? summarizeRank(await computeRank(profile.id)) : null;
     const [evidenceByProfile, savedRecord] = await Promise.all([
       getEvidenceForProfiles([profile.id]),
       SavedCandidate.findOne({
@@ -861,6 +894,7 @@ exports.getCandidateForEmployer = async (req, res, next) => {
       data: {
         id: p.id,
         is_saved: Boolean(savedRecord),
+        rank,
         full_name: p.User?.full_name,
         avatar_url: p.avatar_url,
         professional_title: p.professional_title,
@@ -902,6 +936,344 @@ exports.getCandidateForEmployer = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// GET /api/admin/candidates/:id — Hồ sơ chi tiết đầy đủ của ứng viên dành cho Admin (xem từ Dự án nội bộ / Workspace)
+exports.getCandidateForAdmin = async (req, res, next) => {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new AppError('Không tìm thấy ứng viên', 404);
+
+    const profile = await CandidateProfile.findByPk(req.params.id, {
+      attributes: [
+        'id', 'professional_title', 'introduction', 'phone', 'address',
+        'github_url', 'portfolio_url', 'avatar_url', 'cv_url', 'cv_name',
+        'competency_score', 'privacy_settings',
+      ],
+      include: [
+        { model: User, attributes: ['id', 'full_name', 'email'] },
+        { model: Skill, through: { attributes: ['source'] }, attributes: ['id', 'name'] },
+        { model: Experience, separate: true, order: [['start_date', 'DESC']] },
+        {
+          model: CandidateCv,
+          as: 'cvs',
+          separate: true,
+          order: [['is_default', 'DESC'], ['created_at', 'DESC']],
+          attributes: ['id', 'name', 'file_url', 'file_name', 'file_size', 'is_default'],
+        },
+      ],
+    });
+    if (!profile) throw new AppError('Không tìm thấy ứng viên', 404);
+
+    const { ProjectApplication } = require('../models');
+    const projectApps = await ProjectApplication.findAll({
+      where: { candidate_profile_id: profile.id },
+      include: [
+        {
+          model: ProjectJob,
+          attributes: ['id', 'title', 'budget'],
+          include: [{ model: InternalProject, attributes: ['id', 'name', 'status'] }],
+        },
+      ],
+      order: [['applied_at', 'DESC']],
+    });
+
+    const members = await WorkspaceMember.findAll({
+      where: { candidate_profile_id: profile.id },
+      include: [
+        {
+          model: Workspace,
+          attributes: ['id', 'name'],
+          include: [{ model: InternalProject, attributes: ['id', 'name', 'description', 'status', 'start_date', 'expected_end_date', 'actual_end_date'] }],
+        },
+        { model: ProjectJob, attributes: ['id', 'title'], include: [{ model: Skill, through: { attributes: [] }, attributes: ['id', 'name'] }] },
+        { model: CandidateEvaluation, attributes: ['score', 'comment', 'evaluated_at'] },
+      ],
+      order: [['joined_at', 'DESC']],
+    });
+
+    const memberIds = members.map((m) => m.id);
+    const statRows = memberIds.length ? (await sequelize.query(
+      `SELECT ta.workspace_member_id AS member_id,
+              COUNT(*) AS total,
+              COUNT(*) FILTER (WHERE t.status = 'DONE') AS done,
+              COUNT(*) FILTER (WHERE t.status = 'DONE' AND (
+                t.deadline IS NULL
+                OR COALESCE((SELECT MAX(s.submitted_at) FROM task_submissions s WHERE s.task_id = t.id), t.reviewed_at, t.updated_at) < (t.deadline::date + 1)
+              )) AS on_time
+         FROM task_assignees ta JOIN tasks t ON t.id = ta.task_id
+        WHERE ta.workspace_member_id IN (:ids) AND t.status <> 'CANCELLED'
+        GROUP BY ta.workspace_member_id`,
+      { replacements: { ids: memberIds }, type: sequelize.QueryTypes.SELECT }
+    )) : [];
+    const statsByMember = new Map(statRows.map((r) => [r.member_id, { total: Number(r.total), done: Number(r.done), on_time: Number(r.on_time) }]));
+
+    const projects = members.map((m) => {
+      const j = m.toJSON();
+      const stats = statsByMember.get(m.id) || { total: 0, done: 0, on_time: 0 };
+      return {
+        member_id: j.id,
+        role: j.role,
+        member_status: j.status,
+        joined_at: j.joined_at,
+        position: j.ProjectJob?.title || null,
+        skills: j.ProjectJob?.Skills || [],
+        workspace_id: j.Workspace?.id || null,
+        project: j.Workspace?.Project || j.Workspace?.InternalProject || null,
+        tasks: stats,
+        evaluation: j.CandidateEvaluation || null,
+      };
+    });
+
+    const totals = projects.reduce((acc, p) => ({
+      total: acc.total + p.tasks.total, done: acc.done + p.tasks.done, on_time: acc.on_time + p.tasks.on_time,
+    }), { total: 0, done: 0, on_time: 0 });
+
+    const p = profile.toJSON();
+    const [rankData, evidenceByProfile] = await Promise.all([
+      computeRank(profile.id),
+      getEvidenceForProfiles([profile.id]),
+    ]);
+    const rank = summarizeRank(rankData);
+    const evidenceMap = evidenceByProfile.get(profile.id) || new Map();
+    const experiences = p.Experiences || [];
+
+    res.json({
+      success: true,
+      data: {
+        id: p.id,
+        user_id: p.User?.id,
+        is_saved: Boolean(await SavedCandidate.findOne({ where: { user_id: req.user.id, candidate_profile_id: profile.id }, attributes: ['id'] })),
+        rank,
+        full_name: p.User?.full_name,
+        avatar_url: p.avatar_url,
+        professional_title: p.professional_title,
+        introduction: p.introduction,
+        address: p.address,
+        github_url: p.github_url,
+        portfolio_url: p.portfolio_url,
+        cv_url: p.cv_url,
+        cv_name: p.cv_name,
+        competency_score: p.competency_score,
+        contact_locked: false,
+        email: p.User?.email || null,
+        phone: p.phone || null,
+        skills: (p.Skills || []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          source: s.CandidateSkill?.source,
+          evidence: evidenceMap.get(s.id) || [],
+        })),
+        experiences,
+        cvs: p.cvs || [],
+        projects,
+        applications: [],
+        project_applications: projectApps.map((a) => {
+          const aj = a.toJSON();
+          const proj = aj.ProjectJob?.Project || aj.ProjectJob?.InternalProject || null;
+          return {
+            id: aj.id,
+            status: aj.status,
+            applied_at: aj.applied_at,
+            cover_letter: aj.cover_letter,
+            cv_url: aj.cv_url,
+            interview_time: aj.interview_time,
+            meet_url: aj.meet_url,
+            project_job_id: aj.ProjectJob?.id,
+            job_title: aj.ProjectJob?.title,
+            project_id: proj?.id,
+            project_name: proj?.name,
+          };
+        }),
+        full_access_by_application: true,
+        hidden_sections: {},
+        summary: {
+          project_count: projects.length,
+          completed_projects: projects.filter((x) => x.project?.status === 'COMPLETED' || x.member_status === 'COMPLETED').length,
+          evaluation_count: projects.filter((x) => x.evaluation).length,
+          tasks_total: totals.total,
+          tasks_done: totals.done,
+          tasks_on_time: totals.on_time,
+          experience_months: totalExperienceMonths(experiences.filter((e) => e.type === 'COMPANY' || e.type === 'FREELANCE')),
+        },
+      },
+    });
+  } catch (error) { next(error); }
+};
+
+// GET /api/admin/candidates — Admin tìm kiếm / xem toàn bộ danh sách hồ sơ ứng viên
+exports.searchAdminCandidates = async (req, res, next) => {
+  try {
+    const {
+      keyword,
+      skill_id,
+      score_min,
+      score_max,
+      project_min,
+      project_max,
+      saved_only,
+      address,
+      page = 1,
+      limit = 12,
+    } = req.query;
+    const where = {};
+    const andConditions = [];
+
+    if (address) {
+      where.address = { [Op.iLike]: `%${address}%` };
+    }
+    if (score_min || score_max) {
+      where.competency_score = {};
+      if (score_min) where.competency_score[Op.gte] = parseFloat(score_min);
+      if (score_max) where.competency_score[Op.lte] = parseFloat(score_max);
+    }
+
+    const hasProjectMin = project_min !== undefined && project_min !== '';
+    const hasProjectMax = project_max !== undefined && project_max !== '';
+    if (hasProjectMin) {
+      const pMin = Math.max(0, parseInt(project_min, 10) || 0);
+      andConditions.push(
+        sequelize.literal(`(SELECT COUNT(*) FROM workspace_members AS wm WHERE wm.candidate_profile_id = "CandidateProfile"."id") >= ${pMin}`),
+      );
+    }
+    if (hasProjectMax) {
+      const pMax = Math.max(0, parseInt(project_max, 10));
+      if (!Number.isNaN(pMax)) {
+        andConditions.push(
+          sequelize.literal(`(SELECT COUNT(*) FROM workspace_members AS wm WHERE wm.candidate_profile_id = "CandidateProfile"."id") <= ${pMax}`),
+        );
+      }
+    }
+
+    const savedRows = await SavedCandidate.findAll({
+      where: { user_id: req.user.id },
+      attributes: ['candidate_profile_id'],
+    });
+    const savedSet = new Set(savedRows.map((s) => s.candidate_profile_id));
+    if (saved_only === '1' || saved_only === 'true') {
+      where.id = { [Op.in]: [...savedSet] };
+    }
+
+    const include = [
+      { model: User, attributes: ['id', 'full_name', 'email', 'status'] },
+      {
+        model: Skill,
+        through: { attributes: ['source'] },
+        attributes: ['id', 'name'],
+      },
+    ];
+    if (skill_id) {
+      andConditions.push(sequelize.literal(
+        `"CandidateProfile"."id" IN (SELECT candidate_profile_id FROM candidate_skills WHERE skill_id = ${sequelize.escape(skill_id)})`,
+      ));
+    }
+
+    if (keyword) {
+      where[Op.or] = [
+        { professional_title: { [Op.iLike]: `%${keyword}%` } },
+        { phone: { [Op.iLike]: `%${keyword}%` } },
+        { introduction: { [Op.iLike]: `%${keyword}%` } },
+        { '$User.full_name$': { [Op.iLike]: `%${keyword}%` } },
+        { '$User.email$': { [Op.iLike]: `%${keyword}%` } },
+      ];
+    }
+    if (andConditions.length > 0) {
+      where[Op.and] = andConditions;
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const { count, rows: idRows } = await CandidateProfile.findAndCountAll({
+      where,
+      attributes: ['id'],
+      include: [{ model: User, attributes: [] }],
+      limit: parseInt(limit),
+      offset,
+      order: [['competency_score', 'DESC'], ['id', 'ASC']],
+      subQuery: false,
+    });
+    const pageIds = idRows.map((r) => r.id);
+    const loaded = pageIds.length ? await CandidateProfile.findAll({
+      where: { id: { [Op.in]: pageIds } },
+      attributes: {
+        include: [
+          [sequelize.literal('(SELECT COUNT(*) FROM workspace_members AS wm WHERE wm.candidate_profile_id = "CandidateProfile"."id")'), 'project_count'],
+          [sequelize.literal(`(SELECT COUNT(*) FROM task_assignees AS ta
+              JOIN tasks AS t ON t.id = ta.task_id
+              JOIN workspace_members AS wm ON wm.id = ta.workspace_member_id
+             WHERE wm.candidate_profile_id = "CandidateProfile"."id" AND t.status = 'DONE')`), 'done_task_count'],
+        ],
+      },
+      include,
+    }) : [];
+    const byId = new Map(loaded.map((r) => [r.id, r]));
+    const rows = pageIds.map((id) => byId.get(id)).filter(Boolean);
+
+    const profileIds = rows.map((r) => r.id);
+    const [evidenceByProfile, memberRows, ranks] = await Promise.all([
+      getEvidenceForProfiles(profileIds),
+      profileIds.length
+        ? WorkspaceMember.findAll({
+            where: { candidate_profile_id: { [Op.in]: profileIds } },
+            include: [
+              {
+                model: Workspace,
+                attributes: ['id', 'name'],
+                include: [{ model: InternalProject, attributes: ['id', 'name', 'status'] }],
+              },
+              { model: ProjectJob, attributes: ['id', 'title'] },
+              { model: CandidateEvaluation, attributes: ['score', 'comment', 'evaluated_at'] },
+            ],
+            order: [['joined_at', 'DESC']],
+          })
+        : [],
+      computeRanks(profileIds),
+    ]);
+
+    const projectEvalsByProfile = new Map();
+    for (const m of memberRows) {
+      const mj = m.toJSON();
+      const proj = mj.Workspace?.Project || mj.Workspace?.InternalProject || null;
+      const ev = mj.CandidateEvaluation || null;
+      const list = projectEvalsByProfile.get(mj.candidate_profile_id) || [];
+      list.push({
+        member_id: mj.id,
+        project_id: proj?.id || null,
+        project_name: proj?.name || mj.Workspace?.name || 'Dự án DevHub',
+        project_status: proj?.status || null,
+        position: mj.ProjectJob?.title || null,
+        score: ev && ev.score !== null && ev.score !== undefined ? parseFloat(ev.score) : null,
+        comment: ev?.comment || null,
+        evaluated_at: ev?.evaluated_at || null,
+      });
+      projectEvalsByProfile.set(mj.candidate_profile_id, list);
+    }
+
+    const data = rows.map((r) => {
+      const j = r.toJSON();
+      const privacy = normalizePrivacySettings(j.privacy_settings);
+      j.rank = summarizeRank(ranks.get(r.id));
+      j.is_private = !privacy.is_searchable;
+      const ev = evidenceByProfile.get(r.id) || new Map();
+      j.project_evaluations = projectEvalsByProfile.get(r.id) || [];
+      j.is_saved = savedSet.has(r.id);
+      j.Skills = (j.Skills || [])
+        .map((sk) => ({ ...sk, evidence: ev.get(sk.id) || [] }))
+        .sort((a, b) => (b.evidence.length > 0) - (a.evidence.length > 0));
+      delete j.privacy_settings;
+      return j;
+    });
+
+    res.json({
+      success: true,
+      data,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / parseInt(limit)),
+        saved_count: savedSet.size,
+      },
+    });
+  } catch (error) { next(error); }
+};
+
 // POST /api/employer/candidates/:id/save — Lưu hoặc bỏ lưu ứng viên (dành cho Nhà tuyển dụng)
 exports.toggleSaveCandidate = async (req, res, next) => {
   try {
@@ -913,7 +1285,8 @@ exports.toggleSaveCandidate = async (req, res, next) => {
       where: { user_id: req.user.id, candidate_profile_id: profile.id },
     });
     // Ứng viên đã tắt "cho phép tìm kiếm" thì không lưu mới được (trừ khi họ đã ứng tuyển vào công ty này); bỏ lưu thì luôn được
-    if (!existing && !normalizePrivacySettings(profile.privacy_settings).is_searchable) {
+    const isAdminUser = Array.isArray(req.user.roles) && req.user.roles.includes('ADMIN');
+    if (!isAdminUser && !existing && !normalizePrivacySettings(profile.privacy_settings).is_searchable) {
       const company = await Company.findOne({ where: { user_id: req.user.id }, attributes: ['id'] });
       const applied = company ? await Application.count({
         where: { candidate_profile_id: profile.id },

@@ -41,7 +41,7 @@ exports.exportPaymentsExcel = async (req, res, next) => {
       cell.border = { bottom: { style: 'thin' } };
     });
 
-    const STATUS_VN = { PENDING: 'Chờ xử lý', PROCESSING: 'Đang xử lý', PAID: 'Đã thanh toán', FAILED: 'Thất bại' };
+    const STATUS_VN = { PENDING: 'Chưa thanh toán', PROCESSING: 'Chưa thanh toán', PAID: 'Đã thanh toán', FAILED: 'Chưa thanh toán' };
 
     payments.forEach((p, idx) => {
       const row = sheet.addRow({

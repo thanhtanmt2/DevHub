@@ -103,10 +103,10 @@ export default function StatsPage() {
           {stats?.payments && (
             <StatCard
               icon="clock"
-              label="Thanh toán chờ xử lý"
-              value={(stats.payments.pending || 0) + (stats.payments.processing || 0)}
+              label="Chưa thanh toán"
+              value={(stats.payments.pending || 0) + (stats.payments.processing || 0) + (stats.payments.failed || 0)}
               color="amber"
-              sub={`${stats.payments.processing || 0} đang xử lý`}
+              sub={`${stats.payments.paid || 0} đã thanh toán`}
             />
           )}
           {stats?.total_applications != null && (
