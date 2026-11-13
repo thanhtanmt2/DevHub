@@ -145,21 +145,23 @@ export default function ProjectJobFormPage() {
     [skills, jobForm.skill_ids]
   );
 
-  if (projectLoading || (isEdit && jobsLoading)) return <LoadingSpinner />;
+  if (projectLoading || (isEdit && jobsLoading)) return <LoadingSpinner fullScreen />;
 
   if (!project || (isEdit && !editingJob)) {
     return (
-      <div className="card text-center py-14">
-        <IconBadge name="alert" tone="amber" size="lg" className="mx-auto mb-3" />
-        <p className="font-semibold text-slate-800">
-          {!project ? 'Không tìm thấy dự án' : 'Không tìm thấy vị trí tuyển dụng'}
-        </p>
-        <Link
-          to={project ? `/admin/projects/${projectId}/jobs` : '/admin/projects'}
-          className="btn-primary inline-block mt-4"
-        >
-          ← Quay lại
-        </Link>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="card text-center py-14 max-w-md w-full">
+          <IconBadge name="alert" tone="amber" size="lg" className="mx-auto mb-3" />
+          <p className="font-semibold text-slate-800">
+            {!project ? 'Không tìm thấy dự án' : 'Không tìm thấy vị trí tuyển dụng'}
+          </p>
+          <Link
+            to={project ? `/admin/projects/${projectId}/jobs` : '/admin/projects'}
+            className="btn-primary inline-block mt-4"
+          >
+            ← Quay lại
+          </Link>
+        </div>
       </div>
     );
   }
@@ -168,24 +170,21 @@ export default function ProjectJobFormPage() {
   const backUrl = `/admin/projects/${projectId}/jobs${isEdit ? `?job=${jobId}` : ''}`;
 
   return (
-    <div className="space-y-6">
-      <PageBanner
-        compact
-        icon="briefcase"
-        title={isEdit ? `Chỉnh sửa vị trí: ${editingJob.title}` : 'Thêm vị trí tuyển dụng mới'}
-        subtitle={`Dự án: ${project.name} · Hình thức: Làm việc từ xa (Remote)`}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <Link to={backUrl} className="btn-light inline-flex items-center gap-1.5">
-            <Icon name="chevronLeft" className="w-4 h-4" />
-            Quay lại Vị trí & Ứng viên
-          </Link>
-          <Link to="/admin/projects" className="btn-glass inline-flex items-center gap-1.5">
-            <Icon name="folder" className="w-4 h-4" />
-            Danh sách dự án
-          </Link>
-        </div>
-      </PageBanner>
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageBanner
+          compact
+          icon="briefcase"
+          title={isEdit ? `Chỉnh sửa vị trí: ${editingJob.title}` : 'Thêm vị trí tuyển dụng mới'}
+          subtitle={`Dự án: ${project.name} · Hình thức: Làm việc từ xa (Remote)`}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to={backUrl} className="btn-light inline-flex items-center gap-1.5">
+              <Icon name="chevronLeft" className="w-4 h-4" />
+              Quay lại Vị trí & Ứng viên
+            </Link>
+          </div>
+        </PageBanner>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-6 items-start">
         {/* Cột chính: Thông tin & Nội dung vị trí */}
@@ -475,6 +474,7 @@ export default function ProjectJobFormPage() {
           </section>
         </aside>
       </form>
+      </div>
     </div>
   );
 }

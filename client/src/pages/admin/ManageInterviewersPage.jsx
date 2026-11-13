@@ -77,34 +77,38 @@ export default function ManageInterviewersPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Link
-            to="/admin/projects"
-            className="hover:text-primary-600 font-medium inline-flex items-center gap-1"
-          >
-            <Icon name="chevronLeft" className="w-4 h-4" />
-            Quản lý Dự án Nội bộ
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900 font-semibold">Quản lý Người phỏng vấn & Lịch phỏng vấn</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="btn-secondary text-xs py-1.5 px-3"
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageBanner
+          compact
+          icon="users"
+          title="Quản lý Danh sách Người phỏng vấn"
+          subtitle="Thiết lập người phỏng vấn, phòng họp Google Meet cố định và theo dõi toàn bộ lịch phỏng vấn dự án"
         >
-          ← Quay lại trang trước
-        </button>
-      </div>
-
-      <PageBanner
-        icon="users"
-        title="Quản lý Danh sách Người phỏng vấn"
-        subtitle="Thiết lập người phỏng vấn, phòng họp Google Meet cố định và theo dõi toàn bộ lịch phỏng vấn dự án"
-      />
+          <div className="flex flex-wrap items-center gap-2">
+            {window.history.length > 1 && (
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="btn-light inline-flex items-center gap-1.5"
+              >
+                <Icon name="chevronLeft" className="w-4 h-4" />
+                Quay lại
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                window.close();
+                navigate(-1);
+              }}
+              className="btn-glass inline-flex items-center gap-1.5"
+            >
+              <Icon name="x" className="w-4 h-4" />
+              Đóng tab
+            </button>
+          </div>
+        </PageBanner>
 
       {/* Form tạo mới người phỏng vấn */}
       <form
@@ -491,6 +495,7 @@ export default function ManageInterviewersPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

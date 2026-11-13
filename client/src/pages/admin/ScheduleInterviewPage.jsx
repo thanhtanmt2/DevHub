@@ -261,16 +261,18 @@ export default function ScheduleInterviewPage() {
     }
   };
 
-  if (projectLoading || jobsLoading) return <LoadingSpinner />;
+  if (projectLoading || jobsLoading) return <LoadingSpinner fullScreen />;
 
   if (!project || !app || !job) {
     return (
-      <div className="card text-center py-14">
-        <IconBadge name="alert" tone="amber" size="lg" className="mx-auto mb-3" />
-        <p className="font-semibold text-slate-800">Không tìm thấy hồ sơ ứng tuyển hoặc dự án</p>
-        <Link to={`/admin/projects/${projectId}/jobs`} className="btn-primary inline-block mt-4">
-          ← Quay lại Vị trí & Ứng viên
-        </Link>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="card text-center py-14 max-w-md w-full">
+          <IconBadge name="alert" tone="amber" size="lg" className="mx-auto mb-3" />
+          <p className="font-semibold text-slate-800">Không tìm thấy hồ sơ ứng tuyển hoặc dự án</p>
+          <Link to={`/admin/projects/${projectId}/jobs`} className="btn-primary inline-block mt-4">
+            ← Quay lại Vị trí & Ứng viên
+          </Link>
+        </div>
       </div>
     );
   }
@@ -280,24 +282,25 @@ export default function ScheduleInterviewPage() {
   const cvUrl = app.cv_url || profile?.cv_url;
 
   return (
-    <div className="space-y-6">
-      <PageBanner
-        compact
-        icon="calendar"
-        title={app.interview_time ? 'Cập nhật / Đổi lịch phỏng vấn' : 'Đặt lịch phỏng vấn ứng viên'}
-        subtitle={`Ứng viên: ${user?.full_name || 'Ứng viên'} · Vị trí: ${job.title} · Dự án: ${project.name}`}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <Link to={backUrl} className="btn-light inline-flex items-center gap-1.5">
-            <Icon name="chevronLeft" className="w-4 h-4" />
-            Quay lại Vị trí & Ứng viên
-          </Link>
-          <Link to="/admin/projects/interviewers" className="btn-glass inline-flex items-center gap-1.5">
-            <Icon name="users" className="w-4 h-4" />
-            Quản lý DS người phỏng vấn
-          </Link>
-        </div>
-      </PageBanner>
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageBanner
+          compact
+          icon="calendar"
+          title={app.interview_time ? 'Cập nhật / Đổi lịch phỏng vấn' : 'Đặt lịch phỏng vấn ứng viên'}
+          subtitle={`Ứng viên: ${user?.full_name || 'Ứng viên'} · Vị trí: ${job.title} · Dự án: ${project.name}`}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to={backUrl} className="btn-light inline-flex items-center gap-1.5">
+              <Icon name="chevronLeft" className="w-4 h-4" />
+              Quay lại Vị trí & Ứng viên
+            </Link>
+            <Link to="/admin/projects/interviewers" className="btn-glass inline-flex items-center gap-1.5">
+              <Icon name="users" className="w-4 h-4" />
+              Quản lý DS người phỏng vấn
+            </Link>
+          </div>
+        </PageBanner>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_24rem] gap-6 items-start">
         {/* Cột chính: Thiết lập lịch phỏng vấn */}
@@ -801,6 +804,7 @@ export default function ScheduleInterviewPage() {
           </section>
         </aside>
       </form>
+      </div>
     </div>
   );
 }

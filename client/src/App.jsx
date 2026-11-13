@@ -137,6 +137,13 @@ function AppRoutes() {
 
       {/* Admin */}
       <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+        {/* Các trang chuyên biệt mở trên tab riêng (không kèm Header / Menu quản trị) */}
+        <Route path="/admin/projects/interviewers" element={<ManageInterviewersPage />} />
+        <Route path="/admin/projects/:projectId/jobs" element={<ProjectJobsPage />} />
+        <Route path="/admin/projects/:projectId/jobs/new" element={<ProjectJobFormPage />} />
+        <Route path="/admin/projects/:projectId/jobs/:jobId/edit" element={<ProjectJobFormPage />} />
+        <Route path="/admin/projects/:projectId/applications/:appId/interview" element={<ScheduleInterviewPage />} />
+
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<ManageUsersPage />} />
@@ -144,11 +151,6 @@ function AppRoutes() {
           <Route path="/admin/jobs" element={<AdminManageJobsPage />} />
           <Route path="/admin/companies" element={<ManageCompaniesPage />} />
           <Route path="/admin/projects" element={<InternalProjectsPage />} />
-          <Route path="/admin/projects/interviewers" element={<ManageInterviewersPage />} />
-          <Route path="/admin/projects/:projectId/jobs" element={<ProjectJobsPage />} />
-          <Route path="/admin/projects/:projectId/jobs/new" element={<ProjectJobFormPage />} />
-          <Route path="/admin/projects/:projectId/jobs/:jobId/edit" element={<ProjectJobFormPage />} />
-          <Route path="/admin/projects/:projectId/applications/:appId/interview" element={<ScheduleInterviewPage />} />
           <Route path="/admin/projects/:projectId/evaluations" element={<ProjectEvaluationPage />} />
           <Route path="/admin/candidates" element={<SearchCandidatesPage />} />
           <Route path="/admin/candidates/:id" element={<CandidateDetailPage />} />

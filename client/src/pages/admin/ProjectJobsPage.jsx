@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -241,17 +241,32 @@ export default function ProjectJobsPage() {
       });
   }, [scopedApps, statusFilter, searchQuery, sortBy]);
 
-  if (projectLoading || jobsLoading) return <LoadingSpinner />;
+  useEffect(() => {
+    document.title = project?.name
+      ? `Vị trí & Ứng viên — ${project.name} | DevHub`
+      : 'Vị trí & Ứng viên dự án | DevHub';
+  }, [project?.name]);
+
+  if (projectLoading || jobsLoading) return <LoadingSpinner fullScreen />;
 
   if (projectError || !project) {
     return (
-      <div className="card text-center py-14">
-        <IconBadge name="alert" tone="amber" size="lg" className="mx-auto mb-3" />
-        <p className="font-semibold text-slate-800">Không tìm thấy dự án</p>
-        <p className="text-sm text-slate-500 mt-1">Dự án có thể đã bị xóa hoặc đường dẫn không hợp lệ.</p>
-        <Link to="/admin/projects" className="btn-primary inline-block mt-4">
-          ← Về danh sách dự án
-        </Link>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="card text-center py-14 max-w-md w-full">
+          <IconBadge name="alert" tone="amber" size="lg" className="mx-auto mb-3" />
+          <p className="font-semibold text-slate-800">Không tìm thấy dự án</p>
+          <p className="text-sm text-slate-500 mt-1">Dự án có thể đã bị xóa hoặc đường dẫn không hợp lệ.</p>
+          <button
+            type="button"
+            onClick={() => {
+              window.close();
+              navigate('/admin/projects');
+            }}
+            className="btn-primary inline-block mt-4"
+          >
+            Đóng tab
+          </button>
+        </div>
       </div>
     );
   }
@@ -262,49 +277,45 @@ export default function ProjectJobsPage() {
   const totalPendingAll = allProjectApps.filter((a) => a.status === 'PENDING').length;
 
   return (
-    <div className="space-y-6">
-      {/* Banner đầu trang */}
-      <PageBanner
-        compact
-        icon="briefcase"
-        title={`Vị trí & Ứng viên: ${project.name}`}
-        subtitle={`${pStatus.label} · ${totalPositions} vị trí tuyển dụng · ${totalAppsAll} hồ sơ ứng tuyển${
-          totalPendingAll > 0 ? ` (${totalPendingAll} hồ sơ chờ duyệt)` : ''
-        }${project.expected_end_date ? ` · Hạn dự kiến: ${formatDate(project.expected_end_date)}` : ''}`}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/admin/projects')}
-            className="btn-light inline-flex items-center gap-1.5"
-          >
-            <Icon name="chevronLeft" className="w-4 h-4" />
-            Về danh sách dự án
-          </button>
-          <Link
-            to="/admin/projects/interviewers"
-            className="btn-glass inline-flex items-center gap-1.5"
-          >
-            <Icon name="users" className="w-4 h-4" />
-            Người phỏng vấn
-          </Link>
-          {project.Workspace && (
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Banner đầu trang */}
+        <PageBanner
+          compact
+          icon="briefcase"
+          title={`Vị trí & Ứng viên: ${project.name}`}
+          subtitle={`${pStatus.label} · ${totalPositions} vị trí tuyển dụng · ${totalAppsAll} hồ sơ ứng tuyển${
+            totalPendingAll > 0 ? ` (${totalPendingAll} hồ sơ chờ duyệt)` : ''
+          }${project.expected_end_date ? ` · Hạn dự kiến: ${formatDate(project.expected_end_date)}` : ''}`}
+        >
+          <div className="flex flex-wrap items-center gap-2">
             <Link
-              to={`/admin/workspaces/${project.Workspace.id}`}
+              to="/admin/projects/interviewers"
               className="btn-glass inline-flex items-center gap-1.5"
             >
-              <Icon name="board" className="w-4 h-4" />
-              Workspace →
+              <Icon name="users" className="w-4 h-4" />
+              Người phỏng vấn
             </Link>
-          )}
-          <Link
-            to={`/admin/projects/${projectId}/jobs/new`}
-            className="btn-light inline-flex items-center gap-1.5"
-          >
-            + Thêm vị trí tuyển dụng
-          </Link>
-        </div>
-      </PageBanner>
+            <Link
+              to={`/admin/projects/${projectId}/jobs/new`}
+              className="btn-light inline-flex items-center gap-1.5"
+            >
+              + Thêm vị trí tuyển dụng
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                window.close();
+                navigate('/admin/projects');
+              }}
+              className="btn-glass inline-flex items-center gap-1.5"
+              title="Đóng tab này"
+            >
+              <Icon name="x" className="w-4 h-4" />
+              Đóng tab
+            </button>
+          </div>
+        </PageBanner>
 
       {/* Trường hợp dự án chưa có vị trí nào */}
       {projectJobs.length === 0 ? (
@@ -1095,6 +1106,7 @@ export default function ProjectJobsPage() {
           </section>
         </div>
       )}
+      </div>
     </div>
   );
 }
