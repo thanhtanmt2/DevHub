@@ -18,6 +18,11 @@ module.exports = (sequelize, DataTypes) => {
     interview_responded_at: { type: DataTypes.DATE },
     meet_url: { type: DataTypes.STRING(500) },
     interview_note: { type: DataTypes.TEXT },
+    interview_result: { type: DataTypes.STRING(30), allowNull: true }, // PASS | CONSIDER | REJECT
+    interview_score: { type: DataTypes.DECIMAL(4, 2), allowNull: true },
+    interview_criteria_scores: { type: DataTypes.JSONB, allowNull: true },
+    interview_feedback: { type: DataTypes.TEXT, allowNull: true },
+    interview_evaluated_at: { type: DataTypes.DATE, allowNull: true },
     applied_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, { 
     tableName: 'project_applications', 

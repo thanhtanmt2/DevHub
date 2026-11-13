@@ -68,6 +68,7 @@ router.get('/interviews', projectJobCtrl.adminGetInterviewSchedule);
 router.get('/interviewers', projectJobCtrl.adminGetInterviewers);
 router.post('/interviewers', [body('name').notEmpty()], validate, projectJobCtrl.adminCreateInterviewer);
 router.put('/interviewers/:id', projectJobCtrl.adminUpdateInterviewer);
+router.post('/interviewers/:id/regenerate-token', projectJobCtrl.adminRegenerateInterviewerToken);
 router.delete('/interviewers/:id', projectJobCtrl.adminDeleteInterviewer);
 
 // Evaluations

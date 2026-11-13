@@ -19,6 +19,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(500),
       allowNull: true,
     },
+    share_token: {
+      type: DataTypes.STRING(100),
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: true,
+      unique: true,
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

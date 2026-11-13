@@ -47,6 +47,7 @@ export const candidateApi = {
   getMyPayments: () => api.get('/candidates/payments'),
   getMyApplications: () => api.get('/applications/mine'),
   getMyProjectApplications: () => api.get('/candidates/project-applications'),
+  getProjectInterviewSlots: (id) => api.get(`/candidates/project-applications/${id}/interview-slots`),
   respondProjectInterview: (id, data) => api.put(`/candidates/project-applications/${id}/interview-response`, data),
   getApplicationDetail: (id) => api.get(`/applications/${id}`),
   withdrawApplication: (id) => api.delete(`/applications/${id}`),

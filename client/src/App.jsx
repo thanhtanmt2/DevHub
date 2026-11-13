@@ -22,6 +22,7 @@ import ProjectsPage from '@/pages/public/ProjectsPage';
 import JobDetailPage from '@/pages/public/JobDetailPage';
 import ProjectJobDetailPage from '@/pages/public/ProjectJobDetailPage';
 import AccountPage from '@/pages/public/AccountPage';
+import InterviewerPortalPage from '@/pages/public/InterviewerPortalPage';
 
 // Candidate pages
 import CandidateDashboard from '@/pages/candidate/CandidateDashboard';
@@ -109,6 +110,7 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+      <Route path="/interviewer-portal/:token" element={<InterviewerPortalPage />} />
 
       {/* Candidate */}
       <Route element={<ProtectedRoute allowedRoles={['CANDIDATE']} />}>

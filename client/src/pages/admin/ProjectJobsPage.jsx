@@ -10,7 +10,11 @@ import Avatar from '@/components/common/Avatar';
 import PageBanner from '@/components/common/PageBanner';
 import { SkillTag } from '@/components/common/Badges';
 import { useConfirm } from '@/components/common/ConfirmDialog';
-import { PROJECT_APPLICATION_STATUS } from '@/utils/applicationStatus';
+import {
+  PROJECT_APPLICATION_STATUS,
+  INTERVIEW_CRITERIA,
+  INTERVIEW_RESULT_META,
+} from '@/utils/applicationStatus';
 import {
   EXPERIENCE_LABELS,
   PROJECT_STATUS_META,
@@ -939,6 +943,35 @@ export default function ProjectJobsPage() {
                               </div>
                             )}
 
+                            {/* Khung thông tin khi Admin mời ứng viên tự chọn giờ trên lịch trống */}
+                            {app.status === 'INTERVIEW' && !app.interview_time && (
+                              <div className="text-xs rounded-xl px-3.5 py-2.5 border bg-sky-50/80 border-sky-200 text-sky-900 flex flex-wrap items-center justify-between gap-2">
+                                <span className="inline-flex flex-wrap items-center gap-1.5 font-medium">
+                                  <Icon name="calendar" className="w-3.5 h-3.5" />
+                                  Phỏng vấn: <strong>Chờ ứng viên tự chọn ngày & khung giờ trống</strong>
+                                  <span>({app.interview_duration || 30} phút/ca)</span>
+                                  {app.interviewer_name && (
+                                    <span className="px-2 py-0.5 rounded bg-white/80 border border-black/10 text-[11px]">
+                                      Người PV: <strong>{app.interviewer_name}</strong>
+                                    </span>
+                                  )}
+                                  {app.meet_url && (
+                                    <a
+                                      href={app.meet_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="underline font-bold hover:opacity-80"
+                                    >
+                                      · Phòng Meet ↗
+                                    </a>
+                                  )}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/90 text-sky-700 border border-sky-200">
+                                  ✨ UV tự đặt lịch
+                                </span>
+                              </div>
+                            )}
+
                             {/* Khung thông tin lịch phỏng vấn */}
                             {app.interview_time && (() => {
                               const stTime = new Date(app.interview_time);
@@ -1023,6 +1056,59 @@ export default function ProjectJobsPage() {
                                         Đặt lại giờ ngay
                                       </Link>
                                     </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
+                            {/* Kết quả đánh giá từ người phỏng vấn */}
+                            {app.interview_result && (() => {
+                              const evalMeta = INTERVIEW_RESULT_META[app.interview_result];
+                              const cScores = app.interview_criteria_scores || {};
+                              return (
+                                <div className="text-xs rounded-xl px-3.5 py-2.5 border bg-slate-50 border-slate-200 space-y-2">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-bold text-slate-800">
+                                        Kết quả phỏng vấn{app.interviewer_name ? ` (${app.interviewer_name})` : ''}:
+                                      </span>
+                                      {evalMeta && (
+                                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${evalMeta.cls}`}>
+                                          {evalMeta.label}
+                                        </span>
+                                      )}
+                                      {app.interview_score != null && (
+                                        <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-extrabold text-primary-700">
+                                          Điểm TB: {parseFloat(app.interview_score).toFixed(1)}/10
+                                        </span>
+                                      )}
+                                    </div>
+                                    {app.interview_evaluated_at && (
+                                      <span className="text-[11px] text-slate-400">
+                                        Chấm lúc {new Date(app.interview_evaluated_at).toLocaleString('vi-VN')}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {Object.keys(cScores).length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {INTERVIEW_CRITERIA.map((c) =>
+                                        cScores[c.key] != null ? (
+                                          <span
+                                            key={c.key}
+                                            className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] text-slate-700"
+                                          >
+                                            {c.label}: <strong className="text-slate-900">{cScores[c.key]}/10</strong>
+                                          </span>
+                                        ) : null
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {app.interview_feedback && (
+                                    <p className="text-slate-700 italic bg-white rounded-lg px-2.5 py-1.5 border border-slate-200/80 whitespace-pre-line">
+                                      “{app.interview_feedback}”
+                                    </p>
                                   )}
                                 </div>
                               );

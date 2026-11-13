@@ -9,39 +9,13 @@ import Icon, { IconBadge } from '@/components/common/Icon';
 import Avatar from '@/components/common/Avatar';
 import PageBanner from '@/components/common/PageBanner';
 import { SkillTag } from '@/components/common/Badges';
-
-const INTERVIEW_SLOT_GROUPS = [
-  { label: 'Buổi sáng', slots: ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00'] },
-  { label: 'Buổi chiều', slots: ['13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'] },
-  { label: 'Buổi tối', slots: ['19:00', '19:30', '20:00', '20:30'] },
-];
-const DURATION_OPTIONS = [15, 30, 45, 60, 90];
-
-function toLocalDateInput(d) {
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '';
-  const yyyy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
-  const dd = String(dt.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function toLocalTimeInput(d) {
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '';
-  const hh = String(dt.getHours()).padStart(2, '0');
-  const min = String(dt.getMinutes()).padStart(2, '0');
-  return `${hh}:${min}`;
-}
-
-function addMinutesToTimeStr(timeStr, minutes) {
-  if (!timeStr || !timeStr.includes(':')) return '';
-  const [h, m] = timeStr.split(':').map(Number);
-  const total = h * 60 + m + minutes;
-  const endH = String(Math.floor(total / 60) % 24).padStart(2, '0');
-  const endM = String(total % 60).padStart(2, '0');
-  return `${endH}:${endM}`;
-}
+import {
+  INTERVIEW_SLOT_GROUPS,
+  DURATION_OPTIONS,
+  toLocalDateInput,
+  toLocalTimeInput,
+  addMinutesToTimeStr,
+} from '@/utils/applicationStatus';
 
 export default function ScheduleInterviewPage() {
   const { projectId, appId } = useParams();
@@ -78,6 +52,7 @@ export default function ScheduleInterviewPage() {
   }, [projectJobs, appId]);
 
   const [initialized, setInitialized] = useState(false);
+  const [allowSelfSchedule, setAllowSelfSchedule] = useState(false);
   const [form, setForm] = useState({
     interview_date: toLocalDateInput(new Date(Date.now() + 86400000)),
     interview_time: '',
@@ -93,6 +68,7 @@ export default function ScheduleInterviewPage() {
 
   useEffect(() => {
     if (app && !initialized) {
+      const firstInterviewer = (scheduleRes?.data?.interviewers || []).find((i) => i.is_active !== false);
       setForm({
         interview_date: app.interview_time
           ? toLocalDateInput(app.interview_time)
@@ -100,12 +76,15 @@ export default function ScheduleInterviewPage() {
         interview_time: app.interview_time ? toLocalTimeInput(app.interview_time) : '',
         interview_duration: app.interview_duration || 30,
         interviewer_id: app.interviewer_id || '',
-        meet_url: app.meet_url || '',
+        meet_url: app.meet_url || firstInterviewer?.default_meet_url || '',
         interview_note: app.interview_note || '',
       });
+      if (app.status === 'INTERVIEW' && !app.interview_time) {
+        setAllowSelfSchedule(true);
+      }
       setInitialized(true);
     }
-  }, [app, initialized]);
+  }, [app, initialized, scheduleRes]);
 
   const allInterviews = scheduleRes?.data?.data || [];
   const interviewers = (scheduleRes?.data?.interviewers || []).filter((i) => i.is_active !== false);
@@ -231,19 +210,30 @@ export default function ScheduleInterviewPage() {
       toast.error('Vui lòng tạo và chọn người phỏng vấn trước khi đặt lịch');
       return;
     }
-    if (!form.interview_date || !form.interview_time || !form.meet_url) {
-      toast.error('Vui lòng chọn ngày, khung giờ và nhập link phòng họp');
+    if (!form.meet_url) {
+      toast.error('Vui lòng nhập link phòng họp trực tuyến');
       return;
     }
-    if (hasHardConflict) {
-      toast.error(selectedTimeCheck.reason);
-      return;
+    if (!allowSelfSchedule) {
+      if (!form.interview_date || !form.interview_time) {
+        toast.error('Vui lòng chọn ngày và khung giờ phỏng vấn (hoặc bật chế độ Để ứng viên tự chọn giờ)');
+        return;
+      }
+      if (hasHardConflict) {
+        toast.error(selectedTimeCheck.reason);
+        return;
+      }
     }
-    const interview_time = new Date(`${form.interview_date}T${form.interview_time}:00`).toISOString();
+
+    const interview_time = allowSelfSchedule
+      ? null
+      : new Date(`${form.interview_date}T${form.interview_time}:00`).toISOString();
+
     setSending(true);
     try {
-      await projectJobApi.scheduleInterview(app.id, {
+      const res = await projectJobApi.scheduleInterview(app.id, {
         interview_time,
+        allow_self_schedule: allowSelfSchedule,
         interview_duration: Number(form.interview_duration) || 30,
         interviewer_id: effectiveInterviewerId,
         meet_url: form.meet_url,
@@ -252,7 +242,7 @@ export default function ScheduleInterviewPage() {
       await qc.invalidateQueries({ queryKey: ['admin-interviews'] });
       await qc.invalidateQueries({ queryKey: ['admin-project-jobs', projectId] });
       await qc.invalidateQueries({ queryKey: ['admin-projects'] });
-      toast.success('Đã đặt lịch phỏng vấn và gửi thông báo cho ứng viên!');
+      toast.success(res.data?.message || 'Đã gửi lời mời phỏng vấn cho ứng viên!');
       navigate(backUrl);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lỗi khi đặt lịch phỏng vấn');
@@ -442,21 +432,60 @@ export default function ScheduleInterviewPage() {
 
           {/* Bước 2 & 3: Thời lượng, Ngày & Bảng khung giờ */}
           <section className="card !p-6 space-y-5">
-            <div className="pb-3 border-b border-slate-100">
-              <h2 className="font-bold text-slate-900 text-base">
-                2. Chọn ngày, thời lượng & khung giờ phỏng vấn <span className="text-red-500">*</span>
-              </h2>
-              <p className="text-xs text-slate-500">
-                Chọn ngày và thời lượng ca phỏng vấn, sau đó bấm chọn nhanh một khung giờ trống bên dưới
-              </p>
+            <div className="pb-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="font-bold text-slate-900 text-base">
+                  2. Thời lượng & Chế độ chọn giờ phỏng vấn <span className="text-red-500">*</span>
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Bạn có thể để ứng viên tự chọn khung giờ trống của {effectiveInterviewerName} hoặc chọn sẵn 1 giờ gợi ý
+                </p>
+              </div>
+            </div>
+
+            {/* Lựa chọn chế độ: Ứng viên tự chọn trên lịch trống HOẶC Admin chọn sẵn giờ gợi ý */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setAllowSelfSchedule(false)}
+                className={`p-3.5 rounded-xl border text-left transition-all ${
+                  !allowSelfSchedule
+                    ? 'bg-primary-50 border-primary-600 ring-2 ring-primary-200'
+                    : 'bg-white border-slate-200 hover:border-primary-300'
+                }`}
+              >
+                <p className="text-sm font-bold text-slate-900">
+                  📅 Chọn sẵn khung giờ gợi ý
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Đặt trước 1 khung giờ; ứng viên có thể bấm Xác nhận hoặc tự đổi sang giờ trống khác của {effectiveInterviewerName}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAllowSelfSchedule(true)}
+                className={`p-3.5 rounded-xl border text-left transition-all ${
+                  allowSelfSchedule
+                    ? 'bg-primary-50 border-primary-600 ring-2 ring-primary-200'
+                    : 'bg-white border-slate-200 hover:border-primary-300'
+                }`}
+              >
+                <p className="text-sm font-bold text-slate-900">
+                  ✨ Để ứng viên chủ động tự chọn giờ ngay từ đầu
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Chỉ gán Người phỏng vấn & thời lượng; ứng viên tự mở lịch trống của {effectiveInterviewerName} và chốt giờ
+                </p>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-              <div className="sm:col-span-5">
+              <div className={allowSelfSchedule ? 'sm:col-span-12' : 'sm:col-span-5'}>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                   Thời lượng ca phỏng vấn
                 </label>
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-5 gap-1.5 max-w-md">
                   {DURATION_OPTIONS.map((min) => (
                     <button
                       key={min}
@@ -474,42 +503,56 @@ export default function ScheduleInterviewPage() {
                 </div>
               </div>
 
-              <div className="sm:col-span-3">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Ngày phỏng vấn *
-                </label>
-                <input
-                  type="date"
-                  className="input-field text-sm"
-                  min={toLocalDateInput(new Date())}
-                  value={form.interview_date}
-                  onChange={(e) => setForm({ ...form, interview_date: e.target.value })}
-                  required
-                />
-              </div>
+              {!allowSelfSchedule && (
+                <>
+                  <div className="sm:col-span-3">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                      Ngày phỏng vấn *
+                    </label>
+                    <input
+                      type="date"
+                      className="input-field text-sm"
+                      min={toLocalDateInput(new Date())}
+                      value={form.interview_date}
+                      onChange={(e) => setForm({ ...form, interview_date: e.target.value })}
+                      required={!allowSelfSchedule}
+                    />
+                  </div>
 
-              <div className="sm:col-span-4">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Giờ bắt đầu – Kết thúc *
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="time"
-                    className="input-field text-sm flex-1"
-                    value={form.interview_time}
-                    onChange={(e) => setForm({ ...form, interview_time: e.target.value })}
-                    required
-                  />
-                  {form.interview_time && (
-                    <span className="px-2.5 py-2 rounded-lg bg-primary-50 border border-primary-200 text-xs font-bold text-primary-700 whitespace-nowrap">
-                      → {addMinutesToTimeStr(form.interview_time, Number(form.interview_duration) || 30)}
-                    </span>
-                  )}
-                </div>
-              </div>
+                  <div className="sm:col-span-4">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                      Giờ bắt đầu – Kết thúc *
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="time"
+                        className="input-field text-sm flex-1"
+                        value={form.interview_time}
+                        onChange={(e) => setForm({ ...form, interview_time: e.target.value })}
+                        required={!allowSelfSchedule}
+                      />
+                      {form.interview_time && (
+                        <span className="px-2.5 py-2 rounded-lg bg-primary-50 border border-primary-200 text-xs font-bold text-primary-700 whitespace-nowrap">
+                          → {addMinutesToTimeStr(form.interview_time, Number(form.interview_duration) || 30)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Bảng chọn nhanh khung giờ */}
+            {allowSelfSchedule ? (
+              <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 space-y-1">
+                <p className="font-bold text-sm text-emerald-800">
+                  ✓ Ứng viên sẽ tự chọn ngày & khung giờ trên lịch trống của {effectiveInterviewerName}
+                </p>
+                <p>
+                  Hệ thống tự động khóa các khung giờ mà <strong>{effectiveInterviewerName}</strong> đã có lịch phỏng vấn khác, chỉ cho phép ứng viên chọn khung giờ còn trống ({form.interview_duration} phút/ca) và tự động chốt lịch ngay khi ứng viên bấm chọn.
+                </p>
+              </div>
+            ) : (
+            /* Bảng chọn nhanh khung giờ */
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -581,8 +624,9 @@ export default function ScheduleInterviewPage() {
                 </div>
               ))}
             </div>
+            )}
 
-            {selectedTimeCheck && hasHardConflict && (
+            {!allowSelfSchedule && selectedTimeCheck && hasHardConflict && (
               <div className="bg-red-50 border border-red-300 text-red-800 rounded-xl p-3.5 text-xs font-medium flex items-start gap-2">
                 <Icon name="alert" className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
@@ -763,7 +807,20 @@ export default function ScheduleInterviewPage() {
           {/* Tóm tắt & Xác nhận */}
           <section className="card !p-5 space-y-4">
             <h3 className="font-bold text-slate-900 text-sm">Xác nhận lịch phỏng vấn</h3>
-            {form.interview_date && form.interview_time && !hasHardConflict && selectedInterviewer ? (
+            {allowSelfSchedule && selectedInterviewer ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 space-y-1">
+                <p>
+                  <strong>Chế độ:</strong> Ứng viên tự chọn giờ trên lịch trống
+                </p>
+                <p>
+                  <strong>Thời lượng:</strong> {form.interview_duration} phút / ca
+                </p>
+                <p>
+                  <strong>Người phỏng vấn:</strong> {effectiveInterviewerName}
+                  {selectedInterviewer.title ? ` (${selectedInterviewer.title})` : ''}
+                </p>
+              </div>
+            ) : form.interview_date && form.interview_time && !hasHardConflict && selectedInterviewer ? (
               <div className="bg-primary-50 border border-primary-200 rounded-xl p-3.5 text-xs text-primary-900 space-y-1">
                 <p>
                   <strong>Ngày:</strong>{' '}
@@ -787,12 +844,14 @@ export default function ScheduleInterviewPage() {
             <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
               <button
                 type="submit"
-                disabled={sending || hasHardConflict || !effectiveInterviewerId}
+                disabled={sending || (!allowSelfSchedule && hasHardConflict) || !effectiveInterviewerId}
                 className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Icon name="mail" className="w-4 h-4" />
                 {sending
-                  ? 'Đang lưu & gửi lịch...'
+                  ? 'Đang lưu & gửi lời mời...'
+                  : allowSelfSchedule
+                  ? 'Gửi lời mời để Ứng viên tự chọn giờ'
                   : app.interview_time
                   ? 'Cập nhật & Gửi lại lịch'
                   : 'Xác nhận & Gửi lịch phỏng vấn'}
