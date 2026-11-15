@@ -59,11 +59,11 @@ Dịch vụ DevHub → **Settings → Networking → Generate Domain**. Chọn v
 Cơ sở dữ liệu mới trống. Máy chủ tự thêm một số cột còn thiếu khi khởi động, nhưng dữ liệu và bảng phải nạp từ file `server/database_dump.sql`.
 
 1. Railway → **Postgres → Connect → Public Network**, chép Host, Port, Database, User, Password (địa chỉ công khai kiểu `xxx.proxy.rlwy.net`).
-2. Ở máy, trong thư mục `server`, chạy (PowerShell), thay bằng giá trị thật:
+2. Ở máy, trong thư mục `server`, chạy (PowerShell), thay bằng giá trị thật. Dùng `db:import:remote` (gửi cả file dump một lượt, chỉ vài giây). Đừng dùng `db:import` cho cơ sở dữ liệu ở xa: nó gửi từng câu INSERT qua psql nên mất cả chục phút:
 
 ```powershell
 $env:DB_HOST="xxx.proxy.rlwy.net"; $env:DB_PORT="12345"; $env:DB_USER="postgres"; $env:DB_PASSWORD="..."; $env:DB_NAME="railway"
-npm run db:import
+npm run db:import:remote
 ```
 
 3. Khởi động lại dịch vụ DevHub (Deployments → Redeploy) rồi mở địa chỉ công khai kiểm tra.
