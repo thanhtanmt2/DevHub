@@ -7,12 +7,33 @@ const cookieParser = require('cookie-parser');
 const { sequelize } = require('./src/models');
 const errorHandler = require('./src/middleware/errorHandler');
 const { startCronJobs, cleanupOrphanFiles } = require('./src/utils/cronJobs');
+const { mountClient } = require('./src/utils/serveClient');
+const { seedUploads } = require('./src/utils/seedUploads');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Chạy sau proxy của Railway: lấy đúng địa chỉ IP và giao thức (https) của người dùng
+app.set('trust proxy', 1);
+
 // Middleware
-app.use(helmet());
+// Khi máy chủ phục vụ luôn giao diện thì cần cho phép những nguồn mà giao diện dùng: đăng nhập Google, Google Fonts, ảnh https
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      'script-src': ["'self'", 'https://accounts.google.com'],
+      'frame-src': ["'self'", 'https://accounts.google.com'],
+      'connect-src': ["'self'", 'https://accounts.google.com'],
+      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
+      'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+      'upgrade-insecure-requests': null, // đã chạy sau HTTPS của Railway; bỏ để thử bản production qua http://localhost
+    },
+  },
+  // Cửa sổ đăng nhập Google cần postMessage về trang gốc
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
@@ -47,6 +68,9 @@ app.use('/api/skills', require('./src/routes/skills'));
 app.use('/api/notifications', require('./src/routes/notifications'));
 app.use('/api/home', require('./src/routes/home'));
 app.use('/api/forum', require('./src/routes/forum'));
+
+// Giao diện (client/dist) khi deploy: phải gắn sau các route API và trước bộ xử lý 404
+mountClient(app);
 
 // 404
 app.use((req, res) => {
@@ -94,6 +118,13 @@ const startServer = async () => {
     console.log('✅ Database connected');
     if (process.env.NODE_ENV === 'development') {
       console.log('✅ Models synced');
+    }
+    // Volume uploads trên Railway ban đầu trống: chép ảnh mẫu / logo từ bản chụp lúc build (chỉ file còn thiếu)
+    try {
+      const copied = seedUploads();
+      if (copied) console.log(`📁 Đã chép ${copied} tệp mẫu vào thư mục uploads`);
+    } catch (err) {
+      console.warn('Không chép được tệp mẫu vào uploads:', err.message);
     }
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);

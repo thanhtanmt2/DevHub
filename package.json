@@ -1,0 +1,11 @@
+{
+  "name": "devhub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DevHub — giao diện (client) và API (server) deploy chung một dịch vụ trên Railway",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "npm --prefix client ci --include=dev && npm --prefix client run build && node server/scripts/compress-client.js && npm --prefix server ci --omit=dev && node server/scripts/prepare-uploads-seed.js",
+    "start": "node server/index.js"
+  }
+}

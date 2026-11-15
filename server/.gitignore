@@ -4,3 +4,6 @@ dist/
 *.log
 # Log SQL khi chạy development (index.js) — mỗi máy tự sinh, không đưa lên git
 sql_logs.txt
+
+# Bản chụp ảnh mẫu tạo lúc build để deploy (scripts/prepare-uploads-seed.js)
+uploads-seed/
