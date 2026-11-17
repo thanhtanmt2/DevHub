@@ -53,6 +53,84 @@ const StateChip = ({ state }) => {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${cls}`}>{text}</span>;
 };
 
+// ─── Cơ sở chấm điểm: công việc đã làm và nhận xét nghiệm thu ──────────────────────
+
+const TASK_STATUS = {
+  TODO: { label: 'Cần làm', cls: 'bg-gray-100 text-gray-600 ring-gray-200' },
+  IN_PROGRESS: { label: 'Đang làm', cls: 'bg-primary-50 text-primary-700 ring-primary-200' },
+  REVIEW: { label: 'Chờ duyệt', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
+  DONE: { label: 'Hoàn thành', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+};
+const fmtDate = (d) => new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+// Quá hạn = đã qua hết ngày deadline mà việc vẫn chưa gửi duyệt (cùng quy tắc với trang Workspace)
+const isOverdue = (t) => {
+  if (!t.deadline || !['TODO', 'IN_PROGRESS'].includes(t.status)) return false;
+  const end = new Date(t.deadline);
+  end.setHours(23, 59, 59, 999);
+  return end < new Date();
+};
+
+const MiniChip = ({ cls, children }) => (
+  <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${cls}`}>{children}</span>
+);
+
+function TaskBasis({ tasks }) {
+  const [open, setOpen] = useState(false);
+  const items = tasks.items || [];
+  const noted = items.filter((t) => t.review_note).length;
+  return (
+    <div className="mt-5 border-t border-gray-100 pt-3">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1.5 text-left hover:bg-gray-50">
+        <span className="flex min-w-0 items-center gap-2">
+          <Icon name="clipboard" className="h-4 w-4 flex-shrink-0 text-primary-600" />
+          <span className="text-sm font-semibold text-gray-800">Cơ sở chấm điểm: công việc đã làm</span>
+          <span className="truncate text-xs text-gray-500">
+            {items.length > 0 ? `${tasks.done}/${tasks.total} hoàn thành${noted > 0 ? ` · ${noted} nhận xét` : ''}` : 'Chưa có công việc'}
+          </span>
+        </span>
+        <Icon name="chevronDown" className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        items.length === 0 ? (
+          <p className="mt-2 rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-500">Thành viên này chưa được giao công việc nào trong dự án.</p>
+        ) : (
+          <ul className="mt-2 max-h-96 space-y-2 overflow-y-auto pr-1">
+            {items.map((t) => {
+              const st = TASK_STATUS[t.status] || TASK_STATUS.TODO;
+              const revision = t.review_status === 'REVISION_REQUIRED' && t.status !== 'DONE';
+              return (
+                <li key={t.id} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-sm font-medium text-gray-900">{t.title}</p>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {isOverdue(t) && <MiniChip cls="bg-red-50 text-red-700 ring-red-200">Quá hạn</MiniChip>}
+                      {revision && <MiniChip cls="bg-orange-50 text-orange-700 ring-orange-200">Yêu cầu sửa</MiniChip>}
+                      <MiniChip cls={st.cls}>{st.label}</MiniChip>
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {t.deadline ? `Hạn ${fmtDate(t.deadline)}` : 'Không đặt hạn'} · Tiến độ {t.status === 'DONE' ? 100 : t.completion_rate}%
+                  </p>
+                  {t.review_note && (
+                    <div className="mt-2 rounded-lg bg-white p-2.5 ring-1 ring-inset ring-gray-200">
+                      <p className="text-xs font-semibold text-gray-500">
+                        Nhận xét nghiệm thu{t.reviewed_at ? <span className="font-normal text-gray-400"> · {fmtDate(t.reviewed_at)}</span> : null}
+                      </p>
+                      <p className="mt-0.5 whitespace-pre-line text-sm text-gray-700">{t.review_note}</p>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )
+      )}
+    </div>
+  );
+}
+
 // ─── Tab chấm điểm ────────────────────────────────────────────────────────────
 
 function ScoreCard({ m, row, onChange }) {
@@ -117,6 +195,7 @@ function ScoreCard({ m, row, onChange }) {
             placeholder="Chất lượng công việc, thái độ, kỹ năng nổi bật, điểm cần cải thiện..." className="input-field mt-1 resize-none text-sm" />
         </div>
       </div>
+      <TaskBasis tasks={m.tasks} />
     </li>
   );
 }
