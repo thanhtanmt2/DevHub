@@ -88,6 +88,12 @@ const startServer = async () => {
         require('fs').appendFileSync(require('path').join(__dirname, 'sql_logs.txt'), msg + '\n');
       };
     }
+    // In địa chỉ cơ sở dữ liệu đang dùng (không in mật khẩu) để dễ phát hiện khi deploy thiếu biến môi trường
+    const { host, port, database } = sequelize.config;
+    console.log(`🗄️  Đang kết nối cơ sở dữ liệu ${host}:${port}/${database}`);
+    if (process.env.NODE_ENV === 'production' && ['localhost', '127.0.0.1', '::1'].includes(host)) {
+      console.warn('⚠ Đang ở chế độ production nhưng cơ sở dữ liệu trỏ về localhost: kiểm tra biến DB_HOST / DATABASE_URL của dịch vụ');
+    }
     await sequelize.authenticate();
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS interviewers (
