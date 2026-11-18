@@ -81,7 +81,8 @@ function Chip({ children, className = '' }) {
 }
 
 // Sơ đồ kinh nghiệm theo thời gian (swimlane). editable = true ở trang ứng viên (có nút sửa / xóa / thêm dự án).
-export default function ExperienceTimeline({ experiences = [], devhubProjects = [], editable = false, onEdit, onDelete, onAddProject, emptyHint }) {
+// autoSelect = false: không tự mở chi tiết mục mới nhất, chỉ hiện khi người xem bấm vào một thanh trên sơ đồ.
+export default function ExperienceTimeline({ experiences = [], devhubProjects = [], editable = false, onEdit, onDelete, onAddProject, emptyHint, autoSelect = true }) {
   const items = useMemo(() => buildItems(experiences, devhubProjects), [experiences, devhubProjects]);
   const [filter, setFilter] = useState('ALL');
   const [selectedKey, setSelectedKey] = useState(null);
@@ -89,7 +90,9 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
 
   const typesPresent = LANE_ORDER.filter((t) => items.some((i) => i.type === t));
   const visible = filter === 'ALL' ? items : items.filter((i) => i.type === filter);
-  const selected = items.find((i) => i.key === selectedKey) || [...items].sort((a, b) => b.endT - a.endT || b.start - a.start)[0];
+  // Chỉ chọn trong các mục đang hiển thị: đang lọc "Dự án trên DevHub" thì không được hiện chi tiết của mục thuộc loại khác
+  const selected = visible.find((i) => i.key === selectedKey)
+    || (autoSelect ? [...visible].sort((a, b) => b.endT - a.endT || b.start - a.start)[0] : null);
 
   const { min, max, ticks } = useMemo(() => {
     if (!items.length) return { min: 0, max: 1, ticks: [] };
@@ -218,6 +221,7 @@ export default function ExperienceTimeline({ experiences = [], devhubProjects = 
         </div>
       </div>
       {bands.length > 0 && <p className="text-xs text-slate-500 mt-2"><span className="inline-block w-3 h-3 align-middle bg-amber-300/40 border border-amber-300 rounded-sm mr-1" />Vùng vàng: thời gian làm nhiều việc song song.</p>}
+      {!selected && !autoSelect && lanes.length > 0 && <p className="text-xs text-slate-500 mt-2">Bấm vào một thanh trên sơ đồ để xem chi tiết.</p>}
 
       {/* Chi tiết mục đang chọn */}
       {selected && (

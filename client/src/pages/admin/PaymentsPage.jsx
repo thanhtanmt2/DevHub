@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -8,6 +8,7 @@ import Icon, { IconBadge } from '@/components/common/Icon';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import MoneyInput from '@/components/common/MoneyInput';
 import PageBanner from '@/components/common/PageBanner';
+import { Popover } from '@/components/forum/ChatParts';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import useEscapeKey from '@/hooks/useEscapeKey';
 import { VIETQR_BANKS, resolveVietQrBank, buildVietQrUrl, buildTransferContent } from '@/utils/vietqr';
@@ -31,6 +32,7 @@ const toRow = (m) => {
     pay,
     user: m.CandidateProfile?.User,
     avatar: m.CandidateProfile?.avatar_url,
+    phone: m.CandidateProfile?.User?.phone || m.CandidateProfile?.phone || '',
     bank: m.CandidateProfile?.PaymentInformation,
     position: m.ProjectJob?.title || 'Thành viên dự án',
     amount: pay ? Math.round(Number(pay.amount)) : Math.round(Number(m.ProjectJob?.budget) || 0), // chưa có khoản thì lấy thù lao vị trí làm số tiền mặc định
@@ -41,6 +43,82 @@ const toRow = (m) => {
     closed: (ws?.Project?.status || ws?.InternalProject?.status) === 'COMPLETED',
   };
 };
+
+// Nút nhắc ứng viên tự bổ sung tài khoản ngân hàng (thông báo trong hệ thống + email). Server giới hạn nhắc lại một người mỗi 12 giờ.
+function RemindButton({ memberId, label = 'Nhắc bổ sung tài khoản', className = '' }) {
+  const [done, setDone] = useState(false);
+  const remind = useMutation({
+    mutationFn: () => adminApi.remindBankInfo(memberId),
+    onSuccess: (res) => { setDone(true); toast.success(res.data?.message || 'Đã gửi lời nhắc'); },
+    onError: (err) => toast.error(err.response?.data?.message || 'Không gửi được lời nhắc'),
+  });
+  return (
+    <button type="button" disabled={remind.isPending || done} onClick={() => remind.mutate()} className={className}>
+      {done ? 'Đã nhắc' : remind.isPending ? 'Đang gửi...' : label}
+    </button>
+  );
+}
+
+function ContactLine({ icon, label, value, href }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="w-8 h-8 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0"><Icon name={icon} className="w-4 h-4" /></span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] text-gray-400">{label}</p>
+        {value
+          ? <a href={href} className="block text-sm font-semibold text-gray-900 hover:text-primary-700 break-all">{value}</a>
+          : <p className="text-sm text-gray-400">Chưa cập nhật</p>}
+      </div>
+      {value && <button type="button" onClick={() => copyText(value, label.toLowerCase())} className="text-xs font-medium text-primary-700 hover:underline flex-shrink-0">Sao chép</button>}
+    </div>
+  );
+}
+
+// Bấm vào avatar / tên để xem thông tin liên hệ cơ bản (email, số điện thoại); chưa có tài khoản ngân hàng thì có nút nhắc ứng viên bổ sung
+// heading / subline: đổi hai dòng chữ cạnh avatar (hộp thanh toán dùng tiêu đề "Chuyển khoản thù lao cho ...")
+function PersonContact({ row, heading, subline }) {
+  const anchorRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  const { user, bank, phone } = row;
+  return (
+    <>
+      <button ref={anchorRef} type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={open} title="Xem thông tin liên hệ"
+        className="flex items-center gap-3 min-w-0 max-w-full text-left rounded-lg p-1 -m-1 hover:bg-gray-50 transition-colors">
+        <Avatar name={user?.full_name} src={row.avatar} size="md" />
+        <div className="min-w-0">
+          <p className={`text-gray-900 ${heading ? 'font-bold leading-tight break-words' : 'font-semibold truncate'}`}>{heading || user?.full_name || '—'}</p>
+          <p className={`text-xs text-gray-500 ${heading ? 'break-words' : 'truncate'}`}>{subline ?? row.position}</p>
+        </div>
+      </button>
+      <Popover anchorRef={anchorRef} open={open} onClose={close} role="dialog" aria-label="Thông tin liên hệ"
+        className="w-72 max-w-[calc(100vw-1rem)] rounded-xl bg-white p-4 shadow-xl ring-1 ring-slate-200">
+        <div className="flex items-center gap-3">
+          <Avatar name={user?.full_name} src={row.avatar} size="md" />
+          <div className="min-w-0">
+            <p className="font-bold text-gray-900 truncate">{user?.full_name || '—'}</p>
+            <p className="text-xs text-gray-500 break-words">{row.position} · {row.project}</p>
+          </div>
+        </div>
+        <div className="mt-3 space-y-2.5">
+          <ContactLine icon="mail" label="Email" value={user?.email} href={`mailto:${user?.email}`} />
+          <ContactLine icon="phone" label="Số điện thoại" value={phone} href={`tel:${phone}`} />
+        </div>
+        <div className="mt-3 border-t border-gray-100 pt-3">
+          {bank?.account_number ? (
+            <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} />Đã có tài khoản ngân hàng</p>
+          ) : (
+            <>
+              <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700"><Icon name="alert" className="w-3.5 h-3.5" />Chưa có tài khoản ngân hàng</p>
+              <RemindButton memberId={row.m.id} className="btn-primary mt-2 w-full text-sm !py-2 disabled:opacity-60" />
+              <p className="mt-1.5 text-[11px] leading-snug text-gray-400">Ứng viên nhận thông báo và email để tự cập nhật. Không nhận số tài khoản qua điện thoại để tránh nhầm số hoặc bị mạo danh.</p>
+            </>
+          )}
+        </div>
+      </Popover>
+    </>
+  );
+}
 
 const Chip = ({ paid }) => (
   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${paid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200'}`}>
@@ -123,10 +201,8 @@ function PayModal({ row, onClose, onPaid, pending }) {
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} role="dialog" aria-modal="true" aria-label="Chuyển khoản thù lao">
       <div className="bg-white w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl shadow-2xl animate-fade-in">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-          <Avatar name={row.user?.full_name} src={row.avatar} size="md" />
           <div className="min-w-0 flex-1">
-            <h2 className="font-bold text-gray-900 leading-tight">Chuyển khoản thù lao cho {row.user?.full_name}</h2>
-            <p className="text-xs text-gray-500 truncate">{row.position} · {row.project}</p>
+            <PersonContact row={row} heading={`Chuyển khoản thù lao cho ${row.user?.full_name || ''}`} subline={`${row.position} · ${row.project}`} />
           </div>
           <button type="button" onClick={onClose} aria-label="Đóng" className="w-8 h-8 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 flex items-center justify-center"><Icon name="x" className="w-5 h-5" /></button>
         </div>
@@ -158,7 +234,13 @@ function PayModal({ row, onClose, onPaid, pending }) {
             ) : (
               <div className="w-60 min-h-[15rem] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 flex flex-col items-center justify-center text-center gap-2 text-sm text-gray-500">
                 <IconBadge name="card" tone="amber" />
-                {!bank?.account_number ? <p>Ứng viên chưa cập nhật tài khoản ngân hàng nên chưa có mã QR.</p>
+                {!bank?.account_number ? (
+                  <>
+                    <p>Ứng viên chưa cập nhật tài khoản ngân hàng nên chưa có mã QR.</p>
+                    <RemindButton memberId={row.m.id} className="btn-primary text-sm !py-2 !px-3.5 disabled:opacity-60" />
+                    <p className="text-[11px] leading-snug text-gray-400">Bấm vào avatar ở góc trên để xem email, số điện thoại của ứng viên.</p>
+                  </>
+                )
                   : !detected ? <p>Chưa nhận ra ngân hàng "{bank.bank_name}". Hãy chọn ngân hàng bên phải.</p>
                     : <p>Nhập số tiền từ 1.000đ để tạo mã QR.</p>}
               </div>
@@ -349,12 +431,8 @@ export default function PaymentsPage() {
             <ul className="divide-y divide-gray-100">
               {g.rows.map((r) => (
                 <li key={r.m.id} className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 sm:px-5 py-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1 basis-52">
-                    <Avatar name={r.user?.full_name} src={r.avatar} size="md" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 truncate">{r.user?.full_name || '—'}</p>
-                      <p className="text-xs text-gray-500 truncate">{r.position}</p>
-                    </div>
+                  <div className="min-w-0 flex-1 basis-52">
+                    <PersonContact row={r} />
                   </div>
 
                   <div className="w-40 flex-shrink-0 min-w-0 text-xs">
@@ -363,7 +441,12 @@ export default function PaymentsPage() {
                         <p className="font-semibold text-gray-700 truncate">{resolveVietQrBank(r.bank.bank_name)?.shortName || r.bank.bank_name}</p>
                         <p className="text-gray-500 group-hover:text-primary-700">{r.bank.account_number} <Icon name="copy" className="w-3 h-3 ml-0.5 opacity-60" /></p>
                       </button>
-                    ) : <p className="text-amber-600 font-medium">Chưa có tài khoản</p>}
+                    ) : (
+                      <div>
+                        <p className="text-amber-600 font-medium">Chưa có tài khoản</p>
+                        <RemindButton memberId={r.m.id} label="Nhắc bổ sung" className="mt-0.5 text-[11px] font-semibold text-primary-700 hover:underline disabled:text-gray-400 disabled:no-underline" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="w-36 flex-shrink-0"><AmountCell row={r} saving={saveAmount.isPending} onSave={(amount) => saveAmount.mutateAsync({ row: r, amount }).then(() => true, () => false)} /></div>

@@ -32,7 +32,8 @@ JWT_REFRESH_EXPIRE=7d
 CLIENT_URL=https://<tên-miền>.up.railway.app
 BREVO_API_KEY=<khóa API Brevo>
 EMAIL_FROM=<địa chỉ gửi đã xác minh ở Brevo>
-VITE_GOOGLE_CLIENT_ID=<Google client ID, bỏ qua nếu không dùng đăng nhập Google>
+GOOGLE_CLIENT_ID=<Google client ID, bỏ qua nếu không dùng đăng nhập Google>
+VITE_GOOGLE_CLIENT_ID=<cùng Client ID ở trên>   # cả hai đều bắt buộc: thiếu GOOGLE_CLIENT_ID thì máy chủ từ chối đăng nhập Google
 GEMINI_API_KEY=<nếu dùng tính năng lọc kỹ năng từ CV>
 ```
 

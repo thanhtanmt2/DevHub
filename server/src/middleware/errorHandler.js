@@ -18,6 +18,10 @@ const normalizeError = (err) => {
         status: 400,
         message: err.code === 'LIMIT_FILE_SIZE' ? 'File vượt quá dung lượng cho phép' : 'Tải file lên không thành công',
       };
+    case 'SequelizeDatabaseError':
+      // 22P02: mã (UUID) trên đường dẫn sai định dạng, ví dụ /jobs/abc → coi như không tìm thấy thay vì báo lỗi máy chủ
+      if (err.parent?.code === '22P02') return { status: 404, message: 'Không tìm thấy dữ liệu bạn yêu cầu' };
+      break;
     default:
   }
   if (err.type === 'entity.parse.failed') return { status: 400, message: 'Dữ liệu gửi lên không đúng định dạng' };

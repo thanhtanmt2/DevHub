@@ -64,6 +64,7 @@ import SystemLogsPage from '@/pages/admin/SystemLogsPage';
 // Components
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import SupportWidget from '@/components/common/SupportWidget';
 import { ConfirmProvider } from '@/components/common/ConfirmDialog';
 import { AuthProvider } from '@/contexts/AuthContext';
 
@@ -174,6 +175,8 @@ export default function App() {
       <ConfirmProvider>
         <AppRoutes />
         <AuthModal />
+        {/* Nút hỗ trợ nổi: có ở mọi trang (công khai, ứng viên, nhà tuyển dụng, admin), nằm dưới các hộp thoại */}
+        <SupportWidget />
       </ConfirmProvider>
     </AuthProvider>
   );

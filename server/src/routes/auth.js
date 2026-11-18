@@ -7,37 +7,38 @@ const {
   logout, forgotPassword, resetPassword, getMe, updateAvatar, loginTwoFactor, resendTwoFactor
 } = require('../controllers/authController');
 const account = require('../controllers/accountController');
+const limits = require('../middleware/rateLimit');
 
-router.post('/register', [
+router.post('/register', limits.register, [
   body('email').isEmail().withMessage('Email không hợp lệ'),
   body('password').isLength({ min: 8 }).withMessage('Mật khẩu tối thiểu 8 ký tự'),
   body('full_name').notEmpty().withMessage('Vui lòng nhập họ và tên'),
 ], validate, register);
 
-router.get('/verify-email/:token', verifyEmail);
-router.post('/resend-verification', [body('email').isEmail().withMessage('Email không hợp lệ')], validate, resendVerification);
-router.post('/login', [
+router.get('/verify-email/:token', limits.tokenAttempts, verifyEmail);
+router.post('/resend-verification', limits.sendEmailByEmail, [body('email').isEmail().withMessage('Email không hợp lệ')], validate, resendVerification);
+router.post('/login', limits.loginByIp, limits.loginByEmail, [
   body('email').isEmail().withMessage('Email không hợp lệ'),
   body('password').notEmpty().withMessage('Vui lòng nhập mật khẩu'),
 ], validate, login);
-router.post('/login/2fa', [
+router.post('/login/2fa', limits.twoFactorAttempts, [
   body('challenge').notEmpty().withMessage('Thiếu thông tin xác minh'),
   body('code').notEmpty().withMessage('Vui lòng nhập mã xác minh'),
 ], validate, loginTwoFactor);
-router.post('/login/2fa/resend', [body('challenge').notEmpty().withMessage('Thiếu thông tin xác minh')], validate, resendTwoFactor);
+router.post('/login/2fa/resend', limits.sendEmailByChallenge, [body('challenge').notEmpty().withMessage('Thiếu thông tin xác minh')], validate, resendTwoFactor);
 router.post('/google', [
   body('token').notEmpty().withMessage('Thiếu mã đăng nhập Google')
 ], validate, require('../controllers/authController').googleLogin);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
-router.post('/forgot-password', [body('email').isEmail().withMessage('Email không hợp lệ')], validate, forgotPassword);
-router.post('/reset-password/:token', [
+router.post('/forgot-password', limits.sendEmailByEmail, [body('email').isEmail().withMessage('Email không hợp lệ')], validate, forgotPassword);
+router.post('/reset-password/:token', limits.tokenAttempts, [
   body('password').isLength({ min: 8 }).withMessage('Mật khẩu tối thiểu 8 ký tự'),
 ], validate, resetPassword);
 router.get('/me', protect, getMe);
 router.put('/me/avatar', protect, updateAvatar);
 router.put('/me/profile', protect, account.updateProfile);
-router.put('/me/password', protect, account.changePassword);
+router.put('/me/password', protect, limits.changePassword, account.changePassword);
 router.get('/me/sessions', protect, account.listSessions);
 router.delete('/me/sessions', protect, account.revokeSessions);
 router.delete('/me/sessions/:id', protect, account.revokeSessions);

@@ -6,6 +6,6 @@ const { optionalAuth } = require('../middleware/auth');
 
 // Public routes
 router.get('/', optionalAuth, ctrl.getJobs);
-router.get('/:id', ctrl.getJobById);
+router.get('/:id', optionalAuth, ctrl.getJobById);
 
 module.exports = router;

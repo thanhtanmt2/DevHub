@@ -631,6 +631,8 @@ exports.adminScheduleInterview = async (req, res, next) => {
     if (hasPresetTime) {
       startMs = new Date(interview_time).getTime();
       if (isNaN(startMs)) throw new AppError('Thời gian phỏng vấn không hợp lệ', 400);
+      // Cùng quy tắc với lúc ứng viên tự chọn giờ: không đặt lịch vào quá khứ (cho lệch 1 phút do đồng hồ)
+      if (startMs < Date.now() - 60000) throw new AppError('Không thể đặt lịch phỏng vấn vào thời gian trong quá khứ. Vui lòng chọn thời gian sắp tới.', 400);
       endMs = startMs + durationMin * 60000;
 
       await assertNoInterviewConflict({
@@ -785,6 +787,7 @@ exports.adminScheduleInterview = async (req, res, next) => {
           : `Đã gửi lời mời phỏng vấn cho ${u.full_name} (ứng viên tự chọn ngày & khung giờ trống trên lịch của ${cleanInterviewer})`,
         metadata: { project_job_id: application.project_job_id, user_id: u.id },
         notify_user_ids: [u.id],
+        notify_link: '/candidate/applications', // ứng viên vào xem lịch, xác nhận hoặc đổi giờ
         skip_email: true, // thư mời phỏng vấn đã được gửi riêng (bên trên)
       });
     }

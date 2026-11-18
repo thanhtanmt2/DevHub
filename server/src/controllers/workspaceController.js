@@ -570,6 +570,7 @@ exports.removeWorkspaceMember = async (req, res, next) => {
         description: `Đã xóa ${u.full_name} khỏi workspace`,
         metadata: { workspace_id: req.params.workspaceId, user_id: u.id },
         notify_user_ids: [u.id],
+        notify_link: '/candidate/workspaces', // đã bị gỡ nên không vào được workspace đó nữa: đưa về danh sách workspace của mình
       });
     }
 

@@ -8,7 +8,6 @@ export const candidateApi = {
   // Skills
   getSkills: () => api.get('/candidates/skills'),
   addSkill: (data) => api.post('/candidates/skills', data),
-  updateSkill: (skillId, data) => api.put(`/candidates/skills/${skillId}`, data),
   removeSkill: (skillId) => api.delete(`/candidates/skills/${skillId}`),
   
   // Experiences
