@@ -63,7 +63,7 @@ router.get('/projects/:projectId/jobs', projectJobCtrl.adminGetProjectJobs);
 router.post('/projects/:projectId/jobs', [body('title').notEmpty()], validate, projectJobCtrl.adminCreateProjectJob);
 router.put('/project-jobs/:id', projectJobCtrl.adminUpdateProjectJob);
 router.put('/project-applications/:id/status', [body('status').isIn(['REVIEWING', 'ACCEPTED', 'REJECTED', 'INTERVIEW'])], validate, projectJobCtrl.adminUpdateProjectApplicationStatus);
-router.post('/project-applications/:id/schedule-interview', [body('interview_time').notEmpty(), body('meet_url').notEmpty()], validate, projectJobCtrl.adminScheduleInterview);
+router.post('/project-applications/:id/schedule-interview', [body('interview_time').if((v, { req }) => !req.body.allow_self_schedule).notEmpty(), body('meet_url').notEmpty()], validate, projectJobCtrl.adminScheduleInterview);
 router.get('/interviews', projectJobCtrl.adminGetInterviewSchedule);
 router.get('/interviewers', projectJobCtrl.adminGetInterviewers);
 router.post('/interviewers', [body('name').notEmpty()], validate, projectJobCtrl.adminCreateInterviewer);
