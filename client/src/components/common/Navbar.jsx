@@ -77,6 +77,10 @@ function MessageBell() {
   );
 }
 
+// Thông báo tạo trước khi có đường dẫn vẫn đưa người dùng tới đúng trang theo loại thông báo
+const FALLBACK_LINKS = { INTERVIEW_SCHEDULED: '/candidate/applications', MEMBER_ROLE_CHANGED: '/candidate/workspaces' };
+const notifLink = (n) => n.link || FALLBACK_LINKS[n.type] || null;
+
 // ─── Notification Bell ────────────────────────────────────────────────────────
 function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -238,15 +242,16 @@ function NotificationBell() {
                 >
                   Đóng
                 </button>
-                {selectedNotif.link && (
-                  <button 
+                {notifLink(selectedNotif) && (
+                  <button
                     onClick={() => {
+                      const to = notifLink(selectedNotif);
                       setSelectedNotif(null);
-                      navigate(selectedNotif.link);
+                      navigate(to);
                     }}
                     className="btn-primary"
                   >
-                    Đi đến liên kết ↗
+                    Xem chi tiết →
                   </button>
                 )}
               </div>

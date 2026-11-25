@@ -258,6 +258,12 @@ exports.googleLogin = async (req, res, next) => {
     // nhận token từ frontend
     const { token } = req.body;
 
+    // Thiếu GOOGLE_CLIENT_ID thì thư viện bỏ qua bước kiểm tra "mã này cấp cho ứng dụng nào", tức là chấp nhận token Google của BẤT KỲ ứng dụng nào.
+    // Không để tình trạng đó xảy ra: chưa cấu hình thì từ chối đăng nhập Google.
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      throw new AppError('Đăng nhập bằng Google chưa được cấu hình trên máy chủ', 503);
+    }
+
     // Kiểm tra xem mã đó có đúng do google cấp không
     // nếu đúng mã hóa nó thành vé ticket chứa thông tin như email, name, picture
     const ticket = await googleClient.verifyIdToken({

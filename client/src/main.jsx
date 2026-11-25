@@ -70,6 +70,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <App />
             <Toaster
               position="top-right"
+              // Thanh điều hướng cao 64–72px: đẩy thông báo xuống dưới nó để không che các mục (Dashboard, tin nhắn, chuông...)
+              containerStyle={{ top: 88 }}
               toastOptions={{
                 duration: 4000,
                 style: { borderRadius: '10px', background: '#333', color: '#fff' },

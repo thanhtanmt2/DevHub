@@ -65,7 +65,7 @@ export default function ManageInterviewersPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => projectJobApi.deleteInterviewer(id),
-    onSuccess: (res) => {
+    onSuccess: (res, id) => { // tham số thứ hai là mã người vừa xóa; thiếu nó thì dòng so sánh bên dưới báo "id is not defined"
       toast.success(res.data?.message || 'Đã xóa người phỏng vấn');
       qc.invalidateQueries({ queryKey: ['admin-interviews'] });
       if (filterInterviewerId === id) setFilterInterviewerId('ALL');

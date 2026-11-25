@@ -107,9 +107,11 @@ exports.getProjectEvaluations = async (req, res, next) => {
       })
       : [];
 
-    // Số việc được giao / đã xong của từng thành viên, để Admin có cơ sở khi chấm
+    // Số việc được giao / đã xong của từng thành viên, kèm danh sách công việc và nhận xét nghiệm thu, để Admin có cơ sở khi chấm
     const stats = new Map();
+    const taskItems = new Map();
     if (members.length) {
+      const ids = members.map((m) => m.id);
       const rows = await sequelize.query(
         `SELECT ta.workspace_member_id AS mid,
                 COUNT(*) FILTER (WHERE t.status <> 'CANCELLED') AS total,
@@ -117,9 +119,33 @@ exports.getProjectEvaluations = async (req, res, next) => {
            FROM task_assignees ta JOIN tasks t ON t.id = ta.task_id
           WHERE ta.workspace_member_id IN (:ids)
           GROUP BY ta.workspace_member_id`,
-        { replacements: { ids: members.map((m) => m.id) }, type: sequelize.QueryTypes.SELECT }
+        { replacements: { ids }, type: sequelize.QueryTypes.SELECT }
       );
       rows.forEach((r) => stats.set(r.mid, { total: Number(r.total), done: Number(r.done) }));
+
+      // Công việc đã bị hủy không tính vào cơ sở chấm điểm
+      const items = await sequelize.query(
+        `SELECT ta.workspace_member_id AS mid, t.id, t.title, t.status, t.priority, t.review_status, t.review_note,
+                t.reviewed_at, t.deadline, t.completion_rate
+           FROM task_assignees ta JOIN tasks t ON t.id = ta.task_id
+          WHERE ta.workspace_member_id IN (:ids) AND t.status <> 'CANCELLED'
+          ORDER BY t.created_at ASC, t.id ASC`,
+        { replacements: { ids }, type: sequelize.QueryTypes.SELECT }
+      );
+      items.forEach((r) => {
+        if (!taskItems.has(r.mid)) taskItems.set(r.mid, []);
+        taskItems.get(r.mid).push({
+          id: r.id,
+          title: r.title,
+          status: r.status,
+          priority: r.priority,
+          review_status: r.review_status,
+          review_note: r.review_note || null,
+          reviewed_at: r.reviewed_at,
+          deadline: r.deadline,
+          completion_rate: r.completion_rate ?? 0,
+        });
+      });
     }
 
     const list = members.map((m) => {
@@ -131,7 +157,7 @@ exports.getProjectEvaluations = async (req, res, next) => {
         user: { id: m.CandidateProfile?.User?.id, full_name: m.CandidateProfile?.User?.full_name, email: m.CandidateProfile?.User?.email },
         avatar_url: m.CandidateProfile?.avatar_url || null,
         professional_title: m.CandidateProfile?.professional_title || null,
-        tasks: stats.get(m.id) || { total: 0, done: 0 },
+        tasks: { ...(stats.get(m.id) || { total: 0, done: 0 }), items: taskItems.get(m.id) || [] },
         evaluation: ev ? { score: Number(ev.score), comment: ev.comment, evaluated_at: ev.evaluated_at } : null,
       };
     });

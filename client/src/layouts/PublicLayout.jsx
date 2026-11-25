@@ -2,7 +2,6 @@ import { Outlet, Link } from 'react-router-dom';
 import Navbar from '@/components/common/Navbar';
 import Icon from '@/components/common/Icon';
 import Logo from '@/components/common/Logo';
-import SupportWidget from '@/components/common/SupportWidget';
 import { useAuth } from '@/contexts/AuthContext';
 import { SUPPORT, telHref, zaloHref, mailHref } from '@/config/support';
 
@@ -106,7 +105,6 @@ export default function PublicLayout() {
         </div>
       </footer>
 
-      <SupportWidget />
     </div>
   );
 }

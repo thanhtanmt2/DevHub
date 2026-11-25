@@ -43,19 +43,20 @@ export default function JobDetailView({ job, action, compact = false, showTitle 
           </>
         )}
 
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Mức lương nằm riêng một ô rộng; hai ô còn lại xếp cạnh nhau. Chữ được xuống dòng, không bị cắt (khung xem nhanh khá hẹp) */}
+        <div className={`mt-4 grid grid-cols-1 gap-3 ${compact ? 'min-[420px]:grid-cols-2' : 'sm:grid-cols-3'}`}>
           {[
             { icon: 'cash', label: 'Mức lương', value: formatSalaryShort(job.salary_min, job.salary_max), strong: true },
             { icon: 'mapPin', label: 'Địa điểm', value: job.location || 'Toàn quốc / Remote' },
             { icon: 'clock', label: 'Kinh nghiệm', value: EXPERIENCE_LABELS[job.experience] || 'Không yêu cầu' },
-          ].map((t) => (
-            <div key={t.label} className="flex items-center gap-3 rounded-xl bg-primary-50/60 border border-primary-100 px-4 py-3">
+          ].map((t, i) => (
+            <div key={t.label} className={`flex items-center gap-3 rounded-xl bg-primary-50/60 border border-primary-100 px-4 py-3 ${compact && i === 0 ? 'min-[420px]:col-span-2' : ''}`}>
               <span className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center flex-shrink-0">
                 <Icon name={t.icon} className="w-5 h-5" />
               </span>
               <div className="min-w-0">
                 <p className="text-xs text-slate-500">{t.label}</p>
-                <p className={`font-bold truncate ${t.strong ? 'text-primary-700 text-base' : 'text-slate-900 text-sm'}`}>{t.value}</p>
+                <p className={`font-bold leading-snug break-words ${t.strong ? 'text-primary-700 text-lg' : 'text-slate-900 text-sm'}`}>{t.value}</p>
               </div>
             </div>
           ))}

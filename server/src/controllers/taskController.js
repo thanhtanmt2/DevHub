@@ -678,10 +678,11 @@ exports.reviewTask = async (req, res, next) => {
     const review_note = typeof req.body.review_note === 'string' ? req.body.review_note.trim() : '';
     const task = await Task.findByPk(req.params.id || req.params.taskId);
     if (!task) throw new AppError('Không tìm thấy task', 404);
-    if (task.status !== 'REVIEW') throw new AppError('Task chưa ở trạng thái chờ duyệt', 400);
 
+    // Kiểm tra quyền trước, rồi mới nói đến trạng thái task (người không có quyền không nên biết task đang ở trạng thái nào)
     const access = await getWorkspaceAccess(req, task.workspace_id);
     if (!access.canManageTasks) throw new AppError('Chỉ Admin hoặc Lead mới có quyền duyệt task', 403);
+    if (task.status !== 'REVIEW') throw new AppError('Task chưa ở trạng thái chờ duyệt', 400);
     const member = access.member;
 
     if (!['APPROVE', 'REVISION'].includes(action)) throw new AppError('Action phải là APPROVE hoặc REVISION', 400);

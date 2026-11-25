@@ -9,6 +9,7 @@ const {
   ProjectJob,
   User,
   PaymentInformation,
+  Notification,
 } = require('../models');
 const { Op } = require('sequelize');
 const AppError = require('../utils/AppError');
@@ -55,9 +56,9 @@ exports.getPayableMembers = async (req, res, next) => {
       include: [
         {
           model: CandidateProfile,
-          attributes: ['id', 'professional_title', 'user_id', 'avatar_url'],
+          attributes: ['id', 'professional_title', 'user_id', 'avatar_url', 'phone'],
           include: [
-            { model: User, attributes: ['id', 'full_name', 'email'] },
+            { model: User, attributes: ['id', 'full_name', 'email', 'phone'] },
             { model: PaymentInformation, attributes: ['bank_name', 'account_number', 'account_holder_name'] },
           ],
         },
@@ -112,6 +113,62 @@ exports.getPayableMembers = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+const BANK_REMINDER_TITLE = 'Vui lòng bổ sung tài khoản nhận thù lao';
+const BANK_REMINDER_GAP_HOURS = 12; // nhắc lại một người tối đa mỗi 12 giờ để không làm phiền
+
+// POST /api/admin/payments/remind-bank-info { workspace_member_id }
+// Nhắc ứng viên chưa có tài khoản ngân hàng tự vào Hồ sơ → Thanh toán để bổ sung (thông báo trong hệ thống + email).
+// Chỉ nhắc, không nhận số tài khoản hộ: chính chủ tự nhập bằng đăng nhập của mình thì mới tránh được nhầm số và mạo danh.
+exports.remindBankInfo = async (req, res, next) => {
+  try {
+    const member = await WorkspaceMember.findByPk(req.body.workspace_member_id, {
+      include: [
+        {
+          model: CandidateProfile,
+          attributes: ['id', 'user_id'],
+          include: [
+            { model: User, attributes: ['id', 'full_name'] },
+            { model: PaymentInformation, attributes: ['account_number'] },
+          ],
+        },
+        {
+          model: Workspace,
+          attributes: ['id', 'name'],
+          include: [{ model: InternalProject, attributes: ['id', 'name'] }],
+        },
+      ],
+    });
+    if (!member) throw new AppError('Không tìm thấy thành viên', 404);
+    const u = member.CandidateProfile?.User;
+    if (!u) throw new AppError('Thành viên này chưa có tài khoản người dùng để nhắc', 400);
+    if (member.CandidateProfile?.PaymentInformation?.account_number) {
+      throw new AppError('Ứng viên này đã có tài khoản ngân hàng, không cần nhắc nữa', 400);
+    }
+
+    const since = new Date(Date.now() - BANK_REMINDER_GAP_HOURS * 3600000);
+    const recent = await Notification.findOne({
+      where: { user_id: u.id, type: 'PAYMENT_UPDATE', title: BANK_REMINDER_TITLE, createdAt: { [Op.gt]: since } },
+      order: [['createdAt', 'DESC']],
+    });
+    if (recent) {
+      const hoursLeft = Math.max(1, Math.ceil((recent.createdAt.getTime() + BANK_REMINDER_GAP_HOURS * 3600000 - Date.now()) / 3600000));
+      throw new AppError(`Đã nhắc ${u.full_name} gần đây rồi, vui lòng thử lại sau khoảng ${hoursLeft} giờ`, 429);
+    }
+
+    const projectName = member.Workspace?.InternalProject?.name || member.Workspace?.name;
+    await createNotification({
+      user_id: u.id,
+      type: 'PAYMENT_UPDATE',
+      title: BANK_REMINDER_TITLE,
+      message: `Bạn cần cập nhật tài khoản ngân hàng để nhận thù lao${projectName ? ` của dự án "${projectName}"` : ''}. Hãy vào Hồ sơ, chọn mục Thanh toán rồi điền tên chủ tài khoản, ngân hàng và số tài khoản của chính bạn.`,
+      link: '/candidate/profile?tab=payment',
+      metadata: { workspace_id: member.workspace_id, kind: 'bank_info_reminder' },
+    });
+
+    res.json({ success: true, message: `Đã gửi lời nhắc bổ sung tài khoản cho ${u.full_name}` });
+  } catch (error) { next(error); }
 };
 
 // POST /api/admin/payments — Tạo yêu cầu thanh toán (chống tạo trùng & chống tạo lại khi đã thanh toán)

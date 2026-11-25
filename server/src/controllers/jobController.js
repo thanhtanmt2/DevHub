@@ -190,8 +190,23 @@ exports.getJobById = async (req, res, next) => {
       ],
     });
     if (!job) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
-    // Increment view count
-    await job.increment('view_count');
+
+    // Tin nháp / chờ duyệt / đã ẩn không được công khai: chỉ Admin, doanh nghiệp đăng tin, hoặc ứng viên đã ứng tuyển tin đó mới xem được
+    if (!['OPEN', 'CLOSED'].includes(job.status)) {
+      let allowed = req.userRoles?.includes('ADMIN') || false;
+      if (!allowed && req.user && req.userRoles?.includes('EMPLOYER')) {
+        const company = await Company.findOne({ where: { user_id: req.user.id }, attributes: ['id'] });
+        allowed = !!company && company.id === job.company_id;
+      }
+      if (!allowed && req.user && req.userRoles?.includes('CANDIDATE')) {
+        const profile = await CandidateProfile.findOne({ where: { user_id: req.user.id }, attributes: ['id'] });
+        allowed = !!profile && !!(await Application.findOne({ where: { job_post_id: job.id, candidate_profile_id: profile.id }, attributes: ['id'] }));
+      }
+      if (!allowed) throw new AppError('Không tìm thấy tin tuyển dụng', 404);
+    }
+
+    // Chỉ tin đang công khai mới tính lượt xem
+    if (job.status === 'OPEN') await job.increment('view_count');
     res.json({ success: true, data: job });
   } catch (error) { next(error); }
 };

@@ -6,8 +6,20 @@ import { workspaceApi } from '@/api/workspaceApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Icon from '@/components/common/Icon';
 import PageBanner from '@/components/common/PageBanner';
+import ExpandableText from '@/components/common/ExpandableText';
 import { useConfirm } from '@/components/common/ConfirmDialog';
 import { PROJECT_STATUS_META, formatDate, formatMoney } from '@/utils/jobMeta';
+
+// Nhãn cảnh báo theo hạn hoàn thành dự kiến (chỉ với dự án còn đang chạy): quá hạn hoặc sắp đến hạn trong 7 ngày
+function deadlineBadge(project) {
+  if (!project.expected_end_date || ['COMPLETED', 'CANCELLED'].includes(project.status)) return null;
+  const end = new Date(project.expected_end_date);
+  end.setHours(23, 59, 59, 999);
+  const days = Math.ceil((end - new Date()) / 86400000);
+  if (days < 0) return { text: `Quá hạn ${-days} ngày`, cls: 'bg-red-50 text-red-700 border-red-200' };
+  if (days <= 7) return { text: days === 0 ? 'Đến hạn hôm nay' : `Còn ${days} ngày`, cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+  return null;
+}
 
 export default function InternalProjectsPage() {
   const confirm = useConfirm();
@@ -527,9 +539,7 @@ export default function InternalProjectsPage() {
                             </button>
                           </div>
 
-                          {project.description && (
-                            <p className="text-xs text-gray-500 line-clamp-2">{project.description}</p>
-                          )}
+                          <ExpandableText text={project.description} lines={2} className="text-xs text-gray-500" />
 
                           <div className="text-xs text-gray-600 space-y-1 bg-gray-50 rounded-lg p-2.5 border border-gray-100">
                             <p className="flex items-center justify-between">
@@ -664,9 +674,19 @@ export default function InternalProjectsPage() {
                     </div>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
+                  <div className="mb-4"><ExpandableText text={project.description} lines={2} className="text-gray-600 text-sm" /></div>
 
                   <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-1.5 text-gray-600 mb-4 border border-gray-100">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1">
+                        <Icon name="calendar" className="w-4 h-4 text-primary-600" />
+                        <strong>Hạn hoàn thành dự kiến:</strong> {project.expected_end_date ? formatDate(project.expected_end_date) : 'Chưa đặt'}
+                      </span>
+                      {(() => {
+                        const badge = deadlineBadge(project);
+                        return badge ? <span className={`px-2 py-0.5 rounded-full border font-semibold text-[11px] ${badge.cls}`}>{badge.text}</span> : null;
+                      })()}
+                    </div>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="inline-flex items-center gap-1">
                         <Icon name="briefcase" className="w-4 h-4 text-primary-600" />
